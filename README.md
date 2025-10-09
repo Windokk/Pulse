@@ -15,6 +15,30 @@
 
 ## Screenshots
 
+## Build Requirements (Windows)
+
+Cmake 3.28.2 or later
+
+C++ 17 Compiler (GCC MinGW recommended)
+
+Qt 6.9.2 
+You can verify your qt version using: 
+```bash
+qtpaths6 --qt-version
+```
+
+ZLIB
+
+## How to build editor app :
+
+Run build.bat or build
+
+This will compile CMakeLists everything in root : the engine, the editor app, the editor module, and a basic game module
+
+(As of october 2025, the editor module will try to find Qt6 at : "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/" on Windows
+and "")
+
+
 ## FEATURES
 
 ### Rendering
@@ -95,9 +119,9 @@
 
 ## ROADMAP ALPHA (November/December 2025)
 
-### Editor
+### Editor (Qt)
 
-- [ ] Basic Level Editor (ImGUI)
+- [ ] Basic Level Editor
 - [ ] Material Editor
 - [ ] Console
 - [ ] Stats overlay

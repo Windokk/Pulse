@@ -16,8 +16,8 @@ namespace Epoch::Engine::Rendering::UI
         shader->setMat4("model", transform.GetTransformMatrix());
         shader->setMat4("view", view);
         shader->setMat4("projection", projection);
-        glActiveTexture(GL_TEXTURE0);
-        glBindVertexArray(font->GetVAO());
+        GetGL().ActiveTexture(GL_TEXTURE0);
+        GetGL().BindVertexArray(font->GetVAO());
 
         // iterate through all characters of the text
         std::string::const_iterator c;
@@ -46,20 +46,20 @@ namespace Epoch::Engine::Rendering::UI
                     { glm::vec3(xpos + w, ypos + h, 0.0f), normal, color, glm::vec2(1.0f, 0.0f), glm::vec3(0) }
                 };
                 // render glyph texture over quad
-                glBindTexture(GL_TEXTURE_2D, ch.textureID);
+                GetGL().BindTexture(GL_TEXTURE_2D, ch.textureID);
                 // update content of VBO memory
-                glBindBuffer(GL_ARRAY_BUFFER, font->GetVBO());
-                glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(Vertex), vertices.data());
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                GetGL().BindBuffer(GL_ARRAY_BUFFER, font->GetVBO());
+                GetGL().BufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(Vertex), vertices.data());
+                GetGL().BindBuffer(GL_ARRAY_BUFFER, 0);
                 // render quad
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                GetGL().DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                 // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
                 cursor.x += (ch.advance >> 6) * transform.GetScale().x; // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
             }
         }
-        glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        GetGL().BindVertexArray(0);
+        GetGL().BindTexture(GL_TEXTURE_2D, 0);
         shader->Deactivate();
     }
 }

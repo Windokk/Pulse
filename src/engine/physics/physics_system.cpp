@@ -157,9 +157,13 @@ namespace Epoch::Engine::Physics {
     void PhysicsSystem::StepSimulation(float deltaTime)
     {
         m_physicsSystem.Update(deltaTime, 1, m_tempAllocator, m_jobSystem);
-        
-        for (auto& physicsBody : Levels::LevelManager::GetInstance().GetLevelAt(0)->physicsBodies){
-            physicsBody->Tick();
+
+        if(int levelCount = Levels::LevelManager::GetInstance().GetLoadedLevelCount() > 0){
+                    for(int i = 0; i < levelCount; i++){
+                for (auto& physicsBody : Levels::LevelManager::GetInstance().GetLevelAt(i)->physicsBodies){
+                    physicsBody->Tick();
+                }
+            }
         }
     }
 

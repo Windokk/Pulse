@@ -20,15 +20,14 @@ namespace Epoch::Engine{
 
         struct RendererSettings{
             bool showDebugShapes = false;
-            //int antiAliasingLevel = 4;
             //TODO : bool enableStatsOverlay = false;
             bool enableShadows = true;
             bool enablePostProcessing = true;
             private:
-                int windowPosX, windowPosY, windowWidth, windowHeight= 0;
+                int windowWidth = 0;
+                int windowHeight = 0;
                 bool fullscreen = false;
             friend class Epoch::Engine::Rendering::Renderer;
-
         };
 
         enum class RenderStage {
@@ -69,82 +68,70 @@ namespace Epoch::Engine{
         class Renderer{
             public:
 
-            static Renderer& GetInstance() {
-                static Renderer instance;
-                return instance;
-            }
+                static Renderer& GetInstance() {
+                    static Renderer instance;
+                    return instance;
+                }
 
-            void Init(GLFWwindow *window, RendererSettings settings = {});
-            void InitFramebuffers();
-            void Shutdown();
-            void Render();
+                void Init(RendererSettings settings = {});
+                void InitFramebuffers();
+                void Shutdown();
+                void Render();
 
-            void SubmitCommand(DrawCommand cmd, bool replace);
-            void SubmitCommands(std::vector<DrawCommand> cmds, bool replace);
+                void SubmitCommand(DrawCommand cmd, bool replace);
+                void SubmitCommands(std::vector<DrawCommand> cmds, bool replace);
 
-            void RemoveCommand(DrawCommand cmd);
-            void RemoveCommands(std::vector<DrawCommand> cmds);
+                void RemoveCommand(DrawCommand cmd);
+                void RemoveCommands(std::vector<DrawCommand> cmds);
 
-            void ReorderDrawList();
+                void ReorderDrawList();
 
-            void DrawScene();
+                void DrawScene();
 
-            void RescaleFramebuffers(int width, int height);
+                void RescaleFramebuffers(int newWidth, int newHeight);
 
-            void AddRenderPass(
-                RenderStage stage, 
-                std::function<void()> callback, 
-                std::shared_ptr<FrameBuffer> fb = nullptr, 
-                bool appendToViewport = true,
-                BlendMode blendMode = BlendMode::Normal);
+                void AddRenderPass(
+                    RenderStage stage, 
+                    std::function<void()> callback, 
+                    std::shared_ptr<FrameBuffer> fb = nullptr, 
+                    bool appendToViewport = true,
+                    BlendMode blendMode = BlendMode::Normal);
 
-            
-            void ExecuteRenderPasses();
+                
+                void ExecuteRenderPasses();
 
-            int GetCurrentHeight() { int height; glfwGetWindowSize(window, nullptr, &height); return height; }
+                unsigned int GetViewportTextureID() { return viewportBuffer->GetFrameTexture(); }
 
-            int GetCurrentWidth() { int width; glfwGetWindowSize(window, &width, nullptr); return width; }
+                LightManager* lightMan;
 
-            bool GetCurrentFullscreen() { return settings.fullscreen; }
-
-            void ToggleFullscreen();
-
-            unsigned int GetViewportTextureID() { return viewportBuffer->GetFrameTexture(); }
-
-            LightManager* lightMan;
-
-            ShadowManager* shadowMan;
+                ShadowManager* shadowMan;
 
             private:
 
-            void CreateRectGeometry();
+                void CreateRectGeometry();
 
-            Renderer() = default;
-            ~Renderer() = default;
-            Renderer(const Renderer&) = delete;
-            Renderer& operator=(const Renderer&) = delete;
+                Renderer() = default;
+                ~Renderer() = default;
+                Renderer(const Renderer&) = delete;
+                Renderer& operator=(const Renderer&) = delete;
 
-            void BeginFrame();
+                void BeginFrame();
 
-            GLFWwindow *window;
+                std::vector<DrawCommand> drawList;
 
-            std::vector<DrawCommand> drawList;
+                unsigned int rectVAO, rectVBO;
+                
+                std::vector<RenderPass> renderPasses;
 
-            unsigned int rectVAO, rectVBO;
-            
-            std::vector<RenderPass> renderPasses;
+                std::shared_ptr<Shader> blendShader;
+                FrameBuffer* viewportBuffer;
 
-            std::shared_ptr<Shader> blendShader;
-            FrameBuffer* viewportBuffer;
+                std::shared_ptr<Shader> framebufferShader;
 
-            std::shared_ptr<Shader> framebufferShader;
+                std::shared_ptr<Shader> unlitShader;
 
-            std::shared_ptr<Shader> unlitShader;
-
-            RendererSettings settings;
-
+                RendererSettings settings;
         };
-
         
 #if defined(BUILD_EDITOR)
 

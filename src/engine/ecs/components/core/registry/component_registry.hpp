@@ -34,7 +34,7 @@ namespace Epoch::Engine::ECS::Components {
         return gSharedComponentRegistry;
     }
 
-#else
+#elif defined(BUILD_GAME)
 
     // Used by the DLL
     inline ComponentRegistry* gSharedComponentRegistryPtr = nullptr;

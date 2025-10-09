@@ -6,16 +6,20 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include <glm/gtx/string_cast.hpp>
 
+#include "engine/core/engine.hpp"
+
+#include "engine/rendering/opengl/opengl.hpp"
+
 namespace Epoch::Engine::Rendering{
     
     LightManager::LightManager()
     {
-        glGenBuffers(1, &ssbo);
+        GetGL().GenBuffers(1, &ssbo);
     }
 
     LightManager::~LightManager()
     {
-        glDeleteBuffers(1, &ssbo);
+        GetGL().DeleteBuffers(1, &ssbo);
     }
 
     /// @note Only call this AFTER modifying the light data
@@ -33,9 +37,9 @@ namespace Epoch::Engine::Rendering{
                 }
             }
 
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-            glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightData) * flatLights.size(), flatLights.data(), GL_DYNAMIC_DRAW);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+            GetGL().BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+            GetGL().BufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightData) * flatLights.size(), flatLights.data(), GL_DYNAMIC_DRAW);
+            GetGL().BindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
         }
 
         if(updatedLight == -1)
@@ -179,7 +183,7 @@ namespace Epoch::Engine::Rendering{
         else if (type == static_cast<int>(LightType::Spot))
         {
             float orthoSize = 10.0f;
-            glm::mat4 proj = glm::perspective(glm::radians(60.0f), static_cast<float>(Renderer::GetInstance().GetCurrentWidth()/Renderer::GetInstance().GetCurrentHeight()), 0.1f, radius);
+            glm::mat4 proj = glm::perspective(glm::radians(60.0f), static_cast<float>(Core::GetEngine().GetWindow()->GetFramebufferWidth()/Core::GetEngine().GetWindow()->GetFramebufferHeight()), 0.1f, radius);
 
             glm::vec3 lightDir = glm::normalize(direction);
             glm::vec3 lightPos = position;

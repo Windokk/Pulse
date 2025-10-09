@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include "engine/rendering/opengl/opengl.hpp"
+
 namespace Epoch::Engine::Rendering{
     
     Mesh::Mesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse)
@@ -13,9 +15,9 @@ namespace Epoch::Engine::Rendering{
 
     Mesh::~Mesh()
     {
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &EBO);
+        GetGL().DeleteVertexArrays(1, &VAO);
+        GetGL().DeleteBuffers(1, &VBO);
+        GetGL().DeleteBuffers(1, &EBO);
     }
 
     void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -180,43 +182,43 @@ namespace Epoch::Engine::Rendering{
 
         ComputeTangents(vertices, indices);
 
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
+        GetGL().GenVertexArrays(1, &VAO);
+        GetGL().GenBuffers(1, &VBO);
+        GetGL().GenBuffers(1, &EBO);
 
-        glBindVertexArray(VAO);
+        GetGL().BindVertexArray(VAO);
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        GetGL().BindBuffer(GL_ARRAY_BUFFER, VBO);
+        GetGL().BufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+        GetGL().BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        GetGL().BufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
         // layout: 0 - position, 1 - normal, 2 - color, 3 - texCoord, 4 - tangent 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        glEnableVertexAttribArray(0);
+        GetGL().VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+        GetGL().EnableVertexAttribArray(0);
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-        glEnableVertexAttribArray(1);
+        GetGL().VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        GetGL().EnableVertexAttribArray(1);
 
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        glEnableVertexAttribArray(2);
+        GetGL().VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        GetGL().EnableVertexAttribArray(2);
 
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-        glEnableVertexAttribArray(3);
+        GetGL().VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+        GetGL().EnableVertexAttribArray(3);
 
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-        glEnableVertexAttribArray(4);
+        GetGL().VertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+        GetGL().EnableVertexAttribArray(4);
 
-        glBindVertexArray(0);
+        GetGL().BindVertexArray(0);
 
         return true;
     }
     
     void Mesh::DrawWithoutMaterial() const {
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(totalIndexCount), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        GetGL().BindVertexArray(VAO);
+        GetGL().DrawElements(GL_TRIANGLES, static_cast<GLsizei>(totalIndexCount), GL_UNSIGNED_INT, 0);
+        GetGL().BindVertexArray(0);
     }
     std::vector<DrawCommand> Mesh::CreateDrawCmds(std::shared_ptr<ECS::Components::Transform> tr, int objectID, std::vector<std::shared_ptr<Material>> mats)
     {

@@ -42,8 +42,7 @@ namespace Epoch::Engine::Core::Resources{
 
                         
                         if(vertPath.Exists() && fragPath.Exists()){
-                           DEBUG_INFO("Loading shader : " + shaderName);
-
+                            DEBUG_INFO("Loading shader : " + shaderName);
                             LoadShader(shaderName, vertPath, fragPath, geomPath.Exists() ? geomPath : Filesystem::Path(""));
                         }   
                         else{

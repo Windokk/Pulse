@@ -1,7 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "engine/rendering/opengl/opengl.hpp"
 
 #include "engine/ecs/components/core/transform.hpp"
 

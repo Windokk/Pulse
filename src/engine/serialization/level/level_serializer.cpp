@@ -8,6 +8,8 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
+#include "engine/core/engine.hpp"
+
 using namespace nlohmann;
 
 namespace Epoch::Engine::Serialization{
@@ -158,8 +160,8 @@ namespace Epoch::Engine::Serialization{
 
         auto cam = a->GetComponent<ECS::Components::Camera>();
 
-        int width = Rendering::Renderer::GetInstance().GetCurrentWidth();
-        int height = Rendering::Renderer::GetInstance().GetCurrentHeight();
+        int width = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+        int height = Core::GetEngine().GetWindow()->GetFramebufferHeight();
 
         float near = component["near"];
         float far = component["far"];

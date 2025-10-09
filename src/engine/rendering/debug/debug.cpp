@@ -1,32 +1,34 @@
 #include "debug.hpp"
 
+#include "engine/rendering/opengl/opengl.hpp"
+
 namespace Epoch::Engine::Rendering{
     
     constexpr int LAT_SEGMENTS = 12;
     constexpr int LONG_SEGMENTS = 24;
 
     void SetupGLBuffers(GLuint &VAO, GLuint &VBO, GLuint &EBO, const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices) {
-        glGenVertexArrays(1, &VAO);
-        glBindVertexArray(VAO);
+        GetGL().GenVertexArrays(1, &VAO);
+        GetGL().BindVertexArray(VAO);
 
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        GetGL().GenBuffers(1, &VBO);
+        GetGL().BindBuffer(GL_ARRAY_BUFFER, VBO);
+        GetGL().BufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-        glGenBuffers(1, &EBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+        GetGL().GenBuffers(1, &EBO);
+        GetGL().BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        GetGL().BufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-        glEnableVertexAttribArray(0); // position
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        GetGL().EnableVertexAttribArray(0); // position
+        GetGL().VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 
-        glEnableVertexAttribArray(1); // normal
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        GetGL().EnableVertexAttribArray(1); // normal
+        GetGL().VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
-        glEnableVertexAttribArray(2); // color
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        GetGL().EnableVertexAttribArray(2); // color
+        GetGL().VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 
-        glBindVertexArray(0);
+        GetGL().BindVertexArray(0);
     }
 
     DebugBox::DebugBox(glm::vec3 halfExtent, COL_RGBA color)
@@ -225,8 +227,8 @@ namespace Epoch::Engine::Rendering{
     
     DebugShape::~DebugShape()
     {
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &EBO);
+        GetGL().DeleteVertexArrays(1, &VAO);
+        GetGL().DeleteBuffers(1, &VBO);
+        GetGL().DeleteBuffers(1, &EBO);
     }
 }

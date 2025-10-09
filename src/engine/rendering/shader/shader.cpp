@@ -38,20 +38,20 @@ namespace Epoch::Engine::Rendering {
             const char* fragmentSource = fragmentCode.c_str();
     
             // Create Vertex Shader Object and get its reference
-            GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+            GLuint vertexShader = GetGL().CreateShader(GL_VERTEX_SHADER);
             // Attach Vertex Shader source to the Vertex Shader Object
-            glShaderSource(vertexShader, 1, &vertexSource, NULL);
+            GetGL().ShaderSource(vertexShader, 1, &vertexSource, NULL);
             // Compile the Vertex Shader into machine code
-            glCompileShader(vertexShader);
+            GetGL().CompileShader(vertexShader);
             // Checks if Shader compiled succesfully
             CompileErrors(vertexShader, "VERTEX");
     
             // Create Fragment Shader Object and get its reference
-            GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+            GLuint fragmentShader = GetGL().CreateShader(GL_FRAGMENT_SHADER);
             // Attach Fragment Shader source to the Fragment Shader Object
-            glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+            GetGL().ShaderSource(fragmentShader, 1, &fragmentSource, NULL);
             // Compile the Vertex Shader into machine code
-            glCompileShader(fragmentShader);
+            GetGL().CompileShader(fragmentShader);
             // Checks if Shader compiled succesfully
             CompileErrors(fragmentShader, "FRAGMENT");
     
@@ -63,25 +63,25 @@ namespace Epoch::Engine::Rendering {
                 std::string geometryCode = geometryFilePath.ReadFile();
                 const char* geometrySource = geometryCode.c_str();
 
-                geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
-                glShaderSource(geometryShader, 1, &geometrySource, NULL);
-                glCompileShader(geometryShader);
+                geometryShader = GetGL().CreateShader(GL_GEOMETRY_SHADER);
+                GetGL().ShaderSource(geometryShader, 1, &geometrySource, NULL);
+                GetGL().CompileShader(geometryShader);
                 CompileErrors(geometryShader, "GEOMETRY");
             }
 
-            ID = glCreateProgram();
-            glAttachShader(ID, vertexShader);
-            glAttachShader(ID, fragmentShader);
+            ID = GetGL().CreateProgram();
+            GetGL().AttachShader(ID, vertexShader);
+            GetGL().AttachShader(ID, fragmentShader);
             if (hasGeometry)
-                glAttachShader(ID, geometryShader);
+                GetGL().AttachShader(ID, geometryShader);
 
-            glLinkProgram(ID);
+            GetGL().LinkProgram(ID);
             CompileErrors(ID, "PROGRAM");
 
-            glDeleteShader(vertexShader);
-            glDeleteShader(fragmentShader);
+            GetGL().DeleteShader(vertexShader);
+            GetGL().DeleteShader(fragmentShader);
             if (hasGeometry)
-                glDeleteShader(geometryShader);
+                GetGL().DeleteShader(geometryShader);
         }
     }
 
@@ -89,12 +89,12 @@ namespace Epoch::Engine::Rendering {
     /// @return A std::vector of uniforms
     std::vector<UniformInfo> Shader::GetActiveUniforms() {
         std::vector<UniformInfo> uniforms;
-    
+
         GLint uniformCount;
-        glGetProgramiv(ID, GL_ACTIVE_UNIFORMS, &uniformCount);
+        GetGL().GetProgramiv(ID, GL_ACTIVE_UNIFORMS, &uniformCount);
     
         GLint maxNameLength = 0;
-        glGetProgramiv(ID, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLength);
+        GetGL().GetProgramiv(ID, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLength);
     
         std::vector<char> nameData(maxNameLength);
     
@@ -103,35 +103,36 @@ namespace Epoch::Engine::Rendering {
             GLint size = 0;
             GLenum type = 0;
     
-            glGetActiveUniform(ID, i, maxNameLength, &length, &size, &type, nameData.data());
+            GetGL().GetActiveUniform(ID, i, maxNameLength, &length, &size, &type, nameData.data());
+
             std::string name(nameData.data(), length);
     
-            GLint location = glGetUniformLocation(ID, name.c_str());
+            GLint location = GetGL().GetUniformLocation(ID, name.c_str());
     
             if (name.find("gl_") == 0) continue;
     
             uniforms.push_back({ name, type, location });
         }
-    
+        
         return uniforms;
     }
 
     /// @brief Activates the Shader Program (bind)
     void Shader::Activate()
     {
-        glUseProgram(ID);
+        GetGL().UseProgram(ID);
     }
 
     /// @brief Deactivates the Shader Program (unbind)
     void Shader::Deactivate()
     {
-        glUseProgram(0);
+        GetGL().UseProgram(0);
     }
 
     /// @brief Deletes the Shader Program
     void Shader::Cleanup()
     {
-        glDeleteProgram(ID);
+        GetGL().DeleteProgram(ID);
     }
 
     /// @brief Checks if the different Shaders have compiled properly
@@ -143,23 +144,23 @@ namespace Epoch::Engine::Rendering {
         char infoLog[1024];
         if (type != "PROGRAM")
         {
-            glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
+            GetGL().GetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
             if (hasCompiled == GL_FALSE)
             {
-                glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+                GetGL().GetShaderInfoLog(shader, 1024, NULL, infoLog);
                 DEBUG_ERROR("Couldn't compile shader : " + std::string(type) + "\n" + infoLog);
                 return;
             }
         }
         else
         {
-            glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
+            GetGL().GetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
             if (hasCompiled == GL_FALSE)
             {
-                glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+                GetGL().GetProgramInfoLog(shader, 1024, NULL, infoLog);
                 DEBUG_ERROR("Couldn't link shader : " + std::string(type) + "\n" + infoLog);
                 return;
-            }
+            } 
         }
     }
 }

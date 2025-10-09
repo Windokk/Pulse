@@ -57,7 +57,7 @@ namespace Epoch::Engine::Rendering::UI{
             FT_Set_Char_Size(face, 0, size * 64, 300, 300);
     
             // disable byte-alignment restriction
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            GetGL().PixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
             // load first 128 characters of ASCII set
             for (unsigned char c = 0; c < 128; c++)
@@ -70,9 +70,9 @@ namespace Epoch::Engine::Rendering::UI{
                 }
                 // generate texture
                 unsigned int texture;
-                glGenTextures(1, &texture);
-                glBindTexture(GL_TEXTURE_2D, texture);
-                glTexImage2D(
+                GetGL().GenTextures(1, &texture);
+                GetGL().BindTexture(GL_TEXTURE_2D, texture);
+                GetGL().TexImage2D(
                     GL_TEXTURE_2D,
                     0,
                     GL_RED,
@@ -84,10 +84,10 @@ namespace Epoch::Engine::Rendering::UI{
                     face->glyph->bitmap.buffer
                 );
                 // set texture options
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 // now store character for later use
                 Character character = {
                     texture,
@@ -97,7 +97,7 @@ namespace Epoch::Engine::Rendering::UI{
                 };
                 characters.insert(std::pair<char, Character>(c, character));
             }
-            glBindTexture(GL_TEXTURE_2D, 0);
+            GetGL().BindTexture(GL_TEXTURE_2D, 0);
         }
         // destroy FreeType once we're finished
         FT_Done_Face(face);
@@ -106,52 +106,52 @@ namespace Epoch::Engine::Rendering::UI{
     
         // configure VAO/VBO for texture quads
         // -----------------------------------
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
-        glGenBuffers(1, &EBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+        GetGL().GenVertexArrays(1, &VAO);
+        GetGL().GenBuffers(1, &VBO);
+        GetGL().BindVertexArray(VAO);
+        GetGL().BindBuffer(GL_ARRAY_BUFFER, VBO);
+        GetGL().BufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
+        GetGL().GenBuffers(1, &EBO);
+        GetGL().BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        GetGL().BufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
         // Position attribute (location = 0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        glEnableVertexAttribArray(0);
+        GetGL().VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+        GetGL().EnableVertexAttribArray(0);
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-        glEnableVertexAttribArray(1);
+        GetGL().VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        GetGL().EnableVertexAttribArray(1);
 
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        glEnableVertexAttribArray(2);
+        GetGL().VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        GetGL().EnableVertexAttribArray(2);
 
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-        glEnableVertexAttribArray(3);
+        GetGL().VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+        GetGL().EnableVertexAttribArray(3);
 
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-        glEnableVertexAttribArray(4);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+        GetGL().VertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+        GetGL().EnableVertexAttribArray(4);
+        GetGL().BindBuffer(GL_ARRAY_BUFFER, 0);
+        GetGL().BindVertexArray(0);
     }
 
     void Font::Cleanup(){
         for (auto& [c, character] : characters) {
-            glDeleteTextures(1, &character.textureID);
+            GetGL().DeleteTextures(1, &character.textureID);
         }
         characters.clear();
     
         // Supprimer les buffers OpenGL
         if (VBO) {
-            glDeleteBuffers(1, &VBO);
+            GetGL().DeleteBuffers(1, &VBO);
             VBO = 0;
         }
     
         if (EBO) {
-            glDeleteBuffers(1, &EBO);
+            GetGL().DeleteBuffers(1, &EBO);
             EBO = 0;
         }
     
         if (VAO) {
-            glDeleteVertexArrays(1, &VAO);
+            GetGL().DeleteVertexArrays(1, &VAO);
             VAO = 0;
         }
     }

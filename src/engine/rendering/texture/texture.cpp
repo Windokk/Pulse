@@ -19,14 +19,14 @@ namespace Epoch::Engine::Rendering{
         infos.filepath = std::make_shared<Filesystem::Path>(filepath);
 
         // Load and set up the texture
-        glGenTextures(1, &ID);
-        glBindTexture(GL_TEXTURE_2D, ID);
+        GetGL().GenTextures(1, &ID);
+        GetGL().BindTexture(GL_TEXTURE_2D, ID);
 
         // Set texture parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         unsigned char* data = nullptr;
 
@@ -61,8 +61,8 @@ namespace Epoch::Engine::Rendering{
                 format = GL_RGB; // Default to RGB
             }
 
-            glTexImage2D(GL_TEXTURE_2D, 0, format, infos.width, infos.height, 0, format, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
+            GetGL().TexImage2D(GL_TEXTURE_2D, 0, format, infos.width, infos.height, 0, format, GL_UNSIGNED_BYTE, data);
+            GetGL().GenerateMipmap(GL_TEXTURE_2D);
         } else {
             DEBUG_ERROR("Couldn't load texture : " + filepath.full);   
         }
@@ -73,23 +73,23 @@ namespace Epoch::Engine::Rendering{
 
     void Texture::Bind(int unit)
     {
-        glActiveTexture(GL_TEXTURE0 + unit);
-        glBindTexture(GL_TEXTURE_2D, ID);
+        GetGL().ActiveTexture(GL_TEXTURE0 + unit);
+        GetGL().BindTexture(GL_TEXTURE_2D, ID);
     }
 
     void Texture::UnBind(int unit)
     {
-        glActiveTexture(GL_TEXTURE0 + unit);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        GetGL().ActiveTexture(GL_TEXTURE0 + unit);
+        GetGL().BindTexture(GL_TEXTURE_2D, 0);
     }
 
     void Texture::Cleanup()
     {
-        glDeleteTextures(1, &ID);
+        GetGL().DeleteTextures(1, &ID);
 
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &EBO);
+        GetGL().DeleteVertexArrays(1, &VAO);
+        GetGL().DeleteBuffers(1, &VBO);
+        GetGL().DeleteBuffers(1, &EBO);
         VAO = VBO = EBO = 0;
     }
 }

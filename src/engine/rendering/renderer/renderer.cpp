@@ -14,8 +14,7 @@
 #include "engine/core/resources/resources_manager.hpp"
 
 namespace Epoch::Engine::Rendering{
-
-
+    
     void Renderer::CreateRectGeometry()
     {
 
@@ -30,34 +29,33 @@ namespace Epoch::Engine::Rendering{
              1.0f,  1.0f,     1.0f, 1.0f  // top-right
         };
         
-        glGenVertexArrays(1, &rectVAO);
-        glGenBuffers(1, &rectVBO);
+        GetGL().GenVertexArrays(1, &rectVAO);
+        GetGL().GenBuffers(1, &rectVBO);
         
-        glBindVertexArray(rectVAO);
+        GetGL().BindVertexArray(rectVAO);
         
-        glBindBuffer(GL_ARRAY_BUFFER, rectVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(rectVertices), rectVertices, GL_STATIC_DRAW);
+        GetGL().BindBuffer(GL_ARRAY_BUFFER, rectVBO);
+        GetGL().BufferData(GL_ARRAY_BUFFER, sizeof(rectVertices), rectVertices, GL_STATIC_DRAW);
         
         // position (vec2)
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
+        GetGL().VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        GetGL().EnableVertexAttribArray(0);
         // texCoords (vec2)
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-        glEnableVertexAttribArray(1);
+        GetGL().VertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+        GetGL().EnableVertexAttribArray(1);
         
-        glBindVertexArray(0);
+        GetGL().BindVertexArray(0);
 
     }
 
-    void Renderer::Init(GLFWwindow *window, RendererSettings settings)
+    void Renderer::Init(RendererSettings settings)
     {
-        Renderer::settings = settings;
+        settings.windowWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+        settings.windowHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
 
-        Renderer::window = window;
-        
-        glfwGetWindowSize(window, &Renderer::settings.windowWidth, &Renderer::settings.windowHeight);
+        GetGL().Viewport(0, 0, settings.windowWidth, settings.windowHeight);
 
-        glViewport(0, 0, settings.windowWidth, settings.windowHeight);
+        this->settings = settings;
 
         //FRAMBUFFERS
         CreateRectGeometry();
@@ -67,8 +65,8 @@ namespace Epoch::Engine::Rendering{
         lightMan->Update(-1);
         
         //MULTISAMPLING
-        glEnable(GL_MULTISAMPLE);
-        
+        GetGL().Enable(GL_MULTISAMPLE);
+
         //SHADOWS
         shadowMan = new ShadowManager();
         shadowMan->Init(4096);
@@ -100,7 +98,7 @@ namespace Epoch::Engine::Rendering{
 
     void Renderer::Render()
     {
-        if(CameraManager::GetInstance().GetActiveCamera() != nullptr){
+        if(CameraManager::GetInstance().GetActiveCamera() != nullptr && Levels::LevelManager::GetInstance().GetLoadedLevelCount() > 0){
             BeginFrame();
 
             ExecuteRenderPasses();
@@ -193,31 +191,46 @@ namespace Epoch::Engine::Rendering{
 
     void Renderer::BeginFrame()
     {
+
         CameraManager::GetInstance().Tick();
 
         if(settings.enableShadows){
-            shadowMan->RenderShadowMaps(Levels::LevelManager::GetInstance().GetLevelAt(0)->meshes, CameraManager::GetInstance().GetActiveCamera());
-            glfwGetWindowSize(window, &settings.windowWidth, &settings.windowHeight);
-            glViewport(0, 0, Renderer::settings.windowWidth, Renderer::settings.windowHeight);
+            auto& levelManager = Levels::LevelManager::GetInstance();
+
+            size_t totalMeshCount = 0;
+            for (int i = 0, count = levelManager.GetLoadedLevelCount(); i < count; ++i)
+                totalMeshCount += levelManager.GetLevelAt(i)->meshes.size();
+
+            std::vector<std::pair<glm::mat4, Epoch::Engine::Rendering::Mesh*>> allMeshes;
+            allMeshes.reserve(totalMeshCount);
+
+            for (int i = 0, count = levelManager.GetLoadedLevelCount(); i < count; ++i) {
+                const auto* level = levelManager.GetLevelAt(i);
+                for (const auto& [id, meshData] : level->meshes) {
+                    allMeshes.push_back(meshData);
+                }
+            }
+ 
+            shadowMan->RenderShadowMaps(allMeshes, CameraManager::GetInstance().GetActiveCamera());
+
+            Renderer::settings.windowWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+            Renderer::settings.windowHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
+            GetGL().Viewport(0, 0, Renderer::settings.windowWidth, Renderer::settings.windowHeight);
         }
 
-        viewportBuffer->Bind();
+        GetGL().ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        GetGL().Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glFrontFace(GL_CCW);
-
-        viewportBuffer->Unbind();
+        GetGL().Enable(GL_CULL_FACE);
+        GetGL().CullFace(GL_BACK);
+        GetGL().FrontFace(GL_CCW);
     }
   
     void Renderer::DrawScene()
     {
-        glEnable(GL_DEPTH_TEST);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        GetGL().Enable(GL_DEPTH_TEST);
+        GetGL().ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        GetGL().Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // --- Main Draw Calls ---
         for (auto& cmd : drawList) {
@@ -230,19 +243,19 @@ namespace Epoch::Engine::Rendering{
             switch (cmd.mat->renderMode)
             {
                 case TRANSLUCENT:
-                    glEnable(GL_BLEND);
-                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    GetGL().Enable(GL_BLEND);
+                    GetGL().BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     cmd.mat->SetParameter("masked", false);
                     break;
 
                 case MASKED:
                     cmd.mat->SetParameter("masked", true);
-                    glDisable(GL_BLEND);
+                    GetGL().Disable(GL_BLEND);
                     break;
 
                 case OPAQUE:
                     cmd.mat->SetParameter("masked", false);
-                    glDisable(GL_BLEND);
+                    GetGL().Disable(GL_BLEND);
                     break;
                     
                 default:
@@ -255,16 +268,16 @@ namespace Epoch::Engine::Rendering{
             cmd.mat->SetParameter("lightNB", lightMan->GetLightsCount());
             cmd.mat->SetParameter("camPos", CameraManager::GetInstance().GetActiveCamera()->parent->transform->GetPosition());
             cmd.mat->Use();
-            glBindVertexArray(cmd.VAO);
-            glPolygonMode(GL_FRONT_AND_BACK, cmd.fillMode);
-            glDrawElements(GL_TRIANGLES, cmd.indexCount, GL_UNSIGNED_INT, (void*)(cmd.indexOffset * sizeof(uint32_t)));
+            GetGL().BindVertexArray(cmd.VAO);
+            GetGL().PolygonMode(GL_FRONT_AND_BACK, cmd.fillMode);
+            GetGL().DrawElements(GL_TRIANGLES, cmd.indexCount, GL_UNSIGNED_INT, (void*)(cmd.indexOffset * sizeof(uint32_t)));
             cmd.mat->StopUsing();
         }
 
         if(!Renderer::settings.showDebugShapes){
-            glBindVertexArray(0);
-            glUseProgram(0);
-            glDisable(GL_DEPTH_TEST);
+            GetGL().BindVertexArray(0);
+            GetGL().UseProgram(0);
+            GetGL().Disable(GL_DEPTH_TEST);
             return;
         }
 
@@ -281,27 +294,30 @@ namespace Epoch::Engine::Rendering{
 
             unlitShader->setMat4("model", model);
 
-            glBindVertexArray(physicBody->GetDebugShape()->GetVAO());
-            glDrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+            GetGL().BindVertexArray(physicBody->GetDebugShape()->GetVAO());
+            GetGL().DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
         }
 
-        glBindVertexArray(0);
-        glUseProgram(0);
-        glDisable(GL_DEPTH_TEST);
+        GetGL().BindVertexArray(0);
+        GetGL().UseProgram(0);
+        GetGL().Disable(GL_DEPTH_TEST);
     }
 
-    void Renderer::RescaleFramebuffers(int width, int height)
+    void Renderer::RescaleFramebuffers(int newWidth, int newHeight)
     {
         for (auto& pass : renderPasses)
             if(pass.target != nullptr){
-                pass.target->RescaleFrameBuffer(width, height);
+                pass.target->RescaleFrameBuffer(newWidth, newHeight);
             }
 
-        viewportBuffer->RescaleFrameBuffer(width, height);
+        viewportBuffer->RescaleFrameBuffer(newWidth, newHeight);
 
-        glViewport(0, 0, width, height);
+        GetGL().Viewport(0, 0, newWidth, newHeight);
 
-        CameraManager::GetInstance().UpdateSize(width, height);
+        settings.windowWidth = newWidth;
+        settings.windowHeight = newHeight;
+
+        CameraManager::GetInstance().UpdateSize(newWidth, newHeight);
     }
 
     void Renderer::AddRenderPass(RenderStage stage, std::function<void()> callback, std::shared_ptr<FrameBuffer> fb, bool appendToViewport, BlendMode blendMode)
@@ -362,8 +378,8 @@ namespace Epoch::Engine::Rendering{
                     if(pass.appendToViewport){
                         viewportBuffer->Bind();
 
-                        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        GetGL().ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                        GetGL().Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                         
                         blendShader->Activate();
 
@@ -371,28 +387,28 @@ namespace Epoch::Engine::Rendering{
                         blendShader->setInt("texA", 0);
                         blendShader->setInt("texB", 1);
 
-                        glActiveTexture(GL_TEXTURE0);
-                        glBindTexture(GL_TEXTURE_2D, viewportBuffer->GetFrameTexture());
+                        GetGL().ActiveTexture(GL_TEXTURE0);
+                        GetGL().BindTexture(GL_TEXTURE_2D, viewportBuffer->GetFrameTexture());
 
-                        glActiveTexture(GL_TEXTURE1);
+                        GetGL().ActiveTexture(GL_TEXTURE1);
                         if(pass.target->isMultisampled)
-                            glBindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
+                            GetGL().BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
                         else
-                            glBindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
+                            GetGL().BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
         
-                        glBindVertexArray(rectVAO);
-                        glDisable(GL_DEPTH_TEST);
+                        GetGL().BindVertexArray(rectVAO);
+                        GetGL().Disable(GL_DEPTH_TEST);
                         
-                        glDrawArrays(GL_TRIANGLES, 0, 6);
+                        GetGL().DrawArrays(GL_TRIANGLES, 0, 6);
                         
-                        glBindVertexArray(0);
+                        GetGL().BindVertexArray(0);
 
                         blendShader->Deactivate();
 
-                        glActiveTexture(GL_TEXTURE0);
-                        glBindTexture(GL_TEXTURE_2D, 0);
-                        glActiveTexture(GL_TEXTURE1);
-                        glBindTexture(GL_TEXTURE_2D, 0);
+                        GetGL().ActiveTexture(GL_TEXTURE0);
+                        GetGL().BindTexture(GL_TEXTURE_2D, 0);
+                        GetGL().ActiveTexture(GL_TEXTURE1);
+                        GetGL().BindTexture(GL_TEXTURE_2D, 0);
 
                         viewportBuffer->Unbind();
 
@@ -407,25 +423,4 @@ namespace Epoch::Engine::Rendering{
 
     }
 
-    void Renderer::ToggleFullscreen()
-    {
-        const bool fullscreen = glfwGetWindowMonitor(window) != nullptr;
-        if(fullscreen) {
-            // Restore the window position and size.
-            glfwSetWindowMonitor(window, nullptr, settings.windowPosX, settings.windowPosY, settings.windowWidth, settings.windowHeight, 0);
-            // Check the window position and size (if we are on a screen smaller than the initial size).
-            glfwGetWindowPos(window, &settings.windowPosX, &settings.windowPosY);
-            glfwGetWindowSize(window, &settings.windowWidth, &settings.windowHeight);
-            RescaleFramebuffers(settings.windowWidth, settings.windowHeight);
-        } else {
-            // Backup the window current frame.
-            glfwGetWindowPos(window, &settings.windowPosX, &settings.windowPosY);
-            glfwGetWindowSize(window, &settings.windowWidth, &settings.windowHeight);
-            // Move to fullscreen on the primary monitor.
-            GLFWmonitor * monitor	= glfwGetPrimaryMonitor();
-            const GLFWvidmode * mode = glfwGetVideoMode(monitor);
-            glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-            RescaleFramebuffers(mode->width, mode->height);
-        }
-    }
 }

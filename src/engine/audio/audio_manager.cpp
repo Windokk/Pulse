@@ -158,15 +158,21 @@ namespace Epoch::Engine::Audio
 
     void AudioManager::Tick()
     {
-        for(auto& source : Levels::LevelManager::GetInstance().GetLevelAt(0)->audioSources){
-            source->Update();
+        if(int levelCount = Levels::LevelManager::GetInstance().GetLoadedLevelCount() > 0){
+            for(int i = 0; i < levelCount; i++){
+                for(auto& source : Levels::LevelManager::GetInstance().GetLevelAt(i)->audioSources){
+                    source->Update();
+                }
+
+                std::shared_ptr<ECS::Components::Camera> cam = CameraManager::GetInstance().GetActiveCamera();
+
+                if(cam == nullptr)
+                    return;
+
+                AudioManager::Update(cam->parent->transform->GetPosition(), glm::normalize(glm::vec2(cam->parent->transform->GetForward().x, cam->parent->transform->GetForward().z)), 100.0f);
+                
+            }
+            
         }
-
-        std::shared_ptr<ECS::Components::Camera> cam = CameraManager::GetInstance().GetActiveCamera();
-
-        if(cam == nullptr)
-            return;
-
-        AudioManager::Update(cam->parent->transform->GetPosition(), glm::normalize(glm::vec2(cam->parent->transform->GetForward().x, cam->parent->transform->GetForward().z)), 100.0f);
     }
 }

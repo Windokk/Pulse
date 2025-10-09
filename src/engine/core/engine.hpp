@@ -5,12 +5,15 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/levels/level_manager.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
-#include "engine/inputs/input_manager.hpp"
+#include "engine/core/platform/iplatform.hpp"
 #include "engine/time/time_manager.hpp"
 
 namespace Epoch::Engine::Core {
     
     struct EngineCreationSettings{
+        //PLATFORM
+        Platform::IPlatform* platform = nullptr;
+
         //WINDOW
         int windowWidth = 800;
         int windowHeight = 800;
@@ -25,24 +28,77 @@ namespace Epoch::Engine::Core {
         glm::vec3 gravity = glm::vec3(0, -9.81f, 0);
     };
 
-    class EngineInstance{
+    class EngineInstance {
         public:
-        EngineInstance(EngineCreationSettings settings = {});
-        bool shouldEnd() { return glfwWindowShouldClose(window); };
-        void Destroy();
-        bool Run();
+            // Delete copy constructor and assignment operator to enforce singleton
+            EngineInstance(const EngineInstance&) = delete;
+            EngineInstance& operator=(const EngineInstance&) = delete;
 
-        GLFWwindow* GetGLFWWindow() { return window; }
+            // Provide access to the singleton instance
+            static EngineInstance& GetInstance() {
+                static EngineInstance instance; // guaranteed to be lazy-initialized and thread-safe in C++11+
+                return instance;
+            }
 
-        static void OnWindowResize(GLFWwindow *window, int width, int height);
+            // Public interface
+            bool shouldEnd() { return platform->GetWindow()->ShouldClose(); }
+            void Destroy();
+            bool Run();
+            void Init(EngineCreationSettings settings);
 
-        EngineCreationSettings settings;
+            // Optional: configure engine before initialization
+            void SetSettings(const EngineCreationSettings& s) { settings = s; }
+            EngineCreationSettings GetSettings() const { return settings; }
 
-    private:
-        void CreateWindow();
-        void DestroyWindow();
+            Platform::IWindow* GetWindow() const {
+                return platform->GetWindow(); }
 
-        GLFWwindow* window;
+            Platform::IInput* GetInputManager() const { return platform->GetInput(); }
 
+        private:
+            // Private constructor to prevent instantiation from outside
+            EngineInstance() = default;
+
+            EngineCreationSettings settings;
+            Platform::IPlatform* platform = nullptr;
     };
+
+    #if defined(BUILD_ENGINE)
+
+        // Used by the EXE/engine
+        inline EngineInstance& GetEngine() {
+            return EngineInstance::GetInstance();
+        }
+
+    #elif defined(BUILD_GAME)
+
+        // Used by the Game Module DLL
+        inline EngineInstance* gSharedEnginePtr = nullptr;
+
+        inline void SetEngine(EngineInstance* ptr) {
+            gSharedEnginePtr = ptr;
+        }
+
+        inline EngineInstance& GetEngine() {
+            if (!gSharedEnginePtr)
+                exit(2);
+            return *gSharedEnginePtr;
+        }
+
+    #elif defined(BUILD_EDITOR)
+
+        // Used by the Editor Module DLL
+        inline EngineInstance* gSharedEnginePtr = nullptr;
+
+        inline void SetEngine(EngineInstance* ptr) {
+            gSharedEnginePtr = ptr;
+        }
+
+        inline EngineInstance& GetEngine() {
+            if (!gSharedEnginePtr)
+                exit(2);
+            return *gSharedEnginePtr;
+        }
+
+    #endif
 }

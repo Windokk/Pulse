@@ -2,12 +2,14 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
-#include "engine/inputs/input_manager.hpp"
+#include "engine/core/engine.hpp"
+
+#include "engine/core/platform/iplatform.hpp"
 
 #include <thread>
 #include <iostream>
 
-using namespace Epoch::Engine::Input;
+using namespace Epoch::Engine;
 
 Character::Character(Epoch::Engine::ECS::Objects::Actor* parent, uint32_t local_id)
     : Script(parent, local_id) {
@@ -26,27 +28,27 @@ void Character::Begin() {
 }
 
 void Character::Tick() {
-    auto& input = Epoch::Engine::Input::GetInputManager();
+    Core::Platform::IInput* input = Core::GetEngine().GetInputManager();
 
-    if(input.IsKeyDown(KEY_W)){
+    if(input->IsKeyDown(Input::Key::W)){
         parent->transform->Translate(parent->transform->GetForward() * speed);
     }
-    if(input.IsKeyDown(KEY_A)){
+    if(input->IsKeyDown(Input::Key::A)){
         parent->transform->Translate(glm::normalize(glm::cross(parent->transform->GetForward(), parent->transform->GetUp())) * -speed);
     }
-    if(input.IsKeyDown(KEY_S)){
+    if(input->IsKeyDown(Input::Key::S)){
         parent->transform->Translate(parent->transform->GetForward() * -speed);
     }
-    if(input.IsKeyDown(KEY_D)){
+    if(input->IsKeyDown(Input::Key::D)){
         parent->transform->Translate(glm::normalize(glm::cross(parent->transform->GetForward(), parent->transform->GetUp())) * speed);
     }
 
-    if (input.IsMouseDown(MOUSE_BUTTON_LEFT))
+    if (input->IsMouseDown(Input::MouseButton::Left))
     {
-        input.SetCursorVisibility(false);
+        input->SetCursorVisibility(false);
 
         double mouseX, mouseY;
-        input.GetCursorPos(&mouseX, &mouseY);
+        input->GetCursorPos(&mouseX, &mouseY);
 
         if (firstClick)
         {
@@ -72,12 +74,12 @@ void Character::Tick() {
         parent->transform->SetRotation(rotation);
  
         // Reset cursor back to locked position every frame
-        input.SetCursorPos(lockedMouseX, lockedMouseY);
+        input->SetCursorPos(lockedMouseX, lockedMouseY);
     }
-    if(input.IsMouseUp(MOUSE_BUTTON_LEFT))
+    if(input->IsMouseUp(Input::MouseButton::Left))
     {
         firstClick = true;
-        input.SetCursorVisibility(true);
+        input->SetCursorVisibility(true);
     }
 }
 

@@ -5,6 +5,8 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
 
+#include "engine/rendering/opengl/opengl.hpp"
+
 namespace Epoch::Engine::Rendering{
     
     float ComputeCascadeSplitDistance(int cascadeIndex, float nearPlane, float farPlane, int totalCascades)
@@ -32,18 +34,18 @@ namespace Epoch::Engine::Rendering{
         shadowMaps.clear();
         pointLightCount = 0;
 
-        glGenTextures(1, &cubeArrayTex);
-        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
+        GetGL().GenTextures(1, &cubeArrayTex);
+        GetGL().BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
         int numPointLights = 12;
-        glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 1, GL_DEPTH_COMPONENT32F,
+        GetGL().TexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 1, GL_DEPTH_COMPONENT32F,
                     shadowResolution, shadowResolution, 6 * numPointLights);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        GetGL().TexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
     }
 
     /// @brief Register/Replace a light for shadow mappings
@@ -78,46 +80,46 @@ namespace Epoch::Engine::Rendering{
         else if (light->type == int(LightType::Directional)) {
             // --- Directional Light (Cascaded Shadow Maps) ---
             for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
-                glGenFramebuffers(1, &sm.fbo[c]);
+                GetGL().GenFramebuffers(1, &sm.fbo[c]);
 
-                glGenTextures(1, &sm.depthMap[c]);
-                glBindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                GetGL().GenTextures(1, &sm.depthMap[c]);
+                GetGL().BindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
+                GetGL().TexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
                         shadowResolution, shadowResolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-                glBindFramebuffer(GL_FRAMEBUFFER, sm.fbo[c]);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.depthMap[c], 0);
-                glDrawBuffer(GL_NONE);
-                glReadBuffer(GL_NONE);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                GetGL().BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[c]);
+                GetGL().FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.depthMap[c], 0);
+                GetGL().DrawBuffer(GL_NONE);
+                GetGL().ReadBuffer(GL_NONE);
+                GetGL().BindFramebuffer(GL_FRAMEBUFFER, 0);
             }
         }
         else if (light->type == int(LightType::Spot)) {
             // --- Spot Light (Single 2D Shadow Map) ---
-            glGenFramebuffers(1, &sm.fbo[0]);
+            GetGL().GenFramebuffers(1, &sm.fbo[0]);
 
-            glGenTextures(1, &sm.depthMap[0]);
-            glBindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+            GetGL().GenTextures(1, &sm.depthMap[0]);
+            GetGL().BindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
+            GetGL().TexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
                         shadowResolution, shadowResolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+            GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+            GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, sm.fbo[0]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.depthMap[0], 0);
-            glDrawBuffer(GL_NONE);
-            glReadBuffer(GL_NONE);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            GetGL().BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[0]);
+            GetGL().FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.depthMap[0], 0);
+            GetGL().DrawBuffer(GL_NONE);
+            GetGL().ReadBuffer(GL_NONE);
+            GetGL().BindFramebuffer(GL_FRAMEBUFFER, 0);
             sm.lightMatrix[0] = light->GetLightMatrix();
         }
 
@@ -129,13 +131,13 @@ namespace Epoch::Engine::Rendering{
             // Clean up resources (if necessary)
             if (old.light.type == int(LightType::Directional)) {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
-                    if (glIsFramebuffer(old.fbo[c])) glDeleteFramebuffers(1, &old.fbo[c]);
-                    if (glIsTexture(old.depthMap[c])) glDeleteTextures(1, &old.depthMap[c]);
+                    if (GetGL().IsFramebuffer(old.fbo[c])) GetGL().DeleteFramebuffers(1, &old.fbo[c]);
+                    if (GetGL().IsTexture(old.depthMap[c])) GetGL().DeleteTextures(1, &old.depthMap[c]);
                 }
             }
             else if (old.light.type == int(LightType::Spot)) {
-                if (glIsFramebuffer(old.fbo[0])) glDeleteFramebuffers(1, &old.fbo[0]);
-                if (glIsTexture(old.depthMap[0])) glDeleteTextures(1, &old.depthMap[0]);
+                if (GetGL().IsFramebuffer(old.fbo[0])) GetGL().DeleteFramebuffers(1, &old.fbo[0]);
+                if (GetGL().IsTexture(old.depthMap[0])) GetGL().DeleteTextures(1, &old.depthMap[0]);
             }
 
             shadowMaps[lightIndex] = sm;
@@ -149,7 +151,7 @@ namespace Epoch::Engine::Rendering{
     void ShadowManager::ResolveShadowMaps()
     {
         GLuint resolveFBO;
-        glGenFramebuffers(1, &resolveFBO);
+        GetGL().GenFramebuffers(1, &resolveFBO);
 
         for (auto& sm : shadowMaps)
         {
@@ -160,29 +162,29 @@ namespace Epoch::Engine::Rendering{
             {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
-                    glBindFramebuffer(GL_READ_FRAMEBUFFER, sm.fbo[c]); // Multisampled
-                    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFBO);
-                    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.resolveDepthMap[c], 0);
+                    GetGL().BindFramebuffer(GL_READ_FRAMEBUFFER, sm.fbo[c]); // Multisampled
+                    GetGL().BindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFBO);
+                    GetGL().FramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.resolveDepthMap[c], 0);
                     
-                    glBlitFramebuffer(0, 0, shadowResolution, shadowResolution,
+                    GetGL().BlitFramebuffer(0, 0, shadowResolution, shadowResolution,
                                     0, 0, shadowResolution, shadowResolution,
                                     GL_DEPTH_BUFFER_BIT, GL_NEAREST);
                 }
             }
             else if (sm.light.type == static_cast<int>(LightType::Spot))
             {
-                glBindFramebuffer(GL_READ_FRAMEBUFFER, sm.fbo[0]); // Multisampled
-                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFBO);
-                glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.resolveDepthMap[0], 0);
+                GetGL().BindFramebuffer(GL_READ_FRAMEBUFFER, sm.fbo[0]); // Multisampled
+                GetGL().BindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFBO);
+                GetGL().FramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.resolveDepthMap[0], 0);
 
-                glBlitFramebuffer(0, 0, shadowResolution, shadowResolution,
+                GetGL().BlitFramebuffer(0, 0, shadowResolution, shadowResolution,
                                 0, 0, shadowResolution, shadowResolution,
                                 GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             }
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &resolveFBO);
+        GetGL().BindFramebuffer(GL_FRAMEBUFFER, 0);
+        GetGL().DeleteFramebuffers(1, &resolveFBO);
     }
 
     /// @brief Remove a light from shadow mappings
@@ -197,21 +199,21 @@ namespace Epoch::Engine::Rendering{
         // ---- Clean up Directional Light Resources (multiple cascades) ----
         if (removedSM.light.type == static_cast<int>(LightType::Directional)) {
             for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
-                if (glIsFramebuffer(removedSM.fbo[c]))
-                    glDeleteFramebuffers(1, &removedSM.fbo[c]);
+                if (GetGL().IsFramebuffer(removedSM.fbo[c]))
+                    GetGL().DeleteFramebuffers(1, &removedSM.fbo[c]);
 
-                if (glIsTexture(removedSM.depthMap[c]))
-                    glDeleteTextures(1, &removedSM.depthMap[c]);
+                if (GetGL().IsTexture(removedSM.depthMap[c]))
+                    GetGL().DeleteTextures(1, &removedSM.depthMap[c]);
             }
         }
 
         // ---- Clean up Spot Light Resources (single map) ----
         else if (removedSM.light.type == static_cast<int>(LightType::Spot)) {
-            if (glIsFramebuffer(removedSM.fbo[0]))
-                glDeleteFramebuffers(1, &removedSM.fbo[0]);
+            if (GetGL().IsFramebuffer(removedSM.fbo[0]))
+                GetGL().DeleteFramebuffers(1, &removedSM.fbo[0]);
 
-            if (glIsTexture(removedSM.depthMap[0]))
-                glDeleteTextures(1, &removedSM.depthMap[0]);
+            if (GetGL().IsTexture(removedSM.depthMap[0]))
+                GetGL().DeleteTextures(1, &removedSM.depthMap[0]);
         }
 
         // ---- Special Case: Point Light (cube map layer) ----
@@ -237,12 +239,12 @@ namespace Epoch::Engine::Rendering{
 
     /// @brief Render the scene into each shadow map
     /// @param meshes The meshes to render. All other meshes will be occluded from the shadow pass
-    void ShadowManager::RenderShadowMaps(const std::unordered_map<int, std::pair<glm::mat4, Rendering::Mesh*>> &meshes, std::shared_ptr<ECS::Components::Camera> cam)
+    void ShadowManager::RenderShadowMaps(const std::vector<std::pair<glm::mat4, Rendering::Mesh*>> &meshes, std::shared_ptr<ECS::Components::Camera> cam)
     {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        glFrontFace(GL_CCW);
+        GetGL().Enable(GL_DEPTH_TEST);
+        GetGL().Enable(GL_CULL_FACE);
+        GetGL().CullFace(GL_FRONT);
+        GetGL().FrontFace(GL_CCW);
 
         for (auto& sm : shadowMaps)
         {
@@ -253,24 +255,24 @@ namespace Epoch::Engine::Rendering{
 
             if (light->type == static_cast<int>(LightType::Point))
             {
-                glViewport(0, 0, sm.resolution, sm.resolution);
-                glBindFramebuffer(GL_FRAMEBUFFER, sm.fbo[0]);  // Reused FBO
+                GetGL().Viewport(0, 0, sm.resolution, sm.resolution);
+                GetGL().BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[0]);  // Reused FBO
 
                 pointShader.Activate();
 
                 for (int face = 0; face < 6; ++face)
                 {
                     // Attach face of cubemap array for current point light layer
-                    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                    GetGL().FramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                             cubeArrayTex, 0, sm.cubeArrayLayer * 6 + face);
 
-                    glClear(GL_DEPTH_BUFFER_BIT);
+                    GetGL().Clear(GL_DEPTH_BUFFER_BIT);
 
                     pointShader.setMat4("shadowMatrices[0]", sm.shadowMatrices[face]);
                     pointShader.setFloat("farPlane", light->radius);
                     pointShader.setVec3("lightPos", light->position);
 
-                    for (const auto& [_, pair] : meshes)
+                    for (const auto& pair : meshes)
                     {
                         pointShader.setMat4("model", pair.first);
                         pair.second->DrawWithoutMaterial();
@@ -278,26 +280,26 @@ namespace Epoch::Engine::Rendering{
                 }
 
                 pointShader.Deactivate();
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                GetGL().BindFramebuffer(GL_FRAMEBUFFER, 0);
             }
             else if (light->type == static_cast<int>(LightType::Spot))
             {
-                glViewport(0, 0, sm.resolution, sm.resolution);
-                glBindFramebuffer(GL_FRAMEBUFFER, sm.fbo[0]);
-                glClear(GL_DEPTH_BUFFER_BIT);
+                GetGL().Viewport(0, 0, sm.resolution, sm.resolution);
+                GetGL().BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[0]);
+                GetGL().Clear(GL_DEPTH_BUFFER_BIT);
 
                 spotShader.Activate();
                 
                 spotShader.setMat4("lightSpaceMatrix", sm.lightMatrix[0]);
 
-                for (const auto& [_, pair] : meshes)
+                for (const auto& pair : meshes)
                 {
                     spotShader.setMat4("model", pair.first);
                     pair.second->DrawWithoutMaterial();
                 }
 
                 spotShader.Deactivate();
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                GetGL().BindFramebuffer(GL_FRAMEBUFFER, 0);
             }
             else if (light->type == static_cast<int>(LightType::Directional))
             {
@@ -306,9 +308,9 @@ namespace Epoch::Engine::Rendering{
 
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
-                    glViewport(0, 0, sm.resolution, sm.resolution);
-                    glBindFramebuffer(GL_FRAMEBUFFER, sm.fbo[c]);
-                    glClear(GL_DEPTH_BUFFER_BIT);
+                    GetGL().Viewport(0, 0, sm.resolution, sm.resolution);
+                    GetGL().BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[c]);
+                    GetGL().Clear(GL_DEPTH_BUFFER_BIT);
 
                     sm.cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
                     float splitNear = c == 0 ? cam->nearPlane : sm.cascadeSplits[c - 1];
@@ -317,21 +319,21 @@ namespace Epoch::Engine::Rendering{
 
                     dirShader.setMat4("lightSpaceMatrix", sm.lightMatrix[c]);
 
-                    for (const auto& [_, pair] : meshes)
+                    for (const auto& pair : meshes)
                     {
                         dirShader.setMat4("model", pair.first);
                         pair.second->DrawWithoutMaterial();
                     }
 
-                    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    GetGL().BindFramebuffer(GL_FRAMEBUFFER, 0);
                 }
 
                 dirShader.Deactivate();
             }
         }
 
-        glDisable(GL_CULL_FACE);
-        glDisable(GL_DEPTH_TEST);
+        GetGL().Disable(GL_CULL_FACE);
+        GetGL().Disable(GL_DEPTH_TEST);
     }
 
     /// @brief Bind the shadow maps to a material
@@ -378,8 +380,8 @@ namespace Epoch::Engine::Rendering{
                     if (cascadeIndex >= NUM_CASCADES || textureUnit >= 32)
                         break;
 
-                    glActiveTexture(GL_TEXTURE0 + textureUnit);
-                    glBindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
+                    GetGL().ActiveTexture(GL_TEXTURE0 + textureUnit);
+                    GetGL().BindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
 
                     material->SetParameter("shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]", textureUnit);
                     material->SetParameter("shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]", sm.lightMatrix[c]);
@@ -395,8 +397,8 @@ namespace Epoch::Engine::Rendering{
                 if (spotIndex >= MAX_SPOT_LIGHTS || textureUnit >= 32)
                     break;
 
-                glActiveTexture(GL_TEXTURE0 + textureUnit);
-                glBindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
+                GetGL().ActiveTexture(GL_TEXTURE0 + textureUnit);
+                GetGL().BindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
 
                 material->SetParameter("shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]", textureUnit);
                 material->SetParameter("shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]", sm.lightMatrix[0]);
@@ -414,10 +416,10 @@ namespace Epoch::Engine::Rendering{
             }
         }
 
-        // Bind cube map array texture (point lights)s
+        // Bind cube map array texture (point lights)
         constexpr int cubeArrayUnit = 31;
-        glActiveTexture(GL_TEXTURE0 + cubeArrayUnit);
-        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
+        GetGL().ActiveTexture(GL_TEXTURE0 + cubeArrayUnit);
+        GetGL().BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
         material->SetParameter("shadow_pointShadowMapArray", cubeArrayUnit);
     }
 }

@@ -10,10 +10,10 @@ namespace Epoch::Engine::Rendering {
 
     class FrameBuffer{
     public:
-        FrameBuffer(float width, float height, std::shared_ptr<Shader> shader, bool multisampled);
+        FrameBuffer(int width, int height, std::shared_ptr<Shader> shader, bool multisampled = true);
         void Shutdown();
-        unsigned int GetFrameTexture();
-        void RescaleFrameBuffer(float width, float height);
+        GLuint GetFrameTexture();
+        void RescaleFrameBuffer(int width, int height);
         void Resolve();
         void Draw(unsigned int VAO);
         void Bind() const;
@@ -21,14 +21,15 @@ namespace Epoch::Engine::Rendering {
         void SetShader(std::shared_ptr<Shader> shader);
         bool isMultisampled = false;
     private:
-        unsigned int fbo;
-        unsigned int texture;
-        unsigned int rbo;
+        GLuint fbo;
+        GLuint texture;
+        GLuint rbo;
         std::shared_ptr<Shader> shader;
 
         GLuint resolveFBO = 0;
         GLuint resolveTexture = 0;
 
-        float width, height = 0;
+        int width = 0;
+        int height = 0;
     };
 }
