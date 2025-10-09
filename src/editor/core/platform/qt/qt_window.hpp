@@ -63,6 +63,8 @@ namespace Epoch::Engine::Core::Platform {
         bool isFullscreen = false;
 
         QRect windowedGeometry; // For restoring window after fullscreen
+
+        bool initialized = false;
     };
 
 }

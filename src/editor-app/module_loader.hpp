@@ -24,7 +24,7 @@ namespace Epoch::Launcher {
     
     // EDITOR
     using EditorInitFn = void(*)(EngineInstance*, Debugging::Debugger*, Rendering::Renderer*, Resources::ResourcesManager*, Rendering::CameraManager*, Time::TimeManager*, OpenGL*);
-    using EditorStartFn = void(*)();
+    using EditorStartFn = void(*)(int, char**);
     using EditorTickFn = void(*)();
     using EditorCleanupFn = void (*)();
 
@@ -47,7 +47,8 @@ namespace Epoch::Launcher {
         #if defined(_WIN32)
             handle = LoadLibraryA(path.c_str());
             if (!handle) {
-                DEBUG_FATAL("Failed to load module: " + path);
+                DWORD err = GetLastError();
+                DEBUG_FATAL("Failed to load module: " + path + "  Error code : "+std::to_string(err));
                 return false;
             }
         #else

@@ -305,10 +305,11 @@ namespace Epoch::Engine::Rendering{
 
     void Renderer::RescaleFramebuffers(int newWidth, int newHeight)
     {
-        for (auto& pass : renderPasses)
+        for (auto& pass : renderPasses){
             if(pass.target != nullptr){
                 pass.target->RescaleFrameBuffer(newWidth, newHeight);
             }
+        }
 
         viewportBuffer->RescaleFrameBuffer(newWidth, newHeight);
 

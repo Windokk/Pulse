@@ -26,6 +26,11 @@ namespace Epoch::Engine::Core::Platform {
             void CreateInput() override {
                 input = std::make_unique<QTInput>();
                 input->Init();
+                
+                auto qtWindow = dynamic_cast<QTWindow*>(window.get());
+                if (qtWindow) {
+                    qtWindow->SetQTInputManager(static_cast<QTInput*>(input.get()));
+                }
             }
 
             // Utility

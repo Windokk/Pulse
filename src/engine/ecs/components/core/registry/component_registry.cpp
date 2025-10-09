@@ -20,6 +20,7 @@ namespace Epoch::Engine::ECS::Components {
         auto it = registry.find(name);
         if (it == registry.end()) {
             DEBUG_ERROR("Component not registered: " + name);
+            return nullptr;
         }
         return it->second();
     }

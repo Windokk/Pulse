@@ -64,7 +64,7 @@ namespace Epoch::Engine::Core::Platform{
 
     bool QTInput::IsMouseDown(Input::MouseButton button) const
     {
-        auto it = mCurrentMouseState.find(ToQtMouseButton(button));
+        auto it = mCurrentMouseState.find(static_cast<int>(ToQtMouseButton(button)));
         return it != mCurrentMouseState.end() && it->second;
     }
 
@@ -75,7 +75,7 @@ namespace Epoch::Engine::Core::Platform{
 
     bool QTInput::WasMousePressed(Input::MouseButton button) const
     {
-        int btn = ToQtMouseButton(button);
+        int btn = static_cast<int>(ToQtMouseButton(button));
         auto prevIt = mPreviousMouseState.find(btn);
         auto currIt = mCurrentMouseState.find(btn);
         

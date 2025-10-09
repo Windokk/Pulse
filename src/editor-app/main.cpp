@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
         initEditor(&EngineInstance::GetInstance(), &Debugging::Debugger::GetInstance(), &Renderer::GetInstance(), &Resources::ResourcesManager::GetInstance(), &CameraManager::GetInstance(), &Time::TimeManager::GetInstance(), &GetGL());
     
         auto startEditor = loader.GetSymbol<EditorStartFn>("editor", "EditorStart");
-        startEditor();
+        startEditor(argc, argv);
 
         auto createPlatform = loader.GetSymbol<CreatePlatformFn>("editor", "CreatePlatform");
         engineSettings.platform = createPlatform();
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     EngineInstance::GetInstance().Init(engineSettings); // Safe initialization of Engine Instance
 
     std::shared_ptr<Epoch::Engine::Levels::Level> level = Core::Resources::ResourcesManager::GetInstance().GetLevel("sponza.lvl");
-    Levels::LevelManager::GetInstance().LoadLevel(level);
+    //Levels::LevelManager::GetInstance().LoadLevel(level);
 
     std::shared_ptr<Rendering::Shader> fbShader = Core::Resources::ResourcesManager::GetInstance().GetShader("shaders\\fb\\framebuffer");
     Rendering::FrameBuffer sceneFB = {Core::GetEngine().GetWindow()->GetFramebufferWidth(), Core::GetEngine().GetWindow()->GetFramebufferHeight(), fbShader, true};

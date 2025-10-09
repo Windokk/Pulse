@@ -33,7 +33,6 @@ namespace Epoch::Engine::Core::Platform {
                 inputManager->MouseCallback(mouseEvent->button(), mouseEvent->type() == QEvent::MouseButtonPress ? 1 : 0);
                 break;
             }
-            // add other event types if needed
         }
         return QWindow::event(e);
     }
@@ -72,6 +71,8 @@ namespace Epoch::Engine::Core::Platform {
         context->makeCurrent(this);
 
         GetGL().InitFromQt();
+        
+        initialized = true;
     }
 
     void QTWindow::PollEvents() {
@@ -107,15 +108,15 @@ namespace Epoch::Engine::Core::Platform {
             setWindowState(Qt::WindowNoState);
             setGeometry(windowedGeometry);
             isFullscreen = false;
-            Rendering::Renderer::GetInstance().RescaleFramebuffers(windowedGeometry.width(), windowedGeometry.height());
+            Rendering::GetRenderer().RescaleFramebuffers(windowedGeometry.width(), windowedGeometry.height());
         } else {
             windowedGeometry = geometry();
             setWindowState(Qt::WindowFullScreen);
             isFullscreen = true;
-            Rendering::Renderer::GetInstance().RescaleFramebuffers(windowedGeometry.width(), windowedGeometry.height());
+            Rendering::GetRenderer().RescaleFramebuffers(windowedGeometry.width(), windowedGeometry.height());
         }
 
-        Rendering::Renderer::GetInstance().RescaleFramebuffers(GetFramebufferWidth(), GetFramebufferHeight());
+        Rendering::GetRenderer().RescaleFramebuffers(GetFramebufferWidth(), GetFramebufferHeight());
     }
 
     SystemInfos QTWindow::GetSystemInfos() const {
@@ -149,7 +150,10 @@ namespace Epoch::Engine::Core::Platform {
 
     void QTWindow::resizeEvent(QResizeEvent* event) {
         QWindow::resizeEvent(event);
-        Rendering::Renderer::GetInstance().RescaleFramebuffers(GetFramebufferWidth(), GetFramebufferHeight());
+        
+        if (!initialized)
+            return;
+        Rendering::GetRenderer().RescaleFramebuffers(GetFramebufferWidth(), GetFramebufferHeight());
     }
 
     void QTWindow::closeEvent(QCloseEvent* event) {
