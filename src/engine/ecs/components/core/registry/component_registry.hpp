@@ -3,8 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <stdexcept>
-
-#include "engine/debugging/debugger.hpp"
+#include <iostream>
 
 namespace Epoch::Engine::ECS::Components {
 
@@ -45,7 +44,7 @@ namespace Epoch::Engine::ECS::Components {
 
     inline ComponentRegistry& GetComponentRegistry() {
         if (!gSharedComponentRegistryPtr)
-            DEBUG_FATAL("ComponentRegistry pointer not initialized!");
+            std::cout<<"ComponentRegistry pointer not initialized!"<<std::endl;
         return *gSharedComponentRegistryPtr;
     }
 

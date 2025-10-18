@@ -1,5 +1,7 @@
 #include "text.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::Rendering::UI
 {
     Text::Text(std::shared_ptr<Font> font, std::string text, glm::vec4 color, Transform transform) : font(font), transform(transform) 
@@ -16,8 +18,8 @@ namespace Epoch::Engine::Rendering::UI
         shader->setMat4("model", transform.GetTransformMatrix());
         shader->setMat4("view", view);
         shader->setMat4("projection", projection);
-        GetGL().ActiveTexture(GL_TEXTURE0);
-        GetGL().BindVertexArray(font->GetVAO());
+        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
+        Core::GetEngine().GetGL()->BindVertexArray(font->GetVAO());
 
         // iterate through all characters of the text
         std::string::const_iterator c;
@@ -46,20 +48,20 @@ namespace Epoch::Engine::Rendering::UI
                     { glm::vec3(xpos + w, ypos + h, 0.0f), normal, color, glm::vec2(1.0f, 0.0f), glm::vec3(0) }
                 };
                 // render glyph texture over quad
-                GetGL().BindTexture(GL_TEXTURE_2D, ch.textureID);
+                Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, ch.textureID);
                 // update content of VBO memory
-                GetGL().BindBuffer(GL_ARRAY_BUFFER, font->GetVBO());
-                GetGL().BufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(Vertex), vertices.data());
-                GetGL().BindBuffer(GL_ARRAY_BUFFER, 0);
+                Core::GetEngine().GetGL()->BindBuffer(GL_ARRAY_BUFFER, font->GetVBO());
+                Core::GetEngine().GetGL()->BufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(Vertex), vertices.data());
+                Core::GetEngine().GetGL()->BindBuffer(GL_ARRAY_BUFFER, 0);
                 // render quad
-                GetGL().DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                Core::GetEngine().GetGL()->DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                 // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
                 cursor.x += (ch.advance >> 6) * transform.GetScale().x; // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
             }
         }
-        GetGL().BindVertexArray(0);
-        GetGL().BindTexture(GL_TEXTURE_2D, 0);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
         shader->Deactivate();
     }
 }

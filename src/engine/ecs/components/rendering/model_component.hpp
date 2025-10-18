@@ -4,6 +4,11 @@
 
 #include "engine/rendering/mesh/mesh.hpp"
 
+namespace Epoch::Engine::Rendering{
+    class Mesh;
+    class Material;
+}
+
 namespace Epoch::Engine::ECS::Components
 {
     class Model : public Component{

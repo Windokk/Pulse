@@ -2,6 +2,8 @@
 
 #include <glad/glad.h>
 
+#include "engine/core/engine.hpp"
+
 
 void OpenGL::InitFromGLAD() {
     this->Clear       = ::glClear;

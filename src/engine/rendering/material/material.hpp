@@ -34,6 +34,12 @@ namespace Epoch::Engine::Rendering {
             std::shared_ptr<Shader> shader;
             bool recievesShadows = false;
             RenderMode renderMode = OPAQUE;
+            
+            Filesystem::AssetID assetID;
+
+            void SetAssetID(Filesystem::AssetID assetID) {
+                this->assetID = assetID;
+            }
 
         private:
             void Init(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode);

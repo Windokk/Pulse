@@ -1794,12 +1794,7 @@ typedef GLintptr GLvdpauSurfaceNV;
 
 class OpenGL {
     public:
-        
-        static OpenGL& GetGL(){
-            static OpenGL instance;
-            return instance;
-        }
-
+    
         // Init functions (from QT or GLFW+GLAD)
         void InitFromGLAD();
         void InitFromQt();
@@ -1807,7 +1802,7 @@ class OpenGL {
         GLenum CheckGLError(const char *file, int line)
         {
             GLenum errorCode;
-            while ((errorCode = GetGL().GetError()) != GL_NO_ERROR)
+            while ((errorCode = GetError()) != GL_NO_ERROR)
             {
                 std::string error;
                 switch (errorCode)
@@ -1908,46 +1903,5 @@ class OpenGL {
         void (*GetIntegerv)(GLenum pname, GLint *data);
 
     private:
-        OpenGL() = default;
-        ~OpenGL() = default;
-        OpenGL(const OpenGL&) = delete;
-        OpenGL& operator=(const OpenGL&) = delete;
 };
-
-#if defined(BUILD_ENGINE)
-    inline OpenGL& GetGL(){
-        return OpenGL::GetGL();
-    }
-
-#elif defined(BUILD_GAME)
-
-    // Used by the Game Module DLL
-    inline OpenGL* gSharedOpenGLPtr = nullptr;
-
-    inline void SetGL(OpenGL* ptr) {
-        gSharedOpenGLPtr = ptr;
-    }
-
-    inline OpenGL& GetGL() {
-        if (!gSharedOpenGLPtr)
-            exit(2);
-        return *gSharedOpenGLPtr;
-    }
-
-#elif defined(BUILD_EDITOR)
-
-    // Used by the Editor Module DLL
-    inline OpenGL* gSharedOpenGLPtr = nullptr;
-
-    inline void SetGL(OpenGL* ptr) {
-        gSharedOpenGLPtr = ptr;
-    }
-
-    inline OpenGL& GetGL() {
-        if (!gSharedOpenGLPtr)
-            exit(2);
-        return *gSharedOpenGLPtr;
-    }
-
-#endif
 

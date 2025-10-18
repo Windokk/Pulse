@@ -183,10 +183,6 @@ namespace Epoch::Engine::Physics
     
     class PhysicsSystem {
     public:
-        static PhysicsSystem& GetInstance() {
-            static PhysicsSystem instance;
-            return instance;
-        }
 
         static void Init(glm::vec3 gravity);
         static void Shutdown();
@@ -209,11 +205,6 @@ namespace Epoch::Engine::Physics
         static std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
 
     private:
-    
-        PhysicsSystem() = default;
-        ~PhysicsSystem() = default;
-        PhysicsSystem(const PhysicsSystem&) = delete;
-        PhysicsSystem& operator=(const PhysicsSystem&) = delete;
 
         static JPH::TempAllocatorImpl* m_tempAllocator;
         static JPH::JobSystem* m_jobSystem;

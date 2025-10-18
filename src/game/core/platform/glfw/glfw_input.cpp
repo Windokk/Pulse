@@ -2,7 +2,7 @@
 
 #include "glfw_window.hpp"
 
-namespace Epoch::Engine::Core::Platform{
+namespace Epoch::Game::Core::Platform{
 
     void GLFWInput::SetWindow(GLFWwindow * window)
     {
@@ -66,16 +66,16 @@ namespace Epoch::Engine::Core::Platform{
         }
     }
 
-    bool GLFWInput::IsKeyDown(Input::Key key) const {
+    bool GLFWInput::IsKeyDown(Engine::Input::Key key) const {
         auto it = mCurrentKeyState.find(ToGLFWKey(key));
         return it != mCurrentKeyState.end() && it->second;
     }
 
-    bool GLFWInput::IsKeyUp(Input::Key key) const {
+    bool GLFWInput::IsKeyUp(Engine::Input::Key key) const {
         return !IsKeyDown(key);
     }
 
-    bool GLFWInput::WasKeyPressed(Input::Key key) const {
+    bool GLFWInput::WasKeyPressed(Engine::Input::Key key) const {
         int glfwKey = ToGLFWKey(key);
         bool prev = false, curr = false;
         
@@ -88,7 +88,7 @@ namespace Epoch::Engine::Core::Platform{
         return !prev && curr;
     }
 
-    bool GLFWInput::WasKeyReleased(Input::Key key) const {
+    bool GLFWInput::WasKeyReleased(Engine::Input::Key key) const {
         int glfwKey = ToGLFWKey(key);
 
         bool prev = false, curr = false;
@@ -102,18 +102,18 @@ namespace Epoch::Engine::Core::Platform{
         return prev && !curr;
     }
 
-    bool GLFWInput::IsMouseDown(Input::MouseButton button) const
+    bool GLFWInput::IsMouseDown(Engine::Input::MouseButton button) const
     {
         auto it = mCurrentMouseState.find(ToGLFWMouseButton(button));
         return it != mCurrentMouseState.end() && it->second;
     }
 
-    bool GLFWInput::IsMouseUp(Input::MouseButton button) const
+    bool GLFWInput::IsMouseUp(Engine::Input::MouseButton button) const
     {
         return !IsMouseDown(button);
     }
 
-    bool GLFWInput::WasMousePressed(Input::MouseButton button) const
+    bool GLFWInput::WasMousePressed(Engine::Input::MouseButton button) const
     {
         int glfwButton = ToGLFWMouseButton(button);
 
@@ -128,7 +128,7 @@ namespace Epoch::Engine::Core::Platform{
         return !prev && curr;
     }
 
-    bool GLFWInput::WasMouseReleased(Input::MouseButton button) const
+    bool GLFWInput::WasMouseReleased(Engine::Input::MouseButton button) const
     {
         int glfwButton = ToGLFWMouseButton(button);
 

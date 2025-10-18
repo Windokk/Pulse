@@ -10,16 +10,16 @@ namespace Epoch::Engine::ECS::Components {
 
     void ComponentRegistry::RegisterComponentType(const std::string& name, ComponentFactory factory) {
         if (registry.find(name) != registry.end()) {
-            DEBUG_ERROR("Component already registered: " + name);
+            std::cerr<<"Component already registered: " + name<<std::endl;
         }
         registry[name] = factory;
-        DEBUG_INFO("Registered custom component : " + name);
+        std::cout<<"Registered custom component : " + name<<std::endl;
     }
 
     Component* ComponentRegistry::CreateComponentByName(const std::string& name) {
         auto it = registry.find(name);
         if (it == registry.end()) {
-            DEBUG_ERROR("Component not registered: " + name);
+            DEBUG_WARNING("Component not registered: " + name);
             return nullptr;
         }
         return it->second();

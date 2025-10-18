@@ -2,30 +2,31 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include "engine/core/engine.hpp"
 
 namespace Epoch::Engine::ECS::Components{
     
+    AudioSource::AudioSource(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    {
+    }
+
     void AudioSource::Update()
     {
         if(audioID.IsValid() && activated){
-            Audio::AudioManager::GetInstance().UpdateSound(audioID, parent->transform->GetPosition(), volume);
+            Core::GetEngine().GetAudioManager()->UpdateSound(audioID, parent->transform->GetPosition(), volume);
         }
         else{
-            if(path != nullptr && volume != -1.0f){
-                audioID = Audio::AudioIDManager::GetInstance().GenerateNewID();
-                Audio::AudioManager::GetInstance().CreateSound(audioID, path->full, parent->transform->GetPosition());
+            if(!path.full.empty() && volume != -1.0f){
+                audioID = Core::GetEngine().GetAudioIDManager()->GenerateNewID();
+                Core::GetEngine().GetAudioManager()->CreateSound(audioID, path, parent->transform->GetPosition());
 
             }
         }
     }
 
-    AudioSource::AudioSource(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    void AudioSource::SetPath(Filesystem::Path newPath)
     {
-    }
-
-    void AudioSource::SetPath(std::string path)
-    {
-        this->path = std::make_unique<Filesystem::Path>(path);
+        this->path = path;
         Update();
     }
 
@@ -40,16 +41,16 @@ namespace Epoch::Engine::ECS::Components{
         if(!activated)
             return;
 
-        Audio::AudioManager::GetInstance().PlaySound(this->audioID, this->volume);
+        Core::GetEngine().GetAudioManager()->PlaySound(this->audioID, this->volume);
     }
 
     void AudioSource::Pause()
     {
-        Audio::AudioManager::GetInstance().PauseSound(this->audioID);
+        Core::GetEngine().GetAudioManager()->PauseSound(this->audioID);
     }
 
     void AudioSource::RemoveSound()
     {
-        Audio::AudioManager::GetInstance().RemoveSound(this->audioID);
+        Core::GetEngine().GetAudioManager()->RemoveSound(this->audioID);
     }
 }

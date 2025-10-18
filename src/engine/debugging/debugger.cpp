@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <ctime>
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::Debugging{
 
     void Debugger::EnableTimestamp()
@@ -17,6 +19,31 @@ namespace Epoch::Engine::Debugging{
 
     void Debugger::SetMinimumLevel(Level level) {
         currentMinLevel = level;
+    }
+
+    void Debugger::DebugLog(std::string msg, const char *file, int line)
+    {
+        Epoch::Engine::Core::GetEngine().GetDebugger()->Log(Epoch::Engine::Debugging::Level::Log, msg, file, line);
+    }
+
+    void Debugger::DebugInfo(std::string msg, const char *file, int line)
+    {
+        Epoch::Engine::Core::GetEngine().GetDebugger()->Log(Epoch::Engine::Debugging::Level::Info, msg, file, line);
+    }
+
+    void Debugger::DebugWarning(std::string msg, const char *file, int line)
+    {
+        Epoch::Engine::Core::GetEngine().GetDebugger()->Log(Epoch::Engine::Debugging::Level::Warning, msg, file, line);
+    }
+
+    void Debugger::DebugError(std::string msg, const char *file, int line)
+    {
+        Epoch::Engine::Core::GetEngine().GetDebugger()->Log(Epoch::Engine::Debugging::Level::Error, msg, file, line);
+    }
+
+    void Debugger::DebugFatal(std::string msg, const char *file, int line)
+    {
+        Epoch::Engine::Core::GetEngine().GetDebugger()->Log(Epoch::Engine::Debugging::Level::Fatal, msg, file, line);
     }
 
     std::string Debugger::LevelToString(Level level) {
@@ -48,6 +75,22 @@ namespace Epoch::Engine::Debugging{
 
         std::string output = (useTimestamp ? GetTimestamp()+" " : "") + "[" + LevelToString(level) + "] (" + file + ":" + std::to_string(line) + ") " + message;
 
+        /*switch(level){
+            case Level::Log:
+                system("Color 01");
+                break;
+            case Level::Info:
+                system("Color 07");
+                break;
+            case Level::Warning:
+                system("Color 06");
+                break;
+            case Level::Error:
+            case Level::Fatal:
+                system("Color 04");
+                break;
+        }*/
+
         std::cout << output << std::endl;
 
         if (logFile.is_open())
@@ -55,7 +98,6 @@ namespace Epoch::Engine::Debugging{
 
         if (level == Level::Fatal){
             std::cout << "Epoch Engine has crashed. Press Enter to exit..." << std::endl;
-            std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             std::cin.get();
             std::terminate(); // crash

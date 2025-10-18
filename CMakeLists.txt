@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28.2)
 
-project(Epoch VERSION 1.0.0 LANGUAGES C CXX)
+project(Epoch VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,6 +8,10 @@ set(CMAKE_COLOR_MAKEFILE ON)
 
 # Set binary dir
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+
+configure_file(${CMAKE_SOURCE_DIR}/src/config.h.in config.h)
+
+include_directories(${CMAKE_BINARY_DIR})
 
 # Platform-specific library paths
 if(WIN32)
@@ -33,4 +37,5 @@ add_definitions(-DGLFW_INCLUDE_NONE -DGLFW_STATIC)
 add_subdirectory(src/engine)
 add_subdirectory(src/game)
 add_subdirectory(src/editor)
+add_subdirectory(src/game-app)
 add_subdirectory(src/editor-app)

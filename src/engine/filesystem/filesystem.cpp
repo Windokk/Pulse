@@ -6,18 +6,11 @@
 
 namespace Epoch::Engine::Filesystem{
 
-    Path FileManager::root = Path("");
-    Path FileManager::projectRoot = Path("");
-
-    void FileManager::Init(std::string rootPath, std::string projectRootPath)
+    void FileManager::Init(Path projectResPath, Path engineResPath, Path projectRoot)
     {
-        if(rootPath == ""){
-            root = Path(std::filesystem::current_path().string());
-        }
-
-        if(projectRootPath == ""){
-            projectRoot = Path(root.full+"\\project_resources\\");
-        }
+        this->projectRoot = projectRoot;
+        this->projectResPath = projectResPath;
+        this->engineResPath = engineResPath;
     }
 
 
@@ -39,8 +32,7 @@ namespace Epoch::Engine::Filesystem{
             else if (entry.is_regular_file())
             {
                 auto extType = filePath.GetExtensionType();
-                if (acceptedExtensions.empty() ||
-                    std::find(acceptedExtensions.begin(), acceptedExtensions.end(), extType) != acceptedExtensions.end()) {
+                if (acceptedExtensions.empty() || std::find(acceptedExtensions.begin(), acceptedExtensions.end(), extType) != acceptedExtensions.end()) {
                     files.push_back(GetFileInfos(filePath));
                 }
             }
@@ -66,12 +58,27 @@ namespace Epoch::Engine::Filesystem{
         return files;
     }
 
+    Path FileManager::GetCurrentExecutablePath()
+    {
+        return Path(std::filesystem::current_path().string(), true);
+    }
+
     FileInfo FileManager::GetFileInfos(const Path &path)
     {
         FileInfo infos;
     
         infos.path = path.full;
         infos.name = path.GetFilename(false);
+        infos.extension = path.GetExtensionString();
+
+        if(IsPathInside(engineResPath, path)){
+            // This file is part of the engine ressources
+            infos.nameInProject = path.RelativeTo(engineResPath).full;
+        }
+        else if(IsPathInside(projectResPath, path)){
+            // This file is part of the project ressources
+            infos.nameInProject = path.RelativeTo(projectResPath).full;
+        }
         infos.isDirectory = path.IsDirectory();
         infos.size = path.GetFileSize();
         infos.type = path.GetExtensionType();
@@ -140,9 +147,7 @@ namespace Epoch::Engine::Filesystem{
 
     Type Path::GetExtensionType() const
     {
-        std::string str = std::filesystem::path(GetAbsolutePath()).extension().string();
-
-        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        std::string ext = GetExtensionString();
 
         static const std::unordered_map<std::string, Type> extensionMap = {
             // Image formats
@@ -171,11 +176,11 @@ namespace Epoch::Engine::Filesystem{
         };
 
         // Ensure extension starts with dot
-        if (str.empty() || str[0] != '.') {
-            str = "." + str;
+        if (ext.empty() || ext[0] != '.') {
+            ext = "." + ext;
         }
 
-        auto it = extensionMap.find(str);
+        auto it = extensionMap.find(ext);
         if (it != extensionMap.end()) {
             return it->second;
         }
@@ -221,9 +226,14 @@ namespace Epoch::Engine::Filesystem{
         return false;
     }
 
-    void FileManager::SetRoot(const Path &path)
+    void FileManager::SetEngineResRoot(const Path &path)
     {
-        root = path;
+        engineResPath = path;
+    }
+
+    void FileManager::SetProjectResRoot(const Path &path)
+    {
+        projectResPath = path;
     }
 
     void FileManager::SetProjectRoot(const Path &path)
@@ -231,9 +241,29 @@ namespace Epoch::Engine::Filesystem{
         projectRoot = path;
     }
 
-    Path::Path(const std::string &raw)
+    Path::Path(const std::string &raw, bool normalize)
     {
-        full = Normalize(raw);
+        full = normalize ? Normalize(raw) : raw;
+    }
+
+    Path operator/(const Path& lhs, const Path& rhs) {
+        std::string combined = lhs.full;
+
+        if (!combined.empty() && combined.back() != '/' && combined.back() != '\\') {
+            combined += '/';
+        }
+
+        combined += rhs.full;
+
+        return Path(combined, true);  // Normalize the result
+    }
+    
+    Path operator/(const Path& lhs, const std::string& rhs) {
+        return lhs / Path(rhs);
+    }
+
+    Path operator/(const std::string& lhs, const Path& rhs) {
+        return Path(lhs) / rhs;
     }
 
     std::string Path::Normalize(const std::string &raw)
@@ -243,10 +273,25 @@ namespace Epoch::Engine::Filesystem{
 
     Path Path::RelativeTo(const Path &other) const
     {
+        std::filesystem::path from = full;
+        std::filesystem::path base = other.full;
+
         try {
-            std::filesystem::path rel = std::filesystem::relative(full, other.full);
-            return Path(rel.string());
+
+            if (!from.is_absolute() || !base.is_absolute()) {
+                DEBUG_ERROR("Couldn't compute " + from.string() + " relative to " + base.string() + " : one of them isn't absolute.");
+                return *this;
+            }
+
+            if (from.root_path() != base.root_path()) {
+                DEBUG_ERROR("Couldn't compute " + from.string() + " relative to " + base.string() + " : they don't have the same root.");
+                return *this;
+            }
+
+            std::filesystem::path rel = std::filesystem::relative(from, base);
+            return Path(rel.string(), false);
         } catch (const std::filesystem::filesystem_error& e) {
+            DEBUG_ERROR("Couldn't compute " + from.string() + " relative to " + base.string() + " : unknown error : "+ e.what());
             return *this;
         }
     }
@@ -266,6 +311,11 @@ namespace Epoch::Engine::Filesystem{
 
     std::string Path::GetFilename(bool withExtension) const
     {
+        if(IsDirectory()){
+            DEBUG_ERROR("Called GetFilename on folder ! Returning empty string.");
+            return "";
+        }
+            
         auto p = std::filesystem::path(full);
         return withExtension ? p.filename().string() : p.stem().string();
     }
@@ -309,9 +359,11 @@ namespace Epoch::Engine::Filesystem{
                 }
 
                 return static_cast<int>(totalSize);
-            } else if (std::filesystem::exists(full) && std::filesystem::is_regular_file(full)) {
+            } 
+            else if (std::filesystem::exists(full) && std::filesystem::is_regular_file(full)) {
                 return static_cast<int>(std::filesystem::file_size(full));
-            } else {
+            } 
+            else {
                 DEBUG_ERROR("File or directory does not exist: " + full);
                 return -1;
             }

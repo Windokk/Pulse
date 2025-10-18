@@ -50,33 +50,44 @@ namespace Epoch::Engine::Events {
         const ECS::Components::PhysicsBody& b2, ECS::ObjectID source) : otherBody(b2), Event(source) {}
     };
 
+    enum LevelChangeType{
+        DESTROYED,
+        CREATED,
+        MOVED,
+        ACTIVATED,
+        DEACTIVATED
+    };
+
+    struct LevelStructureChanged : public Event{
+        const int levelID;
+        const LevelChangeType changeType;
+        LevelStructureChanged(
+        const int& levelID, LevelChangeType changeType, ECS::ObjectID source) : levelID(levelID), changeType(changeType), Event(source) {}
+    };
+
     // EventDispatcher
     class EventDispatcher {
         public:
-            static EventDispatcher& GetInstance() {
-                static EventDispatcher instance;
-                return instance;
-            }
 
             using ComponentID = uint32_t;
 
             // Subscriptions
             template<typename T>
-            static void subscribeGlobal(std::function<void(const T&)> callback) {
+            void subscribeGlobal(std::function<void(const T&)> callback) {
                 globalSubscribers[typeid(T)].emplace_back([cb = std::move(callback)](const Event& e) {
                     cb(static_cast<const T&>(e));
                 });
             }
 
             template<typename T>
-            static void subscribeToLevel(int levelID, std::function<void(const T&)> callback) {
+            void subscribeToLevel(int levelID, std::function<void(const T&)> callback) {
                 levelSubscribers[levelID][typeid(T)].emplace_back([cb = std::move(callback)](const Event& e) {
                     cb(static_cast<const T&>(e));
                 });
             }
 
             template<typename T>
-            static void subscribeToActor(ECS::ObjectID actorID, std::function<void(const T&)> callback) {
+            void subscribeToActor(ECS::ObjectID actorID, std::function<void(const T&)> callback) {
                 actorSubscribers[actorID][typeid(T)].emplace_back([cb = std::move(callback)](const Event& e) {
                     cb(static_cast<const T&>(e));
                 });
@@ -94,12 +105,12 @@ namespace Epoch::Engine::Events {
             // Emission
             
             template<typename T>
-            static void emitGlobal(const T& event) {
+            void emitGlobal(const T& event) {
                 dispatchTo(globalSubscribers, event);
             }
 
             template<typename T>
-            static void emitToLevel(int levelID, const T& event) {
+            void emitToLevel(int levelID, const T& event) {
                 auto it = levelSubscribers.find(levelID);
                 if (it != levelSubscribers.end()) {
                     dispatchTo(it->second, event);
@@ -107,7 +118,7 @@ namespace Epoch::Engine::Events {
             }
 
             template<typename T>
-            static void emitToActor(ECS::ObjectID actorID, const T& event) {
+            void emitToActor(ECS::ObjectID actorID, const T& event) {
                 auto it = actorSubscribers.find(actorID);
                 if (it != actorSubscribers.end()) {
                     dispatchTo(it->second, event);
@@ -124,10 +135,6 @@ namespace Epoch::Engine::Events {
 
                 
         private:
-            EventDispatcher() = default;
-            ~EventDispatcher() = default;
-            EventDispatcher(const EventDispatcher&) = delete;
-            EventDispatcher& operator=(const EventDispatcher&) = delete;
 
             using Handler = std::function<void(const Event&)>;
             using SubscriberMap = std::unordered_map<std::type_index, std::vector<Handler>>;
@@ -143,9 +150,9 @@ namespace Epoch::Engine::Events {
             }
 
             // Subscriber storage
-            static SubscriberMap globalSubscribers;
-            static std::unordered_map<int, SubscriberMap> levelSubscribers;
-            static std::unordered_map<ECS::ObjectID, SubscriberMap> actorSubscribers;
-            static std::unordered_map<ComponentID, SubscriberMap> componentSubscribers;
+            SubscriberMap globalSubscribers;
+            std::unordered_map<int, SubscriberMap> levelSubscribers;
+            std::unordered_map<ECS::ObjectID, SubscriberMap> actorSubscribers;
+            std::unordered_map<ComponentID, SubscriberMap> componentSubscribers;
     };
 }

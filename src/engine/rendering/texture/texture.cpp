@@ -3,6 +3,8 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 
+#include "engine/core/engine.hpp"
+
 #include <iostream>
 
 namespace Epoch::Engine::Rendering{
@@ -19,14 +21,14 @@ namespace Epoch::Engine::Rendering{
         infos.filepath = std::make_shared<Filesystem::Path>(filepath);
 
         // Load and set up the texture
-        GetGL().GenTextures(1, &ID);
-        GetGL().BindTexture(GL_TEXTURE_2D, ID);
+        Core::GetEngine().GetGL()->GenTextures(1, &ID);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, ID);
 
         // Set texture parameters
-        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         unsigned char* data = nullptr;
 
@@ -61,8 +63,8 @@ namespace Epoch::Engine::Rendering{
                 format = GL_RGB; // Default to RGB
             }
 
-            GetGL().TexImage2D(GL_TEXTURE_2D, 0, format, infos.width, infos.height, 0, format, GL_UNSIGNED_BYTE, data);
-            GetGL().GenerateMipmap(GL_TEXTURE_2D);
+            Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_2D, 0, format, infos.width, infos.height, 0, format, GL_UNSIGNED_BYTE, data);
+            Core::GetEngine().GetGL()->GenerateMipmap(GL_TEXTURE_2D);
         } else {
             DEBUG_ERROR("Couldn't load texture : " + filepath.full);   
         }
@@ -73,23 +75,23 @@ namespace Epoch::Engine::Rendering{
 
     void Texture::Bind(int unit)
     {
-        GetGL().ActiveTexture(GL_TEXTURE0 + unit);
-        GetGL().BindTexture(GL_TEXTURE_2D, ID);
+        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + unit);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, ID);
     }
 
     void Texture::UnBind(int unit)
     {
-        GetGL().ActiveTexture(GL_TEXTURE0 + unit);
-        GetGL().BindTexture(GL_TEXTURE_2D, 0);
+        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + unit);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
     }
 
     void Texture::Cleanup()
     {
-        GetGL().DeleteTextures(1, &ID);
+        Core::GetEngine().GetGL()->DeleteTextures(1, &ID);
 
-        GetGL().DeleteVertexArrays(1, &VAO);
-        GetGL().DeleteBuffers(1, &VBO);
-        GetGL().DeleteBuffers(1, &EBO);
+        Core::GetEngine().GetGL()->DeleteVertexArrays(1, &VAO);
+        Core::GetEngine().GetGL()->DeleteBuffers(1, &VBO);
+        Core::GetEngine().GetGL()->DeleteBuffers(1, &EBO);
         VAO = VBO = EBO = 0;
     }
 }

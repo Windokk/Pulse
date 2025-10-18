@@ -24,18 +24,18 @@ namespace Epoch::Engine::Rendering {
 
     class Texture{
         public:
-        Texture(Filesystem::Path filepath);
-        void Init(Filesystem::Path filepath);
-        void Bind(int unit);
-        void UnBind(int unit);
-        void Cleanup();
-        unsigned int GetID() { return ID; }
-        TextureInfos* GetInfos() { return &infos; }
+            Texture(Filesystem::Path filepath);
+            void Init(Filesystem::Path filepath);
+            void Bind(int unit);
+            void UnBind(int unit);
+            void Cleanup();
+            unsigned int GetID() { return ID; }
+            TextureInfos* GetInfos() { return &infos; }
 
         private:
-        unsigned int ID;
-        TextureInfos infos;
-        unsigned int VAO, VBO, EBO;
-        unsigned int indices[6] = { 0, 1, 2, 2, 3, 0 };
+            unsigned int ID;
+            TextureInfos infos;
+            unsigned int VAO, VBO, EBO;
+            unsigned int indices[6] = { 0, 1, 2, 2, 3, 0 };
     };
 }

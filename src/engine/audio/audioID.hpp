@@ -56,7 +56,7 @@ namespace Epoch::Engine::Audio
             }
         
         private:
-            static int GenerateNextID() {
+            int GenerateNextID() {
                 static std::atomic<int> nextId{1};
                 return nextId.fetch_add(1);
             }
@@ -67,11 +67,6 @@ namespace Epoch::Engine::Audio
 
     class AudioIDManager {
         public:
-
-            static AudioIDManager& GetInstance() {
-                static AudioIDManager instance;
-                return instance;
-            }
 
             void DestroyID(const AudioID& id) {
                 availableIDs.insert(id.GetAsInt());
@@ -104,10 +99,5 @@ namespace Epoch::Engine::Audio
         private:
             std::map<AudioID, Sound*> AudioIDMap;
             std::unordered_set<int> availableIDs;
-            
-            AudioIDManager() = default;
-            ~AudioIDManager() = default;
-            AudioIDManager(const AudioIDManager&) = delete;
-            AudioIDManager& operator=(const AudioIDManager&) = delete;
     };
 }

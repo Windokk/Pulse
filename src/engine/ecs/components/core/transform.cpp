@@ -6,6 +6,8 @@
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/ecs/components/rendering/light_component.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::ECS::Components{
 
     Transform::Transform(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
@@ -30,7 +32,7 @@ namespace Epoch::Engine::ECS::Components{
 		}
 
 		if(oldpos != position){
-			Rendering::Renderer::GetInstance().ReorderDrawList();
+			Core::GetEngine().GetRenderer()->ReorderDrawList();
 		}
 		UpdateMeshReferencesInLevel();
     }
@@ -88,8 +90,8 @@ namespace Epoch::Engine::ECS::Components{
 		}
 		
 		if(deltaPosition.z != 0){
-			Rendering::Renderer::GetInstance().ReorderDrawList();
-		}
+			Core::GetEngine().GetRenderer()->ReorderDrawList();
+		} 
 		UpdateMeshReferencesInLevel();
     }
 

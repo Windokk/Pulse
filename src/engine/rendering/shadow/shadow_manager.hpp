@@ -3,6 +3,7 @@
 #include "engine/rendering/framebuffer/framebuffer.hpp"
 #include "engine/rendering/light/light_manager.hpp"
 #include "engine/rendering/mesh/mesh.hpp"
+#include "engine/rendering/shader/shader.hpp"
 
 #define MAX_DIRECTIONAL_LIGHTS 3
 #define CASCADES_PER_LIGHT 3
@@ -13,10 +14,9 @@ namespace Epoch::Engine::ECS::Components{
 }
 
 namespace Epoch::Engine::Rendering{
-
+    
     class Shader;
 
-    
     struct ShadowMap {
         LightData light;
 
@@ -46,7 +46,9 @@ namespace Epoch::Engine::Rendering{
 
     private:
         std::vector<ShadowMap> shadowMaps;
-        Shader dirShader, spotShader, pointShader;
+        std::shared_ptr<Shader> dirShader;
+        std::shared_ptr<Shader> spotShader;
+        std::shared_ptr<Shader> pointShader;
         int shadowResolution = 0;
         GLuint cubeArrayTex;
         int pointLightCount = 0;

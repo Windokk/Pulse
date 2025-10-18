@@ -7,6 +7,7 @@
 #include "engine/rendering/debug/debug.hpp"
 #include "engine/rendering/shadow/shadow_manager.hpp"
 #include "engine/debugging/debugger.hpp"
+#include "engine/rendering/camera/camera_manager.hpp"
 
 namespace Epoch::Engine{
 
@@ -68,11 +69,6 @@ namespace Epoch::Engine{
         class Renderer{
             public:
 
-                static Renderer& GetInstance() {
-                    static Renderer instance;
-                    return instance;
-                }
-
                 void Init(RendererSettings settings = {});
                 void InitFramebuffers();
                 void Shutdown();
@@ -106,14 +102,11 @@ namespace Epoch::Engine{
 
                 ShadowManager* shadowMan;
 
+                bool initialized = false;
+
             private:
 
                 void CreateRectGeometry();
-
-                Renderer() = default;
-                ~Renderer() = default;
-                Renderer(const Renderer&) = delete;
-                Renderer& operator=(const Renderer&) = delete;
 
                 void BeginFrame();
 
@@ -124,7 +117,7 @@ namespace Epoch::Engine{
                 std::vector<RenderPass> renderPasses;
 
                 std::shared_ptr<Shader> blendShader;
-                FrameBuffer* viewportBuffer;
+                FrameBuffer* viewportBuffer = nullptr;
 
                 std::shared_ptr<Shader> framebufferShader;
 
@@ -132,22 +125,7 @@ namespace Epoch::Engine{
 
                 RendererSettings settings;
         };
-        
-#if defined(BUILD_EDITOR)
 
-    // Used by the Editor Module DLL
-    inline Renderer* gSharedRendererPtr = nullptr;
 
-    inline void SetRenderer(Renderer* ptr) {
-        gSharedRendererPtr = ptr;
-    }
-
-    inline Renderer& GetRenderer() {
-        if (!gSharedRendererPtr)
-            exit(2);
-        return *gSharedRendererPtr;
-    }
-
-#endif
     }
 }

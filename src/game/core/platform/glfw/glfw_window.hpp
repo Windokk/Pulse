@@ -11,14 +11,9 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-namespace Epoch::Engine::Core::Platform {
+namespace Epoch::Game::Core::Platform {
 
-    inline void OnWindowResize(GLFWwindow *window, int width, int height)
-    {
-        Rendering::Renderer::GetInstance().RescaleFramebuffers(width, height);
-    }
-
-    class GLFWWindow : public IWindow {
+    class GLFWWindow : public Engine::Core::Platform::IWindow {
     public:
         void Init(const std::string& title, const int& width, const int& height, 
                     const bool& fullscreen, const int& vsync) override {
@@ -46,12 +41,17 @@ namespace Epoch::Engine::Core::Platform {
 
             glfwMakeContextCurrent(window);
             glfwSetWindowUserPointer(window, this);
-            glfwSetWindowSizeCallback(window, OnWindowResize);
+            glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+                Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(width, height);
+            });
             glfwSwapInterval(vsync);
 
             gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-            GetGL().InitFromGLAD();
+            OpenGL* gl = new OpenGL();
+            gl->InitFromGLAD();
+
+            Engine::Core::GetEngine().SetGL(gl);
         }
 
         void SetGLFWInputManager(GLFWInput* inputManager){
@@ -104,7 +104,7 @@ namespace Epoch::Engine::Core::Platform {
                 // Check the window position and size (if we are on a screen smaller than the initial size).
                 glfwGetWindowPos(window, &windowPosX, &windowPosY);
                 glfwGetWindowSize(window, &windowWidth, &windowHeight);
-                Rendering::Renderer::GetInstance().RescaleFramebuffers(windowWidth, windowHeight);
+                Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(windowWidth, windowHeight);
             } else {
                 // Backup the window current frame.
                 glfwGetWindowPos(window, &windowPosX, &windowPosY);
@@ -113,12 +113,12 @@ namespace Epoch::Engine::Core::Platform {
                 GLFWmonitor * monitor	= glfwGetPrimaryMonitor();
                 const GLFWvidmode * mode = glfwGetVideoMode(monitor);
                 glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-                Rendering::Renderer::GetInstance().RescaleFramebuffers(mode->width, mode->height);
+                Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(mode->width, mode->height);
             }
         }
 
-        SystemInfos GetSystemInfos() const override{
-            SystemInfos ret{0};
+        Engine::Core::Platform::SystemInfos GetSystemInfos() const override{
+            Engine::Core::Platform::SystemInfos ret{0};
             
             const GLubyte* renderer = glGetString(GL_RENDERER);     // GPU
             const GLubyte* vendor   = glGetString(GL_VENDOR);       // GPU vendor
@@ -143,7 +143,7 @@ namespace Epoch::Engine::Core::Platform {
                 ret.monitors.push_back({mode->width, mode->height, mode->refreshRate});
             }
             
-            ret.windowHost = GLFW;
+            ret.windowHost = Engine::Core::Platform::GLFW;
 
             return ret;
         }

@@ -29,22 +29,22 @@ namespace Epoch::Engine::Rendering{
              1.0f,  1.0f,     1.0f, 1.0f  // top-right
         };
         
-        GetGL().GenVertexArrays(1, &rectVAO);
-        GetGL().GenBuffers(1, &rectVBO);
+        Core::GetEngine().GetGL()->GenVertexArrays(1, &rectVAO);
+        Core::GetEngine().GetGL()->GenBuffers(1, &rectVBO);
         
-        GetGL().BindVertexArray(rectVAO);
+        Core::GetEngine().GetGL()->BindVertexArray(rectVAO);
         
-        GetGL().BindBuffer(GL_ARRAY_BUFFER, rectVBO);
-        GetGL().BufferData(GL_ARRAY_BUFFER, sizeof(rectVertices), rectVertices, GL_STATIC_DRAW);
+        Core::GetEngine().GetGL()->BindBuffer(GL_ARRAY_BUFFER, rectVBO);
+        Core::GetEngine().GetGL()->BufferData(GL_ARRAY_BUFFER, sizeof(rectVertices), rectVertices, GL_STATIC_DRAW);
         
         // position (vec2)
-        GetGL().VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-        GetGL().EnableVertexAttribArray(0);
+        Core::GetEngine().GetGL()->VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(0);
         // texCoords (vec2)
-        GetGL().VertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-        GetGL().EnableVertexAttribArray(1);
+        Core::GetEngine().GetGL()->VertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(1);
         
-        GetGL().BindVertexArray(0);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
 
     }
 
@@ -53,7 +53,7 @@ namespace Epoch::Engine::Rendering{
         settings.windowWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
         settings.windowHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
 
-        GetGL().Viewport(0, 0, settings.windowWidth, settings.windowHeight);
+        Core::GetEngine().GetGL()->Viewport(0, 0, settings.windowWidth, settings.windowHeight);
 
         this->settings = settings;
 
@@ -65,7 +65,7 @@ namespace Epoch::Engine::Rendering{
         lightMan->Update(-1);
         
         //MULTISAMPLING
-        GetGL().Enable(GL_MULTISAMPLE);
+        Core::GetEngine().GetGL()->Enable(GL_MULTISAMPLE);
 
         //SHADOWS
         shadowMan = new ShadowManager();
@@ -74,8 +74,8 @@ namespace Epoch::Engine::Rendering{
 
     void Renderer::InitFramebuffers()
     {
-        blendShader = Core::Resources::ResourcesManager::GetInstance().GetShader("shaders\\fb\\blend");
-        framebufferShader = Core::Resources::ResourcesManager::GetInstance().GetShader("shaders\\fb\\framebuffer");
+        blendShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\blend");
+        framebufferShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\framebuffer");
 
         if(framebufferShader == nullptr || blendShader == nullptr){
             DEBUG_ERROR("Viewport buffer cannot be created if the framebuffer shader or the blend shader are null");
@@ -85,7 +85,9 @@ namespace Epoch::Engine::Rendering{
         }
 
         //DEBUG_SHAPES
-        Renderer::unlitShader = Core::Resources::ResourcesManager::GetInstance().GetShader("shaders\\mesh\\unlit");
+        Renderer::unlitShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\mesh\\unlit");
+
+        initialized = true;
     }
 
     void Renderer::Shutdown()
@@ -98,7 +100,7 @@ namespace Epoch::Engine::Rendering{
 
     void Renderer::Render()
     {
-        if(CameraManager::GetInstance().GetActiveCamera() != nullptr && Levels::LevelManager::GetInstance().GetLoadedLevelCount() > 0){
+        if(Core::GetEngine().GetCameraManager()->GetActiveCamera() != nullptr && Core::GetEngine().GetLevelManager()->GetLoadedLevelCount() > 0){
             BeginFrame();
 
             ExecuteRenderPasses();
@@ -185,56 +187,56 @@ namespace Epoch::Engine::Rendering{
 
         std::stable_partition(drawList.begin(), drawList.end(),
         [](const DrawCommand& cmd) {
-            return cmd.mat->renderMode != RenderMode::TRANSLUCENT;
+            return cmd.mat != nullptr && cmd.mat->renderMode != RenderMode::TRANSLUCENT;
         });
     }
 
     void Renderer::BeginFrame()
     {
 
-        CameraManager::GetInstance().Tick();
+        Core::GetEngine().GetCameraManager()->Tick();
 
         if(settings.enableShadows){
-            auto& levelManager = Levels::LevelManager::GetInstance();
+            auto levelManager = Core::GetEngine().GetLevelManager();
 
             size_t totalMeshCount = 0;
-            for (int i = 0, count = levelManager.GetLoadedLevelCount(); i < count; ++i)
-                totalMeshCount += levelManager.GetLevelAt(i)->meshes.size();
+            for (int i = 0, count = levelManager->GetLoadedLevelCount(); i < count; ++i)
+                totalMeshCount += levelManager->GetLevelAt(i)->meshes.size();
 
             std::vector<std::pair<glm::mat4, Epoch::Engine::Rendering::Mesh*>> allMeshes;
             allMeshes.reserve(totalMeshCount);
 
-            for (int i = 0, count = levelManager.GetLoadedLevelCount(); i < count; ++i) {
-                const auto* level = levelManager.GetLevelAt(i);
+            for (int i = 0, count = levelManager->GetLoadedLevelCount(); i < count; ++i) {
+                const auto* level = levelManager->GetLevelAt(i);
                 for (const auto& [id, meshData] : level->meshes) {
                     allMeshes.push_back(meshData);
                 }
             }
  
-            shadowMan->RenderShadowMaps(allMeshes, CameraManager::GetInstance().GetActiveCamera());
+            shadowMan->RenderShadowMaps(allMeshes, Core::GetEngine().GetCameraManager()->GetActiveCamera());
 
             Renderer::settings.windowWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
             Renderer::settings.windowHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
-            GetGL().Viewport(0, 0, Renderer::settings.windowWidth, Renderer::settings.windowHeight);
+            Core::GetEngine().GetGL()->Viewport(0, 0, Renderer::settings.windowWidth, Renderer::settings.windowHeight);
         }
 
-        GetGL().ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        GetGL().Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        GetGL().Enable(GL_CULL_FACE);
-        GetGL().CullFace(GL_BACK);
-        GetGL().FrontFace(GL_CCW);
+        Core::GetEngine().GetGL()->Enable(GL_CULL_FACE);
+        Core::GetEngine().GetGL()->CullFace(GL_BACK);
+        Core::GetEngine().GetGL()->FrontFace(GL_CCW);
     }
   
     void Renderer::DrawScene()
     {
-        GetGL().Enable(GL_DEPTH_TEST);
-        GetGL().ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        GetGL().Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        Core::GetEngine().GetGL()->Enable(GL_DEPTH_TEST);
+        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // --- Main Draw Calls ---
         for (auto& cmd : drawList) {
-            if (!cmd.mat || cmd.indexCount <= 0 || (CameraManager::GetInstance().GetActiveCamera()->frustumCulling && !CameraManager::GetInstance().GetActiveCamera()->IsInFrustum(cmd.boundsMin, cmd.boundsMax)))
+            if (!cmd.mat || cmd.indexCount <= 0 || (Core::GetEngine().GetCameraManager()->GetActiveCamera()->frustumCulling && !Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsInFrustum(cmd.boundsMin, cmd.boundsMax)))
                 continue;
 
             if(settings.enableShadows && cmd.mat->recievesShadows)
@@ -243,49 +245,49 @@ namespace Epoch::Engine::Rendering{
             switch (cmd.mat->renderMode)
             {
                 case TRANSLUCENT:
-                    GetGL().Enable(GL_BLEND);
-                    GetGL().BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    Core::GetEngine().GetGL()->Enable(GL_BLEND);
+                    Core::GetEngine().GetGL()->BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     cmd.mat->SetParameter("masked", false);
                     break;
 
                 case MASKED:
                     cmd.mat->SetParameter("masked", true);
-                    GetGL().Disable(GL_BLEND);
+                    Core::GetEngine().GetGL()->Disable(GL_BLEND);
                     break;
 
                 case OPAQUE:
                     cmd.mat->SetParameter("masked", false);
-                    GetGL().Disable(GL_BLEND);
+                    Core::GetEngine().GetGL()->Disable(GL_BLEND);
                     break;
                     
                 default:
                     break;
             }
 
-            cmd.mat->SetParameter("projection", CameraManager::GetInstance().GetActiveCamera()->GetProjection());
-            cmd.mat->SetParameter("view", CameraManager::GetInstance().GetActiveCamera()->GetView());
+            cmd.mat->SetParameter("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            cmd.mat->SetParameter("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
             cmd.mat->SetParameter("model", cmd.tr->GetTransformMatrix());
             cmd.mat->SetParameter("lightNB", lightMan->GetLightsCount());
-            cmd.mat->SetParameter("camPos", CameraManager::GetInstance().GetActiveCamera()->parent->transform->GetPosition());
+            cmd.mat->SetParameter("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
             cmd.mat->Use();
-            GetGL().BindVertexArray(cmd.VAO);
-            GetGL().PolygonMode(GL_FRONT_AND_BACK, cmd.fillMode);
-            GetGL().DrawElements(GL_TRIANGLES, cmd.indexCount, GL_UNSIGNED_INT, (void*)(cmd.indexOffset * sizeof(uint32_t)));
+            Core::GetEngine().GetGL()->BindVertexArray(cmd.VAO);
+            Core::GetEngine().GetGL()->PolygonMode(GL_FRONT_AND_BACK, cmd.fillMode);
+            Core::GetEngine().GetGL()->DrawElements(GL_TRIANGLES, cmd.indexCount, GL_UNSIGNED_INT, (void*)(cmd.indexOffset * sizeof(uint32_t)));
             cmd.mat->StopUsing();
         }
 
         if(!Renderer::settings.showDebugShapes){
-            GetGL().BindVertexArray(0);
-            GetGL().UseProgram(0);
-            GetGL().Disable(GL_DEPTH_TEST);
+            Core::GetEngine().GetGL()->BindVertexArray(0);
+            Core::GetEngine().GetGL()->UseProgram(0);
+            Core::GetEngine().GetGL()->Disable(GL_DEPTH_TEST);
             return;
         }
 
         // --- Debug Physics Shapes ---
         unlitShader->Activate();
-        unlitShader->setMat4("projectionView", CameraManager::GetInstance().GetActiveCamera()->GetMatrix());
+        unlitShader->setMat4("projectionView", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetMatrix());
 
-        for (auto& physicBody : Levels::LevelManager::GetInstance().GetLevelAt(0)->physicsBodies) {
+        for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
             glm::vec3 pos = physicBody->parent->transform->GetPosition();
             glm::quat rot = physicBody->parent->transform->GetRotation();
@@ -294,13 +296,13 @@ namespace Epoch::Engine::Rendering{
 
             unlitShader->setMat4("model", model);
 
-            GetGL().BindVertexArray(physicBody->GetDebugShape()->GetVAO());
-            GetGL().DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+            Core::GetEngine().GetGL()->BindVertexArray(physicBody->GetDebugShape()->GetVAO());
+            Core::GetEngine().GetGL()->DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
         }
 
-        GetGL().BindVertexArray(0);
-        GetGL().UseProgram(0);
-        GetGL().Disable(GL_DEPTH_TEST);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
+        Core::GetEngine().GetGL()->UseProgram(0);
+        Core::GetEngine().GetGL()->Disable(GL_DEPTH_TEST);
     }
 
     void Renderer::RescaleFramebuffers(int newWidth, int newHeight)
@@ -310,15 +312,20 @@ namespace Epoch::Engine::Rendering{
                 pass.target->RescaleFrameBuffer(newWidth, newHeight);
             }
         }
+        
+        if(!viewportBuffer){
+            DEBUG_FATAL("Called \"RescaleFramebuffers\" with null viewportBuffer");
+            return;
+        }
 
         viewportBuffer->RescaleFrameBuffer(newWidth, newHeight);
 
-        GetGL().Viewport(0, 0, newWidth, newHeight);
+        Core::GetEngine().GetGL()->Viewport(0, 0, newWidth, newHeight);
 
         settings.windowWidth = newWidth;
         settings.windowHeight = newHeight;
 
-        CameraManager::GetInstance().UpdateSize(newWidth, newHeight);
+        Core::GetEngine().GetCameraManager()->UpdateSize(newWidth, newHeight);
     }
 
     void Renderer::AddRenderPass(RenderStage stage, std::function<void()> callback, std::shared_ptr<FrameBuffer> fb, bool appendToViewport, BlendMode blendMode)
@@ -379,8 +386,8 @@ namespace Epoch::Engine::Rendering{
                     if(pass.appendToViewport){
                         viewportBuffer->Bind();
 
-                        GetGL().ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-                        GetGL().Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                        Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                         
                         blendShader->Activate();
 
@@ -388,28 +395,28 @@ namespace Epoch::Engine::Rendering{
                         blendShader->setInt("texA", 0);
                         blendShader->setInt("texB", 1);
 
-                        GetGL().ActiveTexture(GL_TEXTURE0);
-                        GetGL().BindTexture(GL_TEXTURE_2D, viewportBuffer->GetFrameTexture());
+                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
+                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, viewportBuffer->GetFrameTexture());
 
-                        GetGL().ActiveTexture(GL_TEXTURE1);
+                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE1);
                         if(pass.target->isMultisampled)
-                            GetGL().BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
+                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
                         else
-                            GetGL().BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
+                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
         
-                        GetGL().BindVertexArray(rectVAO);
-                        GetGL().Disable(GL_DEPTH_TEST);
+                        Core::GetEngine().GetGL()->BindVertexArray(rectVAO);
+                        Core::GetEngine().GetGL()->Disable(GL_DEPTH_TEST);
                         
-                        GetGL().DrawArrays(GL_TRIANGLES, 0, 6);
+                        Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 6);
                         
-                        GetGL().BindVertexArray(0);
+                        Core::GetEngine().GetGL()->BindVertexArray(0);
 
                         blendShader->Deactivate();
 
-                        GetGL().ActiveTexture(GL_TEXTURE0);
-                        GetGL().BindTexture(GL_TEXTURE_2D, 0);
-                        GetGL().ActiveTexture(GL_TEXTURE1);
-                        GetGL().BindTexture(GL_TEXTURE_2D, 0);
+                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
+                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
+                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE1);
+                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
 
                         viewportBuffer->Unbind();
 

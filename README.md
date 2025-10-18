@@ -31,19 +31,18 @@ ZLIB
 
 ## How to build editor app :
 
-Run build.bat or build
+Run build.bat or build.sh
 
-This will compile CMakeLists everything in root : the engine, the editor app, the editor module, and a basic game module
+This will compile CMakeLists everything in root : the engine, the editor app, the editor module, and a basic game module (with the game app)
 
-(As of october 2025, the editor module will try to find Qt6 at : "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/" on Windows
-and "")
+(As of october 2025, the editor module will try to find Qt6 at : "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/" on Windows)
 
 
-## FEATURES
+## FEATURES IMPLEMENTED
 
-### Rendering
+### Forward Renderer
 
-- PBR shaders/materials
+- PBR shaders/materials (transparency support (transparent & masked))
 - Light system : Directionnal, Spot, Point
 - Shadow maps : Directionnal CSM, PCF (for all shadow maps)
 - Model component (ECS)
@@ -76,7 +75,7 @@ and "")
 ### Editor Module
 
 - Editor module loaded at runtime in a DLL
-- FPS Counter
+- Editor uses Qt for gui
 
 ### Debugging
 
@@ -117,28 +116,56 @@ and "")
 - Time queries (delta, fixedDelta, current global (world) time, current app time)
 - Timespeed (for physics calculations, particles and custom classes)
 
-## ROADMAP ALPHA (November/December 2025)
+### Project system
+
+- Project settings file
+- Editor preferences (inside project settings file)
+
+
+
+<br>
+
+## ROADMAP FULL ENGINE
+
+- Alpha : December 2025/January 2026
+  - All basic feature
+  - Example basic project : Pong 3D
+- Beta : Summer 2026
+  - Polished Renderer
+  - Polished Editor
+  - Unit tests
+  - Demos (YouTube ?)
+- Major First Release 1.0.0 : December 2026/January 2027
+  - Bug fixes
+  - Documentation (User + Source Code)
+  - Optimizations
+- Patches : January 2027 --> May 2027
+  - Bug fixes
+- Minor Release 1.1.0 : Summer 2027
+
+## ROADMAP ALPHA 0.1.0 (December 2025)
 
 ### Editor (Qt)
 
-- [ ] Basic Level Editor
-- [ ] Material Editor
+- [ ] Docking
+- [ ] Scene Tree panel
+- [ ] Material editor panel
+- [ ] Viewport panel
+- [ ] Game panel
+- [ ] Asset Browser
 - [ ] Console
 - [ ] Stats overlay
-  - [ ] Frame profiler
-  - [ ] Sound infos
-  - [ ] Scene infos
+  - [ ] Audio infos
+  - [ ] Minimal frame profiler (FPS, Speed of each part of the engine...)
   - [ ] Hardware infos (CPU, GPU, RAM) (Name, Vendor, Usage...)
 
 ### Rendering
 
-- [x] Transparency
+- [ ] IBL
 - [ ] Wireframe rendering
-- [ ] Forward+ renderer
+- [ ] Forward+ rendering
 - [ ] FBX importer (multiple meshes)
 - [ ] Skyboxes
-- [ ] LODs
-- [ ] LODs generator
 - [ ] Post processing effects shaders (SSAO, Bloom, Vignette, Tone Mapping, Film Grain, Chromatic Abberration)
 
 #### Serialization
@@ -158,10 +185,6 @@ and "")
 - [ ] Skeletal animations
 - [ ] Animation Blending
 - [ ] Animation State Machine
-
-#### UI
-
-- [ ] GUI components (3D/Canvas) : text, button, input text, scroll bar, image, layout
 
 ## Credits
 

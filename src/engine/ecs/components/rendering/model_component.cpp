@@ -6,6 +6,8 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::ECS::Components{
     
 
@@ -56,7 +58,7 @@ namespace Epoch::Engine::ECS::Components{
 
             std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCmds(tr, parent->GetComponentIDInScene(local_id), this->materials);
 
-            Rendering::Renderer::GetInstance().SubmitCommands(cmds, alreadySubmitted);
+            Core::GetEngine().GetRenderer()->SubmitCommands(cmds, alreadySubmitted);
 
             alreadySubmitted = true;
         }
@@ -67,7 +69,7 @@ namespace Epoch::Engine::ECS::Components{
         if (materials.size() > 0 && mesh != nullptr && parent->level->loaded){
             std::shared_ptr<Transform> tr = parent->transform;
             std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCmds(tr, parent->GetComponentIDInScene(local_id), this->materials);
-            Rendering::Renderer::GetInstance().RemoveCommands(cmds);
+            Core::GetEngine().GetRenderer()->RemoveCommands(cmds);
         }
     }
 }

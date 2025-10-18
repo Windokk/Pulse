@@ -13,14 +13,11 @@ namespace Epoch::Engine::Rendering{
 
     class CameraManager{
         public:
-            static CameraManager& GetInstance() {
-                static CameraManager instance;
-                return instance;
-            }
             
             /// @brief Adds a new camera with a name
             void AddCamera(const std::string& name, std::shared_ptr<Camera> camera) {
                 cameras[name] = camera;
+
                 if (!activeCamera)
                     activeCamera = camera;
             }
@@ -74,29 +71,8 @@ namespace Epoch::Engine::Rendering{
             }
 
         private:
-            CameraManager() = default;
-            ~CameraManager() = default;
-            CameraManager(const CameraManager&) = delete;
-            CameraManager& operator=(const CameraManager&) = delete;
 
             std::unordered_map<std::string, std::shared_ptr<Camera>> cameras;
             std::shared_ptr<Camera> activeCamera;
     };
-
-    #if defined(BUILD_EDITOR)
-
-        // Used by the Editor Module DLL
-        inline CameraManager* gSharedCameraManagerPtr = nullptr;
-
-        inline void SetCameraManager(CameraManager* ptr) {
-            gSharedCameraManagerPtr = ptr;
-        }
-
-        inline CameraManager& GetCameraManager() {
-            if (!gSharedCameraManagerPtr)
-                exit(2);
-            return *gSharedCameraManagerPtr;
-        }
-
-    #endif
 }

@@ -2,7 +2,10 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
+#include "engine/core/engine.hpp"
+
 #include <nlohmann/json.hpp>
+
 
 using namespace nlohmann;
 
@@ -11,14 +14,19 @@ namespace Epoch::Engine::Serialization{
     using namespace Core::Resources;
     using namespace Rendering;
 
-    std::shared_ptr<Material> MaterialSerializer::ImportMaterial(Filesystem::Path path)
+    std::shared_ptr<Material> DeserializeMaterial(Filesystem::Path path)
     {
+        if(!path.Exists()){
+            DEBUG_ERROR("Level at path : \"" + path.full +"\" doesn't exist !");
+            return nullptr; 
+        }
+
         std::string src = path.ReadFile();
 
         try {
             json data = json::parse(src);
 
-            std::shared_ptr<Shader> shader = ResourcesManager::GetInstance().GetShader(data["shader"]);
+            std::shared_ptr<Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader(data["shader"]);
 
             if(!shader){
                 DEBUG_ERROR("No shader found : " + ((std::string)data["shader"]));
@@ -56,7 +64,7 @@ namespace Epoch::Engine::Serialization{
 
                     // Texture
                     if (value.is_string()) {
-                        std::shared_ptr<Texture> tex = ResourcesManager::GetInstance().GetTexture(value.get<std::string>());
+                        std::shared_ptr<Texture> tex = Core::GetEngine().GetResourcesManager()->GetTexture(value.get<std::string>());
                         if(tex){
                             mat->SetParameter(name, tex);
                         }

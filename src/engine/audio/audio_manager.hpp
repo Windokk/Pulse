@@ -24,11 +24,6 @@ namespace Epoch::Engine::Audio
     
     class AudioManager{
         public:
-
-        static AudioManager& GetInstance() {
-            static AudioManager instance;
-            return instance;
-        }
         
         void Init(float masterVolume);
         void Shutdown();
@@ -41,11 +36,6 @@ namespace Epoch::Engine::Audio
         void Update(glm::vec3 listenerPos, glm::vec2 listenerFacingNormalized, float maxDistance);
 
         private:
-
-        AudioManager() = default;
-        ~AudioManager() = default;
-        AudioManager(const AudioManager&) = delete;
-        AudioManager& operator=(const AudioManager&) = delete;
 
         FMOD_SYSTEM *system;
         std::unordered_map<std::string, FMOD_CHANNEL*> channels;

@@ -18,7 +18,7 @@ namespace Epoch::Engine::Serialization{
         std::string mesh_name = component["mesh"];
         if (data["meshes"].contains(mesh_name)) {
             const std::string& mesh_path = data["meshes"][mesh_name];
-            std::shared_ptr<Rendering::Mesh> mesh = Core::Resources::ResourcesManager::GetInstance().GetMesh(mesh_path);
+            std::shared_ptr<Rendering::Mesh> mesh = Core::GetEngine().GetResourcesManager()->GetMesh(mesh_path);
             if(mesh)
                 a->AddComponent<ECS::Components::Model>()->SetMesh(mesh);
             else
@@ -51,11 +51,11 @@ namespace Epoch::Engine::Serialization{
                 materialPath = "materials\\default";
             }
 
-            auto material = Core::Resources::ResourcesManager::GetInstance().GetMaterial(materialPath);
+            auto material = Core::GetEngine().GetResourcesManager()->GetMaterial(materialPath);
             if (!material) {
                 DEBUG_ERROR("Failed to load material at path: " + materialPath
                         + ". Using fallback.");
-                material = Core::Resources::ResourcesManager::GetInstance().GetMaterial("materials\\default");
+                material = Core::GetEngine().GetResourcesManager()->GetMaterial("materials\\default");
 
                 if (!material) {
                     DEBUG_ERROR("Failed to load fallback material: materials\\default");
@@ -206,7 +206,8 @@ namespace Epoch::Engine::Serialization{
                 float volume = component["volume"];
                 std::string path = component["path"];
 
-                audio->SetPath(Filesystem::FileManager::GetProjectRoot().full+path);
+                audio->SetPath(Filesystem::Path(path, false));
+
                 audio->SetVolume(volume);
 
                 if(component["active"])
@@ -243,7 +244,7 @@ namespace Epoch::Engine::Serialization{
         LoadComponents(a, data, actor);
     }
 
-    std::shared_ptr<Levels::Level> ImportLevel(const Filesystem::Path path)
+    std::shared_ptr<Levels::Level> DeserializeLevel(const Filesystem::Path path)
     {
         std::string src = path.ReadFile();
 

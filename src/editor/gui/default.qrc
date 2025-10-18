@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/epoch/default">
+        <file>stylesheets/default.qss</file>
+    </qresource>
+</RCC>

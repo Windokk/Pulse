@@ -7,11 +7,19 @@
 #include "engine/ecs/components/rendering/light_component.hpp"
 #include "engine/ecs/components/rendering/model_component.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::Levels{
+
 
     Level::Level(std::string name)
     {
         this->name = name;
+    }
+
+    void Level::SetBuildIndex(int buildIndex)
+    {
+        this->buildIndex = buildIndex;
     }
 
     void Level::Clear()
@@ -30,7 +38,7 @@ namespace Epoch::Engine::Levels{
     void Level::Start()
     {
         for(auto& cam : cameras){
-            Rendering::CameraManager::GetInstance().AddCamera(cam->parent->GetName(), cam);
+            Core::GetEngine().GetCameraManager()->AddCamera(cam->parent->GetName(), cam);
         }
 
         for(int i = 0; i < lights.size(); i++){
@@ -58,8 +66,8 @@ namespace Epoch::Engine::Levels{
             model->RemoveFromDrawList();
         }
 
-        Rendering::CameraManager::GetInstance().Clear();
-        Rendering::Renderer::GetInstance().lightMan->Clear();
+        Core::GetEngine().GetCameraManager()->Clear();
+        Core::GetEngine().GetRenderer()->lightMan->Clear();
     }
 
     void Level::Tick()
@@ -97,7 +105,7 @@ namespace Epoch::Engine::Levels{
                 std::vector<ECS::ObjectID> children = actorPtr->GetChildrenID(true);
 
                 for(auto& _id : children){
-                    std::shared_ptr<ECS::Objects::Actor> child = std::dynamic_pointer_cast<ECS::Objects::Actor>(ECS::ObjectIDManager::GetInstance().GetObjectFromID(_id));
+                    std::shared_ptr<ECS::Objects::Actor> child = std::dynamic_pointer_cast<ECS::Objects::Actor>(Core::GetEngine().GetObjectIDManager()->GetObjectFromID(_id));
                     if(_id == id && child){
                         return child;
                     }

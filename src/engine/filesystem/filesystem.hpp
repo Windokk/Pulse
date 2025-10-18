@@ -37,8 +37,8 @@ namespace Epoch::Engine::Filesystem{
         std::string full;  // Full/normalized path
     
         Path() = default;
-        Path(const std::string& raw);
-    
+        Path(const std::string &raw, bool normalize = false);
+
         // Normalize slashes, remove ../, etc.
         static std::string Normalize(const std::string& raw);
     
@@ -77,46 +77,65 @@ namespace Epoch::Engine::Filesystem{
         bool IsDirectory() const;
 
         static bool IsSubPathOf(const Path& child, const Path& parent);
+
+        bool operator==(const Path& p) const {
+            return full == p.full;
+        }
+
+        bool operator!=(const Path& p) const {
+            return !(*this == p);
+        }
+
+        friend Path operator/(const Path& lhs, const Path& rhs);
+
+        friend Path operator/(const std::string& lhs, const Path& rhs);
+
+        friend Path operator/(const Path& lhs, const std::string& rhs);
+
     };
 
     // --- Basic file info ---
     struct FileInfo {
         Path path;
-        std::string name;
+        std::string nameInProject = "";
+        std::string extension = "";
+        std::string name = "";
         Type type;
         bool isDirectory;
         int size;
     };
 
+    struct AssetInfo{
+        FileInfo baseInfos;
+        std::vector<AssetID> dependencies;
+    };
+
     class FileManager {
         public:
 
-            FileManager(const FileManager&) = delete;
-            FileManager& operator=(const FileManager&) = delete;
-            FileManager(FileManager&&) = delete;
-            FileManager& operator=(FileManager&&) = delete;
-            
-            static void Init(std::string rootPath = "", std::string projectRootPath = "");
-
+            Path GetCurrentExecutablePath();
 
             // File and directory browsing
-            static FileInfo GetFileInfos(const Path& path);
-            static std::vector<FileInfo> ListDirectory(const Path &path, std::vector<Type> acceptedExtensions, bool includeDirs = false, bool recursive = false);
+            FileInfo GetFileInfos(const Path& path);
+            void Init(Path projectResPath, Path engineResPath, Path projectRoot);
+            std::vector<FileInfo> ListDirectory(const Path &path, std::vector<Type> acceptedExtensions, bool includeDirs = false, bool recursive = false);
 
             // Path tools
-            static bool IsPathInside(const Path& parent, const Path& child);
-            static bool HasExtension(const Path& path, const std::vector<std::string>& validExtensions);
+            bool IsPathInside(const Path& parent, const Path& child);
+            bool HasExtension(const Path& path, const std::vector<std::string>& validExtensions);
+
 
             // Utility
-            static void SetRoot(const Path& path);
-            static void SetProjectRoot(const Path& path);
-            static Path GetRoot() { return root; };
-            static Path GetProjectRoot() { return projectRoot; };
+            void SetEngineResRoot(const Path &path);
+            void SetProjectResRoot(const Path &path);
+            void SetProjectRoot(const Path& path);
+            Path GetProjectRoot() { return projectRoot; };
+            Path GetEngineResRoot() { return engineResPath; };
+            Path GetProjectResRoot() { return projectResPath; };
 
         private:
-            static Path root;
-            static Path projectRoot;
-            FileManager() = default;
-            ~FileManager() = default;
+            Path engineResPath;
+            Path projectRoot;
+            Path projectResPath;
     };
 }

@@ -8,6 +8,7 @@
 #include "engine/ecs/components/audio/audio_source.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
 #include "engine/ecs/components/core/script.hpp"
+#include "engine/ecs/components/rendering/model_component.hpp"
 
 namespace Epoch::Engine::ECS{
 
@@ -38,6 +39,8 @@ namespace Epoch::Engine::Levels{
         public:
         Level(std::string name);
 
+        void SetBuildIndex(int buildIndex);
+
         void Clear();
 
         void Tick();
@@ -52,6 +55,14 @@ namespace Epoch::Engine::Levels{
 
         const std::string& GetName() const;
         void SetName(const std::string& name);
+        
+        Filesystem::AssetID assetID;
+
+        void SetAssetID(Filesystem::AssetID assetID) {
+            this->assetID = assetID;
+        }
+
+        int GetBuildIndex() { return buildIndex; }
 
         std::vector<std::shared_ptr<ECS::Components::Light>> lights;
         std::vector<std::shared_ptr<ECS::Components::Transform>> transforms;
@@ -60,12 +71,11 @@ namespace Epoch::Engine::Levels{
         std::vector<std::shared_ptr<ECS::Components::AudioSource>> audioSources;
         std::vector<std::shared_ptr<ECS::Components::Camera>> cameras;
         std::vector<std::shared_ptr<ECS::Components::Script>> scripts;
-
-        /// @brief 
         std::unordered_map<int, std::pair<glm::mat4, Rendering::Mesh*>> meshes;
         
         bool loaded = false;
-        
+
+        int buildIndex = -1;
     };
 
 }

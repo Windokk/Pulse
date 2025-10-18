@@ -1,5 +1,6 @@
 #include "actor.hpp"
 
+#include "engine/core/engine.hpp"
 
 namespace Epoch::Engine::ECS::Objects{
     
@@ -57,13 +58,13 @@ namespace Epoch::Engine::ECS::Objects{
 
             uint32_t id = GetComponentIDInScene(components.size() - 1);
 
-            Events::EventDispatcher::GetInstance().subscribeToComponent<Events::ContactAddedEvent>(id, [script](const Events::ContactAddedEvent& event) {
+            Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactAddedEvent>(id, [script](const Events::ContactAddedEvent& event) {
                 script->OnContactAdded(event);
             });
-            Events::EventDispatcher::GetInstance().subscribeToComponent<Events::ContactPersistedEvent>(id, [script](const Events::ContactPersistedEvent& event) {
+            Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactPersistedEvent>(id, [script](const Events::ContactPersistedEvent& event) {
                 script->OnContactPersisted(event);
             });
-            Events::EventDispatcher::GetInstance().subscribeToComponent<Events::ContactRemovedEvent>(id, [script](const Events::ContactRemovedEvent& event) {
+            Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactRemovedEvent>(id, [script](const Events::ContactRemovedEvent& event) {
                 script->OnContactEnded(event);
             });
         }
@@ -73,6 +74,25 @@ namespace Epoch::Engine::ECS::Objects{
         }
 
         return component;
+    }
+
+    void Actor::Destroy()
+    {
+        for(auto& component : components){
+            component->Destroy();
+        }
+
+        if(level){
+            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
+
+            if(levelBuildIndex == -1)
+                return;
+
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+        }
+
+        Object::Destroy();
     }
 
     void Actor::AddChild(std::shared_ptr<Object> o)
@@ -85,6 +105,65 @@ namespace Epoch::Engine::ECS::Objects{
 
     void Actor::SetLevel(Levels::Level* lvl)
     {
+        if(!lvl) return;
+
         this->level = lvl;
+
+        if(level){
+            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
+            
+            if(levelBuildIndex == -1)
+                return;
+
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+        }
+    }
+
+    void Actor::RegisterComponentEvents(const std::shared_ptr<Script>& component){
+        
+        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactAddedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactAddedEvent& event) {
+            component->OnContactAdded(event);
+        });
+        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactPersistedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactPersistedEvent& event) {
+            component->OnContactPersisted(event);
+        });
+        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactRemovedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactRemovedEvent& event) {
+            component->OnContactEnded(event);
+        });
+    }
+
+    void Actor::Activate()
+    {
+        activated = true;
+        for(auto& component : components){
+            component->Activate();
+        }
+        if(level){
+            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
+
+            if(levelBuildIndex == -1)
+                return;
+
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+        }
+    }
+
+    void Actor::DeActivate()
+    {
+        activated = false;
+        for(auto& component : components){
+            component->DeActivate();
+        }
+        if(level){
+            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
+
+            if(levelBuildIndex == -1)
+                return;
+
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+        }
     }
 }

@@ -48,10 +48,6 @@ namespace Epoch::Engine::Time{
 
     class TimeManager {
         public:
-            static TimeManager& GetInstance() {
-                static TimeManager instance;
-                return instance;
-            }
 
             void Init(float fixedStep = 1.0f / 60.0f, float maxAccumulated = 4.0f / 60.0f){
                 fixedDeltaTime = fixedStep;
@@ -124,11 +120,6 @@ namespace Epoch::Engine::Time{
             }
             
         private:
-            TimeManager() = default;
-            ~TimeManager() = default;
-
-            TimeManager(const TimeManager&) = delete;
-            TimeManager& operator=(const TimeManager&) = delete;
 
             float fixedDeltaTime;
             float deltaTime;

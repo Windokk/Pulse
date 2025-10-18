@@ -8,14 +8,10 @@ using namespace Epoch::Engine;
 using namespace Epoch::Engine::Core;
 using namespace Epoch::Engine::ECS::Components;
 
-extern "C" __declspec(dllexport) void InitializeSingletons(Core::EngineInstance* engine, Debugging::Debugger* debugger, 
-                                                            Debugging::Level minDebugLevel, ComponentRegistry* compReg,
-                                                            OpenGL* openGLBindings) {
+extern "C" __declspec(dllexport) void InitializeSingletons(Core::EngineInstance* engine, 
+                                                            ComponentRegistry* compReg) {
     SetEngine(engine);
-    SetDebugger(debugger);
-    Debugging::GetDebugger().SetMinimumLevel(minDebugLevel);
     SetComponentRegistry(compReg);
-    SetGL(openGLBindings);
 }
 
 extern "C" __declspec(dllexport) void RegisterGameComponents() {
@@ -24,6 +20,6 @@ extern "C" __declspec(dllexport) void RegisterGameComponents() {
     }
 }
 
-extern "C" __declspec(dllexport) Platform::IPlatform* CreatePlatform() {
-    return new Platform::GLFWPlatform();
+extern "C" __declspec(dllexport) Platform::IPlatform* CreatePlatform(int argc, char** argv) {
+    return new Epoch::Game::Core::Platform::GLFWPlatform();
 }

@@ -6,48 +6,19 @@ namespace Epoch::Engine::Levels{
 
     class LevelManager {
         public:
-            static LevelManager& GetInstance() {
-                static LevelManager instance;
-                return instance;
-            }
-        
-            LevelManager() = default;
-            ~LevelManager() = default;
-            LevelManager(const LevelManager&) = delete;
-            LevelManager& operator=(const LevelManager&) = delete;
             
             /// @brief Load a level
             /// @param lvl The pointer to the level
-            void LoadLevel(std::shared_ptr<Level> lvl) {
-                if(!lvl)
-                    DEBUG_FATAL("Cannot load level (because pointer is null)");
-                levelBuffer.push_back(lvl);
-                lvl->loaded = true;
-                lvl->Start();
-            }
+            void LoadLevel(std::shared_ptr<Level> lvl);
 
             /// @brief Getter for a loaded level
             /// @param index The index of the level to retrieve
             /// @return A pointer to the level loaded at "index"
-            Level* GetLevelAt(int index){
-                if (index >= 0 && index < levelBuffer.size()) {
-                    return levelBuffer[index].get();
-                } else {
-                    DEBUG_ERROR("Invalid index (out of bounds). Unable to retrieve level.");
-                    return nullptr;
-                }
-            }
+            Level* GetLevelAt(int index);
 
             /// @brief Unload a loaded level
             /// @param index The index of the level to unload
-            void UnloadLevel(int index){
-                if (index >= 0 && index < levelBuffer.size()) {
-                    levelBuffer[index]->Unload();
-                    levelBuffer.erase(levelBuffer.begin() + index);
-                } else {
-                    DEBUG_ERROR("Invalid index (out of bounds). Unable to unload level.");
-                }
-            }
+            void UnloadLevel(int index);
             
             /// @brief Unload all loaded levels
             void UnloadAllLevels() {

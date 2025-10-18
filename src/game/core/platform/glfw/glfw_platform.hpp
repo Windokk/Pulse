@@ -6,12 +6,12 @@
 
 #include "glfw_window.hpp"
 
-namespace Epoch::Engine::Core::Platform {
+namespace Epoch::Game::Core::Platform {
 
-    class GLFWPlatform : public IPlatform {
+    class GLFWPlatform : public Engine::Core::Platform::IPlatform {
         public:
-            IWindow* GetWindow() override { return window.get(); };
-            IInput* GetInput() override { return input.get(); };
+            Engine::Core::Platform::IWindow* GetWindow() override { return window.get(); };
+            Engine::Core::Platform::IInput* GetInput() override { return input.get(); };
 
             void CreateWindow(const std::string& title, const int& width, const int& height, 
                             const bool& fullscreen, const int& vsync) override 
@@ -36,7 +36,7 @@ namespace Epoch::Engine::Core::Platform {
             void SetClipboardText(const std::string& text) override { }
             std::string GetClipboardText() override { return ""; }
         private:
-            std::unique_ptr<IWindow> window;
-            std::unique_ptr<IInput> input;
+            std::unique_ptr<Engine::Core::Platform::IWindow> window;
+            std::unique_ptr<Engine::Core::Platform::IInput> input;
     };
 }

@@ -25,6 +25,12 @@ namespace Epoch::Engine::Rendering{
             int SubMeshesCount() const { return submeshes.size(); }
 
             int materialsSlots;
+            
+            Filesystem::AssetID assetID;
+
+            void SetAssetID(Filesystem::AssetID assetID) {
+                this->assetID = assetID;
+            }
 
         private:
             GLuint VAO, VBO, EBO;
@@ -34,6 +40,7 @@ namespace Epoch::Engine::Rendering{
             std::vector<SubMesh> submeshes;
 
             bool LoadMesh(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse);
+            
 
     };
     

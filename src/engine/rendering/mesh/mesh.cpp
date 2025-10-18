@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "engine/rendering/opengl/opengl.hpp"
+#include "engine/core/engine.hpp"
 
 namespace Epoch::Engine::Rendering{
     
@@ -15,9 +15,9 @@ namespace Epoch::Engine::Rendering{
 
     Mesh::~Mesh()
     {
-        GetGL().DeleteVertexArrays(1, &VAO);
-        GetGL().DeleteBuffers(1, &VBO);
-        GetGL().DeleteBuffers(1, &EBO);
+        Core::GetEngine().GetGL()->DeleteVertexArrays(1, &VAO);
+        Core::GetEngine().GetGL()->DeleteBuffers(1, &VBO);
+        Core::GetEngine().GetGL()->DeleteBuffers(1, &EBO);
     }
 
     void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -182,43 +182,43 @@ namespace Epoch::Engine::Rendering{
 
         ComputeTangents(vertices, indices);
 
-        GetGL().GenVertexArrays(1, &VAO);
-        GetGL().GenBuffers(1, &VBO);
-        GetGL().GenBuffers(1, &EBO);
+        Core::GetEngine().GetGL()->GenVertexArrays(1, &VAO);
+        Core::GetEngine().GetGL()->GenBuffers(1, &VBO);
+        Core::GetEngine().GetGL()->GenBuffers(1, &EBO);
 
-        GetGL().BindVertexArray(VAO);
+        Core::GetEngine().GetGL()->BindVertexArray(VAO);
 
-        GetGL().BindBuffer(GL_ARRAY_BUFFER, VBO);
-        GetGL().BufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        Core::GetEngine().GetGL()->BindBuffer(GL_ARRAY_BUFFER, VBO);
+        Core::GetEngine().GetGL()->BufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-        GetGL().BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        GetGL().BufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+        Core::GetEngine().GetGL()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        Core::GetEngine().GetGL()->BufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
         // layout: 0 - position, 1 - normal, 2 - color, 3 - texCoord, 4 - tangent 
-        GetGL().VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        GetGL().EnableVertexAttribArray(0);
+        Core::GetEngine().GetGL()->VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(0);
 
-        GetGL().VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-        GetGL().EnableVertexAttribArray(1);
+        Core::GetEngine().GetGL()->VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(1);
 
-        GetGL().VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        GetGL().EnableVertexAttribArray(2);
+        Core::GetEngine().GetGL()->VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(2);
 
-        GetGL().VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-        GetGL().EnableVertexAttribArray(3);
+        Core::GetEngine().GetGL()->VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(3);
 
-        GetGL().VertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-        GetGL().EnableVertexAttribArray(4);
+        Core::GetEngine().GetGL()->VertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(4);
 
-        GetGL().BindVertexArray(0);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
 
         return true;
     }
     
     void Mesh::DrawWithoutMaterial() const {
-        GetGL().BindVertexArray(VAO);
-        GetGL().DrawElements(GL_TRIANGLES, static_cast<GLsizei>(totalIndexCount), GL_UNSIGNED_INT, 0);
-        GetGL().BindVertexArray(0);
+        Core::GetEngine().GetGL()->BindVertexArray(VAO);
+        Core::GetEngine().GetGL()->DrawElements(GL_TRIANGLES, static_cast<GLsizei>(totalIndexCount), GL_UNSIGNED_INT, 0);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
     }
     std::vector<DrawCommand> Mesh::CreateDrawCmds(std::shared_ptr<ECS::Components::Transform> tr, int objectID, std::vector<std::shared_ptr<Material>> mats)
     {

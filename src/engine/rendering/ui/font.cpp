@@ -3,6 +3,8 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/debugging/debugger.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::Rendering::UI{
 
     using namespace Filesystem;
@@ -57,7 +59,7 @@ namespace Epoch::Engine::Rendering::UI{
             FT_Set_Char_Size(face, 0, size * 64, 300, 300);
     
             // disable byte-alignment restriction
-            GetGL().PixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            Core::GetEngine().GetGL()->PixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
             // load first 128 characters of ASCII set
             for (unsigned char c = 0; c < 128; c++)
@@ -70,9 +72,9 @@ namespace Epoch::Engine::Rendering::UI{
                 }
                 // generate texture
                 unsigned int texture;
-                GetGL().GenTextures(1, &texture);
-                GetGL().BindTexture(GL_TEXTURE_2D, texture);
-                GetGL().TexImage2D(
+                Core::GetEngine().GetGL()->GenTextures(1, &texture);
+                Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, texture);
+                Core::GetEngine().GetGL()->TexImage2D(
                     GL_TEXTURE_2D,
                     0,
                     GL_RED,
@@ -84,10 +86,10 @@ namespace Epoch::Engine::Rendering::UI{
                     face->glyph->bitmap.buffer
                 );
                 // set texture options
-                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                GetGL().TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 // now store character for later use
                 Character character = {
                     texture,
@@ -97,7 +99,7 @@ namespace Epoch::Engine::Rendering::UI{
                 };
                 characters.insert(std::pair<char, Character>(c, character));
             }
-            GetGL().BindTexture(GL_TEXTURE_2D, 0);
+            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
         }
         // destroy FreeType once we're finished
         FT_Done_Face(face);
@@ -106,52 +108,52 @@ namespace Epoch::Engine::Rendering::UI{
     
         // configure VAO/VBO for texture quads
         // -----------------------------------
-        GetGL().GenVertexArrays(1, &VAO);
-        GetGL().GenBuffers(1, &VBO);
-        GetGL().BindVertexArray(VAO);
-        GetGL().BindBuffer(GL_ARRAY_BUFFER, VBO);
-        GetGL().BufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
-        GetGL().GenBuffers(1, &EBO);
-        GetGL().BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        GetGL().BufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+        Core::GetEngine().GetGL()->GenVertexArrays(1, &VAO);
+        Core::GetEngine().GetGL()->GenBuffers(1, &VBO);
+        Core::GetEngine().GetGL()->BindVertexArray(VAO);
+        Core::GetEngine().GetGL()->BindBuffer(GL_ARRAY_BUFFER, VBO);
+        Core::GetEngine().GetGL()->BufferData(GL_ARRAY_BUFFER, 4 * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
+        Core::GetEngine().GetGL()->GenBuffers(1, &EBO);
+        Core::GetEngine().GetGL()->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        Core::GetEngine().GetGL()->BufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
         // Position attribute (location = 0)
-        GetGL().VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        GetGL().EnableVertexAttribArray(0);
+        Core::GetEngine().GetGL()->VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(0);
 
-        GetGL().VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-        GetGL().EnableVertexAttribArray(1);
+        Core::GetEngine().GetGL()->VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(1);
 
-        GetGL().VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        GetGL().EnableVertexAttribArray(2);
+        Core::GetEngine().GetGL()->VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(2);
 
-        GetGL().VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-        GetGL().EnableVertexAttribArray(3);
+        Core::GetEngine().GetGL()->VertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(3);
 
-        GetGL().VertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-        GetGL().EnableVertexAttribArray(4);
-        GetGL().BindBuffer(GL_ARRAY_BUFFER, 0);
-        GetGL().BindVertexArray(0);
+        Core::GetEngine().GetGL()->VertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+        Core::GetEngine().GetGL()->EnableVertexAttribArray(4);
+        Core::GetEngine().GetGL()->BindBuffer(GL_ARRAY_BUFFER, 0);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
     }
 
     void Font::Cleanup(){
         for (auto& [c, character] : characters) {
-            GetGL().DeleteTextures(1, &character.textureID);
+            Core::GetEngine().GetGL()->DeleteTextures(1, &character.textureID);
         }
         characters.clear();
     
         // Supprimer les buffers OpenGL
         if (VBO) {
-            GetGL().DeleteBuffers(1, &VBO);
+            Core::GetEngine().GetGL()->DeleteBuffers(1, &VBO);
             VBO = 0;
         }
     
         if (EBO) {
-            GetGL().DeleteBuffers(1, &EBO);
+            Core::GetEngine().GetGL()->DeleteBuffers(1, &EBO);
             EBO = 0;
         }
     
         if (VAO) {
-            GetGL().DeleteVertexArrays(1, &VAO);
+            Core::GetEngine().GetGL()->DeleteVertexArrays(1, &VAO);
             VAO = 0;
         }
     }

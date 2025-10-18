@@ -14,12 +14,12 @@ namespace Epoch::Engine::Rendering{
     
     LightManager::LightManager()
     {
-        GetGL().GenBuffers(1, &ssbo);
+        Core::GetEngine().GetGL()->GenBuffers(1, &ssbo);
     }
 
     LightManager::~LightManager()
     {
-        GetGL().DeleteBuffers(1, &ssbo);
+        Core::GetEngine().GetGL()->DeleteBuffers(1, &ssbo);
     }
 
     /// @note Only call this AFTER modifying the light data
@@ -37,15 +37,15 @@ namespace Epoch::Engine::Rendering{
                 }
             }
 
-            GetGL().BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-            GetGL().BufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightData) * flatLights.size(), flatLights.data(), GL_DYNAMIC_DRAW);
-            GetGL().BindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+            Core::GetEngine().GetGL()->BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+            Core::GetEngine().GetGL()->BufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightData) * flatLights.size(), flatLights.data(), GL_DYNAMIC_DRAW);
+            Core::GetEngine().GetGL()->BindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
         }
 
         if(updatedLight == -1)
             return;
 
-        Renderer::GetInstance().shadowMan->RegisterLight(updatedLight, lights[updatedLight]);
+        Core::GetEngine().GetRenderer()->shadowMan->RegisterLight(updatedLight, lights[updatedLight]);
     }
 
     /// @brief Add a light to the renderer
@@ -63,7 +63,7 @@ namespace Epoch::Engine::Rendering{
         {
             if (lights[i] && lights[i]->castShadow)
             {
-                Renderer::GetInstance().shadowMan->UnregisterLight(i);
+                Core::GetEngine().GetRenderer()->shadowMan->UnregisterLight(i);
             }
         }
 
@@ -79,7 +79,7 @@ namespace Epoch::Engine::Rendering{
 
         if (lights[lightIndex] && lights[lightIndex]->castShadow)
         {
-            Renderer::GetInstance().shadowMan->UnregisterLight(lightIndex);
+            Core::GetEngine().GetRenderer()->shadowMan->UnregisterLight(lightIndex);
         }
 
         lights.erase(lights.begin() + lightIndex);
@@ -88,7 +88,7 @@ namespace Epoch::Engine::Rendering{
         {
             if (lights[i] && lights[i]->castShadow)
             {
-                Renderer::GetInstance().shadowMan->RegisterLight(i, lights[i]);
+                Core::GetEngine().GetRenderer()->shadowMan->RegisterLight(i, lights[i]);
             }
         }
     }

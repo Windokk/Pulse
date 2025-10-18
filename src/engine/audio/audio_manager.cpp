@@ -12,6 +12,10 @@
 
 #include "engine/time/time_manager.hpp"
 
+#include "engine/core/engine.hpp"
+
+#include "engine/debugging/debugger.hpp"
+
 namespace Epoch::Engine::Audio
 {
     using namespace Filesystem;
@@ -30,7 +34,7 @@ namespace Epoch::Engine::Audio
             if (userData) {
                 AudioID* id = static_cast<AudioID*>(userData);
 
-                auto* sound = AudioIDManager::GetInstance().GetSoundFromID(*id);
+                auto* sound = Core::GetEngine().GetAudioIDManager()->GetSoundFromID(*id);
                 if (sound) {
                     sound->isPlaying = false;
                 }
@@ -77,7 +81,7 @@ namespace Epoch::Engine::Audio
             sound->pos = pos;
             sound->buffer = file;
 
-            AudioIDManager::GetInstance().AssignID(id, sound);
+            Core::GetEngine().GetAudioIDManager()->AssignID(id, sound);
             channels.emplace(id.GetAsString() + "_channel", channel);
         } else {
             DEBUG_ERROR("Couldn't load sound: " + path.full);
@@ -86,38 +90,38 @@ namespace Epoch::Engine::Audio
 
     void AudioManager::RemoveSound(AudioID id)
     {
-        Sound* sound = AudioIDManager::GetInstance().GetSoundFromID(id);
+        Sound* sound = Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id);
         FMOD_Sound_Release(sound->fmod_sound);
         delete sound;
-        AudioIDManager::GetInstance().DestroyID(id);
+        Core::GetEngine().GetAudioIDManager()->DestroyID(id);
         channels.erase(id.GetAsString()+"_channel");
     }
 
     void AudioManager::PlaySound(AudioID id, float volume)
     {
-        if(!AudioIDManager::GetInstance().GetSoundFromID(id)->isPlaying){
-            FMOD_System_PlaySound(system, AudioIDManager::GetInstance().GetSoundFromID(id)->fmod_sound, nullptr, true, &channels.at(id.GetAsString()+"_channel"));
+        if(!Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->isPlaying){
+            FMOD_System_PlaySound(system, Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->fmod_sound, nullptr, true, &channels.at(id.GetAsString()+"_channel"));
             AudioID* idCopy = new AudioID(id);
             FMOD_Channel_SetUserData(channels.at(id.GetAsString()+"_channel"), idCopy);
             FMOD_Channel_SetCallback(channels.at(id.GetAsString()+"_channel"), OnSoundStopped);
             FMOD_Channel_SetPaused(channels.at(id.GetAsString()+"_channel"), false);
-            AudioIDManager::GetInstance().GetSoundFromID(id)->isPlaying = true;
-            AudioIDManager::GetInstance().GetSoundFromID(id)->initialVolume = volume/100.0f;
+            Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->isPlaying = true;
+            Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->initialVolume = volume/100.0f;
         }
     }
 
     void AudioManager::PauseSound(AudioID id)
     {
-        if(AudioIDManager::GetInstance().GetSoundFromID(id)->isPlaying){
+        if(Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->isPlaying){
             FMOD_Channel_SetPaused(channels.at(id.GetAsString()+"_channel"), true);
-            AudioIDManager::GetInstance().GetSoundFromID(id)->isPlaying = false;
+            Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->isPlaying = false;
         }
     }
 
     void AudioManager::UpdateSound(AudioID id, glm::vec3 pos, float volume)
     {
-        AudioIDManager::GetInstance().GetSoundFromID(id)->pos = pos;
-        AudioIDManager::GetInstance().GetSoundFromID(id)->initialVolume = volume;
+        Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->pos = pos;
+        Core::GetEngine().GetAudioIDManager()->GetSoundFromID(id)->initialVolume = volume;
     }
 
     void AudioManager::Update(glm::vec3 listenerPos, glm::vec2 listenerFacingNormalized, float maxDistance)
@@ -126,7 +130,7 @@ namespace Epoch::Engine::Audio
             DEBUG_FATAL("maxDistance can't be >= 0");
         }
         
-        for (const auto& pair : AudioIDManager::GetInstance().GetAudioMap()) {
+        for (const auto& pair : Core::GetEngine().GetAudioIDManager()->GetAudioMap()) {
             if(pair.second->isPlaying){
                 float pan = glm::sin(glm::orientedAngle(glm::normalize(glm::vec2(pair.second->pos.x - listenerPos.x, pair.second->pos.z - listenerPos.z)), listenerFacingNormalized));
                 if (pan < -1.0f) pan = -1.0f;
@@ -148,8 +152,8 @@ namespace Epoch::Engine::Audio
 
     void AudioManager::Shutdown()
     {
-        for (const auto& pair : AudioIDManager::GetInstance().GetAudioMap()) {
-            AudioIDManager::GetInstance().DestroyID(pair.first); 
+        for (const auto& pair : Core::GetEngine().GetAudioIDManager()->GetAudioMap()) {
+            Core::GetEngine().GetAudioIDManager()->DestroyID(pair.first); 
         }
 
         FMOD_System_Close(system);
@@ -158,13 +162,13 @@ namespace Epoch::Engine::Audio
 
     void AudioManager::Tick()
     {
-        if(int levelCount = Levels::LevelManager::GetInstance().GetLoadedLevelCount() > 0){
+        if(int levelCount = Core::GetEngine().GetLevelManager()->GetLoadedLevelCount() > 0){
             for(int i = 0; i < levelCount; i++){
-                for(auto& source : Levels::LevelManager::GetInstance().GetLevelAt(i)->audioSources){
+                for(auto& source : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->audioSources){
                     source->Update();
                 }
 
-                std::shared_ptr<ECS::Components::Camera> cam = CameraManager::GetInstance().GetActiveCamera();
+                std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
                 if(cam == nullptr)
                     return;

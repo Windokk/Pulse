@@ -7,5 +7,5 @@
 
 namespace Epoch::Engine::Serialization{
 
-    std::shared_ptr<Levels::Level> ImportLevel(const Filesystem::Path path);
+    std::shared_ptr<Levels::Level> DeserializeLevel(const Filesystem::Path path);
 }

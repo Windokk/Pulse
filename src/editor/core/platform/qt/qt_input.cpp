@@ -3,7 +3,9 @@
 #include <QGuiApplication>
 #include <QCursor>
 
-namespace Epoch::Engine::Core::Platform{
+#include "engine/debugging/debugger.hpp"
+
+namespace Epoch::Editor::Core::Platform{
     
     void QTInput::Init()
     {
@@ -30,16 +32,16 @@ namespace Epoch::Engine::Core::Platform{
         mCurrentMouseState[button] = isDown;
     }
 
-    bool QTInput::IsKeyDown(Input::Key key) const {
+    bool QTInput::IsKeyDown(Engine::Input::Key key) const {
         auto it = mCurrentKeyState.find(ToQtKey(key));
         return it != mCurrentKeyState.end() && it->second;
     }
 
-    bool QTInput::IsKeyUp(Input::Key key) const {
+    bool QTInput::IsKeyUp(Engine::Input::Key key) const {
         return !IsKeyDown(key);
     }
 
-    bool QTInput::WasKeyPressed(Input::Key key) const {
+    bool QTInput::WasKeyPressed(Engine::Input::Key key) const {
         int qtKey = ToQtKey(key);
         bool currDown = IsKeyDown(key);
 
@@ -51,7 +53,7 @@ namespace Epoch::Engine::Core::Platform{
         return currDown && !prevDown;
     }
 
-    bool QTInput::WasKeyReleased(Input::Key key) const {
+    bool QTInput::WasKeyReleased(Engine::Input::Key key) const {
         int qtKey = ToQtKey(key);
         bool currDown = IsKeyDown(key);
 
@@ -62,18 +64,18 @@ namespace Epoch::Engine::Core::Platform{
         return !currDown && prevDown;
     }
 
-    bool QTInput::IsMouseDown(Input::MouseButton button) const
+    bool QTInput::IsMouseDown(Engine::Input::MouseButton button) const
     {
         auto it = mCurrentMouseState.find(static_cast<int>(ToQtMouseButton(button)));
         return it != mCurrentMouseState.end() && it->second;
     }
 
-    bool QTInput::IsMouseUp(Input::MouseButton button) const
+    bool QTInput::IsMouseUp(Engine::Input::MouseButton button) const
     {
         return !IsMouseDown(button);
     }
 
-    bool QTInput::WasMousePressed(Input::MouseButton button) const
+    bool QTInput::WasMousePressed(Engine::Input::MouseButton button) const
     {
         int btn = static_cast<int>(ToQtMouseButton(button));
         auto prevIt = mPreviousMouseState.find(btn);
@@ -85,7 +87,7 @@ namespace Epoch::Engine::Core::Platform{
         return !prev && curr;
     }
 
-    bool QTInput::WasMouseReleased(Input::MouseButton button) const
+    bool QTInput::WasMouseReleased(Engine::Input::MouseButton button) const
     {
         int btn = ToQtMouseButton(button);
         auto prevIt = mPreviousMouseState.find(btn);

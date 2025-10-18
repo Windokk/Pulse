@@ -9,9 +9,9 @@
 
 #include <GLFW/glfw3.h>
 
-namespace Epoch::Engine::Core::Platform
+namespace Epoch::Game::Core::Platform
 {
-    class GLFWInput : public IInput{
+    class GLFWInput : public Engine::Core::Platform::IInput{
         public:
             void Init() override;
             void SetWindow(GLFWwindow* window);
@@ -19,16 +19,16 @@ namespace Epoch::Engine::Core::Platform
             void Shutdown() override;
 
             // Keyboard
-            bool IsKeyDown(Input::Key key) const override;
-            bool IsKeyUp(Input::Key key) const override;
-            bool WasKeyPressed(Input::Key key) const override;
-            bool WasKeyReleased(Input::Key key) const override;
+            bool IsKeyDown(Engine::Input::Key key) const override;
+            bool IsKeyUp(Engine::Input::Key key) const override;
+            bool WasKeyPressed(Engine::Input::Key key) const override;
+            bool WasKeyReleased(Engine::Input::Key key) const override;
 
             // Mouse
-            bool IsMouseDown(Input::MouseButton button) const override;
-            bool IsMouseUp(Input::MouseButton button) const override;
-            bool WasMousePressed(Input::MouseButton button) const override;
-            bool WasMouseReleased(Input::MouseButton button) const override;
+            bool IsMouseDown(Engine::Input::MouseButton button) const override;
+            bool IsMouseUp(Engine::Input::MouseButton button) const override;
+            bool WasMousePressed(Engine::Input::MouseButton button) const override;
+            bool WasMouseReleased(Engine::Input::MouseButton button) const override;
 
             void SetCursorVisibility(bool visible) const override;
             void GetCursorPos(double* x, double* y) const override;

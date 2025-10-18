@@ -60,7 +60,7 @@ namespace Epoch::Engine::ECS
             }
         
         private:
-            static int GenerateNextID() {
+            int GenerateNextID() {
                 static std::atomic<int> nextId{1};
                 return nextId.fetch_add(1);
             }
@@ -71,10 +71,6 @@ namespace Epoch::Engine::ECS
 
     class ObjectIDManager {
         public:
-            static ObjectIDManager& GetInstance() {
-                static ObjectIDManager instance;
-                return instance;
-            }
 
             void DestroyID(const ObjectID& id) {
                 availableIDs.insert(id.GetAsInt());
@@ -105,11 +101,6 @@ namespace Epoch::Engine::ECS
         private:
             std::map<ObjectID, std::shared_ptr<Objects::Object>> ObjectIDMap;
             std::unordered_set<int> availableIDs;
-
-            ObjectIDManager() = default;
-            ~ObjectIDManager() = default;
-            ObjectIDManager(const ObjectIDManager&) = delete;
-            ObjectIDManager& operator=(const ObjectIDManager&) = delete;
     };
 }
 

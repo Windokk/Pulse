@@ -11,7 +11,7 @@ namespace Epoch::Engine::ECS::Components
 
     class AudioSource : public Component {
         private:
-            std::unique_ptr<Filesystem::Path> path;
+            Filesystem::Path path;
             Audio::AudioID audioID;
             float volume = -1.0f;
 
@@ -19,7 +19,7 @@ namespace Epoch::Engine::ECS::Components
         public:
             AudioSource(Objects::Actor *parent, uint32_t local_id);
 
-            void SetPath(std::string path);
+            void SetPath(Filesystem::Path path);
             void SetVolume(float volume);
             void Play();
             void Pause();

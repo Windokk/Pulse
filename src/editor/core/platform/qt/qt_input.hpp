@@ -4,31 +4,30 @@
 #include <iostream>
 
 #include "engine/inputs/keys.hpp"
-#include "engine/debugging/debugger.hpp"
 #include "engine/core/platform/iplatform.hpp"
 
 #include <QMouseEvent>
 #include <QKeyEvent>
 
-namespace Epoch::Engine::Core::Platform
+namespace Epoch::Editor::Core::Platform
 {
-    class QTInput : public IInput{
+    class QTInput : public Engine::Core::Platform::IInput{
         public:
             void Init() override;
             void Tick() override;
             void Shutdown() override;
 
             // Keyboard
-            bool IsKeyDown(Input::Key key) const override;
-            bool IsKeyUp(Input::Key key) const override;
-            bool WasKeyPressed(Input::Key key) const override;
-            bool WasKeyReleased(Input::Key key) const override;
+            bool IsKeyDown(Engine::Input::Key key) const override;
+            bool IsKeyUp(Engine::Input::Key key) const override;
+            bool WasKeyPressed(Engine::Input::Key key) const override;
+            bool WasKeyReleased(Engine::Input::Key key) const override;
 
             // Mouse
-            bool IsMouseDown(Input::MouseButton button) const override;
-            bool IsMouseUp(Input::MouseButton button) const override;
-            bool WasMousePressed(Input::MouseButton button) const override;
-            bool WasMouseReleased(Input::MouseButton button) const override;
+            bool IsMouseDown(Engine::Input::MouseButton button) const override;
+            bool IsMouseUp(Engine::Input::MouseButton button) const override;
+            bool WasMousePressed(Engine::Input::MouseButton button) const override;
+            bool WasMouseReleased(Engine::Input::MouseButton button) const override;
 
             void SetCursorVisibility(bool visible) const override;
             void GetCursorPos(double* x, double* y) const override;

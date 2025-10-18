@@ -6,6 +6,9 @@
 
 #include <QApplication>
 
+#include "editor/gui/main_win.hpp"
+
+using namespace Epoch;
 using namespace Epoch::Engine;
 using namespace Epoch::Engine::Core;
 using namespace Epoch::Engine::Rendering;
@@ -14,23 +17,12 @@ using namespace Epoch::Engine::ECS::Objects;
 
 static QApplication* s_app = nullptr;
 
-extern "C" __declspec(dllexport) void InitializeSingletons(Core::EngineInstance* engine, Debugging::Debugger* debugger, 
-                                                            Renderer* renderer, Core::Resources::ResourcesManager* resourcesManager, 
-                                                            CameraManager* cameraManager, Time::TimeManager* timeManager,
-                                                            OpenGL* openGLBindings) {
-    SetEngine(engine);                                                           
-    SetDebugger(debugger);
-    SetRenderer(renderer);
-    SetResourcesManager(resourcesManager);
-    SetCameraManager(cameraManager);
-    SetTimeManager(timeManager);
-    SetGL(openGLBindings);
+extern "C" __declspec(dllexport) void InitializeSingletons(Core::EngineInstance* engine) {
+    SetEngine(engine);
 }
 
-extern "C" __declspec(dllexport) void EditorStart(int argc, char** argv){
-    if (!s_app) {
-        s_app = new QApplication(argc, argv);
-    }
+extern "C" __declspec(dllexport) void EditorStart(){
+    
 }
 
 extern "C" __declspec(dllexport) void EditorTick(){
@@ -41,6 +33,13 @@ extern "C" __declspec(dllexport) void EditorCleanup(){
 
 }
 
-extern "C" __declspec(dllexport) Platform::IPlatform* CreatePlatform() {
-    return new Platform::QTPlatform();
+extern "C" __declspec(dllexport) Platform::IPlatform* CreatePlatform(int argc, char** argv) {
+    if (!s_app){
+        QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+        s_app = new QApplication(argc, argv);
+        s_app->setPalette(Editor::createDarkPalette());
+    }
+    
+    return new Editor::Core::Platform::QTPlatform();
+
 }

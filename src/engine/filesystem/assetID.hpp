@@ -4,9 +4,13 @@
 #include <atomic>
 #include <unordered_set>
 #include <map>
+#include <memory>
 
 namespace Epoch::Engine::Filesystem
 {
+    struct AssetInfo;
+
+    class Path;
 
     class AssetID {
         public:
@@ -37,7 +41,7 @@ namespace Epoch::Engine::Filesystem
     
     class AssetIDBuilder {
         public:
-        AssetIDBuilder& WithValue(int val) {
+            AssetIDBuilder& WithValue(int val) {
                 value = val;
                 generated = false;
                 return *this;
@@ -68,44 +72,18 @@ namespace Epoch::Engine::Filesystem
     class AssetIDManager {
         public:
 
-            static void DestroyID(const AssetID& id) {
-                availableIDs.insert(id.GetAsInt());
-                AssetIDMap.erase(id);
-            }
+            void DestroyID(const AssetID& id);
             
-            static AssetID GenerateNewID() {
-                if (!availableIDs.empty()) {
-                    int id = *availableIDs.begin();
-                    availableIDs.erase(availableIDs.begin());
-                    return AssetID(id);
-                }
-                return AssetID(AssetIDBuilder().Generate().Build().GetAsInt());
-            }
+            AssetID GenerateNewID();
 
-            static void AssignID(AssetID id, FileInfo* info){
-                AssetIDMap[id] = info;
-            }
+            void AssignID(AssetID id, std::shared_ptr<AssetInfo> info);
         
-            static FileInfo* GetFileFromID(AssetID id){
-                auto it = AssetIDMap.find(id);
-                if (it != AssetIDMap.end()) {
-                    return it->second;
-                }
-                return nullptr;
-            }
+            std::shared_ptr<AssetInfo> GetAssetFromID(AssetID id);
 
-            static AssetID GetIDFromString(const std::string& str){
-                for (const auto& [id, info] : AssetIDMap)
-                {
-                    if (id.GetAsString() == str)
-                        return id;
-                }
+            AssetID GetIDFromRelativeFilePath(const Filesystem::Path& path);
 
-                return AssetID{};
-            }
-
+            std::map<AssetID, std::shared_ptr<AssetInfo>> AssetIDMap;
         private:
-            static std::map<AssetID, FileInfo*> AssetIDMap;
-            static std::unordered_set<int> availableIDs;
+            std::unordered_set<int> availableIDs;
     };
 }

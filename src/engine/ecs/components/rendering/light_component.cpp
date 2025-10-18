@@ -4,6 +4,10 @@
 #include "engine/ecs/components/core/transform.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include "engine/core/engine.hpp"
+
+using namespace Epoch::Engine::Core;
+
 namespace Epoch::Engine::ECS::Components{
 
     Light::Light(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
@@ -26,7 +30,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->type = (int)type;
 
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the light's intensity
@@ -39,7 +43,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->intensity = intensity;
 
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
         
     }
 
@@ -53,7 +57,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->position = postion;
 
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the light's direction (Only for spot and directionnal lights)
@@ -66,7 +70,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->direction = direction;
             
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
     
     /// @brief Set the radius of the light (Only for spot and point lights)
@@ -79,7 +83,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->radius = radius;
         
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Sets the color of the light
@@ -92,7 +96,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->color = color;
         
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the outer cuttof (Only for spot lights)
@@ -105,7 +109,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->outerCutoff = glm::cos(glm::radians(cutoff));
         
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the inner cuttof (Only for spot lights)
@@ -118,7 +122,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->innerCutoff = glm::cos(glm::radians(cutoff));
         
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the light's index in the scene
@@ -129,8 +133,8 @@ namespace Epoch::Engine::ECS::Components{
             return;
         
         if(parent->level->loaded){
-            Rendering::Renderer::GetInstance().lightMan->AddLight(index, lightData);
-            Rendering::Renderer::GetInstance().lightMan->Update(index);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->AddLight(index, lightData);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(index);
             lightIndex = index;
         }
     }
@@ -144,7 +148,7 @@ namespace Epoch::Engine::ECS::Components{
         lightData->castShadow = castShadows;
         
         if(parent->level->loaded)
-            Rendering::Renderer::GetInstance().lightMan->Update(lightIndex);
+            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Getter for this light component's data
@@ -152,5 +156,10 @@ namespace Epoch::Engine::ECS::Components{
     Rendering::LightData Light::GetData()
     {
         return *lightData.get();
+    }
+
+    void Light::Destroy()
+    {
+        EngineInstance::GetInstance().GetRenderer()->lightMan->RemoveLight(lightIndex);
     }
 }

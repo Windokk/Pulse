@@ -45,14 +45,7 @@ namespace Epoch::Engine::ECS::Objects{
             template <typename T>
             std::shared_ptr<T> AddComponent();
 
-            void Destroy() override {
-                
-                for(auto& component : components){
-                    component->Destroy();
-                }
-
-                Object::Destroy();
-            }
+            void Destroy() override;
 
             int GetComponentIDInScene(int componentIndex) { 
                 if(componentIndex >= 0 && id.GetAsInt() >= 0){
@@ -69,26 +62,20 @@ namespace Epoch::Engine::ECS::Objects{
 
             void SetLevel(Levels::Level* lvl);
 
+            void RegisterComponentEvents(const std::shared_ptr<Script>& component);
+
             std::shared_ptr<Transform> transform;
             Levels::Level* level;
 
-            void Activate(){
-                activated = true;
-                for(auto& component : components){
-                    component->Activate();
-                }
-            }
+            void Activate();
 
-            void DeActivate(){
-                activated = false;
-                for(auto& component : components){
-                    component->DeActivate();
-                }
-            }
+            void DeActivate();
 
-            bool Active(){
+            bool IsActive(){
                 return activated;
             }
+
+            // TODO : SetParent
 
         protected:
             bool activated = true;
@@ -189,15 +176,7 @@ namespace Epoch::Engine::ECS::Objects{
 
         if constexpr (std::is_base_of<Script, T>::value) {
             level->scripts.push_back(component);
-            Events::EventDispatcher::GetInstance().subscribeToComponent<Events::ContactAddedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactAddedEvent& event) {
-                component->OnContactAdded(event);
-            });
-            Events::EventDispatcher::GetInstance().subscribeToComponent<Events::ContactPersistedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactPersistedEvent& event) {
-                component->OnContactPersisted(event);
-            });
-            Events::EventDispatcher::GetInstance().subscribeToComponent<Events::ContactRemovedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactRemovedEvent& event) {
-                component->OnContactEnded(event);
-            });
+            RegisterComponentEvents(component);
         }
 
         if constexpr (std::is_base_of<Camera, T>::value) {

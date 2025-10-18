@@ -11,18 +11,21 @@ namespace Epoch::Engine::ECS::Objects{
     class Object : public std::enable_shared_from_this<Object>{
         public:
         
+            static void AssignObjectID(std::shared_ptr<Object> obj);
+            
             template <typename T, typename... Args>
-            static std::shared_ptr<T> Create(Args&&... args) {
+            static std::shared_ptr<T> Create(Args&&... args){
                 static_assert(std::is_base_of<Object, T>::value, "T must derive from Object");
                 std::shared_ptr<T> obj = std::make_shared<T>(std::forward<Args>(args)...);
-                obj->id = ECS::ObjectIDManager::GetInstance().GenerateNewID();
-                ECS::ObjectIDManager::GetInstance().AssignID(obj->id, obj);
+                AssignObjectID(obj);
                 return obj;
             }
 
             virtual ~Object();
 
             std::shared_ptr<Object> GetChild(int index);
+
+
             std::shared_ptr<Object> GetChild(ObjectID id);
             std::vector<ObjectID> GetChildrenID(bool recursive = false){ 
                 std::vector<ObjectID> ids;
@@ -53,22 +56,12 @@ namespace Epoch::Engine::ECS::Objects{
                 }
             }
 
-            std::shared_ptr<Object> GetParent() { return ObjectIDManager::GetInstance().GetObjectFromID(parent); }
+            std::shared_ptr<Object> GetParent();
             void SetParent(ObjectID parentID) { this->parent = parentID; }
 
             ObjectID GetID() { return id; }
 
-            virtual void Destroy(){
-                if(parent.GetAsInt() != -1){
-                    ObjectIDManager::GetInstance().GetObjectFromID(parent)->DeleteChildRef(id);
-                }
-                for(auto& child : children)
-                { 
-                    ObjectIDManager::GetInstance().GetObjectFromID(child)->Destroy(); 
-                }
-                children.clear();
-                ObjectIDManager::GetInstance().DestroyID(id); 
-            }
+            virtual void Destroy();
         
         private:
 

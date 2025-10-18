@@ -1,6 +1,8 @@
 file(GLOB_RECURSE EDITOR_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/platform/qt/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/gui/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/gui/default.qrc
 )
 
 set(CMAKE_AUTORCC ON)
@@ -18,6 +20,11 @@ target_compile_definitions(EditorModule PRIVATE BUILD_EDITOR)
 
 target_include_directories(EditorModule PRIVATE
   ${CMAKE_SOURCE_DIR}/src/
+  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/include/
 )
+
+target_link_directories(EditorModule PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib)
+
+target_link_libraries(EditorModule PRIVATE qtadvanceddocking)
 
 target_link_libraries(EditorModule PRIVATE Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL)

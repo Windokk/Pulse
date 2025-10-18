@@ -6,6 +6,8 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::Physics {
 
     // Constants
@@ -93,14 +95,14 @@ namespace Epoch::Engine::Physics {
             return;
 
         for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
-            Events::EventDispatcher::GetInstance().emitToComponent(
+            Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInScene(script->local_id),
                 Events::ContactAddedEvent(*comp2, contactManifold, contactSettings, ECS::ObjectID(0))
             );
         }
 
         for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
-            Events::EventDispatcher::GetInstance().emitToComponent(
+            Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInScene(script->local_id),
                 Events::ContactAddedEvent(*comp1, contactManifold, contactSettings, ECS::ObjectID(0))
             );
@@ -116,14 +118,14 @@ namespace Epoch::Engine::Physics {
             return;
 
         for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
-            Events::EventDispatcher::GetInstance().emitToComponent(
+            Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInScene(script->local_id),
                 Events::ContactPersistedEvent(*comp2, contactManifold, contactSettings, ECS::ObjectID(0))
             );
         }
 
         for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
-            Events::EventDispatcher::GetInstance().emitToComponent(
+            Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInScene(script->local_id),
                 Events::ContactPersistedEvent(*comp1, contactManifold, contactSettings, ECS::ObjectID(0))
             );
@@ -139,14 +141,14 @@ namespace Epoch::Engine::Physics {
             return;
 
         for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
-            Events::EventDispatcher::GetInstance().emitToComponent(
+            Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInScene(script->local_id),
                 Events::ContactRemovedEvent(*comp2, ECS::ObjectID(0))
             );
         }
 
         for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
-            Events::EventDispatcher::GetInstance().emitToComponent(
+            Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInScene(script->local_id),
                 Events::ContactRemovedEvent(*comp1, ECS::ObjectID(0))
             );
@@ -158,9 +160,9 @@ namespace Epoch::Engine::Physics {
     {
         m_physicsSystem.Update(deltaTime, 1, m_tempAllocator, m_jobSystem);
 
-        if(int levelCount = Levels::LevelManager::GetInstance().GetLoadedLevelCount() > 0){
+        if(int levelCount = Core::GetEngine().GetLevelManager()->GetLoadedLevelCount() > 0){
                     for(int i = 0; i < levelCount; i++){
-                for (auto& physicsBody : Levels::LevelManager::GetInstance().GetLevelAt(i)->physicsBodies){
+                for (auto& physicsBody : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->physicsBodies){
                     physicsBody->Tick();
                 }
             }

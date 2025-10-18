@@ -29,6 +29,11 @@ namespace Epoch::Engine::ECS{
                 virtual void Deserialize(json componentData) {};
                 virtual json Serialize() { json dummy; return dummy; };
 
+                template<typename BaseType, typename DerivedType>
+                bool isInstanceOf(BaseType* base) {
+                    return dynamic_cast<DerivedType*>(base) != nullptr;
+                }
+
                 bool Active(){
                     return activated;
                 }

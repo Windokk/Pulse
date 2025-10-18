@@ -23,9 +23,7 @@ namespace Epoch::Engine::ECS::Components
 
             Rendering::LightData GetData();
             
-            void Destroy() override{
-                Rendering::Renderer::GetInstance().lightMan->RemoveLight(lightIndex);
-            }
+            void Destroy() override;
 
         private:
             int lightIndex = -1;

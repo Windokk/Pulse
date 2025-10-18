@@ -7,8 +7,6 @@
 #include <string>
 #include <iostream>
 
-#include "engine/rendering/opengl/opengl.hpp"
-
 namespace Epoch::Engine::Rendering {
 
     struct UniformInfo {
@@ -31,64 +29,37 @@ namespace Epoch::Engine::Rendering {
             void Deactivate();
             void Cleanup();
 
-            void setBool(const std::string& name, bool value) const
-            {
-                GetGL().Uniform1i(GetGL().GetUniformLocation(ID, name.c_str()), (int)value);
-            }
-            // ------------------------------------------------------------------------
-            void setInt(const std::string& name, int value) const
-            {
-                GetGL().Uniform1i(GetGL().GetUniformLocation(ID, name.c_str()), value);
-            }
-            // ------------------------------------------------------------------------
-            void setFloat(const std::string& name, float value) const
-            {
-                GetGL().Uniform1f(GetGL().GetUniformLocation(ID, name.c_str()), value);
-            }
-            // ------------------------------------------------------------------------
-            void setVec2(const std::string& name, const glm::vec2& value) const
-            {
-                GetGL().Uniform2fv(GetGL().GetUniformLocation(ID, name.c_str()), 1, &value[0]);
-            }
-            void setVec2(const std::string& name, float x, float y) const
-            {
-                GetGL().Uniform2f(GetGL().GetUniformLocation(ID, name.c_str()), x, y);
-            }
-            // ------------------------------------------------------------------------
-            void setVec3(const std::string& name, const glm::vec3& value) const
-            {
-                GetGL().Uniform3fv(GetGL().GetUniformLocation(ID, name.c_str()), 1, &value[0]);
-            }
-            void setVec3(const std::string& name, float x, float y, float z) const
-            {
-                GetGL().Uniform3f(GetGL().GetUniformLocation(ID, name.c_str()), x, y, z);
-            }
-            // ------------------------------------------------------------------------
-            void setVec4(const std::string& name, const glm::vec4& value) const
-            {
-                GetGL().Uniform4fv(GetGL().GetUniformLocation(ID, name.c_str()), 1, &value[0]);
-            }
-            void setVec4(const std::string& name, float x, float y, float z, float w) const
-            {
-                GetGL().Uniform4f(GetGL().GetUniformLocation(ID, name.c_str()), x, y, z, w);
-            }
-            // ------------------------------------------------------------------------
-            void setMat2(const std::string& name, const glm::mat2& mat) const
-            {
-                GetGL().UniformMatrix2fv(GetGL().GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
-            }
-            // ------------------------------------------------------------------------
-            void setMat3(const std::string& name, const glm::mat3& mat) const
-            {
-                GetGL().UniformMatrix3fv(GetGL().GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
-            }
-            // ------------------------------------------------------------------------
-            void setMat4(const std::string& name, const glm::mat4& mat) const
-            {
-                GetGL().UniformMatrix4fv(GetGL().GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
-            }
+            void setBool(const std::string& name, bool value) const;
+            
+            void setInt(const std::string& name, int value) const;
+            
+            void setFloat(const std::string& name, float value) const;
+            
+            void setVec2(const std::string& name, const glm::vec2& value) const;
+
+            void setVec2(const std::string& name, float x, float y) const;
+
+            void setVec3(const std::string& name, const glm::vec3& value) const;
+
+            void setVec3(const std::string& name, float x, float y, float z) const;
+            
+            void setVec4(const std::string& name, const glm::vec4& value) const;
+
+            void setVec4(const std::string& name, float x, float y, float z, float w) const;
+            
+            void setMat2(const std::string& name, const glm::mat2& mat) const;
+            
+            void setMat3(const std::string& name, const glm::mat3& mat) const;
+            
+            void setMat4(const std::string& name, const glm::mat4& mat) const;
             
             std::string fragmentFilePath;
+
+            Filesystem::AssetID assetID;
+
+            void SetAssetID(Filesystem::AssetID assetID) {
+                this->assetID = assetID;
+            }
 
         private:
             void CompileErrors(unsigned int shader, const char* type);
