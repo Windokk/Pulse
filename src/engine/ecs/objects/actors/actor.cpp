@@ -88,7 +88,7 @@ namespace Epoch::Engine::ECS::Objects{
             if(levelBuildIndex == -1)
                 return;
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelBuildIndex, Events::DESTROYED, GetID()));
         }
 
@@ -115,7 +115,7 @@ namespace Epoch::Engine::ECS::Objects{
             if(levelBuildIndex == -1)
                 return;
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelBuildIndex, Events::DESTROYED, GetID()));
         }
     }
@@ -145,7 +145,7 @@ namespace Epoch::Engine::ECS::Objects{
             if(levelBuildIndex == -1)
                 return;
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelBuildIndex, Events::DESTROYED, GetID()));
         }
     }
@@ -162,7 +162,7 @@ namespace Epoch::Engine::ECS::Objects{
             if(levelBuildIndex == -1)
                 return;
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChanged(
+            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelBuildIndex, Events::DESTROYED, GetID()));
         }
     }

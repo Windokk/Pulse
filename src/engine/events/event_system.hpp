@@ -58,10 +58,10 @@ namespace Epoch::Engine::Events {
         DEACTIVATED
     };
 
-    struct LevelStructureChanged : public Event{
+    struct LevelStructureChangedEvent : public Event{
         const int levelID;
         const LevelChangeType changeType;
-        LevelStructureChanged(
+        LevelStructureChangedEvent(
         const int& levelID, LevelChangeType changeType, ECS::ObjectID source) : levelID(levelID), changeType(changeType), Event(source) {}
     };
 

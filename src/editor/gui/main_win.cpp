@@ -11,6 +11,8 @@
 #include <qt-ads/DockAreaWidget.h>
 #include <qt-ads/DockAreaTabBar.h>
 
+#include "editor/gui/level_tree.hpp"
+
 
 namespace Epoch::Editor
 {
@@ -52,7 +54,14 @@ namespace Epoch::Editor
         viewportDock->setWidget(container);
         viewportDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
         
+        auto* treeWidget = new LevelTree();
+
+        auto* levelTreeDock = dockManager->createDockWidget("Level Tree");
+        levelTreeDock->setWidget(treeWidget);
+        levelTreeDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
+
         dockManager->addDockWidget(ads::CenterDockWidgetArea, viewportDock);
+        dockManager->addDockWidget(ads::CenterDockWidgetArea, levelTreeDock);
 
 
         show();

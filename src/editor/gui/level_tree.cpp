@@ -2,6 +2,8 @@
 
 #include <QVBoxLayout>
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Editor{
     
     LevelTree::LevelTree(QWidget *parent): QWidget(parent), treeView(new QTreeView(this)), model(new QStandardItemModel(this))
@@ -14,7 +16,35 @@ namespace Epoch::Editor{
         SetupModel();
         SetupStyle();
 
-        
+        Engine::Core::GetEngine().GetEventDispatcher()->subscribeGlobal<Engine::Events::LevelStructureChangedEvent>([this](const Engine::Events::LevelStructureChangedEvent& event) {
+            this->OnLevelStructureChanged(event);
+        });
+
+    }
+
+    void LevelTree::OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event){
+
+        switch(event.changeType){
+            case Engine::Events::CREATED:{
+
+            }
+            case Engine::Events::DESTROYED:{
+
+            }
+            case Engine::Events::ACTIVATED:{
+
+            }
+            case Engine::Events::DEACTIVATED:{
+
+            }
+            case Engine::Events::MOVED:{
+
+            }
+        }
+
+        std::string levelName = Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetID(event.levelID))->baseInfos.nameInProject;
+
+        LoadLevel(*Engine::Core::GetEngine().GetResourcesManager()->GetLevel(levelName).get());
 
     }
 

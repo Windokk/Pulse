@@ -16,6 +16,8 @@ namespace Epoch::Editor{
         public:
             LevelTree(QWidget *parent = nullptr);
 
+            void OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event);
+
         private:
             QTreeView *treeView;
             QStandardItemModel *model;

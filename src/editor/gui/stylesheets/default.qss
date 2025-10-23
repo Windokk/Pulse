@@ -14,11 +14,22 @@ ads--CDockContainerWidget {
  * CDockSplitter
  *****************************************************************************/
 ads--CDockContainerWidget > QSplitter {
-	padding: 1 0 1 0;
+    padding: 1 0 1 0;
 }
 
-ads--CDockContainerWidget ads--CDockSplitter::handle {
-    background: palette(dark);
+ads--CDockContainerWidget ads--CDockSplitter::handle:horizontal {
+    height: 5px;
+    background: palette(light);
+}
+
+ads--CDockContainerWidget ads--CDockSplitter::handle:vertical {
+    width: 5px;
+    background: palette(light);
+}
+
+ads--CDockContainerWidget ads--CDockSplitter::handle:pressed {
+	
+	background-color:red;
 }
 
 
@@ -338,7 +349,7 @@ ads--CAutoHideDockContainer ads--CTitleBarButton:pressed {
  * CResizeHandle
  *****************************************************************************/
 ads--CResizeHandle {
-	/*background: palette(window);*/
+	background: palette(light);
 }
 
 
