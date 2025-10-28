@@ -3,6 +3,11 @@
 #include "engine/core/engine.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
 
+#include "editor/third-party/include/imgui/imgui.h"
+
+#include <imgui/QtImGui.h>
+#include <imgui/ImGuizmo.h>
+
 namespace Epoch::Editor {
 
     QtGLViewportWindow::QtGLViewportWindow()
@@ -29,6 +34,12 @@ namespace Epoch::Editor {
         gl->InitFromQt();
         Engine::Core::GetEngine().SetGL(gl);
         initialized = true;
+
+        
+        initializeOpenGLFunctions();
+        QtImGui::initialize(this);
+
+        
     }
 
     void QtGLViewportWindow::resizeGL(int w, int h) {
@@ -38,7 +49,6 @@ namespace Epoch::Editor {
     }
 
     void QtGLViewportWindow::paintGL() {
-        
     }
 
     void QtGLViewportWindow::MakeCurrent() {
@@ -46,6 +56,29 @@ namespace Epoch::Editor {
     }
 
     void QtGLViewportWindow::SwapBuffers() {
+        
+        QtImGui::newFrame();
+        
+        ImGuizmo::BeginFrame();
+
+        ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
+        ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+        const float* cameraView = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+		const float* cameraProjection = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+
+        glm::mat4 tr = glm::mat4(1.0f);
+
+        tr = glm::translate(tr, glm::vec3(0, 0, 2));
+
+        ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(tr), NULL, NULL);
+
+        ImGui::Render();
+        QtImGui::render();
+
         context()->swapBuffers(this);
     }
 

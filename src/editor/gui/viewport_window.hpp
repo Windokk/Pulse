@@ -1,10 +1,12 @@
 #pragma once
 
 #include <QOpenGLWindow>
+#include <QOpenGLExtraFunctions>
+
 #include "editor/core/platform/qt/qt_input.hpp"
 
 namespace Epoch::Editor {
-    class QtGLViewportWindow : public QOpenGLWindow {
+    class QtGLViewportWindow : public QOpenGLWindow, private QOpenGLExtraFunctions {
     public:
         QtGLViewportWindow();
         ~QtGLViewportWindow() override;

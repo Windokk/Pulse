@@ -25,6 +25,6 @@ target_include_directories(EditorModule PRIVATE
 
 target_link_directories(EditorModule PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib)
 
-target_link_libraries(EditorModule PRIVATE qtadvanceddocking)
+target_link_libraries(EditorModule PRIVATE qtadvanceddocking qt_imgui_widgets imgui)
 
 target_link_libraries(EditorModule PRIVATE Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL)

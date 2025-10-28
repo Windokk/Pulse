@@ -24,11 +24,23 @@ namespace Epoch::Editor
             setWindowState(Qt::WindowFullScreen);
         }
 
+        this->vsync = vsync;
+
         setWindowTitle(QString::fromStdString(title));
 
         setAttribute(Qt::WA_DeleteOnClose);
         resize(width, height);
 
+        InitGui();
+    }
+
+    void EditorMainWindow::InitEnableControls()
+    {
+
+    }
+
+    void EditorMainWindow::InitGui(){
+        
         dockManager = std::make_unique<ads::CDockManager>(this);
 
         dockManager->setStyleSheet("");
@@ -51,7 +63,7 @@ namespace Epoch::Editor
         viewportDock->setWidget(container);
         viewportDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
         
-        auto* treeWidget = new LevelTree();
+        auto* treeWidget = new LevelTree(this);
 
         auto* levelTreeDock = dockManager->createDockWidget("Level Tree");
         levelTreeDock->setWidget(treeWidget);
@@ -140,11 +152,6 @@ namespace Epoch::Editor
     }
 
     EditorMainWindow::~EditorMainWindow() 
-    {
-
-    }
-
-    void EditorMainWindow::resizeEvent(QResizeEvent *event)
     {
 
     }

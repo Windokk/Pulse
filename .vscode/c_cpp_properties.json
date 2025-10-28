@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/src/engine/third-party/include",
+                "${workspaceFolder}/src/",
+                "C:/Qt/6.9.2/mingw_64/include/QtWidgets",
+                "C:/Qt/6.9.2/mingw_64/include/QtGui",
+                "C:/Qt/6.9.2/mingw_64/include/QtCore",
+                "C:/Qt/6.9.2/mingw_64/include/QtConcurrent",
+                "C:/Qt/6.9.2/mingw_64/include",
+                "C:/Qt/6.9.2/mingw_64/include/QtOpenGL",
+                "${workspaceFolder}/src/editor/third-party/include",
+                "${workspaceFolder}/build/"
+            ],
+            "defines": [
+                "BUILD_ENGINE",
+                "BUILD_GAME",
+                "BUILD_EDITOR",
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:\\msys64\\mingw64\\bin\\gcc.exe",
+            "intelliSenseMode": "gcc-x64",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

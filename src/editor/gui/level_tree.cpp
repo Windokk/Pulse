@@ -5,8 +5,11 @@
 #include <QMenu>
 #include <QThread>
 #include <QApplication>
+#include <QObject>
 
 #include "engine/core/engine.hpp"
+
+#include "main_win.hpp"
 
 namespace Epoch::Editor{
     
@@ -129,6 +132,7 @@ namespace Epoch::Editor{
             case Engine::Events::LOADED:{
                 LoadLevel(GetEngine().GetResourcesManager()->GetLevel(GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetIDBuilder().WithValue(event.levelAssetID).Build())->baseInfos.nameInProject));
                 model->setHorizontalHeaderLabels(QStringList() << QString::fromStdString(GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetIDBuilder().WithValue(event.levelAssetID).Build())->baseInfos.name));
+                EditorMainWindow* mainWin = dynamic_cast<EditorMainWindow*>(parentWidget());
                 break;
             }
             default:

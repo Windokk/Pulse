@@ -16,6 +16,10 @@
 
 #include <memory>
 
+namespace Epoch::Engine::ECS::Objects{
+    class Actor;
+}
+
 namespace Epoch::Editor{
 
     static QPalette createDarkPalette()
@@ -60,6 +64,10 @@ namespace Epoch::Editor{
             void Init(const std::string &title, const int &width, const int &height,
                       const bool &fullscreen, const int &vsync) override;
 
+            void InitEnableControls();
+
+            void InitGui();
+
             void PollEvents() override;
             void SwapBuffers() override;
             bool ShouldClose() const override;
@@ -88,10 +96,13 @@ namespace Epoch::Editor{
 
             bool shouldClose = false;
 
-            void resizeEvent(QResizeEvent* event) override;
+            bool vsync = true;
+            
             void closeEvent(QCloseEvent* event) override;
 
             std::unique_ptr<ads::CDockManager> dockManager;
+
+            std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor;
     };
 }
 
