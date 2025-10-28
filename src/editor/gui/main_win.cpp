@@ -31,18 +31,15 @@ namespace Epoch::Editor
 
         dockManager = std::make_unique<ads::CDockManager>(this);
 
-        
         dockManager->setStyleSheet("");
 
-        QFile styleSheetFile(":/epoch/default/stylesheets/default.qss");
+        QFile styleSheetFile(":/epoch/default/stylesheets/default_dock.qss");
 	    styleSheetFile.open(QIODevice::ReadOnly);
 	    QTextStream styleSheetStream(&styleSheetFile);
 	    QString result;
 	    result = styleSheetStream.readAll();
 	    styleSheetFile.close();
 	    dockManager->setStyleSheet(result);
-
-
 
         glViewportWindow = new Editor::QtGLViewportWindow();
         glViewportWindow->InitGL(vsync);
@@ -62,7 +59,6 @@ namespace Epoch::Editor
 
         dockManager->addDockWidget(ads::CenterDockWidgetArea, viewportDock);
         dockManager->addDockWidget(ads::CenterDockWidgetArea, levelTreeDock);
-
 
         show();
     }

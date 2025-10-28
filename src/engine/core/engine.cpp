@@ -44,19 +44,19 @@ namespace Epoch::Engine::Core{
         context.renderer->Init();
         context.renderer->InitFramebuffers();
         context.platform->CreateInput();
-        
-        context.eventDispatcher = new EventDispatcher();
 
         float fixedDelta = 1.0f / 30.0f;
 
         context.timeManager->Init(fixedDelta);
 
         if(context.currentProject->GetBuildSettings()->buildIndex.size() > 0){
-            Filesystem::Path defaultLevelPathAbs = context.currentProject->GetBuildSettings()->buildIndex[0];
-            DEBUG_LOG("Loading default level : "+defaultLevelPathAbs.full);
-            std::string defaultLevelPath = defaultLevelPathAbs.RelativeTo(context.currentProject->GetProjectResourcesPath()).full;
-            auto level = GetResourcesManager()->GetLevel(defaultLevelPath);
-            GetLevelManager()->LoadLevel(level);
+            Filesystem::Path defaultLevelPath = context.currentProject->GetBuildSettings()->buildIndex[0];
+            DEBUG_LOG("Loading default level : "+defaultLevelPath.full);
+            auto level = GetResourcesManager()->GetLevel(defaultLevelPath.full);
+            if(level)
+                GetLevelManager()->LoadLevel(level);
+            else
+                DEBUG_ERROR("Error loading default level !");
         }
         
     }

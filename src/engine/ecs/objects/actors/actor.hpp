@@ -27,6 +27,8 @@ namespace Epoch::Engine::ECS::Objects{
 
             Actor(std::string name);
 
+            void Init();
+
             std::shared_ptr<Component> AddComponentRaw(Component *rawComponent);
 
             template <typename T>
@@ -75,7 +77,9 @@ namespace Epoch::Engine::ECS::Objects{
                 return activated;
             }
 
-            // TODO : SetParent
+            std::shared_ptr<Actor> Clone();
+
+            // TODO : SetParent (Attach to)
 
         protected:
             bool activated = true;
@@ -140,46 +144,47 @@ namespace Epoch::Engine::ECS::Objects{
     template <typename T>
     std::shared_ptr<T> Actor::AddComponent()
     {
-        if(!std::is_base_of<Component, T>::value){
+        if(!IsSubclassOf<Component, T>()){
             DEBUG_ERROR("T must inherit from Component");
             return nullptr;
         }
 
-        std::shared_ptr<T> component = std::make_shared<T>(this, components.size());
+        std::shared_ptr<T> component = std::make_shared<T>(std::static_pointer_cast<Actor>(shared_from_this()), components.size());
         
-        if (std::is_base_of<Transform, T>::value) {
+        if (IsSubclassOf<Transform, T>()) {
             DEBUG_ERROR("An actor can only have one transform component.");
             return nullptr;
         }
+
         components.push_back(component);
 
-        if constexpr (std::is_base_of<Light, T>::value) {
+        if constexpr (IsSubclassOf<Light, T>()) {
             component->SetLightIndex(level->lights.size());
             level->lights.push_back(component);
         }
 
-        if constexpr (std::is_base_of<Model, T>::value) {
+        if constexpr (IsSubclassOf<Model, T>()) {
             level->models.push_back(component);
         }
 
-        if constexpr (std::is_base_of<Transform, T>::value) {
+        if constexpr (IsSubclassOf<Transform, T>()) {
             level->transforms.push_back(component);
         }
 
-        if constexpr (std::is_base_of<PhysicsBody, T>::value) {
+        if constexpr (IsSubclassOf<PhysicsBody, T>()) {
             level->physicsBodies.push_back(component);
         }
 
-        if constexpr (std::is_base_of<AudioSource, T>::value) {
+        if constexpr (IsSubclassOf<AudioSource, T>()) {
             level->audioSources.push_back(component);
         }
 
-        if constexpr (std::is_base_of<Script, T>::value) {
+        if constexpr (IsSubclassOf<Script, T>()) {
             level->scripts.push_back(component);
             RegisterComponentEvents(component);
         }
 
-        if constexpr (std::is_base_of<Camera, T>::value) {
+        if constexpr (IsSubclassOf<Camera, T>()) {
             level->cameras.push_back(component);
         }
 

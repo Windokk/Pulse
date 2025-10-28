@@ -40,9 +40,11 @@ namespace Epoch::Engine::ECS::Components {
     {
         public :
             
-            Camera(Objects::Actor *parent, uint32_t local_id);
+            Camera(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
             void Init(int width, int height, float near, float far);
+
+            void Destroy() override;
 
             void UpdateSize(int new_width, int new_height);
 
@@ -55,7 +57,8 @@ namespace Epoch::Engine::ECS::Components {
             void SetNearFarPlanes(float newNear, float newFar) { nearPlane = newNear; farPlane = newFar; }
 
             void ToggleFrustumCulling() { frustumCulling = !frustumCulling; }
-
+            
+            std::shared_ptr<Component> Clone() const override;
 
             bool IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax);
 

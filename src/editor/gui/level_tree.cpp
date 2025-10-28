@@ -1,12 +1,18 @@
 #include "level_tree.hpp"
 
 #include <QVBoxLayout>
+#include <QFile>
+#include <QMenu>
+#include <QThread>
+#include <QApplication>
 
 #include "engine/core/engine.hpp"
 
 namespace Epoch::Editor{
     
-    LevelTree::LevelTree(QWidget *parent): QWidget(parent), treeView(new QTreeView(this)), model(new QStandardItemModel(this))
+    using Engine::Core::GetEngine;
+
+    LevelTree::LevelTree(QWidget *parent): QWidget(parent), treeView(new CustomTreeView(this)), model(new QStandardItemModel(this))
     {
         auto *layout = new QVBoxLayout(this);
         layout->addWidget(treeView);
@@ -16,10 +22,62 @@ namespace Epoch::Editor{
         SetupModel();
         SetupStyle();
 
-        Engine::Core::GetEngine().GetEventDispatcher()->subscribeGlobal<Engine::Events::LevelStructureChangedEvent>([this](const Engine::Events::LevelStructureChangedEvent& event) {
+        GetEngine().GetEventDispatcher()->subscribeGlobal<Engine::Events::LevelStructureChangedEvent>([this](const Engine::Events::LevelStructureChangedEvent& event) {
             this->OnLevelStructureChanged(event);
         });
 
+    }
+
+    QStandardItem* LevelTree::GetItemFromObjectID(Engine::ECS::ObjectID objID){
+
+        QList<QStandardItem*> items;
+
+        for (int row = 0; row < model->rowCount(); ++row) {
+            QStandardItem *topItem = model->item(row, 0);
+
+            // Scan top level item
+            if (topItem) {
+
+                QVariant var = topItem->data(Qt::UserRole);
+                Engine::ECS::ObjectID retrieved;
+
+                if (var.isValid()) {
+                    retrieved = var.value<Engine::ECS::ObjectID>();
+                }
+
+                if(retrieved.GetAsInt() == objID.GetAsInt()) {
+                    items.append(topItem);
+                    break; // skip scanning its children
+                }
+            }
+
+            // Scan children
+            for (int sub_row = 0; sub_row < topItem->rowCount(); ++sub_row) {
+                QStandardItem *child = topItem->child(sub_row, 0);
+                if (child) {
+
+                    QVariant var = child->data(Qt::UserRole);
+                    Engine::ECS::ObjectID retrieved;
+
+                    if (var.isValid()) {
+                        retrieved = var.value<Engine::ECS::ObjectID>();
+                    }
+
+                    if(retrieved.GetAsInt() == objID.GetAsInt()) {
+                        items.append(child);
+                        break; // skip scanning its children
+                    }
+                }
+            }
+        }
+            
+
+        if (items.isEmpty()){
+            return nullptr;
+        }
+
+        QStandardItem *item = items.first();
+        return item;
     }
 
     void LevelTree::OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event){
@@ -27,62 +85,165 @@ namespace Epoch::Editor{
         switch(event.changeType){
             case Engine::Events::CREATED:{
 
+                std::shared_ptr<Epoch::Engine::ECS::Objects::Object> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(event.sourceObjectID);
+
+                QStandardItem *item = new QStandardItem(QString::fromStdString(event.actorName));
+                item->setData(QVariant::fromValue(event.sourceObjectID), Qt::UserRole);
+
+                if(obj->GetParent()){
+                    QStandardItem* parentItem = GetItemFromObjectID(obj->GetParent()->GetID());
+                    if(parentItem){
+                        parentItem->appendRow(item);
+                    }
+                }
+                else{
+                    model->appendRow(item);
+                }
+                break;
             }
             case Engine::Events::DESTROYED:{
+                if (!treeView)
+                    return;
 
+                QStandardItem* item = GetItemFromObjectID(event.sourceObjectID);
+                if(!item)
+                    return;
+
+                QStandardItem *parentItem = item->parent();
+                if (parentItem)
+                    parentItem->removeRow(item->row());
+                else
+                    model->removeRow(item->row());
+
+                break;
             }
             case Engine::Events::ACTIVATED:{
-
+                break;
             }
             case Engine::Events::DEACTIVATED:{
-
+                break;
             }
             case Engine::Events::MOVED:{
+                break;
+            }
+            case Engine::Events::LOADED:{
+                LoadLevel(GetEngine().GetResourcesManager()->GetLevel(GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetIDBuilder().WithValue(event.levelAssetID).Build())->baseInfos.nameInProject));
+                model->setHorizontalHeaderLabels(QStringList() << QString::fromStdString(GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetIDBuilder().WithValue(event.levelAssetID).Build())->baseInfos.name));
+                break;
+            }
+            default:
+                break;
+        }
+    }
 
+    void LevelTree::OnItemClicked(const QModelIndex &index, Qt::MouseButton button){
+        
+        if (!index.isValid()) return;
+
+        QStandardItem *item = model->itemFromIndex(index);
+        if (item) {
+            QVariant var = item->data(Qt::UserRole);
+            Engine::ECS::ObjectID retrieved;
+
+            if (var.isValid()) {
+                retrieved = var.value<Engine::ECS::ObjectID>();
+            }
+
+            std::shared_ptr<Engine::ECS::Objects::Object> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(retrieved);
+            std::shared_ptr<Engine::ECS::Objects::Actor> actor = std::dynamic_pointer_cast<Engine::ECS::Objects::Actor>(obj);
+            
+            if (button == Qt::RightButton) {
+                QMenu menu(treeView);
+
+                menu.setStyleSheet(R"(
+                        QMenu {
+                            border: 2px solid #444;
+                            border-radius: 6px;
+                            background-color: #2c2c2c;
+                            color: white;
+                        }
+                        QMenu::item {
+                            height: 24px;
+                            padding-left : 10px;
+                            border-radius: 4px;
+                        }
+                        QMenu::item:selected {
+                            background-color: #444;
+                        }
+                        QMenu::icon {
+                            height: 24px;
+                            padding-left : 10px;
+                        }
+                    )");
+
+                QAction *renameAction = menu.addAction(QIcon(":/epoch/default/icons/rename.svg"), "Rename");
+                QAction *deleteAction = menu.addAction(QIcon(":/epoch/default/icons/delete.svg"), "Delete");
+                QAction *duplicateAction = menu.addAction(QIcon(":/epoch/default/icons/duplicate.svg"), "Duplicate");
+                menu.addSeparator();
+                QAction *createAction = menu.addAction(QIcon(":/epoch/default/icons/add.svg"), "Create Actor");
+
+                // Show the menu at the current cursor position
+                QAction *selectedAction = menu.exec(QCursor::pos());
+
+                if (selectedAction == renameAction) {
+                    qDebug() << "Rename clicked for object ID:" << actor->GetID().GetAsString();
+                    treeView->edit(index);
+                }
+                else if (selectedAction == deleteAction) {
+                    actor->Destroy();
+                }
+                else if (selectedAction == duplicateAction) {
+                    qDebug() << "Duplicate clicked for object ID:" << actor->GetID().GetAsString();
+                    actor->Clone();
+                }
+                else if (selectedAction == createAction) {
+                    std::shared_ptr<Engine::ECS::Objects::Actor> child = Engine::ECS::Objects::Object::Create<Engine::ECS::Objects::Actor>("New Actor");
+                    actor->AddChild(child);
+                }
             }
         }
-
-        std::string levelName = Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetID(event.levelID))->baseInfos.nameInProject;
-
-        LoadLevel(*Engine::Core::GetEngine().GetResourcesManager()->GetLevel(levelName).get());
-
     }
 
     void LevelTree::SetupModel()
     {
-        QStandardItem *rootItem = model->invisibleRootItem();
-
-        QStandardItem *parentItem = new QStandardItem("Parent Node");
-        parentItem->appendRow(new QStandardItem("Child Node 1"));
-        parentItem->appendRow(new QStandardItem("Child Node 2"));
-
-        rootItem->appendRow(parentItem);
-        model->setHorizontalHeaderLabels(QStringList() << "Scene");
-
         treeView->setModel(model);
-        treeView->setHeaderHidden(true);
         treeView->setUniformRowHeights(true);
-        treeView->setAlternatingRowColors(true);
+        treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
+        treeView->setAlternatingRowColors(false);
+        
+        connect(treeView, &CustomTreeView::itemClicked, this, [this](const QModelIndex &index, Qt::MouseButton button) { OnItemClicked(index, button); });
+    
+        connect(model, &QStandardItemModel::itemChanged, this, [this](QStandardItem *changedItem) {
+            QVariant var = changedItem->data(Qt::UserRole);
+            if (!var.isValid()) return;
+
+            Engine::ECS::ObjectID id = var.value<Engine::ECS::ObjectID>();
+            auto obj = GetEngine().GetObjectIDManager()->GetObjectFromID(id);
+            auto actor = std::dynamic_pointer_cast<Engine::ECS::Objects::Actor>(obj);
+            if (actor) {
+                QString newName = changedItem->text();
+                actor->SetName(newName.toStdString());
+            }
+        });
+    
     }
 
-    void LevelTree::LoadLevel(Engine::Levels::Level level)
+    void LevelTree::LoadLevel(std::shared_ptr<Engine::Levels::Level> level)
     {
         model->clear();
-        model->setHorizontalHeaderLabels({ "Name" }); // or ID, Type, etc.
 
-        for (const auto& rootActor : level.GetRootActors()) {
+        for (const auto& rootActor : level->GetRootActors()) {
             if (!rootActor)
                 continue;
 
             QStandardItem *rootItem = new QStandardItem(QString::fromStdString(rootActor->GetName()));
+            rootItem->setData(QVariant::fromValue(rootActor->GetID()), Qt::UserRole);
             model->appendRow(rootItem);
 
             // Recursively populate children
             populateTree(rootActor, rootItem);
     
         }
-
-        treeView->expandAll(); // Optional  
     }
 
     void LevelTree::populateTree(std::shared_ptr<Engine::ECS::Objects::Object> object, QStandardItem *parentItem)
@@ -94,6 +255,7 @@ namespace Epoch::Editor{
                 continue;
 
             QStandardItem *item = new QStandardItem(QString::fromStdString(child->GetName()));
+            item->setData(QVariant::fromValue(child->GetID()), Qt::UserRole);
             parentItem->appendRow(item);
 
             // Recurse into children
@@ -102,40 +264,14 @@ namespace Epoch::Editor{
     }
 
     void LevelTree::SetupStyle() {
-        QString style = R"(
-            QTreeView {
-                background-color: #1e1e1e;
-                color: #dcdcdc;
-                alternate-background-color: #2b2b2b;
-                show-decoration-selected: 1;
-                selection-background-color: #3d8fd1;
-                selection-color: #ffffff;
-                border: none;
-                font-size: 13px;
-            }
-
-            QTreeView::item {
-                height: 24px;
-                padding: 4px;
-            }
-
-            QTreeView::item:selected {
-                background-color: #3d8fd1;
-                color: white;
-            }
-
-            QTreeView::branch:has-children:!has-siblings:closed,
-            QTreeView::branch:closed:has-children:has-siblings {
-                image: url(:/icons/arrow-right.svg);
-            }
-
-            QTreeView::branch:open:has-children:!has-siblings,
-            QTreeView::branch:open:has-children:has-siblings {
-                image: url(:/icons/arrow-down.svg);
-            }
-        )";
-
-        treeView->setStyleSheet(style);
+        
+        QFile styleSheetFile(":/epoch/default/stylesheets/default_tree.qss");
+	    styleSheetFile.open(QIODevice::ReadOnly);
+	    QTextStream styleSheetStream(&styleSheetFile);
+	    QString result;
+	    result = styleSheetStream.readAll();
+	    styleSheetFile.close();
+        treeView->setStyleSheet(result);
     }
 }
 

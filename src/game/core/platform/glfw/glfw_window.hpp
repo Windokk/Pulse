@@ -54,7 +54,7 @@ namespace Epoch::Game::Core::Platform {
             Engine::Core::GetEngine().SetGL(gl);
         }
 
-        void SetGLFWInputManager(GLFWInput* inputManager){
+        void SetGLFWInputManager(GLFWInput* inputManager) {
             this->inputManager = inputManager;
         }
 

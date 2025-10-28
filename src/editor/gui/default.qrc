@@ -1,5 +1,12 @@
 <RCC>
     <qresource prefix="/epoch/default">
-        <file>stylesheets/default.qss</file>
+        <file>stylesheets/default_dock.qss</file>
+        <file>stylesheets/default_tree.qss</file>
+        <file>icons/chevron_right.svg</file>
+        <file>icons/chevron_down.svg</file>
+        <file>icons/rename.svg</file>
+        <file>icons/delete.svg</file>
+        <file>icons/duplicate.svg</file>
+        <file>icons/add.svg</file>
     </qresource>
 </RCC>

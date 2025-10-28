@@ -18,7 +18,7 @@ namespace Epoch::Editor::Core::Platform {
         public:
             Engine::Core::Platform::IWindow* GetWindow() override { return window.get(); };
             Engine::Core::Platform::IInput* GetInput() override { return input.get(); };
-
+            
             void CreateWindow(const std::string& title, const int& width, const int& height, const bool& fullscreen, const int& vsync) override {
                 window = std::make_unique<EditorMainWindow>();
                 window->Init(title, width, height, fullscreen, vsync);

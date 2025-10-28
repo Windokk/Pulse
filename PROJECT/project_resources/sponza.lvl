@@ -92,45 +92,6 @@
             ]
         },
         {
-            "name": "spot",
-            "components": [
-                {
-                    "type": "transform",
-                    "active": true,
-                    "position": {
-                        "x": 0,
-                        "y": 11,
-                        "z": 0
-                    },
-                    "rotation": {
-                        "x": 90,
-                        "y": 0,
-                        "z": 0
-                    },
-                    "scale": {
-                        "x": 1,
-                        "y": 1,
-                        "z": 1
-                    }
-                },
-                {
-                    "type": "light",
-                    "active": true,
-                    "light_type": "directionnal",
-                    "intensity": 3,
-                    "radius": 100,
-                    "color": {
-                        "r": 1,
-                        "g": 1,
-                        "b": 1
-                    },
-                    "innerCutoff": 8,
-                    "outerCutoff": 12,
-                    "castShadow": true
-                }
-            ]
-        },
-        {
             "name": "Player",
             "components": [
                 {
@@ -193,6 +154,47 @@
                     "materials": {
                         "0": "unlit"
                     }
+                }
+            ],
+            "children":[
+                {
+                    "name": "light",
+                    "components": [
+                        {
+                            "type": "transform",
+                            "active": true,
+                            "position": {
+                                "x": 0,
+                                "y": 11,
+                                "z": 0
+                            },
+                            "rotation": {
+                                "x": 90,
+                                "y": 0,
+                                "z": 0
+                            },
+                            "scale": {
+                                "x": 1,
+                                "y": 1,
+                                "z": 1
+                            }
+                        },
+                        {
+                            "type": "light",
+                            "active": true,
+                            "light_type": "directionnal",
+                            "intensity": 3,
+                            "radius": 100,
+                            "color": {
+                                "r": 1,
+                                "g": 1,
+                                "b": 1
+                            },
+                            "innerCutoff": 8,
+                            "outerCutoff": 12,
+                            "castShadow": true
+                        }
+                    ]
                 }
             ]
         }

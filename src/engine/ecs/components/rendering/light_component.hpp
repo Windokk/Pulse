@@ -8,7 +8,7 @@ namespace Epoch::Engine::ECS::Components
 {
     class Light : public Component{
         public:
-            Light(Objects::Actor *parent, uint32_t local_id);
+            Light(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
             void SetType(Rendering::LightType type);
             void SetIntensity(float intensity);
@@ -24,6 +24,8 @@ namespace Epoch::Engine::ECS::Components
             Rendering::LightData GetData();
             
             void Destroy() override;
+
+            std::shared_ptr<Component> Clone() const override;
 
         private:
             int lightIndex = -1;

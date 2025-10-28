@@ -127,31 +127,27 @@ This will compile CMakeLists everything in root : the engine, the editor app, th
 
 ## ROADMAP FULL ENGINE
 
-- Alpha : December 2025/January 2026
+- First prototype : December 2025/January 2026
   - All basic feature
   - Example basic project : Pong 3D
-- Beta : Summer 2026
+- Alpha : Summer 2026
   - Polished Renderer
   - Polished Editor
   - Unit tests
   - Demos (YouTube ?)
-- Major First Release 1.0.0 : December 2026/January 2027
+- Major First Beta Release 0.1.0 : December 2026/January 2027
   - Bug fixes
   - Documentation (User + Source Code)
   - Optimizations
-- Patches : January 2027 --> May 2027
-  - Bug fixes
-- Minor Release 1.1.0 : Summer 2027
 
-## ROADMAP ALPHA 0.1.0 (December 2025)
+## ROADMAP FIRST PROTOTYPE 0.1.0 (December 2025)
 
 ### Editor (Qt)
 
-- [ ] Docking
+- [x] Docking
 - [ ] Scene Tree panel
 - [ ] Material editor panel
 - [ ] Viewport panel
-- [ ] Game panel
 - [ ] Asset Browser
 - [ ] Console
 - [ ] Stats overlay
@@ -161,11 +157,11 @@ This will compile CMakeLists everything in root : the engine, the editor app, th
 
 ### Rendering
 
-- [ ] IBL
+- [ ] Skyboxes + IBL
 - [ ] Wireframe rendering
 - [ ] Forward+ rendering
+- [ ] Ligthmaps
 - [ ] FBX importer (multiple meshes)
-- [ ] Skyboxes
 - [ ] Post processing effects shaders (SSAO, Bloom, Vignette, Tone Mapping, Film Grain, Chromatic Abberration)
 
 #### Serialization

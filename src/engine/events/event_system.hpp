@@ -2,7 +2,7 @@
 
 #include "engine/physics/physics_system.hpp"
 
-#include "engine/ecs/objectID.hpp"
+#include "engine/ecs/objects/objectID.hpp"
 
 #include <unordered_map>
 #include <functional>
@@ -55,14 +55,16 @@ namespace Epoch::Engine::Events {
         CREATED,
         MOVED,
         ACTIVATED,
-        DEACTIVATED
+        DEACTIVATED,
+        LOADED
     };
 
     struct LevelStructureChangedEvent : public Event{
-        const int levelID;
+        const int levelAssetID;
         const LevelChangeType changeType;
+        const std::string actorName;
         LevelStructureChangedEvent(
-        const int& levelID, LevelChangeType changeType, ECS::ObjectID source) : levelID(levelID), changeType(changeType), Event(source) {}
+        const int& levelAssetID, const LevelChangeType changeType, const std::string actorName, ECS::ObjectID source) : levelAssetID(levelAssetID), actorName(actorName), changeType(changeType), Event(source) {}
     };
 
     // EventDispatcher

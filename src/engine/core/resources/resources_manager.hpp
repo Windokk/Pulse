@@ -29,13 +29,13 @@ namespace Epoch::Engine::Core::Resources{
             /// @param name The name of the model in the project
             /// @param path The normalized path at which the model is located (filename + extension expected)
             /// @return A shared pointer to a Mesh
-            std::shared_ptr<Rendering::Mesh> LoadModel(const std::string &name, const Filesystem::Path &path);
+            std::shared_ptr<Rendering::Mesh> LoadModel(const std::string &pathInProject, const Filesystem::Path &path);
             
             /// @brief Loads a texture from a given path and adds it to the project's loaded textures list
             /// @param name The name of the texture in the project
             /// @param path The normalized path at which the texture is located (filename + extension expected)
             /// @return A shared pointer to a Texture
-            std::shared_ptr<Rendering::Texture> LoadTexture(const std::string &name, const Filesystem::Path &path);
+            std::shared_ptr<Rendering::Texture> LoadTexture(const std::string &pathInProject, const Filesystem::Path &path);
             
             /// @brief Loads a shader program from given vertex, fragment, and geometry shader paths and adds it to the project's loaded shaders list
             /// @param name The name of the shader program in the project
@@ -43,13 +43,13 @@ namespace Epoch::Engine::Core::Resources{
             /// @param fsPath The normalized path to the fragment shader source file
             /// @param gsPath The normalized path to the geometry shader source file (optional or empty if not used)
             /// @return A shared pointer to a Shader
-            std::shared_ptr<Rendering::Shader> LoadShader(const std::string &name, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath);
+            std::shared_ptr<Rendering::Shader> LoadShader(const std::string &pathInProject, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath);
             
             /// @brief Loads a material from a given path and adds it to the project's loaded materials list
             /// @param name The name of the material in the project
             /// @param path The normalized path at which the material is located (filename + extension expected)
             /// @return A shared pointer to a Material
-            std::shared_ptr<Rendering::Material> LoadMaterial(const std::string &name, const Filesystem::Path &path);
+            std::shared_ptr<Rendering::Material> LoadMaterial(const std::string &pathInProject, const Filesystem::Path &path);
 
             /// @brief Loads all dependencies of a given asset (recursively)
             /// @param assetName The name of the "root" asset
@@ -59,32 +59,32 @@ namespace Epoch::Engine::Core::Resources{
             /// @param name The name of the level in the project
             /// @param path The normalized path at which the level is located (filename + extension expected)
             /// @return A shared pointer to a Level
-            std::shared_ptr<Levels::Level> LoadLevel(const std::string &name, const Filesystem::Path& path);
+            std::shared_ptr<Levels::Level> LoadLevel(const std::string &pathInProject, const Filesystem::Path& path);
 
-            /// @brief Retrieves mesh from the project's loaded meshes lists
+            /// @brief Retrieves mesh from the project's loaded meshes lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the mesh in the project
             /// @return A shared pointer to a Mesh
-            std::shared_ptr<Rendering::Mesh> GetMesh(std::string name);
+            std::shared_ptr<Rendering::Mesh> GetMesh(std::string pathInProject);
 
-            /// @brief Retrieves material from the project's loaded materials lists
+            /// @brief Retrieves material from the project's loaded materials lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the material in the project
             /// @return A shared pointer to a Material
-            std::shared_ptr<Rendering::Material> GetMaterial(std::string name);
+            std::shared_ptr<Rendering::Material> GetMaterial(std::string pathInProject);
 
-            /// @brief Retrieves shader from the project's loaded shaders lists
+            /// @brief Retrieves shader from the project's loaded shaders lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the shader in the project
             /// @return A shared pointer to a Shader
-            std::shared_ptr<Rendering::Shader> GetShader(std::string name);
+            std::shared_ptr<Rendering::Shader> GetShader(std::string pathInProject);
 
-            /// @brief Retrieves texture from the project's loaded textures lists
+            /// @brief Retrieves texture from the project's loaded textures lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the texture in the project
             /// @return A shared pointer to a Texture
-            std::shared_ptr<Rendering::Texture> GetTexture(std::string name);
+            std::shared_ptr<Rendering::Texture> GetTexture(std::string pathInProject);
 
-            /// @brief Retrieves level from the project's loaded levels lists
+            /// @brief Retrieves level from the project's loaded levels lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the level in the project
             /// @return A shared pointer to a Level
-            std::shared_ptr<Levels::Level> GetLevel(const std::string& name);
+            std::shared_ptr<Levels::Level> GetLevel(const std::string& pathInProject);
 
             /// @brief Unloads all unused dependencies of a given asset (recursively)
             /// @param assetName The name of the "root" asset

@@ -10,7 +10,7 @@
 
 namespace Epoch::Engine::ECS::Components{
 
-    Transform::Transform(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    Transform::Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
         this->position = glm::vec3(0,0,0);
         this->rotation = glm::quat(glm::vec3(0,0,0));
@@ -228,5 +228,12 @@ namespace Epoch::Engine::ECS::Components{
         
 
 		return true;
+    }
+
+    std::shared_ptr<Component> Transform::Clone() const
+    {
+        auto cloned = std::make_shared<Transform>(*this);
+
+        return cloned;
     }
 }

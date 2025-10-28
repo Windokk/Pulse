@@ -5,7 +5,7 @@
 #include <iostream>
 
 namespace Epoch::Engine::ECS::Components{
-    PhysicsBody::PhysicsBody(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    PhysicsBody::PhysicsBody(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
         
     }
@@ -22,6 +22,7 @@ namespace Epoch::Engine::ECS::Components{
 
         this->scale = scale;
         this->shape = shape;
+        this->motionType = motionType;
 
         switch (shape) {
             case Physics::PhysicsShape::SPHERE: {
@@ -103,5 +104,12 @@ namespace Epoch::Engine::ECS::Components{
         
         this->parent->transform->SetPosition(glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ()));
         this->parent->transform->SetRotation(glm::vec3(glm::degrees(rot.GetX()), glm::degrees(rot.GetY()), glm::degrees(rot.GetZ())));
+    }
+
+    std::shared_ptr<Component> PhysicsBody::Clone() const
+    {
+        auto cloned = std::make_shared<PhysicsBody>(*this);
+
+        return cloned;
     }
 }

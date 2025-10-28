@@ -96,14 +96,14 @@ namespace Epoch::Engine::Physics {
 
         for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
-                script->parent->GetComponentIDInScene(script->local_id),
+                script->parent->GetComponentIDInScene(script->GetLocalId()),
                 Events::ContactAddedEvent(*comp2, contactManifold, contactSettings, ECS::ObjectID(0))
             );
         }
 
         for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
-                script->parent->GetComponentIDInScene(script->local_id),
+                script->parent->GetComponentIDInScene(script->GetLocalId()),
                 Events::ContactAddedEvent(*comp1, contactManifold, contactSettings, ECS::ObjectID(0))
             );
         }
@@ -119,14 +119,14 @@ namespace Epoch::Engine::Physics {
 
         for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
-                script->parent->GetComponentIDInScene(script->local_id),
+                script->parent->GetComponentIDInScene(script->GetLocalId()),
                 Events::ContactPersistedEvent(*comp2, contactManifold, contactSettings, ECS::ObjectID(0))
             );
         }
 
         for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
-                script->parent->GetComponentIDInScene(script->local_id),
+                script->parent->GetComponentIDInScene(script->GetLocalId()),
                 Events::ContactPersistedEvent(*comp1, contactManifold, contactSettings, ECS::ObjectID(0))
             );
         }
@@ -142,14 +142,14 @@ namespace Epoch::Engine::Physics {
 
         for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
-                script->parent->GetComponentIDInScene(script->local_id),
+                script->parent->GetComponentIDInScene(script->GetLocalId()),
                 Events::ContactRemovedEvent(*comp2, ECS::ObjectID(0))
             );
         }
 
         for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
-                script->parent->GetComponentIDInScene(script->local_id),
+                script->parent->GetComponentIDInScene(script->GetLocalId()),
                 Events::ContactRemovedEvent(*comp1, ECS::ObjectID(0))
             );
         }

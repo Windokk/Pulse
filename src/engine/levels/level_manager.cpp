@@ -3,14 +3,23 @@
 #include "engine/debugging/debugger.hpp"
 #include "level_manager.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::Levels{
     void LevelManager::LoadLevel(std::shared_ptr<Level> lvl)
     {
         if(!lvl)
         DEBUG_FATAL("Cannot load level (because pointer is null)");
         levelBuffer.push_back(lvl);
-        lvl->loaded = true;
-        lvl->Start();
+        lvl->SetLoaded(true);
+
+        int levelBuildIndex = lvl->GetBuildIndex();
+        int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
+
+        Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
+                                                    levelAssetID, Events::LOADED, "", ECS::ObjectID(-1)));
+
+        lvl->OnLoad();
     }
 
     Level* LevelManager::GetLevelAt(int index){

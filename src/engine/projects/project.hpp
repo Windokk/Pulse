@@ -12,7 +12,7 @@ namespace Epoch::Engine::Projects{
 
 
         /// @brief A list of level paths to include in the build
-        std::vector<Filesystem::Path> buildIndex = {};
+        std::vector<Filesystem::Path> buildIndex;
         
 
         int GetLevelBuildIndex(const Filesystem::Path lvlPath) {

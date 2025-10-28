@@ -1,0 +1,10 @@
+#ifndef CONFIG_H_INCLUDED
+#define CONFIG_H_INCLUDED
+
+#define PROJECT_NAME        "Epoch"
+#define PROJECT_VERSION     "0.1.0"
+#define PROJECT_VERSION_MAJOR 0
+#define PROJECT_VERSION_MINOR 1
+#define PROJECT_VERSION_PATCH 0
+
+#endif

@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
 
         // Engine startup
         EngineInstance::GetInstance().Init(engineSettings);
-
+        
         // Editor startup
         auto startEditor = loader.GetSymbol<EditorStartFn>("editor", "EditorStart");
         if (!startEditor) {

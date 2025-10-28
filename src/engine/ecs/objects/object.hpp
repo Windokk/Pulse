@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 
-#include "engine/ecs/objectID.hpp"
+#include "engine/ecs/objects/objectID.hpp"
 
 
 namespace Epoch::Engine::ECS::Objects{
@@ -24,7 +24,6 @@ namespace Epoch::Engine::ECS::Objects{
             virtual ~Object();
 
             std::shared_ptr<Object> GetChild(int index);
-
 
             std::shared_ptr<Object> GetChild(ObjectID id);
             std::vector<ObjectID> GetChildrenID(bool recursive = false){ 
@@ -68,7 +67,7 @@ namespace Epoch::Engine::ECS::Objects{
             Object();
             ObjectID id;
             std::vector<ObjectID> children;
-            ObjectID parent = ObjectIDBuilder().WithValue(-1).Build();
+            ObjectID parent = ObjectID(-1);
 
             friend class Actor;
     };

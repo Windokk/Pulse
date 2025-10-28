@@ -17,7 +17,7 @@ namespace Epoch::Engine::ECS::Components
 
 
         public:
-            AudioSource(Objects::Actor *parent, uint32_t local_id);
+            AudioSource(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
             void SetPath(Filesystem::Path path);
             void SetVolume(float volume);
@@ -26,11 +26,15 @@ namespace Epoch::Engine::ECS::Components
             void RemoveSound();
             void Update();
 
+            void Destroy() override;
+
             void DeActivate() override
             {
                 Component::DeActivate();
 
                 Pause();
             }
+
+            std::shared_ptr<Component> Clone() const override;
     };
 }

@@ -4,9 +4,11 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Epoch::Engine::ECS::Components {
     
-    Camera::Camera(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    Camera::Camera(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
 
     }
@@ -17,6 +19,11 @@ namespace Epoch::Engine::ECS::Components {
         this->height = height;
         this->nearPlane = near;
         this->farPlane = far;
+    }
+
+    void Camera::Destroy()
+    {
+        Core::GetEngine().GetCameraManager()->RemoveCamera(parent->GetID());
     }
 
     void Camera::UpdateSize(int new_width, int new_height)
@@ -74,6 +81,13 @@ namespace Epoch::Engine::ECS::Components {
 
 		return -r <= plane.getSignedDistanceToPlane(center);
 	}
+
+    std::shared_ptr<Component> Camera::Clone() const
+    {
+        auto cloned = std::make_shared<Camera>(*this);
+
+        return cloned;
+    }
 
     bool Camera::IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax)
     {

@@ -11,7 +11,7 @@
 
 using namespace Epoch::Engine;
 
-Character::Character(Epoch::Engine::ECS::Objects::Actor* parent, uint32_t local_id)
+Character::Character(std::shared_ptr<Epoch::Engine::ECS::Objects::Actor> parent, uint32_t local_id)
     : Script(parent, local_id) {
     // Init
 }

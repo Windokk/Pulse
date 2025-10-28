@@ -59,7 +59,7 @@ namespace Epoch::Engine::ECS::Objects{
         return nullptr;
     }
 
-    void Object::AddChild(std::shared_ptr<Object>o)
+    void Object::AddChild(std::shared_ptr<Object> o)
     {
         children.push_back(o->GetID());
         o->SetParent(id);

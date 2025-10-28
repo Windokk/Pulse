@@ -11,7 +11,7 @@
 namespace Epoch::Engine::ECS::Components{
     
 
-    Model::Model(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    Model::Model(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
     }
 
@@ -52,7 +52,7 @@ namespace Epoch::Engine::ECS::Components{
         if(!activated)
             return;
 
-        if (materials.size() > 0 && mesh != nullptr && parent->level && parent->level->loaded){
+        if (materials.size() > 0 && mesh != nullptr && parent->level && parent->level->IsLoaded()){
 
             std::shared_ptr<Transform> tr = parent->transform;
 
@@ -66,10 +66,23 @@ namespace Epoch::Engine::ECS::Components{
 
     void Model::RemoveFromDrawList()
     {
-        if (materials.size() > 0 && mesh != nullptr && parent->level->loaded){
+        if (materials.size() > 0 && mesh != nullptr && parent->level->IsLoaded()){
             std::shared_ptr<Transform> tr = parent->transform;
             std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCmds(tr, parent->GetComponentIDInScene(local_id), this->materials);
             Core::GetEngine().GetRenderer()->RemoveCommands(cmds);
+            alreadySubmitted = false;
         }
+    }
+
+    void Model::Destroy()
+    {
+        RemoveFromDrawList();
+    }
+
+    std::shared_ptr<Component> Model::Clone() const
+    {
+        auto cloned = std::make_shared<Model>(*this);
+
+        return cloned;
     }
 }

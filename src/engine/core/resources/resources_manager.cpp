@@ -23,7 +23,7 @@ namespace Epoch::Engine::Core::Resources{
         
     }
 
-    std::shared_ptr<Rendering::Mesh> ResourcesManager::LoadModel(const std::string &name, const Filesystem::Path &path)
+    std::shared_ptr<Rendering::Mesh> ResourcesManager::LoadModel(const std::string &pathInProject, const Filesystem::Path &path)
     {
         ufbx_load_opts opts = { 0 }; // Optional, pass NULL for defaults
         ufbx_error error; // Optional, pass NULL if you don't care about errors
@@ -45,7 +45,7 @@ namespace Epoch::Engine::Core::Resources{
         ufbx_mesh* ufbx_mesh = scene->meshes.data[0];
 
         std::shared_ptr<Rendering::Mesh> mesh = std::make_shared<Rendering::Mesh>(ufbx_mesh, scene->settings.unit_meters, scene->materials);
-        meshes.emplace(name, mesh);
+        meshes.emplace(pathInProject, mesh);
 
         ufbx_free_scene(scene);
 
@@ -53,29 +53,29 @@ namespace Epoch::Engine::Core::Resources{
 
     }
 
-    std::shared_ptr<Rendering::Texture> ResourcesManager::LoadTexture(const std::string &name, const Filesystem::Path &path)
+    std::shared_ptr<Rendering::Texture> ResourcesManager::LoadTexture(const std::string &pathInProject, const Filesystem::Path &path)
     {
         std::shared_ptr<Rendering::Texture> texture = std::make_shared<Rendering::Texture>(path);
-        textures.emplace(name, texture);
+        textures.emplace(pathInProject, texture);
         return texture;
     }
 
-    std::shared_ptr<Rendering::Shader> ResourcesManager::LoadShader(const std::string &name, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath)
+    std::shared_ptr<Rendering::Shader> ResourcesManager::LoadShader(const std::string &pathInProject, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath)
     {
         std::shared_ptr<Rendering::Shader> shader = std::make_shared<Rendering::Shader>(vsPath, fsPath, gsPath);
-        shaders.emplace(name, shader);
+        shaders.emplace(pathInProject, shader);
         return shader;
     }
 
-    std::shared_ptr<Rendering::Material> ResourcesManager::LoadMaterial(const std::string &name, const Filesystem::Path &path)
+    std::shared_ptr<Rendering::Material> ResourcesManager::LoadMaterial(const std::string &pathInProject, const Filesystem::Path &path)
     {   
-        LoadDependencies(name);
+        LoadDependencies(pathInProject);
 
         std::shared_ptr<Rendering::Material> mat = Serialization::DeserializeMaterial(path);
         if(!mat){
             DEBUG_ERROR("Error during material import.");
         }
-        materials.emplace(name, mat);
+        materials.emplace(pathInProject, mat);
         return mat;
     }
 
@@ -94,84 +94,85 @@ namespace Epoch::Engine::Core::Resources{
         }
     }
 
-    std::shared_ptr<Levels::Level> ResourcesManager::LoadLevel(const std::string &name, const Filesystem::Path& path){
+    std::shared_ptr<Levels::Level> ResourcesManager::LoadLevel(const std::string &pathInProject, const Filesystem::Path& path){
 
-        LoadDependencies(name);
+        LoadDependencies(pathInProject);
 
-        std::shared_ptr<Levels::Level> level = Serialization::DeserializeLevel(path);
+        std::shared_ptr<Levels::Level> level = Serialization::DeserializeLevel(pathInProject, path);
         if(!level){
             DEBUG_ERROR("Unknown error during level import.");
+            return nullptr;
         }
-        auto [it, inserted] = levels.emplace(name, level);
+        auto [it, inserted] = levels.emplace(pathInProject, level);
         if (!inserted) {
-            DEBUG_WARNING("Level '" + name + "' already loaded.");
+            DEBUG_WARNING("Level '" + pathInProject + "' already loaded.");
         }
         return level;
     }
 
-    std::shared_ptr<Rendering::Mesh> ResourcesManager::GetMesh(std::string name)
+    std::shared_ptr<Rendering::Mesh> ResourcesManager::GetMesh(std::string pathInProject)
     {
-        auto it = meshes.find(name);
+        auto it = meshes.find(pathInProject);
         if (it != meshes.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(name));
-            return LoadModel(name, assetInfos->baseInfos.path);
+            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            return LoadModel(pathInProject, assetInfos->baseInfos.path);
         }
     }
 
-    std::shared_ptr<Rendering::Material> ResourcesManager::GetMaterial(std::string name)
+    std::shared_ptr<Rendering::Material> ResourcesManager::GetMaterial(std::string pathInProject)
     {
-        auto it = materials.find(name);
+        auto it = materials.find(pathInProject);
         if (it != materials.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(name));
-            return LoadMaterial(name, assetInfos->baseInfos.path);
+            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            return LoadMaterial(pathInProject, assetInfos->baseInfos.path);
         }
     }
 
-    std::shared_ptr<Rendering::Shader> ResourcesManager::GetShader(std::string name)
+    std::shared_ptr<Rendering::Shader> ResourcesManager::GetShader(std::string pathInProject)
     {
-        auto it = shaders.find(name);
+        auto it = shaders.find(pathInProject);
         if (it != shaders.end()){
             return it->second;
         }
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(name+".vert"));
+            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject+".vert"));
             
             if(assetInfos == nullptr) return nullptr;
 
             Filesystem::Path vertPath = Filesystem::Path(assetInfos->baseInfos.path.GetParent()) / (assetInfos->baseInfos.name + ".vert");
             Filesystem::Path fragPath = Filesystem::Path(assetInfos->baseInfos.path.GetParent()) / (assetInfos->baseInfos.name + ".frag");
             Filesystem::Path geomPath = Filesystem::Path(assetInfos->baseInfos.path.GetParent()) / (assetInfos->baseInfos.name + ".geom");
-            return LoadShader(name, vertPath, fragPath, geomPath.Exists() ? geomPath : Filesystem::Path(""));
+            return LoadShader(pathInProject, vertPath, fragPath, geomPath.Exists() ? geomPath : Filesystem::Path(""));
         }
     }
 
-    std::shared_ptr<Rendering::Texture> ResourcesManager::GetTexture(std::string name)
+    std::shared_ptr<Rendering::Texture> ResourcesManager::GetTexture(std::string pathInProject)
     {
-        auto it = textures.find(name);
+        auto it = textures.find(pathInProject);
         if (it != textures.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(name));
-            return LoadTexture(name, assetInfos->baseInfos.path);
+            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            return LoadTexture(pathInProject, assetInfos->baseInfos.path);
         }
     }
 
-    std::shared_ptr<Levels::Level> ResourcesManager::GetLevel(const std::string &name)
+    std::shared_ptr<Levels::Level> ResourcesManager::GetLevel(const std::string &pathInProject)
     {
-        if (auto it = levels.find(name); it != levels.end())
+        if (auto it = levels.find(pathInProject); it != levels.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(name));
-            return LoadLevel(name, assetInfos->baseInfos.path);
+            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            return LoadLevel(pathInProject, assetInfos->baseInfos.path);
         }
     }
 

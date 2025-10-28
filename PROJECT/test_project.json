@@ -7,8 +7,8 @@
     "projectRoot":      "C:\\Users\\elipt\\Documents\\GitHub\\Epoch\\PROJECT",
     "assetDatabase":    "C:\\Users\\elipt\\Documents\\Github\\Epoch\\PROJECT\\settings\\asset_database.json",
     "buildSettings":[
-        "C:\\Users\\elipt\\Documents\\GitHub\\Epoch\\PROJECT\\project_resources\\sponza.lvl",
-        "C:\\Users\\elipt\\Documents\\GitHub\\Epoch\\PROJECT\\project_resources\\level1.lvl"
+        "sponza.lvl",
+        "level1.lvl"
     ],
     "editorPreferences":[
         

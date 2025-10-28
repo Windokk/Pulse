@@ -8,8 +8,10 @@ namespace Epoch::Engine::ECS::Components
 {
     class Script : public Component{
         public:
-            Script(Objects::Actor *parent, uint32_t local_id);
+            Script(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
+
+            /// @brief Please prefer using Begin() for now (OnLevelLoaded() will be used for actors that live in multiple scenes (managers, etc...))
             virtual void OnLevelLoaded();
 
             virtual void OnLevelUnloaded();
@@ -45,6 +47,8 @@ namespace Epoch::Engine::ECS::Components
             }
             
             bool beginCalled = false;
+
+            std::shared_ptr<Component> Clone() const override;
 
         private:
 

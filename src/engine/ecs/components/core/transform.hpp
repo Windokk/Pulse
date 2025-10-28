@@ -15,7 +15,7 @@ namespace Epoch::Engine::ECS::Components
     class Transform : public Component{
 
         public:
-        Transform(Objects::Actor *parent, uint32_t local_id);
+        Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
         const glm::vec3& GetPosition() const { return position; };
         glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); };
@@ -49,8 +49,10 @@ namespace Epoch::Engine::ECS::Components
         bool SetFromTransformMatrix(const glm::mat4 &m);
 
         void Destroy() override{
-            //TODO
+            //TODO ?
         }
+
+        std::shared_ptr<Component> Clone() const override;
 
         private:
             glm::vec3 position;

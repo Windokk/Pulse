@@ -1,7 +1,7 @@
 #include "level.hpp"
 #include <iostream>
 
-#include "engine/ecs/objectID.hpp"
+#include "engine/ecs/objects/objectID.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 
 #include "engine/ecs/components/rendering/light_component.hpp"
@@ -31,14 +31,23 @@ namespace Epoch::Engine::Levels{
         }
         
         for(auto& actor : rootActors){
-            RemoveActor(actor->GetID(), true);
+            RemoveActor(actor->GetID());
         }
+
+        lights.clear();
+        transforms.clear();
+        models.clear();
+        physicsBodies.clear();
+        audioSources.clear();
+        cameras.clear();
+        scripts.clear();
+        meshes.clear();
     }
 
-    void Level::Start()
+    void Level::OnLoad()
     {
         for(auto& cam : cameras){
-            Core::GetEngine().GetCameraManager()->AddCamera(cam->parent->GetName(), cam);
+            Core::GetEngine().GetCameraManager()->AddCamera(cam->parent->GetID(), cam);
         }
 
         for(int i = 0; i < lights.size(); i++){
@@ -50,7 +59,7 @@ namespace Epoch::Engine::Levels{
         }
 
         for(auto& script : scripts){
-            script->OnLevelLoaded();
+            script->OnLevelLoaded(); 
         }
     }
 
@@ -62,12 +71,7 @@ namespace Epoch::Engine::Levels{
 
         loaded = false;
         
-        for(auto& model : models){
-            model->RemoveFromDrawList();
-        }
-
-        Core::GetEngine().GetCameraManager()->Clear();
-        Core::GetEngine().GetRenderer()->lightMan->Clear();
+        Clear();
     }
 
     void Level::Tick()
@@ -83,15 +87,20 @@ namespace Epoch::Engine::Levels{
         }
     }
 
+    void Level::Begin()
+    {
+        //TODO
+    }
+
     void Level::AddActor(std::shared_ptr<ECS::Objects::Actor> a)
     {
         rootActors.push_back(a);
         a->SetLevel(this);
     }
 
-    void Level::RemoveActor(ECS::ObjectID id, bool recursive)
+    void Level::RemoveActor(ECS::ObjectID id)
     {
-        GetActor(id, recursive)->Destroy();
+        GetActor(id, false)->Destroy();
     }
 
     std::shared_ptr<ECS::Objects::Actor> Level::GetActor(ECS::ObjectID id, bool recursive)

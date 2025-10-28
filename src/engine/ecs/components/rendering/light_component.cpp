@@ -10,7 +10,7 @@ using namespace Epoch::Engine::Core;
 
 namespace Epoch::Engine::ECS::Components{
 
-    Light::Light(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    Light::Light(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
         lightData = std::make_shared<Rendering::LightData>();
 
@@ -21,7 +21,7 @@ namespace Epoch::Engine::ECS::Components{
     }
 
     /// @brief Set the light's type
-    /// @param type The new type
+    /// @param type The new type (Directionnal, Spot, Point...)
     void Light::SetType(Rendering::LightType type)
     {
         if(!activated)
@@ -29,7 +29,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->type = (int)type;
 
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -42,7 +42,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->intensity = intensity;
 
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
         
     }
@@ -56,7 +56,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->position = postion;
 
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -69,7 +69,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->direction = direction;
             
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
     
@@ -82,7 +82,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->radius = radius;
         
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -95,7 +95,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->color = color;
         
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -108,7 +108,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->outerCutoff = glm::cos(glm::radians(cutoff));
         
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -121,7 +121,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->innerCutoff = glm::cos(glm::radians(cutoff));
         
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -132,7 +132,7 @@ namespace Epoch::Engine::ECS::Components{
         if(lightIndex != -1 || !activated)
             return;
         
-        if(parent->level->loaded){
+        if(parent->level->IsLoaded()){
             EngineInstance::GetInstance().GetRenderer()->lightMan->AddLight(index, lightData);
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(index);
             lightIndex = index;
@@ -147,7 +147,7 @@ namespace Epoch::Engine::ECS::Components{
 
         lightData->castShadow = castShadows;
         
-        if(parent->level->loaded)
+        if(parent->level->IsLoaded())
             EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
     }
 
@@ -161,5 +161,12 @@ namespace Epoch::Engine::ECS::Components{
     void Light::Destroy()
     {
         EngineInstance::GetInstance().GetRenderer()->lightMan->RemoveLight(lightIndex);
+    }
+
+    std::shared_ptr<Component> Light::Clone() const
+    {
+        auto cloned = std::make_shared<Light>(*this);
+
+        return cloned;
     }
 }

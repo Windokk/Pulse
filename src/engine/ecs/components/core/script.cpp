@@ -2,7 +2,7 @@
 
 namespace Epoch::Engine::ECS::Components
 {
-    Script::Script(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    Script::Script(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {    
     }
 
@@ -44,5 +44,13 @@ namespace Epoch::Engine::ECS::Components
 
     void Script::OnDeactivated()
     {
+
+    }
+
+    std::shared_ptr<Component> Script::Clone() const
+    {
+        auto cloned = std::make_shared<Script>(*this);
+
+        return cloned;
     }
 }

@@ -2,6 +2,7 @@
 
 #include "engine/rendering/utils.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
+#include "engine/ecs/objects/objectID.hpp"
 
 #include <string>
 #include <vector>
@@ -15,19 +16,19 @@ namespace Epoch::Engine::Rendering{
         public:
             
             /// @brief Adds a new camera with a name
-            void AddCamera(const std::string& name, std::shared_ptr<Camera> camera) {
-                cameras[name] = camera;
+            void AddCamera(const ECS::ObjectID parentID, std::shared_ptr<Camera> camera) {
+                cameras[parentID] = camera;
 
                 if (!activeCamera)
                     activeCamera = camera;
             }
 
             /// @brief Removes a camera by name
-            void RemoveCamera(const std::string& name) {
-                if (cameras.count(name)) {
-                    if (cameras[name] == activeCamera)
+            void RemoveCamera(const ECS::ObjectID parentID) {
+                if (cameras.count(parentID)) {
+                    if (cameras[parentID] == activeCamera)
                         activeCamera = nullptr;
-                    cameras.erase(name);
+                    cameras.erase(parentID);
                 }
             }
 
@@ -35,7 +36,7 @@ namespace Epoch::Engine::Rendering{
             /// @param width The new width (in px)
             /// @param height The new height (in px)
             void UpdateSize(int width, int height) {
-                for(std::pair<std::string, std::shared_ptr<Camera>> cam : cameras){
+                for(std::pair<ECS::ObjectID, std::shared_ptr<Camera>> cam : cameras){
                     cam.second->UpdateSize(width, height);
                 }
             }
@@ -47,16 +48,16 @@ namespace Epoch::Engine::Rendering{
             }
 
             /// @brief Get a camera by name
-            std::shared_ptr<Camera> GetCamera(const std::string& name) {
-                if (cameras.count(name))
-                    return cameras[name];
+            std::shared_ptr<Camera> GetCamera(const ECS::ObjectID parentID) {
+                if (cameras.count(parentID))
+                    return cameras[parentID];
                 return nullptr;
             }
 
             /// @brief Set the active camera
-            void SetActiveCamera(const std::string& name) {
-                if (cameras.count(name))
-                    activeCamera = cameras[name];
+            void SetActiveCamera(const ECS::ObjectID parentID) {
+                if (cameras.count(parentID))
+                    activeCamera = cameras[parentID];
             }
 
             /// @brief Get the current active camera
@@ -72,7 +73,7 @@ namespace Epoch::Engine::Rendering{
 
         private:
 
-            std::unordered_map<std::string, std::shared_ptr<Camera>> cameras;
+            std::unordered_map<ECS::ObjectID, std::shared_ptr<Camera>> cameras;
             std::shared_ptr<Camera> activeCamera;
     };
 }

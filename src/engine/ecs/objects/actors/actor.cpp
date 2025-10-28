@@ -9,8 +9,10 @@ namespace Epoch::Engine::ECS::Objects{
     Actor::Actor(std::string name)
     {
         SetName(name);
+    }
 
-        transform = make_shared<Transform>(this, this->components.size());
+    void Actor::Init(){
+        this->transform = make_shared<Transform>(std::static_pointer_cast<Actor>(shared_from_this()), this->components.size());
         components.push_back(transform);
     }
 
@@ -23,8 +25,8 @@ namespace Epoch::Engine::ECS::Objects{
         std::shared_ptr<Component> component(rawComponent);
 
         // Set actor and component index
-        component->parent = this;
-        component->local_id = components.size();
+        component->SetParent(std::static_pointer_cast<Actor>(shared_from_this()));
+        component->SetLocalId(components.size());
 
         if (dynamic_cast<Transform*>(component.get())) {
             DEBUG_ERROR("An actor can only have one transform component.");
@@ -81,18 +83,17 @@ namespace Epoch::Engine::ECS::Objects{
         for(auto& component : components){
             component->Destroy();
         }
+        
+        Object::Destroy();
 
-        if(level){
-            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
-
-            if(levelBuildIndex == -1)
-                return;
+        if(level->IsLoaded()){
+            int levelBuildIndex = level->GetBuildIndex();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
-                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+                                                    levelAssetID, Events::DESTROYED, name, GetID()));
         }
 
-        Object::Destroy();
     }
 
     void Actor::AddChild(std::shared_ptr<Object> o)
@@ -109,14 +110,12 @@ namespace Epoch::Engine::ECS::Objects{
 
         this->level = lvl;
 
-        if(level){
-            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
-            
-            if(levelBuildIndex == -1)
-                return;
+        if(level->IsLoaded()){
+            int levelBuildIndex = level->GetBuildIndex();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
-                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+                                                    levelAssetID, Events::CREATED, name, GetID()));
         }
     }
 
@@ -139,14 +138,12 @@ namespace Epoch::Engine::ECS::Objects{
         for(auto& component : components){
             component->Activate();
         }
-        if(level){
-            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
-
-            if(levelBuildIndex == -1)
-                return;
+        if(level->IsLoaded()){
+            int levelBuildIndex = level->GetBuildIndex();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
-                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+                                                    levelAssetID, Events::ACTIVATED, name, GetID()));
         }
     }
 
@@ -156,14 +153,84 @@ namespace Epoch::Engine::ECS::Objects{
         for(auto& component : components){
             component->DeActivate();
         }
-        if(level){
-            int levelBuildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(level->GetName());
-
-            if(levelBuildIndex == -1)
-                return;
+        if(level->IsLoaded()){
+            int levelBuildIndex = level->GetBuildIndex();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
-                                                    levelBuildIndex, Events::DESTROYED, GetID()));
+                                                    levelAssetID, Events::DEACTIVATED, name, GetID()));
         }
+    }
+    
+    std::shared_ptr<Actor> Actor::Clone()
+    {
+        std::shared_ptr<Actor> copy = Object::Create<Actor>("Copy of "+name);
+
+        DEBUG_INFO("Cloning actor : "+name);
+
+        if(GetParent() && std::dynamic_pointer_cast<Actor>(GetParent())){
+            std::shared_ptr<Actor> p = std::dynamic_pointer_cast<Actor>(GetParent());
+            GetParent()->AddChild(copy);
+        }
+        else if(level){
+            level->AddActor(copy);
+        }
+        else{
+            DEBUG_INFO("Cloning : Base actor was not placed in a level, clone won't be placed in a level either");
+        }
+
+        for(int i = 0; i < components.size(); i++){
+
+            std::shared_ptr<Component> comp = components[i];
+
+            std::shared_ptr<Component> cloneComp = comp->Clone();
+
+            cloneComp->SetParent(copy);
+
+            copy->components.push_back(cloneComp);
+
+            if (cloneComp->IsInstanceOf<Transform>()) {
+                
+                std::shared_ptr<Transform> tr = std::dynamic_pointer_cast<Components::Transform>(cloneComp);
+
+                tr->SetPosition(transform->GetPosition());
+                tr->SetRotation(transform->GetRotation());
+                tr->SetScale(transform->GetScale());
+
+                if(copy->level && copy->level->IsLoaded())
+                    level->transforms.push_back(tr);
+            }
+            
+            if(!copy->level || !copy->level->IsLoaded())
+                continue;
+
+            if(std::shared_ptr<Components::AudioSource> audioSource = std::dynamic_pointer_cast<Components::AudioSource>(cloneComp)){
+                level->audioSources.push_back(audioSource);
+                audioSource->Update();
+            }
+            else if(std::shared_ptr<Components::Script> script = std::dynamic_pointer_cast<Components::Script>(cloneComp)){    
+                level->scripts.push_back(script);
+                RegisterComponentEvents(script);
+            }
+            else if(std::shared_ptr<Components::Camera> camera = std::dynamic_pointer_cast<Components::Camera>(cloneComp)){
+                level->cameras.push_back(camera);
+                Core::GetEngine().GetCameraManager()->AddCamera(copy->GetID(), camera);
+            }
+            else if(std::shared_ptr<Components::Light> light = std::dynamic_pointer_cast<Components::Light>(cloneComp)){
+                light->SetLightIndex(level->lights.size());
+                level->lights.push_back(light);
+            }
+            else if(std::shared_ptr<Components::Model> model = std::dynamic_pointer_cast<Components::Model>(cloneComp))
+            {
+                level->models.push_back(model);
+                model->Update();
+            }
+            else if(std::shared_ptr<Components::PhysicsBody> physicsBody = std::dynamic_pointer_cast<Components::PhysicsBody>(cloneComp)){
+                level->physicsBodies.push_back(physicsBody);
+                physicsBody->CreateBody(physicsBody->GetShapeType(), physicsBody->GetScale(), physicsBody->GetMotionType());
+            }
+        }
+
+        return copy;
     }
 }

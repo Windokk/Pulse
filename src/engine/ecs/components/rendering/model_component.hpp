@@ -13,7 +13,7 @@ namespace Epoch::Engine::ECS::Components
 {
     class Model : public Component{
         public:
-            Model(Objects::Actor *parent, uint32_t local_id);
+            Model(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
             public:
 
@@ -28,6 +28,11 @@ namespace Epoch::Engine::ECS::Components
 
             void Update();
             void RemoveFromDrawList();
+
+            void Destroy() override;
+
+            std::shared_ptr<Component> Clone() const override;
+            
         private:
 
             bool alreadySubmitted = false;

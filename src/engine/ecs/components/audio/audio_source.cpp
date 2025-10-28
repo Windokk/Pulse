@@ -6,7 +6,7 @@
 
 namespace Epoch::Engine::ECS::Components{
     
-    AudioSource::AudioSource(Objects::Actor *parent, uint32_t local_id) : Component(parent, local_id)
+    AudioSource::AudioSource(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
     }
 
@@ -22,6 +22,18 @@ namespace Epoch::Engine::ECS::Components{
 
             }
         }
+    }
+
+    void AudioSource::Destroy()
+    {
+        RemoveSound();
+    }
+
+    std::shared_ptr<Component> AudioSource::Clone() const
+    {
+        auto cloned = std::make_shared<AudioSource>(*this);
+
+        return cloned;
     }
 
     void AudioSource::SetPath(Filesystem::Path newPath)

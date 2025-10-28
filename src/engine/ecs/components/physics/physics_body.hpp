@@ -28,9 +28,10 @@ namespace Epoch::Engine::ECS::Components
         Physics::PhysicsShape shape;
         glm::vec3 scale;
         Rendering::DebugShape* debugShape = nullptr;
+        EMotionType motionType = EMotionType::Static;
 
         public:
-            PhysicsBody(Objects::Actor *parent, uint32_t local_id);
+            PhysicsBody(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
             void CreateBody(Physics::PhysicsShape shape, glm::vec3 scale, EMotionType motionType);
 
@@ -64,8 +65,12 @@ namespace Epoch::Engine::ECS::Components
                 }
             }
             
+            std::shared_ptr<Component> Clone() const override;
+            
             Physics::PhysicsShape GetShapeType() { return shape; }
             Rendering::DebugShape* GetDebugShape()  { return debugShape; }
             JPH::BodyID GetBodyID() const { return mBodyID; }
+            glm::vec3 GetScale() { return scale; }
+            EMotionType GetMotionType() { return motionType; } 
     };
 }

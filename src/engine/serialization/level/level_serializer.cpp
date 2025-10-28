@@ -235,7 +235,8 @@ namespace Epoch::Engine::Serialization{
 
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
             for (auto& child : actor["children"]) {
-                std::shared_ptr<ECS::Objects::Actor> b = std::make_shared<ECS::Objects::Actor>(child["name"]);
+                std::shared_ptr<ECS::Objects::Actor> b = ECS::Objects::Object::Create<ECS::Objects::Actor>(child["name"]);
+                b->Init();
                 a->AddChild(b);
                 LoadActor(b, data, child);
             }
@@ -244,7 +245,7 @@ namespace Epoch::Engine::Serialization{
         LoadComponents(a, data, actor);
     }
 
-    std::shared_ptr<Levels::Level> DeserializeLevel(const Filesystem::Path path)
+    std::shared_ptr<Levels::Level> DeserializeLevel(const std::string &pathInProject, const Filesystem::Path path)
     {
         std::string src = path.ReadFile();
 
@@ -252,10 +253,16 @@ namespace Epoch::Engine::Serialization{
             json data = json::parse(src);
 
             std::shared_ptr<Levels::Level> l = std::make_shared<Levels::Level>(data["name"]);
+            
+            int buildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(pathInProject);
+            if(buildIndex != -1){
+                l->SetBuildIndex(buildIndex);
+            }
 
             for(auto& actor : data["actors"])
             {
                 std::shared_ptr<ECS::Objects::Actor> a = ECS::Objects::Object::Create<ECS::Objects::Actor>(actor["name"]);
+                a->Init();
                 l->AddActor(a);
                 LoadActor(a, data, actor);
             }
