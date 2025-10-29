@@ -4,7 +4,7 @@
 
 #include "engine/debugging/debugger.hpp"
 
-namespace Epoch::Engine::Filesystem{
+namespace Pulse::Engine::Filesystem{
 
     void FileManager::Init(Path projectResPath, Path engineResPath, Path projectRoot)
     {

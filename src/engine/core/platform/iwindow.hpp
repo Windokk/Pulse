@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace Epoch::Engine::Core::Platform {
+namespace Pulse::Engine::Core::Platform {
 
     struct MonitorInfos{
         int width, height, refreshRate;

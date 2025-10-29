@@ -3,12 +3,13 @@
 #include "engine/core/engine.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
 
-#include "editor/third-party/include/imgui/imgui.h"
+#include "main_win.hpp"
 
+#include <imgui/imgui.h>
 #include <imgui/QtImGui.h>
 #include <imgui/ImGuizmo.h>
 
-namespace Epoch::Editor {
+namespace Pulse::Editor {
 
     QtGLViewportWindow::QtGLViewportWindow()
         : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, nullptr)
@@ -61,20 +62,29 @@ namespace Epoch::Editor {
         
         ImGuizmo::BeginFrame();
 
-        ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
-        ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+        
+        std::shared_ptr<Engine::ECS::Objects::Actor> selected = parent->GetSelectedActor();
 
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+        if(selected != nullptr){
 
-        const float* cameraView = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
-		const float* cameraProjection = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            DEBUG_WARNING(selected->GetName());
 
-        glm::mat4 tr = glm::mat4(1.0f);
+            ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+            ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 
-        tr = glm::translate(tr, glm::vec3(0, 0, 2));
+            ImGuiIO& io = ImGui::GetIO();
+            ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
-        ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(tr), NULL, NULL);
+            const float* cameraView = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+            const float* cameraProjection = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+
+
+            glm::mat4 tr = selected->transform->GetTransformMatrix();
+
+            ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(tr), NULL, NULL);
+
+            selected->transform->SetFromTransformMatrix(tr);
+        }
 
         ImGui::Render();
         QtImGui::render();
@@ -84,6 +94,11 @@ namespace Epoch::Editor {
 
     QSize QtGLViewportWindow::GetFramebufferSize() const {
         return QSize(width() * devicePixelRatio(), height() * devicePixelRatio());
+    }
+
+    void QtGLViewportWindow::SetParentWindow(EditorMainWindow *parent)
+    {
+        this->parent = parent;
     }
 
     bool QtGLViewportWindow::event(QEvent* e) {

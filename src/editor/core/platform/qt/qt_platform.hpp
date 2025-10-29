@@ -12,7 +12,7 @@
 #undef CreateWindow
 #endif
 
-namespace Epoch::Editor::Core::Platform {
+namespace Pulse::Editor::Core::Platform {
 
     class QTPlatform : public Engine::Core::Platform::IPlatform {
         public:

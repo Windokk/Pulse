@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace Epoch::Engine::Rendering {
+namespace Pulse::Engine::Rendering {
     
     class Shader;
 

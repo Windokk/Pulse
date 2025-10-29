@@ -4,12 +4,12 @@
 
 #include "engine/rendering/mesh/mesh.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     class Mesh;
     class Material;
 }
 
-namespace Epoch::Engine::ECS::Components
+namespace Pulse::Engine::ECS::Components
 {
     class Model : public Component{
         public:

@@ -4,7 +4,7 @@
 #include "component_registry.hpp"
 #include "dll_component_registration.hpp"
 
-using namespace Epoch::Engine::ECS;
+using namespace Pulse::Engine::ECS;
 
 #define BEGIN_COMPONENT(className, baseClass)                                                   \
     class className : public baseClass {                                                        \
@@ -19,8 +19,8 @@ public:                                                                         
 namespace {                                                 \
     struct AutoRegister_##className {                       \
         AutoRegister_##className() {                        \
-            Epoch::Engine::ECS::Components::AddComponentRegistrar( \
-                [](Epoch::Engine::ECS::Components::ComponentRegistry& reg) { \
+            Pulse::Engine::ECS::Components::AddComponentRegistrar( \
+                [](Pulse::Engine::ECS::Components::ComponentRegistry& reg) { \
                     reg.RegisterComponentType(#className, Create_##className); \
                 }                                           \
             );                                              \

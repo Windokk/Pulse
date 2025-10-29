@@ -10,7 +10,7 @@
 
 #include "engine/rendering/opengl/opengl.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     
     LightManager::LightManager()
     {

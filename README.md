@@ -1,9 +1,9 @@
-<h1 align="center">Epoch Engine</h1>
+<h1 align="center">Pulse Engine</h1>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/EpochLogoDarkMode.png" width="20%">
-    <source media="(prefers-color-scheme: light)" srcset=".github/EpochLogoLightMode.png" width="20%">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/PulseLogoDarkMode.png" width="15%">
+    <source media="(prefers-color-scheme: light)" srcset=".github/PulseLogoLightMode.png" width="15%">
     <img alt="Fallback image description" src="default-image.png" width="20%">
   </picture>
 </p>
@@ -17,17 +17,19 @@
 
 ## Build Requirements (Windows)
 
-Cmake 3.28.2 or later
+- CMake 3.28.2 or later
+- C++ 17 Compiler (GCC MinGW recommended)
 
-C++ 17 Compiler (GCC MinGW recommended)
+Build dependencies (dlls you'll have to drop in the executable folder) :
+- Qt 6.9.2
+- GLFW
+- ZLIB
+- FMOD API
+- QtAdvancedDocking
 
-Qt 6.9.2 
-You can verify your qt version using: 
-```bash
-qtpaths6 --qt-version
-```
+## Build Requirements (Linux) :
 
-ZLIB
+### WIP
 
 ## How to build editor app :
 

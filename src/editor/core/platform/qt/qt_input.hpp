@@ -9,7 +9,7 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 
-namespace Epoch::Editor::Core::Platform
+namespace Pulse::Editor::Core::Platform
 {
     class QTInput : public Engine::Core::Platform::IInput{
         public:

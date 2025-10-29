@@ -9,7 +9,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace Epoch::Game::Core::Platform
+namespace Pulse::Game::Core::Platform
 {
     class GLFWInput : public Engine::Core::Platform::IInput{
         public:

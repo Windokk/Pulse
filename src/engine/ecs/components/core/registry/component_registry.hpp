@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 
-namespace Epoch::Engine::ECS::Components {
+namespace Pulse::Engine::ECS::Components {
 
     class Component;
     using ComponentFactory = Component* (*)();

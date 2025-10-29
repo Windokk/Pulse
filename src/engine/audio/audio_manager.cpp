@@ -16,7 +16,7 @@
 
 #include "engine/debugging/debugger.hpp"
 
-namespace Epoch::Engine::Audio
+namespace Pulse::Engine::Audio
 {
     using namespace Filesystem;
     using namespace Rendering;

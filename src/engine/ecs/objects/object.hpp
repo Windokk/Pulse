@@ -6,7 +6,7 @@
 #include "engine/ecs/objects/objectID.hpp"
 
 
-namespace Epoch::Engine::ECS::Objects{
+namespace Pulse::Engine::ECS::Objects{
     
     class Object : public std::enable_shared_from_this<Object>{
         public:

@@ -5,7 +5,7 @@
 
 #include "engine/inputs/keys.hpp"
 
-namespace Epoch::Engine::Core::Platform {
+namespace Pulse::Engine::Core::Platform {
 
     class IInput {
     public:

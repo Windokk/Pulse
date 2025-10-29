@@ -4,7 +4,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::ECS::Objects{
+namespace Pulse::Engine::ECS::Objects{
     
     std::shared_ptr<Object> Object::GetParent()
     {

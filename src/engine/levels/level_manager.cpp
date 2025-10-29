@@ -5,7 +5,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Levels{
+namespace Pulse::Engine::Levels{
     void LevelManager::LoadLevel(std::shared_ptr<Level> lvl)
     {
         if(!lvl)

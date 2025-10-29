@@ -6,7 +6,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::ECS::Components {
+namespace Pulse::Engine::ECS::Components {
     
     Camera::Camera(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {

@@ -9,9 +9,9 @@
 #include <thread>
 #include <iostream>
 
-using namespace Epoch::Engine;
+using namespace Pulse::Engine;
 
-Character::Character(std::shared_ptr<Epoch::Engine::ECS::Objects::Actor> parent, uint32_t local_id)
+Character::Character(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> parent, uint32_t local_id)
     : Script(parent, local_id) {
     // Init
 }

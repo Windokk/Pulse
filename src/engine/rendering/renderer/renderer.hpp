@@ -9,7 +9,7 @@
 #include "engine/debugging/debugger.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
 
-namespace Epoch::Engine{
+namespace Pulse::Engine{
 
     namespace ECS::Components{
         class Transform;
@@ -28,7 +28,7 @@ namespace Epoch::Engine{
                 int windowWidth = 0;
                 int windowHeight = 0;
                 bool fullscreen = false;
-            friend class Epoch::Engine::Rendering::Renderer;
+            friend class Pulse::Engine::Rendering::Renderer;
         };
 
         enum class RenderStage {

@@ -2,10 +2,9 @@
     "versionMajor": 0,
     "versionMinor": 1,
     "versionPatch": 0,
-    "projectResources": "C:\\Users\\elipt\\Documents\\GitHub\\Epoch\\PROJECT\\project_resources",
-    "pluginsFolder":    "C:\\Users\\elipt\\Documents\\GitHub\\Epoch\\PROJECT\\plugins",
-    "projectRoot":      "C:\\Users\\elipt\\Documents\\GitHub\\Epoch\\PROJECT",
-    "assetDatabase":    "C:\\Users\\elipt\\Documents\\Github\\Epoch\\PROJECT\\settings\\asset_database.json",
+    "projectResources": "project_resources",
+    "pluginsFolder":    "plugins",
+    "assetDatabase":    "settings\\asset_database.json",
     "buildSettings":[
         "sponza.lvl",
         "level1.lvl"

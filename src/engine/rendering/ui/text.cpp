@@ -2,7 +2,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Rendering::UI
+namespace Pulse::Engine::Rendering::UI
 {
     Text::Text(std::shared_ptr<Font> font, std::string text, glm::vec4 color, Transform transform) : font(font), transform(transform) 
     {

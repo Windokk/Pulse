@@ -5,7 +5,7 @@
 
 #include "engine/debugging/debugger.hpp"
 
-namespace Epoch::Editor::Core::Platform{
+namespace Pulse::Editor::Core::Platform{
     
     void QTInput::Init()
     {

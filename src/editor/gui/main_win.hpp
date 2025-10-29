@@ -14,13 +14,12 @@
 
 #include "viewport_window.hpp"
 
+#include "engine/debugging/debugger.hpp"
+#include "engine/ecs/objects/actors/actor.hpp"
+
 #include <memory>
 
-namespace Epoch::Engine::ECS::Objects{
-    class Actor;
-}
-
-namespace Epoch::Editor{
+namespace Pulse::Editor{
 
     static QPalette createDarkPalette()
     {
@@ -90,6 +89,16 @@ namespace Epoch::Editor{
                 glViewportWindow->SetQTInputManager(inputManager);
             }
 
+            void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
+                DEBUG_WARNING(newPtr->GetName());
+                std::cout<<this<<std::endl;
+                this->selectedActor = newPtr;
+            }
+
+            std::shared_ptr<Engine::ECS::Objects::Actor> GetSelectedActor(){
+                return selectedActor;
+            }
+
         private:
                 
             QtGLViewportWindow* glViewportWindow = nullptr;
@@ -102,7 +111,9 @@ namespace Epoch::Editor{
 
             std::unique_ptr<ads::CDockManager> dockManager;
 
-            std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor;
+            std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor = nullptr;
+
+            std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor = nullptr;
     };
 }
 

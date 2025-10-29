@@ -19,7 +19,7 @@
 
 #include "engine/rendering/debug/debug.hpp"
 
-namespace Epoch::Engine::ECS::Components
+namespace Pulse::Engine::ECS::Components
 {
 
     class PhysicsBody : public Component {

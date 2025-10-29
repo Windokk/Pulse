@@ -2,7 +2,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     void DeserializeAssetDataBase(const Filesystem::Path resourcesPath, const Filesystem::Path databasePath);
 

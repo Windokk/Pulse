@@ -8,12 +8,12 @@
 
 #include "editor/gui/main_win.hpp"
 
-using namespace Epoch;
-using namespace Epoch::Engine;
-using namespace Epoch::Engine::Core;
-using namespace Epoch::Engine::Rendering;
-using namespace Epoch::Engine::ECS::Components;
-using namespace Epoch::Engine::ECS::Objects;
+using namespace Pulse;
+using namespace Pulse::Engine;
+using namespace Pulse::Engine::Core;
+using namespace Pulse::Engine::Rendering;
+using namespace Pulse::Engine::ECS::Components;
+using namespace Pulse::Engine::ECS::Objects;
 
 static QApplication* s_app = nullptr;
 

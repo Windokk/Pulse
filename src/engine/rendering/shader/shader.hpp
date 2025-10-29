@@ -7,7 +7,7 @@
 #include <string>
 #include <iostream>
 
-namespace Epoch::Engine::Rendering {
+namespace Pulse::Engine::Rendering {
 
     struct UniformInfo {
         std::string name;

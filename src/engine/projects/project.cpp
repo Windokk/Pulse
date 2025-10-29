@@ -1,7 +1,7 @@
 #include "project.hpp"
 
 
-namespace Epoch::Engine::Projects{
+namespace Pulse::Engine::Projects{
     Project::Project(std::string name, Filesystem::Path projectRoot, Filesystem::Path projectResourcesRoot, Filesystem::Path pluginsFolder, BuildSettings buildSettings, EditorPreferences editorPreferences, Filesystem::Path assetDatabasePath)
     {
         this->name = name;

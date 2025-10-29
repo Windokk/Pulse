@@ -1,7 +1,7 @@
-site_name: Epoch Engine Docs
-site_url: https://windokk.github.io/epoch
-repo_url: https://github.com/Windokk/Epoch
-repo_name: Windokk/EPOCH
+site_name: Pulse Engine Docs
+site_url: https://windokk.github.io/pulse
+repo_url: https://github.com/Windokk/pulse
+repo_name: Windokk/PULSE
 copyright: Copyright &copy; 2025 - Windokk
 extra:
   version:
@@ -20,7 +20,7 @@ theme:
     - navigation.expand
     - navigation.tabs
   name: material
-  logo: images/EpochLogoDarkMode.png
+  logo: images/PulseLogoDarkMode.png
   icon:
     repo: fontawesome/brands/github
     

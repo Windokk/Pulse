@@ -1,6 +1,6 @@
 #include "component.hpp"
 
-namespace Epoch::Engine::ECS::Components {
+namespace Pulse::Engine::ECS::Components {
 
     Component::Component(std::shared_ptr<Objects::Actor> parent, uint32_t local_id)
     {

@@ -6,7 +6,7 @@
 #include <functional>
 #include <iostream>
 
-namespace Epoch::Engine::ECS::Components {
+namespace Pulse::Engine::ECS::Components {
 
     using RegisterComponentCallback = std::function<void(ComponentRegistry&)>;
 

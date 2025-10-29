@@ -3,7 +3,7 @@
 #include "iwindow.hpp"
 #include "iinput.hpp"
 
-namespace Epoch::Engine::Core::Platform {
+namespace Pulse::Engine::Core::Platform {
 
     class IPlatform {
         public:

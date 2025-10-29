@@ -17,10 +17,10 @@
 
 #include "engine/core/engine.hpp"
 
-using namespace Epoch::Engine;
-using namespace Epoch::Engine::Core;
+using namespace Pulse::Engine;
+using namespace Pulse::Engine::Core;
 
-namespace Epoch::Game {
+namespace Pulse::Game {
 
 
     using CreatePlatformFn = Platform::IPlatform* (*)(int, char**);

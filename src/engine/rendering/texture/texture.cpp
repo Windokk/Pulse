@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
 
     using namespace Filesystem;
 

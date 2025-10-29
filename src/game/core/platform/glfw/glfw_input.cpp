@@ -2,7 +2,7 @@
 
 #include "glfw_window.hpp"
 
-namespace Epoch::Game::Core::Platform{
+namespace Pulse::Game::Core::Platform{
 
     void GLFWInput::SetWindow(GLFWwindow * window)
     {

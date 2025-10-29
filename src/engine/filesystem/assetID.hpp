@@ -6,7 +6,7 @@
 #include <map>
 #include <memory>
 
-namespace Epoch::Engine::Filesystem
+namespace Pulse::Engine::Filesystem
 {
     struct AssetInfo;
 

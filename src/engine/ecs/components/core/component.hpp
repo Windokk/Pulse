@@ -6,7 +6,7 @@
 
 using namespace nlohmann;
 
-namespace Epoch::Engine::ECS{
+namespace Pulse::Engine::ECS{
     namespace Objects{
         class Actor;
     }

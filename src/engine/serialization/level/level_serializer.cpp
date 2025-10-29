@@ -12,7 +12,7 @@
 
 using namespace nlohmann;
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
     
     void LoadModelComponent(json &component, std::shared_ptr<ECS::Objects::Actor> a, json data){
         std::string mesh_name = component["mesh"];
@@ -218,7 +218,7 @@ namespace Epoch::Engine::Serialization{
             else{
                 //Custom component/Inherited component case
                 //Note : The custom component has to be already registered
-                ECS::Components::Component* rawComponent = Epoch::Engine::ECS::Components::GetComponentRegistry().CreateComponentByName(type);
+                ECS::Components::Component* rawComponent = Pulse::Engine::ECS::Components::GetComponentRegistry().CreateComponentByName(type);
                 if (!rawComponent) {
                     DEBUG_WARNING("Unknown component type: " + type);
                     continue;

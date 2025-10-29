@@ -8,7 +8,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::ECS::Components{
+namespace Pulse::Engine::ECS::Components{
 
     Transform::Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
@@ -172,6 +172,8 @@ namespace Epoch::Engine::ECS::Components{
 			if(parent->HasComponent<Light>()){
 				for(auto& light : parent->GetComponents<Light>()){
 					light->SetPosition(glm::vec3(this->position.x, this->position.y, this->position.z));
+					
+					Core::GetEngine().GetRenderer()->ReorderDrawList();
 				}
 			}
 		}
@@ -225,7 +227,8 @@ namespace Epoch::Engine::ECS::Components{
 				}
 			}
 		}
-        
+		
+		UpdateMeshReferencesInLevel();
 
 		return true;
     }

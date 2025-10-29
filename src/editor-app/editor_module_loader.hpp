@@ -19,10 +19,10 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
-using namespace Epoch::Engine;
-using namespace Epoch::Engine::Core;
+using namespace Pulse::Engine;
+using namespace Pulse::Engine::Core;
 
-namespace Epoch::Editor {
+namespace Pulse::Editor {
 
 
     using CreatePlatformFn = Platform::IPlatform* (*)(int, char**);

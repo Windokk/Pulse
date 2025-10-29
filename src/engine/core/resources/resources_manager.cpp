@@ -8,7 +8,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Core::Resources{
+namespace Pulse::Engine::Core::Resources{
 
     using namespace Filesystem;
 

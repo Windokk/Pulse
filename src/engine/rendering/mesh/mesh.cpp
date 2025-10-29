@@ -6,7 +6,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     
     Mesh::Mesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse)
     {

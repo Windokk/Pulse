@@ -7,7 +7,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Rendering {
+namespace Pulse::Engine::Rendering {
 
     void CheckFBStatus(std::string fboName){
         

@@ -10,7 +10,7 @@
 
 #include "engine/debugging/debugger.hpp"
 
-namespace Epoch::Engine::ECS
+namespace Pulse::Engine::ECS
 {
     namespace Objects{
         class Object;
@@ -87,8 +87,8 @@ namespace Epoch::Engine::ECS
 
 namespace std {
     template<>
-    struct hash<Epoch::Engine::ECS::ObjectID> {
-        std::size_t operator()(const Epoch::Engine::ECS::ObjectID& id) const noexcept {
+    struct hash<Pulse::Engine::ECS::ObjectID> {
+        std::size_t operator()(const Pulse::Engine::ECS::ObjectID& id) const noexcept {
             return std::hash<int>{}(id.GetAsInt());
         }
     };

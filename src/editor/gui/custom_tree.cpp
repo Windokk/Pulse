@@ -1,6 +1,6 @@
 #include "custom_tree.hpp"
 
-namespace Epoch::Editor {
+namespace Pulse::Editor {
     void CustomTreeView::mousePressEvent(QMouseEvent *event)
     {
         QModelIndex index = indexAt(event->pos());

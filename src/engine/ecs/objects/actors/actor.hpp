@@ -15,7 +15,7 @@
 #include <stdexcept>
 #include <iostream>
 
-namespace Epoch::Engine::ECS::Objects{
+namespace Pulse::Engine::ECS::Objects{
 
     using namespace Components;
 
@@ -24,7 +24,6 @@ namespace Epoch::Engine::ECS::Objects{
         std::vector<std::shared_ptr<Component>> components;        
         std::string name;
         public:
-
             Actor(std::string name);
 
             void Init();

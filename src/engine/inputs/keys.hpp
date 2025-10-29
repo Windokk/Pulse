@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Epoch::Engine::Input {
+namespace Pulse::Engine::Input {
 
     // Printable keys
     enum class Key {

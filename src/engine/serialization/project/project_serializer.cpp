@@ -9,7 +9,7 @@
 
 using namespace nlohmann;
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     std::shared_ptr<Projects::Project> DeserializeProject(const Filesystem::Path path)
     {
@@ -53,29 +53,23 @@ namespace Epoch::Engine::Serialization{
             Filesystem::Path pluginsPath;
             Filesystem::Path assetDatabasePath;
 
+            projectRoot = Filesystem::Path(path.GetParent());
+
             if(data.contains("projectResources") && data["projectResources"].is_string()){
-                projectResPath = Filesystem::Path(data["projectResources"]);
+                projectResPath = Filesystem::Path::Normalize(Filesystem::Path(projectRoot / data["projectResources"]).full);
             }
             else{
                 DEBUG_FATAL("No project resources specified for project: "+path.full);
             }
-
-            if(data.contains("projectRoot") && data["projectRoot"].is_string()){
-                projectRoot = Filesystem::Path(data["projectRoot"]);
-            }
-            else{
-                DEBUG_FATAL("No project root specified for project: "+path.full);
-            }
-
             if(data.contains("assetDatabase") && data["assetDatabase"].is_string()){
-                assetDatabasePath = Filesystem::Path(data["assetDatabase"]);
+                assetDatabasePath = Filesystem::Path::Normalize(Filesystem::Path(projectRoot / data["assetDatabase"]).full);
             }
             else{
                 DEBUG_FATAL("No asset database specified for project: "+path.full);
             }
 
             if(data.contains("pluginsFolder") && data["pluginsFolder"].is_string()){
-                pluginsPath = Filesystem::Path(data["pluginsFolder"]);
+                pluginsPath = Filesystem::Path::Normalize(Filesystem::Path(projectRoot / data["pluginsFolder"]).full);
             }
             else{
                 DEBUG_WARNING("No plugins folder specified for project: "+path.full);

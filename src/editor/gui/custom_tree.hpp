@@ -3,7 +3,7 @@
 #include <QTreeView>
 #include <QMouseEvent>
 
-namespace Epoch::Editor{
+namespace Pulse::Editor{
 
     class CustomTreeView : public QTreeView {
         Q_OBJECT

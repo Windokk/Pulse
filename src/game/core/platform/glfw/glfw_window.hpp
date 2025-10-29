@@ -11,7 +11,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-namespace Epoch::Game::Core::Platform {
+namespace Pulse::Game::Core::Platform {
 
     class GLFWWindow : public Engine::Core::Platform::IWindow {
     public:

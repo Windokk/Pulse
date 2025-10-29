@@ -2,7 +2,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::ECS::Objects{
+namespace Pulse::Engine::ECS::Objects{
     
     using namespace Components;
 

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 
-namespace Epoch::Engine::Debugging{
+namespace Pulse::Engine::Debugging{
     enum class Level {
         Log = 0,
         Info = 1,
@@ -40,8 +40,8 @@ namespace Epoch::Engine::Debugging{
 
 }
 
-#define DEBUG_LOG(msg)       Epoch::Engine::Debugging::Debugger::DebugLog(msg, __FILE_NAME__, __LINE__);
-#define DEBUG_INFO(msg)      Epoch::Engine::Debugging::Debugger::DebugInfo(msg, __FILE_NAME__, __LINE__);
-#define DEBUG_WARNING(msg)   Epoch::Engine::Debugging::Debugger::DebugWarning(msg, __FILE_NAME__, __LINE__);
-#define DEBUG_ERROR(msg)     Epoch::Engine::Debugging::Debugger::DebugError(msg, __FILE_NAME__, __LINE__);
-#define DEBUG_FATAL(msg)     Epoch::Engine::Debugging::Debugger::DebugFatal(msg, __FILE_NAME__, __LINE__);
+#define DEBUG_LOG(msg)       Pulse::Engine::Debugging::Debugger::DebugLog(msg, __FILE_NAME__, __LINE__);
+#define DEBUG_INFO(msg)      Pulse::Engine::Debugging::Debugger::DebugInfo(msg, __FILE_NAME__, __LINE__);
+#define DEBUG_WARNING(msg)   Pulse::Engine::Debugging::Debugger::DebugWarning(msg, __FILE_NAME__, __LINE__);
+#define DEBUG_ERROR(msg)     Pulse::Engine::Debugging::Debugger::DebugError(msg, __FILE_NAME__, __LINE__);
+#define DEBUG_FATAL(msg)     Pulse::Engine::Debugging::Debugger::DebugFatal(msg, __FILE_NAME__, __LINE__);

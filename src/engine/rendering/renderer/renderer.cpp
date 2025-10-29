@@ -13,7 +13,7 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     
     void Renderer::CreateRectGeometry()
     {
@@ -203,7 +203,7 @@ namespace Epoch::Engine::Rendering{
             for (int i = 0, count = levelManager->GetLoadedLevelCount(); i < count; ++i)
                 totalMeshCount += levelManager->GetLevelAt(i)->meshes.size();
 
-            std::vector<std::pair<glm::mat4, Epoch::Engine::Rendering::Mesh*>> allMeshes;
+            std::vector<std::pair<glm::mat4, Pulse::Engine::Rendering::Mesh*>> allMeshes;
             allMeshes.reserve(totalMeshCount);
 
             for (int i = 0, count = levelManager->GetLoadedLevelCount(); i < count; ++i) {

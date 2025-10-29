@@ -7,7 +7,7 @@
 
 using namespace nlohmann;
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     void DeserializeAssetDataBase(const Filesystem::Path resourcesPath, const Filesystem::Path databasePath){
         if(!databasePath.Exists()){

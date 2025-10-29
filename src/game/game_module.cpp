@@ -4,9 +4,9 @@
 #include "game/core/platform/glfw/glfw_platform.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
 
-using namespace Epoch::Engine;
-using namespace Epoch::Engine::Core;
-using namespace Epoch::Engine::ECS::Components;
+using namespace Pulse::Engine;
+using namespace Pulse::Engine::Core;
+using namespace Pulse::Engine::ECS::Components;
 
 extern "C" __declspec(dllexport) void InitializeSingletons(Core::EngineInstance* engine, 
                                                             ComponentRegistry* compReg) {
@@ -21,5 +21,5 @@ extern "C" __declspec(dllexport) void RegisterGameComponents() {
 }
 
 extern "C" __declspec(dllexport) Platform::IPlatform* CreatePlatform(int argc, char** argv) {
-    return new Epoch::Game::Core::Platform::GLFWPlatform();
+    return new Pulse::Game::Core::Platform::GLFWPlatform();
 }

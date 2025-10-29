@@ -6,9 +6,9 @@
 
 #include "engine/core/engine.hpp"
 
-using namespace Epoch::Engine::Core;
+using namespace Pulse::Engine::Core;
 
-namespace Epoch::Engine::ECS::Components{
+namespace Pulse::Engine::ECS::Components{
 
     Light::Light(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {

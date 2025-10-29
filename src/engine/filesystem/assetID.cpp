@@ -2,7 +2,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Epoch::Engine::Filesystem{
+namespace Pulse::Engine::Filesystem{
     
     void AssetIDManager::DestroyID(const AssetID &id)
     {

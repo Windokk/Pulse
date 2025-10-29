@@ -8,7 +8,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Physics {
+namespace Pulse::Engine::Physics {
 
     // Constants
     static constexpr uint cMaxBodies = 1024;

@@ -5,7 +5,7 @@
 #include <string>
 
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     std::shared_ptr<Levels::Level> DeserializeLevel(const std::string &pathInProject, const Filesystem::Path path);
 }

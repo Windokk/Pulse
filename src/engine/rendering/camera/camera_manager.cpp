@@ -1,4 +1,4 @@
 #include "camera_manager.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
 }

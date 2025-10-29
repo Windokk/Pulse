@@ -6,7 +6,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
 
     UniformValue DefaultValueForType(UniformInfo uniform) {
         switch (uniform.type) {

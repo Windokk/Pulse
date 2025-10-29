@@ -7,12 +7,12 @@
 #include <string>
 #include <memory>
 
-namespace Epoch::Engine::Filesystem{
+namespace Pulse::Engine::Filesystem{
 
     class Path;
 }
 
-namespace Epoch::Engine::Rendering {
+namespace Pulse::Engine::Rendering {
 
     struct DrawCommand;
 

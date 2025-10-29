@@ -5,7 +5,7 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/debugging/debugger.hpp"
 
-namespace Epoch::Engine::Projects{
+namespace Pulse::Engine::Projects{
 
     struct BuildSettings{
         // TODO : Target system

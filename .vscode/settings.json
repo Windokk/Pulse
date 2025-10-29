@@ -100,7 +100,19 @@
         "qstandarditemmodel": "cpp",
         "qtreeview": "cpp",
         "qmenu": "cpp",
-        "qapplication": "cpp"
+        "qapplication": "cpp",
+        "bitset": "cpp",
+        "print": "cpp",
+        "text_encoding": "cpp",
+        "__bit_reference": "cpp",
+        "__locale": "cpp",
+        "__split_buffer": "cpp",
+        "__verbose_abort": "cpp",
+        "execution": "cpp",
+        "ios": "cpp",
+        "locale": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled",
     "yaml.schemas": {

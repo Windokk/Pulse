@@ -6,7 +6,7 @@
 
 #include <ufbx/ufbx.h>
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
 
     struct SubMesh {
         size_t indexOffset;

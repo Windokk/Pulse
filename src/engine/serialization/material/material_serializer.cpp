@@ -9,7 +9,7 @@
 
 using namespace nlohmann;
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     using namespace Core::Resources;
     using namespace Rendering;

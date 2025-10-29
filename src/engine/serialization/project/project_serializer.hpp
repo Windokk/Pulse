@@ -4,7 +4,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     std::shared_ptr<Projects::Project> DeserializeProject(const Filesystem::Path path);
     

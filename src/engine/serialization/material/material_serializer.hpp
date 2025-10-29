@@ -4,7 +4,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Epoch::Engine::Serialization{
+namespace Pulse::Engine::Serialization{
 
     std::shared_ptr<Rendering::Material> DeserializeMaterial(const Filesystem::Path path);
 

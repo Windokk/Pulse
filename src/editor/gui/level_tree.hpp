@@ -10,17 +10,21 @@
 
 #include <typeinfo>
 
-namespace Epoch::Editor{
+namespace Pulse::Editor{
+
+    class EditorMainWindow;
 
     class LevelTree : public QWidget{ 
 
         Q_OBJECT
 
         public:
-            LevelTree(QWidget *parent = nullptr);
+            LevelTree();
             void OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event);
 
             void OnItemClicked(const QModelIndex &index, Qt::MouseButton button);
+
+            void SetParentWindow(EditorMainWindow *parent);
 
         private:
             CustomTreeView *treeView;
@@ -35,6 +39,8 @@ namespace Epoch::Editor{
             void LoadLevel(std::shared_ptr<Engine::Levels::Level> level);
             void populateTree(std::shared_ptr<Engine::ECS::Objects::Object> object, QStandardItem *parentItem);
             void SetupStyle();
+
+            EditorMainWindow* parent = nullptr;
     };
 
 

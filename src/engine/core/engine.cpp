@@ -12,7 +12,7 @@
 
 using namespace std::chrono;
 
-namespace Epoch::Engine::Core{
+namespace Pulse::Engine::Core{
     
     using namespace Levels;
     using namespace Engine::Rendering;
@@ -31,7 +31,7 @@ namespace Epoch::Engine::Core{
 
         this->settings = settings;
         this->context.platform = settings.platform;
-        context.platform->CreateWindow("Epoch", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync);
+        context.platform->CreateWindow("Pulse", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync);
 
         context.currentProject = Serialization::DeserializeProject(Filesystem::Path(settings.project, true));
 
@@ -48,6 +48,21 @@ namespace Epoch::Engine::Core{
         float fixedDelta = 1.0f / 30.0f;
 
         context.timeManager->Init(fixedDelta);
+
+
+        Platform::SystemInfos infos = GetWindow()->GetSystemInfos();
+
+        DEBUG_INFO("===== System infos =====");
+        DEBUG_INFO("GPU Vendor : " + infos.gpu_vendor);
+        DEBUG_INFO("GPU Renderer : " + infos.gpu_renderer);
+        DEBUG_INFO("OpenGL Version : " + infos.gl_version);
+        DEBUG_INFO("Using Host : " + std::string(infos.windowHost == Platform::WindowHost::QT ? "QT" : "GLFW") + " with version : " + infos.windowHostVersion);
+
+        DEBUG_INFO("Monitors : ")
+        for(int i = 0; i < infos.connectedMonitorsCount; i++){
+            DEBUG_INFO("    Monitor : "+ std::to_string(i) + " : width = " + std::to_string(infos.monitors[i].width) + " px, height = "+ std::to_string(infos.monitors[i].height) + " px, refreshRate = "+std::to_string(infos.monitors[i].refreshRate)+" hz");
+        }
+
 
         if(context.currentProject->GetBuildSettings()->buildIndex.size() > 0){
             Filesystem::Path defaultLevelPath = context.currentProject->GetBuildSettings()->buildIndex[0];

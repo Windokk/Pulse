@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <memory>
 
-namespace Epoch::Engine::Rendering {
+namespace Pulse::Engine::Rendering {
 
     enum RenderMode{
         OPAQUE,

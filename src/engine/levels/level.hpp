@@ -10,7 +10,7 @@
 #include "engine/ecs/components/core/script.hpp"
 #include "engine/ecs/components/rendering/model_component.hpp"
 
-namespace Epoch::Engine::ECS{
+namespace Pulse::Engine::ECS{
 
     namespace Objects{
         class Actor;
@@ -23,12 +23,12 @@ namespace Epoch::Engine::ECS{
     }
 }
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     class Renderer;
     class Mesh;
 }
 
-namespace Epoch::Engine::Levels{
+namespace Pulse::Engine::Levels{
 
     class Level{
 

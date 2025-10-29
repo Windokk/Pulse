@@ -14,8 +14,10 @@
 #include "editor/gui/level_tree.hpp"
 
 
-namespace Epoch::Editor
+namespace Pulse::Editor
 {
+
+
 
     void EditorMainWindow::Init(const std::string& title, const int& width, const int& height,
                         const bool& fullscreen, const int& vsync) {
@@ -45,7 +47,7 @@ namespace Epoch::Editor
 
         dockManager->setStyleSheet("");
 
-        QFile styleSheetFile(":/epoch/default/stylesheets/default_dock.qss");
+        QFile styleSheetFile(":/pulse/default/stylesheets/default_dock.qss");
 	    styleSheetFile.open(QIODevice::ReadOnly);
 	    QTextStream styleSheetStream(&styleSheetFile);
 	    QString result;
@@ -54,6 +56,7 @@ namespace Epoch::Editor
 	    dockManager->setStyleSheet(result);
 
         glViewportWindow = new Editor::QtGLViewportWindow();
+        glViewportWindow->SetParentWindow(this);
         glViewportWindow->InitGL(vsync);
 
         auto* container = QWidget::createWindowContainer(glViewportWindow);
@@ -63,7 +66,8 @@ namespace Epoch::Editor
         viewportDock->setWidget(container);
         viewportDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
         
-        auto* treeWidget = new LevelTree(this);
+        auto* treeWidget = new LevelTree();
+        treeWidget->SetParentWindow(this);
 
         auto* levelTreeDock = dockManager->createDockWidget("Level Tree");
         levelTreeDock->setWidget(treeWidget);

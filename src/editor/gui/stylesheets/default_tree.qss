@@ -19,13 +19,13 @@ QTreeView::branch {
 QTreeView::branch:has-children:!has-siblings:closed,
 QTreeView::branch:closed:has-children:has-siblings {
     border-image: none;
-    image: url(:/epoch/default/icons/chevron_right.svg);
+    image: url(:/pulse/default/icons/chevron_right.svg);
 }
 
 QTreeView::branch:open:has-children:!has-siblings,
 QTreeView::branch:open:has-children:has-siblings {
     border-image: none;
-    image: url(:/epoch/default/icons/chevron_down.svg);
+    image: url(:/pulse/default/icons/chevron_down.svg);
 }
 
 QTreeView::branch:hover {

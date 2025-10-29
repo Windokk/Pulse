@@ -3,13 +3,13 @@
 #include "engine/core/resources/resources_manager.hpp"
 #include "game_module_loader.hpp"
 
-using namespace Epoch::Engine;
-using namespace Epoch::Engine::Core;
-using namespace Epoch::Engine::Rendering;
-using namespace Epoch::Engine::Input;
-using namespace Epoch::Engine::ECS::Components;
-using namespace Epoch::Engine::ECS::Objects;
-using namespace Epoch::Game;
+using namespace Pulse::Engine;
+using namespace Pulse::Engine::Core;
+using namespace Pulse::Engine::Rendering;
+using namespace Pulse::Engine::Input;
+using namespace Pulse::Engine::ECS::Components;
+using namespace Pulse::Engine::ECS::Objects;
+using namespace Pulse::Game;
 
 #include <iostream>
 
@@ -66,7 +66,7 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
 }
 
 void early_crash(){
-    std::cout << "Epoch Engine has crashed. Press Enter to exit..." << std::endl;
+    std::cout << "Pulse Engine has crashed. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
     std::terminate();
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
     //Cleaning
     Core::GetEngine().Destroy();
 
-    std::cout << "Epoch Engine has finished. Press Enter to exit..." << std::endl;
+    std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
 

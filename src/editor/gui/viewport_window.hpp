@@ -5,7 +5,10 @@
 
 #include "editor/core/platform/qt/qt_input.hpp"
 
-namespace Epoch::Editor {
+namespace Pulse::Editor {
+
+    class EditorMainWindow;
+
     class QtGLViewportWindow : public QOpenGLWindow, private QOpenGLExtraFunctions {
     public:
         QtGLViewportWindow();
@@ -15,6 +18,8 @@ namespace Epoch::Editor {
         void MakeCurrent();
         void SwapBuffers();
         QSize GetFramebufferSize() const;
+
+        void SetParentWindow(EditorMainWindow* parent);
 
         void SetQTInputManager(Core::Platform::QTInput* input);
 
@@ -28,5 +33,6 @@ namespace Epoch::Editor {
 
     private:
         Core::Platform::QTInput* inputManager = nullptr;
+        EditorMainWindow* parent = nullptr;
     };
 }

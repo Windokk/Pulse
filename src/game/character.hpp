@@ -3,7 +3,7 @@
 
 using namespace nlohmann;
 
-BEGIN_COMPONENT(Character, Epoch::Engine::ECS::Components::Script)
+BEGIN_COMPONENT(Character, Pulse::Engine::ECS::Components::Script)
 
     void Deserialize(json componentData) override;
     json Serialize() override;

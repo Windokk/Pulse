@@ -11,11 +11,11 @@
 
 #include "main_win.hpp"
 
-namespace Epoch::Editor{
+namespace Pulse::Editor{
     
     using Engine::Core::GetEngine;
 
-    LevelTree::LevelTree(QWidget *parent): QWidget(parent), treeView(new CustomTreeView(this)), model(new QStandardItemModel(this))
+    LevelTree::LevelTree() : treeView(new CustomTreeView(this)), model(new QStandardItemModel(this))
     {
         auto *layout = new QVBoxLayout(this);
         layout->addWidget(treeView);
@@ -88,7 +88,7 @@ namespace Epoch::Editor{
         switch(event.changeType){
             case Engine::Events::CREATED:{
 
-                std::shared_ptr<Epoch::Engine::ECS::Objects::Object> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(event.sourceObjectID);
+                std::shared_ptr<Pulse::Engine::ECS::Objects::Object> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(event.sourceObjectID);
 
                 QStandardItem *item = new QStandardItem(QString::fromStdString(event.actorName));
                 item->setData(QVariant::fromValue(event.sourceObjectID), Qt::UserRole);
@@ -132,7 +132,6 @@ namespace Epoch::Editor{
             case Engine::Events::LOADED:{
                 LoadLevel(GetEngine().GetResourcesManager()->GetLevel(GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetIDBuilder().WithValue(event.levelAssetID).Build())->baseInfos.nameInProject));
                 model->setHorizontalHeaderLabels(QStringList() << QString::fromStdString(GetEngine().GetAssetIDManager()->GetAssetFromID(Engine::Filesystem::AssetIDBuilder().WithValue(event.levelAssetID).Build())->baseInfos.name));
-                EditorMainWindow* mainWin = dynamic_cast<EditorMainWindow*>(parentWidget());
                 break;
             }
             default:
@@ -180,24 +179,22 @@ namespace Epoch::Editor{
                         }
                     )");
 
-                QAction *renameAction = menu.addAction(QIcon(":/epoch/default/icons/rename.svg"), "Rename");
-                QAction *deleteAction = menu.addAction(QIcon(":/epoch/default/icons/delete.svg"), "Delete");
-                QAction *duplicateAction = menu.addAction(QIcon(":/epoch/default/icons/duplicate.svg"), "Duplicate");
+                QAction *renameAction = menu.addAction(QIcon(":/pulse/default/icons/rename.svg"), "Rename");
+                QAction *deleteAction = menu.addAction(QIcon(":/pulse/default/icons/delete.svg"), "Delete");
+                QAction *duplicateAction = menu.addAction(QIcon(":/pulse/default/icons/duplicate.svg"), "Duplicate");
                 menu.addSeparator();
-                QAction *createAction = menu.addAction(QIcon(":/epoch/default/icons/add.svg"), "Create Actor");
+                QAction *createAction = menu.addAction(QIcon(":/pulse/default/icons/add.svg"), "Create Actor");
 
                 // Show the menu at the current cursor position
                 QAction *selectedAction = menu.exec(QCursor::pos());
 
                 if (selectedAction == renameAction) {
-                    qDebug() << "Rename clicked for object ID:" << actor->GetID().GetAsString();
                     treeView->edit(index);
                 }
                 else if (selectedAction == deleteAction) {
                     actor->Destroy();
                 }
                 else if (selectedAction == duplicateAction) {
-                    qDebug() << "Duplicate clicked for object ID:" << actor->GetID().GetAsString();
                     actor->Clone();
                 }
                 else if (selectedAction == createAction) {
@@ -205,7 +202,16 @@ namespace Epoch::Editor{
                     actor->AddChild(child);
                 }
             }
+        
+            else if(button == Qt::LeftButton){
+                parent->SetSelectedActor(actor);
+            }
         }
+    }
+
+    void LevelTree::SetParentWindow(EditorMainWindow *parent)
+    {
+        this->parent = parent;
     }
 
     void LevelTree::SetupModel()
@@ -269,7 +275,7 @@ namespace Epoch::Editor{
 
     void LevelTree::SetupStyle() {
         
-        QFile styleSheetFile(":/epoch/default/stylesheets/default_tree.qss");
+        QFile styleSheetFile(":/pulse/default/stylesheets/default_tree.qss");
 	    styleSheetFile.open(QIODevice::ReadOnly);
 	    QTextStream styleSheetStream(&styleSheetFile);
 	    QString result;

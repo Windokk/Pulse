@@ -7,7 +7,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     
     float ComputeCascadeSplitDistance(int cascadeIndex, float nearPlane, float farPlane, int totalCascades)
     {
@@ -338,7 +338,7 @@ namespace Epoch::Engine::Rendering{
 
     /// @brief Bind the shadow maps to a material
     /// @param material The material to bind shadow maps to
-    void ShadowManager::BindShadowMaps(std::shared_ptr<Epoch::Engine::Rendering::Material> material)
+    void ShadowManager::BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material)
     {
         constexpr int MAX_SHADOW_LIGHTS = 16;
         constexpr int MAX_SPOT_LIGHTS = 12;

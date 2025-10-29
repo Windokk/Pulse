@@ -4,7 +4,7 @@
 
 #include "engine/debugging/debugger.hpp"
 
-namespace Epoch::Engine::ECS::Components {
+namespace Pulse::Engine::ECS::Components {
 
     ComponentRegistry gSharedComponentRegistry;
 

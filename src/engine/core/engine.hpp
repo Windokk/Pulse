@@ -12,12 +12,12 @@
 #include "engine/projects/project.hpp"
 
 
-namespace Epoch::Engine::Rendering {
+namespace Pulse::Engine::Rendering {
     
     class CameraManager;
 }
 
-namespace Epoch::Engine::Core {
+namespace Pulse::Engine::Core {
     
     class ResourcesManager;
 

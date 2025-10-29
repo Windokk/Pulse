@@ -6,7 +6,7 @@
 
 #include "glfw_window.hpp"
 
-namespace Epoch::Game::Core::Platform {
+namespace Pulse::Game::Core::Platform {
 
     class GLFWPlatform : public Engine::Core::Platform::IPlatform {
         public:

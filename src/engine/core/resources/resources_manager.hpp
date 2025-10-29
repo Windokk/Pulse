@@ -7,14 +7,14 @@
 #include "engine/levels/level.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 
-namespace Epoch::Engine::Rendering{
+namespace Pulse::Engine::Rendering{
     class Mesh;
     class Texture;
     class Shader;
     class Material;
 }
 
-namespace Epoch::Engine::Core::Resources{
+namespace Pulse::Engine::Core::Resources{
 
     class ResourcesManager{
         public:

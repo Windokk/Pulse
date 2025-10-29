@@ -5,7 +5,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Epoch::Engine::Rendering::UI{
+namespace Pulse::Engine::Rendering::UI{
 
     using namespace Filesystem;
     

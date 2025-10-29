@@ -11,7 +11,7 @@
 #include <string>
 #include <iostream>
 
-namespace Epoch::Engine::Audio
+namespace Pulse::Engine::Audio
 {
     struct Sound{
         FMOD_SOUND* fmod_sound;

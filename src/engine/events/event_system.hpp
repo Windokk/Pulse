@@ -9,11 +9,11 @@
 #include <typeindex>
 #include <vector>
 
-namespace Epoch::Engine::ECS::Components{
+namespace Pulse::Engine::ECS::Components{
     class PhysicsBody;
 }
 
-namespace Epoch::Engine::Events {
+namespace Pulse::Engine::Events {
 
     struct Event {
         virtual ~Event() = default;
