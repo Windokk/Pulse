@@ -1,4 +1,4 @@
-.vscode
-build
-MaterialIconsRound-Regular.otf
+.vscode/
+build/
+lucide.ttf
 OpenSans-Regular.ttf
