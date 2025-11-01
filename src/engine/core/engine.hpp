@@ -68,6 +68,24 @@ namespace Pulse::Engine::Core {
         std::shared_ptr<Projects::Project> currentProject = nullptr;
     };
 
+    
+    struct Stats {
+        //Audio
+        int sounds = 0;
+
+        //Rendering
+        float frameTimeMs = 0;
+        float fps = 0;
+        int drawCalls = 0;
+        int triangles = 0;
+        int vertices = 0;
+        float gpuMemoryMB = 0;
+
+        //Level
+        int actors = 0;
+        int lights = 0;
+    };
+
     class EngineInstance {
         public:
             EngineInstance(const EngineInstance&) = delete;
@@ -127,6 +145,49 @@ namespace Pulse::Engine::Core {
             Projects::BuildSettings* GetBuildSettings() const { return context.currentProject->GetBuildSettings(); }
 
             std::shared_ptr<Projects::Project> GetCurrentProject() const { return context.currentProject; }
+
+            Stats GetStats() {
+                Stats ret{};
+
+                for(auto& cmd : *context.renderer->GetDrawList()){
+                    ret.drawCalls++;
+                    ret.triangles += cmd.indexCount / 3;
+                    ret.vertices += cmd.verticesCount;
+                }
+
+                ret.frameTimeMs = context.timeManager->GetDeltaTime() * 1000;
+                ret.fps = 1000 / ret.frameTimeMs;
+
+                ret.actors = static_cast<int>(context.levelManager->GetLevelAt(0)->transforms.size());
+                ret.lights = context.renderer->lightMan->GetLightsCount();
+
+                ret.sounds = context.audioManager->GetSoundsCount();
+
+                Platform::SystemInfos infos = GetWindow()->GetSystemInfos();
+
+                if(infos.gpu_vendor == "NVIDIA Corporation"){    
+                    GLint total_kb = 0;
+                    GLint available_kb = 0;
+
+                    context.openGL->GetIntegerv(0x9048, &total_kb);
+                    context.openGL->GetIntegerv(0x9049, &available_kb);
+
+                    ret.gpuMemoryMB = (total_kb - available_kb) / 1024.0f;
+                }
+                else if(infos.gpu_vendor == "ATI Technologies Inc."){
+                    GLint freeMemoryKB[4] = {0};
+                    context.openGL->GetIntegerv(0x87FC, freeMemoryKB);
+
+                    ret.gpuMemoryMB = (float)(freeMemoryKB[0]) / 1024.0f;
+                }
+                else{
+                    ret.gpuMemoryMB += (GetWindow()->GetFramebufferWidth() * GetWindow()->GetFramebufferHeight() * GetWindow()->GetBytesPerPixel()) / (1024.0f * 1024.0f);
+                    ret.gpuMemoryMB += (ret.vertices * sizeof(Vertex)) / (1024.0f * 1024.0f);
+                    ret.gpuMemoryMB += (ret.triangles * 3 * sizeof(uint32_t)) / (1024.0f * 1024.0f);
+                }
+
+                return ret;
+            }
 
         private:
             EngineInstance() = default;

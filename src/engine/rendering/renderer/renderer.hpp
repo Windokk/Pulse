@@ -56,6 +56,7 @@ namespace Pulse::Engine{
         struct DrawCommand {
             int indexOffset = 0;
             int indexCount = 0;
+            int verticesCount = 0;
             unsigned int VAO;
             unsigned int VBO;
             std::shared_ptr<Material> mat;
@@ -103,6 +104,8 @@ namespace Pulse::Engine{
                 ShadowManager* shadowMan;
 
                 bool initialized = false;
+
+                std::vector<DrawCommand>* GetDrawList() { return &drawList; }
 
             private:
 

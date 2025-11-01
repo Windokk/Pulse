@@ -49,7 +49,6 @@ namespace Pulse::Engine::Core{
 
         context.timeManager->Init(fixedDelta);
 
-
         Platform::SystemInfos infos = GetWindow()->GetSystemInfos();
 
         DEBUG_INFO("===== System infos =====");

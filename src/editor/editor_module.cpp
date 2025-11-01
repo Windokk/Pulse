@@ -26,7 +26,7 @@ extern "C" __declspec(dllexport) void EditorStart(){
 }
 
 extern "C" __declspec(dllexport) void EditorTick(){
-
+    Core::GetEngine().GetWindow()->ProcessInputs();
 }
 
 extern "C" __declspec(dllexport) void EditorCleanup(){

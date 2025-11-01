@@ -38,12 +38,15 @@ namespace Pulse::Engine::Core::Platform {
         virtual void SwapBuffers() = 0;
         virtual int GetFramebufferWidth() const = 0;
         virtual int GetFramebufferHeight() const = 0;
+        virtual int GetBytesPerPixel() const = 0;
 
         virtual void SetTitle(const std::string& title) = 0;
 
         virtual void ToggleFullscreen() = 0;
 
         virtual void Destroy() const = 0;
+
+        virtual void ProcessInputs() const = 0;
 
         virtual SystemInfos GetSystemInfos() const = 0;
     };

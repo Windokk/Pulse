@@ -34,6 +34,7 @@ namespace Pulse::Engine::Audio
         void PauseSound(AudioID id);
         void UpdateSound(AudioID id, glm::vec3 pos, float volume);
         void Update(glm::vec3 listenerPos, glm::vec2 listenerFacingNormalized, float maxDistance);
+        int GetSoundsCount() { return channels.size(); }
 
         private:
 

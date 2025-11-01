@@ -134,22 +134,4 @@ namespace Pulse::Engine::Time{
 
             float timeSpeed = 1.0f;
     };
-
-            
-#if defined(BUILD_EDITOR)
-
-    // Used by the Editor Module DLL
-    inline TimeManager* gSharedTimeManagerPtr = nullptr;
-
-    inline void SetTimeManager(TimeManager* ptr) {
-        gSharedTimeManagerPtr = ptr;
-    }
-
-    inline TimeManager& GetTimeManager() {
-        if (!gSharedTimeManagerPtr)
-            exit(2);
-        return *gSharedTimeManagerPtr;
-    }
-
-#endif
 }

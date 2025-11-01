@@ -32,14 +32,15 @@ namespace Pulse::Engine::Rendering{
         glm::mat4 shadowMatrices[6];          // 6 face matrices (point lights)
         int cubeArrayLayer = -1;
 
-        int resolution = 1024;
+        int resolution = 0;
     };
 
     class ShadowManager {
     public:
-        void Init(int resolution);
+        void Init(int pointShadowsResolution, int spotShadowsResolution, int dirShadowsResolution);
+        void EnsureCubeArrayCapacity(int requiredPointLights);
         void RegisterLight(int lightIndex, std::shared_ptr<LightData> light);
-        void ResolveShadowMaps();
+        void TryShrinkCubeArray();
         void UnregisterLight(int lightIndex);
         void RenderShadowMaps(const std::vector<std::pair<glm::mat4, Rendering::Mesh *>> &meshes, std::shared_ptr<ECS::Components::Camera> cam);
         void BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material);
@@ -49,8 +50,11 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<Shader> dirShader;
         std::shared_ptr<Shader> spotShader;
         std::shared_ptr<Shader> pointShader;
-        int shadowResolution = 0;
+        int pointShadowsResolution = 0;
+        int spotShadowsResolution = 0;
+        int dirShadowsResolution = 0;
         GLuint cubeArrayTex;
         int pointLightCount = 0;
+        int currentCapacity = 0;
     };
 }

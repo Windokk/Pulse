@@ -56,7 +56,8 @@ namespace Pulse::Engine::Events {
         MOVED,
         ACTIVATED,
         DEACTIVATED,
-        LOADED
+        LOADED,
+        UNLOADED
     };
 
     struct LevelStructureChangedEvent : public Event{

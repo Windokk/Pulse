@@ -29,8 +29,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->type = (int)type;
 
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the light's intensity
@@ -42,8 +42,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->intensity = intensity;
 
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
         
     }
 
@@ -56,8 +56,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->position = postion;
 
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the light's direction (Only for spot and directionnal lights)
@@ -69,8 +69,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->direction = direction;
             
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
     
     /// @brief Set the radius of the light (Only for spot and point lights)
@@ -82,8 +82,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->radius = radius;
         
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Sets the color of the light
@@ -95,8 +95,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->color = color;
         
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the outer cuttof (Only for spot lights)
@@ -108,8 +108,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->outerCutoff = glm::cos(glm::radians(cutoff));
         
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the inner cuttof (Only for spot lights)
@@ -121,8 +121,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->innerCutoff = glm::cos(glm::radians(cutoff));
         
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Set the light's index in the scene
@@ -132,9 +132,9 @@ namespace Pulse::Engine::ECS::Components{
         if(lightIndex != -1 || !activated)
             return;
         
-        if(parent->level->IsLoaded()){
-            EngineInstance::GetInstance().GetRenderer()->lightMan->AddLight(index, lightData);
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(index);
+        if(parent && parent->level && parent->level->IsLoaded()){
+            Core::GetEngine().GetRenderer()->lightMan->AddLight(index, lightData);
+            Core::GetEngine().GetRenderer()->lightMan->Update(index);
             lightIndex = index;
         }
     }
@@ -147,8 +147,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->castShadow = castShadows;
         
-        if(parent->level->IsLoaded())
-            EngineInstance::GetInstance().GetRenderer()->lightMan->Update(lightIndex);
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
     /// @brief Getter for this light component's data
@@ -160,7 +160,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void Light::Destroy()
     {
-        EngineInstance::GetInstance().GetRenderer()->lightMan->RemoveLight(lightIndex);
+        Core::GetEngine().GetRenderer()->lightMan->RemoveLight(lightIndex);
     }
 
     std::shared_ptr<Component> Light::Clone() const

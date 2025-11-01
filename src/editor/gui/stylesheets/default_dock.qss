@@ -50,12 +50,12 @@ ads--CTitleBarButton {
 }
 
 #tabsMenuButton {
-        qproperty-icon: url(:/ads/images/tabs-menu-button.svg);
+        qproperty-icon: url(:/pulse/default/icons/chevron_down.svg);
         qproperty-iconSize: 16px;
 }
 
 #dockAreaCloseButton {
-        qproperty-icon: url(:/ads/images/close-button.svg),
+        qproperty-icon: url(:/ads/images/close-button-focused.svg),
                 url(:/ads/images/close-button-disabled.svg) disabled;
         qproperty-iconSize: 16px;
 }

@@ -8,5 +8,7 @@
         <file>icons/delete.svg</file>
         <file>icons/duplicate.svg</file>
         <file>icons/add.svg</file>
+        <file>fonts/lucide.ttf</file>
+        <file>fonts/OpenSans-Regular.ttf</file>
     </qresource>
 </RCC>

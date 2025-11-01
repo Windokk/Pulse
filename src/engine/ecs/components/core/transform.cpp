@@ -46,7 +46,7 @@ namespace Pulse::Engine::ECS::Components{
 		
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetDirection(-this->GetForward());
+				light->SetDirection(this->GetForward());
 			}
 		}
 		UpdateMeshReferencesInLevel();
@@ -61,7 +61,7 @@ namespace Pulse::Engine::ECS::Components{
 		
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetDirection(-this->GetForward());
+				light->SetDirection(this->GetForward());
 			}
 		}
 		UpdateMeshReferencesInLevel();
@@ -110,7 +110,7 @@ namespace Pulse::Engine::ECS::Components{
 		
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetDirection(-this->GetForward());
+				light->SetDirection(this->GetForward());
 			}
 		}
 		UpdateMeshReferencesInLevel();
@@ -206,27 +206,17 @@ namespace Pulse::Engine::ECS::Components{
 		}
 #endif
 
-        glm::vec3 localRot;
+        glm::mat3 rotationMatrix;
+		rotationMatrix[0] = Row[0];
+		rotationMatrix[1] = Row[1];
+		rotationMatrix[2] = Row[2];
 
-		localRot.y = asin(-Row[0][2]);
-		if (cos(localRot.y) != 0) {
-			localRot.x = atan2(Row[1][2], Row[2][2]);
-			localRot.z = atan2(Row[0][1], Row[0][0]);
-		}
-		else {
-			localRot.x = atan2(-Row[2][0], Row[1][1]);
-			localRot.z = 0;
-		}
+		glm::quat q = glm::quat_cast(rotationMatrix);
 
-		if(glm::quat(localRot) != this->rotation){
-			rotation = glm::quat(localRot);
-
-			if(parent->HasComponent<Light>()){
-				for(auto& light : parent->GetComponents<Light>()){
-					light->SetDirection(-this->GetForward());
-				}
-			}
+		if(q != this->rotation){
+			SetRotation(q);
 		}
+		
 		
 		UpdateMeshReferencesInLevel();
 

@@ -174,7 +174,8 @@ namespace Pulse::Engine::Rendering{
 
             submeshes.push_back(SubMesh{
                 .indexOffset = indexOffset,
-                .indexCount = indexCount
+                .indexCount = indexCount,
+                .verticesCount = group.verts.size()
             });
         }
 
@@ -233,6 +234,7 @@ namespace Pulse::Engine::Rendering{
             DrawCommand cmd;
             cmd.indexOffset = static_cast<int>(submeshes[i].indexOffset);
             cmd.indexCount  = static_cast<int>(submeshes[i].indexCount);
+            cmd.verticesCount = static_cast<int>(submeshes[i].verticesCount);
             cmd.VAO         = VAO;
             cmd.VBO         = VBO;
             cmd.mat         = mats[i];

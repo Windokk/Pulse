@@ -184,7 +184,29 @@ This will compile CMakeLists everything in root : the engine, the editor app, th
 - [ ] Animation Blending
 - [ ] Animation State Machine
 
-## Credits
+## Credits/Dependencies
+
+- Libraries/Projects :
+  - Qt
+  - GLFW
+  - GLM
+  - Jolt
+  - IconFontCppHeaders
+  - ImGui
+  - ImGuizmo
+  - qtimgui
+  - freetype
+  - glad
+  - ufbx
+  - json
+  - Qt ads
+
+- Fonts :
+  - Lucide icons
+  - Open Sans
+
+- Sounds/Music :
+  - https://opengameart.org/content/town-theme-rpg
 
 - Models :
   - "Rubik's Cube" (<https://skfb.ly/6U7pp>) by RED2000 is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).

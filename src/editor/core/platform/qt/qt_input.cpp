@@ -5,6 +5,10 @@
 
 #include "engine/debugging/debugger.hpp"
 
+#include "editor/gui/main_win.hpp"
+
+#include "engine/core/engine.hpp"
+
 namespace Pulse::Editor::Core::Platform{
     
     void QTInput::Init()
@@ -101,10 +105,18 @@ namespace Pulse::Editor::Core::Platform{
 
 
     void QTInput::SetCursorVisibility(bool visible) const {
-        if (visible) {
-            QGuiApplication::restoreOverrideCursor();
-        } else {
-            QGuiApplication::setOverrideCursor(Qt::BlankCursor);
+
+        EditorMainWindow* win = dynamic_cast<EditorMainWindow*>(Engine::Core::GetEngine().GetWindow());
+
+        if(win != nullptr){
+            if (visible) {
+                
+                win->unsetCursor();
+            }
+            else {
+                
+                win->setCursor(Qt::BlankCursor);
+            }
         }
     }
 

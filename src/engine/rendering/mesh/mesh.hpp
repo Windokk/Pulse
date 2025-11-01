@@ -11,6 +11,7 @@ namespace Pulse::Engine::Rendering{
     struct SubMesh {
         size_t indexOffset;
         size_t indexCount;
+        size_t verticesCount;
     };
 
     class Mesh {

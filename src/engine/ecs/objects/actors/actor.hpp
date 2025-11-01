@@ -65,8 +65,8 @@ namespace Pulse::Engine::ECS::Objects{
 
             void RegisterComponentEvents(const std::shared_ptr<Script>& component);
 
-            std::shared_ptr<Transform> transform;
-            Levels::Level* level;
+            std::shared_ptr<Transform> transform = nullptr;
+            Levels::Level* level = nullptr;
 
             void Activate();
 
@@ -157,34 +157,36 @@ namespace Pulse::Engine::ECS::Objects{
 
         components.push_back(component);
 
-        if constexpr (IsSubclassOf<Light, T>()) {
-            component->SetLightIndex(level->lights.size());
-            level->lights.push_back(component);
-        }
+        if(level != nullptr){
+            if constexpr (IsSubclassOf<Light, T>()) {
+                component->SetLightIndex(level->lights.size());
+                level->lights.push_back(component);
+            }
 
-        if constexpr (IsSubclassOf<Model, T>()) {
-            level->models.push_back(component);
-        }
+            if constexpr (IsSubclassOf<Model, T>()) {
+                level->models.push_back(component);
+            }
 
-        if constexpr (IsSubclassOf<Transform, T>()) {
-            level->transforms.push_back(component);
-        }
+            if constexpr (IsSubclassOf<Transform, T>()) {
+                level->transforms.push_back(component);
+            }
 
-        if constexpr (IsSubclassOf<PhysicsBody, T>()) {
-            level->physicsBodies.push_back(component);
-        }
+            if constexpr (IsSubclassOf<PhysicsBody, T>()) {
+                level->physicsBodies.push_back(component);
+            }
 
-        if constexpr (IsSubclassOf<AudioSource, T>()) {
-            level->audioSources.push_back(component);
-        }
+            if constexpr (IsSubclassOf<AudioSource, T>()) {
+                level->audioSources.push_back(component);
+            }
 
-        if constexpr (IsSubclassOf<Script, T>()) {
-            level->scripts.push_back(component);
-            RegisterComponentEvents(component);
-        }
+            if constexpr (IsSubclassOf<Script, T>()) {
+                level->scripts.push_back(component);
+                RegisterComponentEvents(component);
+            }
 
-        if constexpr (IsSubclassOf<Camera, T>()) {
-            level->cameras.push_back(component);
+            if constexpr (IsSubclassOf<Camera, T>()) {
+                level->cameras.push_back(component);
+            }
         }
 
         return component;

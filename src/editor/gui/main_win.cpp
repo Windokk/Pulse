@@ -36,11 +36,6 @@ namespace Pulse::Editor
         InitGui();
     }
 
-    void EditorMainWindow::InitEnableControls()
-    {
-
-    }
-
     void EditorMainWindow::InitGui(){
         
         dockManager = std::make_unique<ads::CDockManager>(this);
@@ -74,7 +69,7 @@ namespace Pulse::Editor
         levelTreeDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
 
         dockManager->addDockWidget(ads::CenterDockWidgetArea, viewportDock);
-        dockManager->addDockWidget(ads::CenterDockWidgetArea, levelTreeDock);
+        dockManager->addDockWidget(ads::LeftDockWidgetArea, levelTreeDock);
 
         show();
     }
@@ -134,9 +129,9 @@ namespace Pulse::Editor
         const GLubyte* renderer = Engine::Core::GetEngine().GetGL()->GetString(GL_RENDERER);
         const GLubyte* version  = Engine::Core::GetEngine().GetGL()->GetString(GL_VERSION);
 
-        ret.gpu_vendor   = reinterpret_cast<const char*>(vendor);
-        ret.gpu_renderer = reinterpret_cast<const char*>(renderer);
-        ret.gl_version   = reinterpret_cast<const char*>(version);
+        ret.gpu_vendor   = vendor   ? reinterpret_cast<const char*>(vendor)   : "Unknown";
+        ret.gpu_renderer = renderer ? reinterpret_cast<const char*>(renderer) : "Unknown";
+        ret.gl_version   = version  ? reinterpret_cast<const char*>(version)  : "Unknown";
 
         // Qt version
         ret.windowHostVersion = QT_VERSION_STR;
@@ -155,14 +150,10 @@ namespace Pulse::Editor
         return ret;
     }
 
-    EditorMainWindow::~EditorMainWindow() 
-    {
-
-    }
-
     void EditorMainWindow::closeEvent(QCloseEvent *event)
     {
         shouldClose = true;
+        QtImGui::Shutdown();
         event->accept();
     }
 }

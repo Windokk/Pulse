@@ -69,7 +69,7 @@ namespace Pulse::Engine::Rendering{
 
         //SHADOWS
         shadowMan = new ShadowManager();
-        shadowMan->Init(4096);
+        shadowMan->Init(512, 1024, 2048);
     }
 
     void Renderer::InitFramebuffers()

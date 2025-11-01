@@ -4,7 +4,7 @@
     "versionPatch": 0,
     "projectResources": "project_resources",
     "pluginsFolder":    "plugins",
-    "assetDatabase":    "settings\\asset_database.json",
+    "assetDatabase":    "data\\asset_database.json",
     "buildSettings":[
         "sponza.lvl",
         "level1.lvl"

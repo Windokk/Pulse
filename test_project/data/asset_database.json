@@ -20,15 +20,6 @@
         }
     ],
 
-    "fonts\\NotoSans-Regular.ttf": [
-        {
-            "id": 503
-        },
-        {
-            "dependencies": []
-        }
-    ],
-
     "materials\\arch.mat": [
         {
             "id": 504
@@ -320,15 +311,6 @@
     "models\\Sponza.fbx": [
         {
             "id": 536
-        },
-        {
-            "dependencies": []
-        }
-    ],
-
-    "sounds\\song18.mp3": [
-        {
-            "id": 537
         },
         {
             "dependencies": []

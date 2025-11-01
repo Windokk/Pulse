@@ -58,12 +58,10 @@ namespace Pulse::Editor{
         Q_OBJECT
 
         public:
-            ~EditorMainWindow() override;
 
             void Init(const std::string &title, const int &width, const int &height,
                       const bool &fullscreen, const int &vsync) override;
 
-            void InitEnableControls();
 
             void InitGui();
 
@@ -90,14 +88,27 @@ namespace Pulse::Editor{
             }
 
             void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
-                DEBUG_WARNING(newPtr->GetName());
-                std::cout<<this<<std::endl;
                 this->selectedActor = newPtr;
             }
 
             std::shared_ptr<Engine::ECS::Objects::Actor> GetSelectedActor(){
                 return selectedActor;
             }
+
+            void ProcessInputs() const override {
+                if(glViewportWindow)
+                    glViewportWindow->ProcessInputs();
+            }
+
+            int GetBytesPerPixel() const override{
+                QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+                int redBits = format.redBufferSize();
+                int greenBits = format.greenBufferSize();
+                int blueBits = format.blueBufferSize();
+                int alphaBits = format.alphaBufferSize();
+
+                return (redBits + greenBits + blueBits + alphaBits) / 8;
+            };
 
         private:
                 
@@ -110,8 +121,6 @@ namespace Pulse::Editor{
             void closeEvent(QCloseEvent* event) override;
 
             std::unique_ptr<ads::CDockManager> dockManager;
-
-            std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor = nullptr;
 
             std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor = nullptr;
     };
