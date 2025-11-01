@@ -200,6 +200,7 @@ This will compile CMakeLists everything in root : the engine, the editor app, th
   - ufbx
   - json
   - Qt ads
+  - Fmod
 
 - Fonts :
   - Lucide icons
