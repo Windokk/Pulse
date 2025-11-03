@@ -147,14 +147,14 @@ This will compile everything from root : the engine, the editor app, the editor 
 ### Editor (Qt)
 
 - [x] Docking
-- [ ] Scene Tree panel
+- [x] Scene Tree panel
 - [ ] Material editor panel
 - [ ] Viewport panel
 - [ ] Asset Browser
 - [ ] Console
 - [ ] Stats overlay
-  - [ ] Audio infos
-  - [ ] Minimal frame profiler (FPS, Speed of each part of the engine...)
+  - [x] Audio source count
+  - [x] Minimal frame profiler (FPS, Draw Calls, Lights counts, etc...)
   - [ ] Hardware infos (CPU, GPU, RAM) (Name, Vendor, Usage...)
 
 ### Rendering
@@ -187,27 +187,27 @@ This will compile everything from root : the engine, the editor app, the editor 
 ## Credits/Dependencies
 
 - Libraries/Projects :
-  - Qt
-  - GLFW
-  - GLM
-  - Jolt
-  - IconFontCppHeaders
-  - ImGui
-  - ImGuizmo
-  - qtimgui
-  - freetype
-  - glad
-  - ufbx
-  - json
-  - Qt ads
-  - Fmod
+  - [Qt](https://www.qt.io/)
+  - [Qt imgui backend](https://github.com/seanchas116/qtimgui)
+  - [Qt ads](https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System)
+  - [GLFW](https://github.com/glfw/glfw)
+  - [GLM](https://github.com/g-truc/glm)
+  - [Jolt](https://github.com/jrouwe/JoltPhysics)
+  - [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders)
+  - [ImGui](https://github.com/ocornut/imgui)
+  - [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)
+  - [freetype](https://github.com/freetype/freetype)
+  - [glad](https://github.com/Dav1dde/glad)
+  - [ufbx](https://github.com/ufbx/ufbx)
+  - [json for c++](https://github.com/nlohmann/json)
+  - [fmod](https://www.fmod.com/)
 
 - Fonts :
-  - Lucide icons
-  - Open Sans
+  - [Lucide icons](https://lucide.dev/)
+  - [Open Sans](https://fonts.google.com/specimen/Open+Sans)
 
 - Sounds/Music :
-  - https://opengameart.org/content/town-theme-rpg
+  - [TownTheme.mp3](https://opengameart.org/content/town-theme-rpg)
 
 - Models :
   - "Rubik's Cube" (<https://skfb.ly/6U7pp>) by RED2000 is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).
