@@ -8,7 +8,7 @@
 #include <functional>
 #include <memory>
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 namespace Pulse::Engine::ECS
 {

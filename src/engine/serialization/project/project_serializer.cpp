@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 using namespace nlohmann;
 

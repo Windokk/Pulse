@@ -1,6 +1,6 @@
 #include "shader.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include <stdexcept>
 #include <iostream>

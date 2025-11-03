@@ -12,8 +12,7 @@ namespace Pulse::Engine::ECS::Objects{
     }
 
     void Actor::Init(){
-        this->transform = make_shared<Transform>(std::static_pointer_cast<Actor>(shared_from_this()), this->components.size());
-        components.push_back(transform);
+        this->transform = AddComponent<Transform>();
     }
 
     std::shared_ptr<Component> Actor::AddComponentRaw(Component* rawComponent) {
@@ -108,7 +107,16 @@ namespace Pulse::Engine::ECS::Objects{
     {
         if(!lvl) return;
 
+        bool firstTime = true;
+
+        if(this->level)
+            firstTime = false;
+
         this->level = lvl;
+
+        if(firstTime)
+            this->level->transforms.push_back(this->transform);
+        
 
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();

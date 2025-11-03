@@ -14,7 +14,7 @@
 
 #include "engine/core/engine.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 namespace Pulse::Engine::Audio
 {
@@ -58,7 +58,7 @@ namespace Pulse::Engine::Audio
     void AudioManager::CreateSound(AudioID id, Filesystem::Path path, glm::vec3 pos)
     {
 
-        if (path.Exists()) {
+        if ((Core::GetEngine().GetFileManager()->GetProjectResRoot() / path).Exists()) {
             auto sound = new Sound();
             FMOD_CHANNEL* channel = nullptr;
 

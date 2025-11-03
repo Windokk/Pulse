@@ -1,6 +1,6 @@
 #include "asset_database_serializer.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 #include "engine/core/engine.hpp"
 
 #include <nlohmann/json.hpp>

@@ -14,7 +14,7 @@
 
 #include "viewport_window.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 
 #include <memory>

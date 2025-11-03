@@ -138,6 +138,7 @@ namespace Pulse::Engine::ECS::Components{
             lightIndex = index;
         }
     }
+    
     /// @brief Set wether this light should cast shadows
     /// @param castShadows true : cast shadows, false : doesn't cast shadows
     void Light::SetCastShadow(bool castShadows)

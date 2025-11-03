@@ -1,6 +1,6 @@
 #include "object.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include "engine/core/engine.hpp"
 

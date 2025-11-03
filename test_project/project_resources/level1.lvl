@@ -6,8 +6,8 @@
         "plane": "models\\plane.fbx"
     },
     "materials": {
-        "lit_mat1": "materials\\lit_mat1",
-        "lit_rubik": "materials\\rubik"
+        "lit_mat1": "materials\\lit_mat1.mat",
+        "lit_rubik": "materials\\rubik.mat"
     },
     "actors": [
         {
@@ -54,7 +54,7 @@
                 {
                     "type": "audio",
                     "active": true,
-                    "path": "\\sounds\\song18.mp3",
+                    "path": "sounds\\TownTheme.mp3",
                     "volume": 1.0
                 }
             ]

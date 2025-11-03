@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include "engine/filesystem/filesystem.hpp"
 

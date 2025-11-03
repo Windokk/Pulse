@@ -19,7 +19,7 @@
 
 #include "engine/rendering/utils.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 using namespace JPH;
 

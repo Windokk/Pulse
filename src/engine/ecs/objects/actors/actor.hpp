@@ -150,7 +150,7 @@ namespace Pulse::Engine::ECS::Objects{
 
         std::shared_ptr<T> component = std::make_shared<T>(std::static_pointer_cast<Actor>(shared_from_this()), components.size());
         
-        if (IsSubclassOf<Transform, T>()) {
+        if (transform != nullptr && IsSubclassOf<Transform, T>()) {
             DEBUG_ERROR("An actor can only have one transform component.");
             return nullptr;
         }

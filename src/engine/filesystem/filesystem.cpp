@@ -2,7 +2,7 @@
 
 #include "packer/unpacker.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 namespace Pulse::Engine::Filesystem{
 

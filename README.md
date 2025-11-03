@@ -15,12 +15,12 @@
 
 ## Screenshots
 
+
+
 ## Build Requirements (Windows)
 
 - CMake 3.28.2 or later
 - C++ 17 Compiler (GCC MinGW recommended)
-
-Build dependencies (dlls you'll have to drop in the executable folder) :
 - Qt 6.9.2
 - GLFW
 - ZLIB
@@ -31,13 +31,13 @@ Build dependencies (dlls you'll have to drop in the executable folder) :
 
 ### WIP
 
-## How to build editor app :
+## How to build :
 
-Run build.bat or build.sh
+Run build.bat or build.sh (depending on your OS)
 
-This will compile CMakeLists everything in root : the engine, the editor app, the editor module, and a basic game module (with the game app)
+This will compile everything from root : the engine, the editor app, the editor module, and the game module (loaded with the game app)
 
-(As of october 2025, the editor module will try to find Qt6 at : "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/" on Windows)
+(As of october 2025, the editor module will try to find Qt6 at : "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/" on Windows, you can chnage it in the parent CMakeLists.txt)
 
 
 ## FEATURES IMPLEMENTED
@@ -79,7 +79,7 @@ This will compile CMakeLists everything in root : the engine, the editor app, th
 - Editor module loaded at runtime in a DLL
 - Editor uses Qt for gui
 
-### Debugging
+### Debugging/Profiling
 
 - Debug levels (Log, Info, Warning, Error, Fatal)
 

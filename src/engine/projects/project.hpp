@@ -3,7 +3,7 @@
 #include <string>
 
 #include "engine/filesystem/filesystem.hpp"
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 namespace Pulse::Engine::Projects{
 

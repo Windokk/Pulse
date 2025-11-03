@@ -10,229 +10,176 @@
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/projects/project.hpp"
+#include "engine/debugging/profiler.hpp"
+
+namespace Pulse::Engine{
+ 
+    namespace Rendering {
+        
+        class CameraManager;
+    }
+
+    namespace Core {
+        
+        class ResourcesManager;
+
+        struct EngineCreationSettings{
+            //PLATFORM
+            Platform::IPlatform* platform = nullptr;
+
+            //PROJECT
+            std::string project = "";
+
+            //WINDOW (Editor preferences)
+            int windowWidth = 1280;
+            int windowHeight = 720;
+            bool fullscreen = false;
+            bool vsync = true;
+
+            //PHYSICS (project settings : physics)
+            glm::vec3 gravity = glm::vec3(0, -9.81f, 0);
+        };
+
+        struct EngineContext {
+
+            Debugging::Logger* logger = nullptr;
+
+            Rendering::Renderer* renderer = nullptr;
+            Rendering::CameraManager* cameraManager = nullptr;
+            OpenGL* openGL = nullptr;
+
+            Resources::ResourcesManager* resourcesManager = nullptr;
+            Filesystem::FileManager* fileManager = nullptr;
+            Filesystem::AssetIDManager* assetIDManager = nullptr;
+
+            ECS::ObjectIDManager* objIDManager = nullptr;
+
+            Levels::LevelManager* levelManager = nullptr;
+
+            Events::EventDispatcher* eventDispatcher = nullptr;
+
+            Audio::AudioManager* audioManager = nullptr;
+
+            Audio::AudioIDManager* audioIDManager = nullptr;
+
+            Physics::PhysicsSystem* physicsSystem = nullptr;
+
+            Time::TimeManager* timeManager = nullptr;
+
+            Platform::IPlatform* platform = nullptr;
+
+            std::shared_ptr<Projects::Project> currentProject = nullptr;
+
+            Debugging::Profiler* profiler = nullptr;
+        };
 
 
-namespace Pulse::Engine::Rendering {
-    
-    class CameraManager;
-}
+        class EngineInstance {
+            public:
+                EngineInstance(const EngineInstance&) = delete;
+                EngineInstance& operator=(const EngineInstance&) = delete;
 
-namespace Pulse::Engine::Core {
-    
-    class ResourcesManager;
+                // Provide access to the singleton instance
+                static EngineInstance& GetInstance() {
+                    static EngineInstance instance;
+                    return instance;
+                }
 
-    struct EngineCreationSettings{
-        //PLATFORM
-        Platform::IPlatform* platform = nullptr;
+                // Public interface
+                bool shouldEnd() { return context.platform->GetWindow()->ShouldClose(); }
+                void Destroy();
+                bool Run();
+                void Init(EngineCreationSettings settings);
+                void InitSystems();
 
-        //PROJECT
-        std::string project = "";
+                // Optional: configure engine before initialization
+                void SetSettings(const EngineCreationSettings& s) { settings = s; }
+                EngineCreationSettings GetSettings() const { return settings; }
 
-        //WINDOW (Editor preferences)
-        int windowWidth = 1280;
-        int windowHeight = 720;
-        bool fullscreen = false;
-        bool vsync = true;
+                Platform::IWindow* GetWindow() const { return context.platform->GetWindow(); }
 
-        //PHYSICS (project settings : physics)
-        glm::vec3 gravity = glm::vec3(0, -9.81f, 0);
-    };
+                Platform::IInput* GetInputManager() const { return context.platform->GetInput(); }
 
-    struct EngineContext {
-        Rendering::Renderer* renderer = nullptr;
-        Rendering::CameraManager* cameraManager = nullptr;
-        OpenGL* openGL = nullptr;
+                Rendering::Renderer* GetRenderer() const { return context.renderer; }
 
-        Resources::ResourcesManager* resourcesManager = nullptr;
-        Filesystem::FileManager* fileManager = nullptr;
-        Filesystem::AssetIDManager* assetIDManager = nullptr;
+                Rendering::CameraManager* GetCameraManager() const { return context.cameraManager; }
 
-        ECS::ObjectIDManager* objIDManager = nullptr;
+                OpenGL* GetGL() const { return context.openGL; }
 
-        Levels::LevelManager* levelManager = nullptr;
+                void SetGL(OpenGL* gl) { context.openGL = gl; }
 
-        Events::EventDispatcher* eventDispatcher = nullptr;
+                Resources::ResourcesManager* GetResourcesManager() const { return context.resourcesManager; }
 
-        Audio::AudioManager* audioManager = nullptr;
+                Filesystem::FileManager* GetFileManager() const { return context.fileManager; }
 
-        Audio::AudioIDManager* audioIDManager = nullptr;
+                Filesystem::AssetIDManager* GetAssetIDManager() const { return context.assetIDManager; }
 
-        Physics::PhysicsSystem* physicsSystem = nullptr;
+                ECS::ObjectIDManager* GetObjectIDManager() const { return context.objIDManager; }
 
-        Time::TimeManager* timeManager = nullptr;
+                Physics::PhysicsSystem* GetPhysicsSystem() const { return context.physicsSystem; }
 
-        Debugging::Debugger* debugger = nullptr;
+                Levels::LevelManager* GetLevelManager() const { return context.levelManager; }
 
-        Platform::IPlatform* platform = nullptr;
+                Events::EventDispatcher* GetEventDispatcher() const { return context.eventDispatcher; }
 
-        std::shared_ptr<Projects::Project> currentProject = nullptr;
-    };
+                Audio::AudioManager* GetAudioManager() const { return context.audioManager; }
 
-    
-    struct Stats {
-        //Audio
-        int sounds = 0;
+                Audio::AudioIDManager* GetAudioIDManager() const { return context.audioIDManager; }
 
-        //Rendering
-        float frameTimeMs = 0;
-        float fps = 0;
-        int drawCalls = 0;
-        int triangles = 0;
-        int vertices = 0;
-        float gpuMemoryMB = 0;
+                Time::TimeManager* GetTimeManager() const { return context.timeManager; }
 
-        //Level
-        int actors = 0;
-        int lights = 0;
-    };
+                Projects::BuildSettings* GetBuildSettings() const { return context.currentProject->GetBuildSettings(); }
 
-    class EngineInstance {
-        public:
-            EngineInstance(const EngineInstance&) = delete;
-            EngineInstance& operator=(const EngineInstance&) = delete;
+                std::shared_ptr<Projects::Project> GetCurrentProject() const { return context.currentProject; }
 
-            // Provide access to the singleton instance
-            static EngineInstance& GetInstance() {
-                static EngineInstance instance;
-                return instance;
+                Debugging::Profiler* GetProfiler() const { return context.profiler; }
+
+            private:
+                EngineInstance() = default;
+
+                EngineContext context;
+
+                EngineCreationSettings settings;
+        };
+
+        #if defined(BUILD_ENGINE)
+
+            // Used by the EXE/engine
+            inline EngineInstance& GetEngine() {
+                return EngineInstance::GetInstance();
             }
 
-            // Public interface
-            bool shouldEnd() { return context.platform->GetWindow()->ShouldClose(); }
-            void Destroy();
-            bool Run();
-            void Init(EngineCreationSettings settings);
-            void InitSystems();
+        #elif defined(BUILD_GAME)
 
-            // Optional: configure engine before initialization
-            void SetSettings(const EngineCreationSettings& s) { settings = s; }
-            EngineCreationSettings GetSettings() const { return settings; }
+            // Used by the Game Module DLL
+            inline EngineInstance* gSharedEnginePtr = nullptr;
 
-            Platform::IWindow* GetWindow() const { return context.platform->GetWindow(); }
-
-            Platform::IInput* GetInputManager() const { return context.platform->GetInput(); }
-
-            Rendering::Renderer* GetRenderer() const { return context.renderer; }
-
-            Rendering::CameraManager* GetCameraManager() const { return context.cameraManager; }
-
-            OpenGL* GetGL() const { return context.openGL; }
-
-            void SetGL(OpenGL* gl) { context.openGL = gl; }
-
-            Resources::ResourcesManager* GetResourcesManager() const { return context.resourcesManager; }
-
-            Filesystem::FileManager* GetFileManager() const { return context.fileManager; }
-
-            Filesystem::AssetIDManager* GetAssetIDManager() const { return context.assetIDManager; }
-
-            ECS::ObjectIDManager* GetObjectIDManager() const { return context.objIDManager; }
-
-            Physics::PhysicsSystem* GetPhysicsSystem() const { return context.physicsSystem; }
-
-            Levels::LevelManager* GetLevelManager() const { return context.levelManager; }
-
-            Events::EventDispatcher* GetEventDispatcher() const { return context.eventDispatcher; }
-
-            Audio::AudioManager* GetAudioManager() const { return context.audioManager; }
-
-            Audio::AudioIDManager* GetAudioIDManager() const { return context.audioIDManager; }
-
-            Time::TimeManager* GetTimeManager() const { return context.timeManager; }
-
-            Debugging::Debugger* GetDebugger() const { return context.debugger; }
-
-            Projects::BuildSettings* GetBuildSettings() const { return context.currentProject->GetBuildSettings(); }
-
-            std::shared_ptr<Projects::Project> GetCurrentProject() const { return context.currentProject; }
-
-            Stats GetStats() {
-                Stats ret{};
-
-                for(auto& cmd : *context.renderer->GetDrawList()){
-                    ret.drawCalls++;
-                    ret.triangles += cmd.indexCount / 3;
-                    ret.vertices += cmd.verticesCount;
-                }
-
-                ret.frameTimeMs = context.timeManager->GetDeltaTime() * 1000;
-                ret.fps = 1000 / ret.frameTimeMs;
-
-                ret.actors = static_cast<int>(context.levelManager->GetLevelAt(0)->transforms.size());
-                ret.lights = context.renderer->lightMan->GetLightsCount();
-
-                ret.sounds = context.audioManager->GetSoundsCount();
-
-                Platform::SystemInfos infos = GetWindow()->GetSystemInfos();
-
-                if(infos.gpu_vendor == "NVIDIA Corporation"){    
-                    GLint total_kb = 0;
-                    GLint available_kb = 0;
-
-                    context.openGL->GetIntegerv(0x9048, &total_kb);
-                    context.openGL->GetIntegerv(0x9049, &available_kb);
-
-                    ret.gpuMemoryMB = (total_kb - available_kb) / 1024.0f;
-                }
-                else if(infos.gpu_vendor == "ATI Technologies Inc."){
-                    GLint freeMemoryKB[4] = {0};
-                    context.openGL->GetIntegerv(0x87FC, freeMemoryKB);
-
-                    ret.gpuMemoryMB = (float)(freeMemoryKB[0]) / 1024.0f;
-                }
-                else{
-                    ret.gpuMemoryMB += (GetWindow()->GetFramebufferWidth() * GetWindow()->GetFramebufferHeight() * GetWindow()->GetBytesPerPixel()) / (1024.0f * 1024.0f);
-                    ret.gpuMemoryMB += (ret.vertices * sizeof(Vertex)) / (1024.0f * 1024.0f);
-                    ret.gpuMemoryMB += (ret.triangles * 3 * sizeof(uint32_t)) / (1024.0f * 1024.0f);
-                }
-
-                return ret;
+            inline void SetEngine(EngineInstance* ptr) {
+                gSharedEnginePtr = ptr;
             }
 
-        private:
-            EngineInstance() = default;
+            inline EngineInstance& GetEngine() {
+                if (!gSharedEnginePtr)
+                    exit(2);
+                return *gSharedEnginePtr;
+            }
 
-            EngineContext context;
+        #elif defined(BUILD_EDITOR)
 
-            EngineCreationSettings settings;
-    };
+            // Used by the Editor Module DLL
+            inline EngineInstance* gSharedEnginePtr = nullptr;
 
-    #if defined(BUILD_ENGINE)
+            inline void SetEngine(EngineInstance* ptr) {
+                gSharedEnginePtr = ptr;
+            }
 
-        // Used by the EXE/engine
-        inline EngineInstance& GetEngine() {
-            return EngineInstance::GetInstance();
-        }
+            inline EngineInstance& GetEngine() {
+                if (!gSharedEnginePtr)
+                    exit(2);
+                return *gSharedEnginePtr;
+            }
 
-    #elif defined(BUILD_GAME)
-
-        // Used by the Game Module DLL
-        inline EngineInstance* gSharedEnginePtr = nullptr;
-
-        inline void SetEngine(EngineInstance* ptr) {
-            gSharedEnginePtr = ptr;
-        }
-
-        inline EngineInstance& GetEngine() {
-            if (!gSharedEnginePtr)
-                exit(2);
-            return *gSharedEnginePtr;
-        }
-
-    #elif defined(BUILD_EDITOR)
-
-        // Used by the Editor Module DLL
-        inline EngineInstance* gSharedEnginePtr = nullptr;
-
-        inline void SetEngine(EngineInstance* ptr) {
-            gSharedEnginePtr = ptr;
-        }
-
-        inline EngineInstance& GetEngine() {
-            if (!gSharedEnginePtr)
-                exit(2);
-            return *gSharedEnginePtr;
-        }
-
-    #endif
+        #endif
+    }
+   
 }

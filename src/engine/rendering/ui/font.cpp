@@ -1,7 +1,7 @@
 #include "font.hpp"
 
 #include "engine/filesystem/filesystem.hpp"
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include "engine/core/engine.hpp"
 

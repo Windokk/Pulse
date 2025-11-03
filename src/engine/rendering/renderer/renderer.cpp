@@ -96,6 +96,7 @@ namespace Pulse::Engine::Rendering{
             renderPass.target->Shutdown();
         }
         viewportBuffer->Shutdown();
+        lightMan->Clear();
     }
 
     void Renderer::Render()

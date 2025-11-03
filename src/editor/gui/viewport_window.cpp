@@ -233,8 +233,8 @@ namespace Pulse::Editor {
             ImGui::Separator();
 
             // Display frame metrics
-            Engine::Core::Stats stats = Engine::Core::GetEngine().GetStats();
-
+            Engine::Debugging::MinimalStatistics stats = Engine::Core::GetEngine().GetProfiler()->GetStats();
+ 
             ImGui::Text("Sounds: %d", stats.sounds);
 
             // Rendering stats
@@ -250,6 +250,7 @@ namespace Pulse::Editor {
 
             ImGui::End();
         }
+        
 
         std::shared_ptr<Engine::ECS::Objects::Actor> selected = parent->GetSelectedActor();
 

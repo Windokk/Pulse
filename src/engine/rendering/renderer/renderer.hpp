@@ -6,7 +6,7 @@
 #include "engine/ecs/components/rendering/model_component.hpp"
 #include "engine/rendering/debug/debug.hpp"
 #include "engine/rendering/shadow/shadow_manager.hpp"
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
 
 namespace Pulse::Engine{

@@ -1,6 +1,6 @@
 #include "engine/levels/level_manager.hpp"
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 #include "level_manager.hpp"
 
 #include "engine/core/engine.hpp"

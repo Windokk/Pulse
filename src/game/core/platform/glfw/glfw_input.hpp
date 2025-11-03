@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "engine/inputs/keys.hpp"
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 #include "engine/core/platform/iplatform.hpp"
 
 #include <GLFW/glfw3.h>

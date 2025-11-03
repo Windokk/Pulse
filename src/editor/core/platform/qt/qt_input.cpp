@@ -3,7 +3,7 @@
 #include <QGuiApplication>
 #include <QCursor>
 
-#include "engine/debugging/debugger.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include "editor/gui/main_win.hpp"
 

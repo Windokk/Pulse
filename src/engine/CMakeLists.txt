@@ -26,7 +26,7 @@ set_target_properties(Engine PROPERTIES
 target_compile_definitions(Engine PRIVATE BUILD_ENGINE JPH_PROFILE_ENABLED JPH_DEBUG_RENDERER JPH_OBJECT_STREAM)
 
 if(WIN32)
-  target_link_libraries(Engine PUBLIC freetype CosemPacker Jolt fmod glfw3dll -lz opengl32 gdi32 user32 shell32 advapi32)
+  target_link_libraries(Engine PUBLIC freetype CosemPacker Jolt fmod glfw3dll -lz opengl32 gdi32 user32 shell32 advapi32 pdh)
 elseif(UNIX)
   find_package(PNG REQUIRED)
   find_package(BZip2 REQUIRED)
