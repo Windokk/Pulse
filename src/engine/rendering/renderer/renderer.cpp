@@ -237,7 +237,11 @@ namespace Pulse::Engine::Rendering{
 
         // --- Main Draw Calls ---
         for (auto& cmd : drawList) {
-            if (!cmd.mat || cmd.indexCount <= 0 || (Core::GetEngine().GetCameraManager()->GetActiveCamera()->frustumCulling && !Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsInFrustum(cmd.boundsMin, cmd.boundsMax)))
+
+            glm::vec3 worldMin = glm::vec3(cmd.tr->GetTransformMatrix() * glm::vec4(cmd.boundsMin, 1.0f));
+            glm::vec3 worldMax = glm::vec3(cmd.tr->GetTransformMatrix() * glm::vec4(cmd.boundsMax, 1.0f));
+
+            if (!cmd.mat || cmd.indexCount <= 0 || (Core::GetEngine().GetCameraManager()->GetActiveCamera()->frustumCulling && !Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsInFrustum(worldMin, worldMax)))
                 continue;
 
             if(settings.enableShadows && cmd.mat->recievesShadows)
@@ -286,14 +290,15 @@ namespace Pulse::Engine::Rendering{
 
         // --- Debug Physics Shapes ---
         unlitShader->Activate();
-        unlitShader->setMat4("projectionView", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetMatrix());
+        unlitShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+        unlitShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
 
         for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
             glm::vec3 pos = physicBody->parent->transform->GetPosition();
             glm::quat rot = physicBody->parent->transform->GetRotation();
 
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), pos) * glm::toMat4(rot);
+            glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
 
             unlitShader->setMat4("model", model);
 

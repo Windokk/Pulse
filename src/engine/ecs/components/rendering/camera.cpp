@@ -76,22 +76,16 @@ namespace Pulse::Engine::ECS::Components {
     bool isOnOrForwardPlane(glm::vec3 center, glm::vec3 extents, const Plane& plane)
 	{
 		// Compute the projection interval radius of b onto L(t) = b.c + t * p.n
-		const float r = extents.x * std::abs(plane.normal.x) + extents.y * std::abs(plane.normal.y) +
-			extents.z * std::abs(plane.normal.z);
+		const float r = extents.x * std::abs(plane.normal.x) +
+            extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
 
 		return -r <= plane.getSignedDistanceToPlane(center);
 	}
 
-    std::shared_ptr<Component> Camera::Clone() const
-    {
-        auto cloned = std::make_shared<Camera>(*this);
-
-        return cloned;
-    }
-
     bool Camera::IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax)
     {
-        Frustum camFrustum = createFrustumFromCamera(*this, width/height, fov, nearPlane, farPlane);
+        float aspect = float(width) / float(height);
+        Frustum camFrustum = createFrustumFromCamera(*this, aspect, fov, nearPlane, farPlane);
 
         glm::vec3 center = (boundsMin + boundsMax) * 0.5f;
         glm::vec3 extents = boundsMax - boundsMin;
@@ -104,4 +98,10 @@ namespace Pulse::Engine::ECS::Components {
 			isOnOrForwardPlane(center, extents, camFrustum.farFace));
     }
 
+    std::shared_ptr<Component> Camera::Clone() const
+    {
+        auto cloned = std::make_shared<Camera>(*this);
+
+        return cloned;
+    }
 }

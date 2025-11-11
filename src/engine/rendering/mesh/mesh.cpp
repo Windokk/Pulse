@@ -120,7 +120,10 @@ namespace Pulse::Engine::Rendering{
                     // Position
                     ufbx_vec3 pos = ufbx_get_vertex_vec3(&ufbx_mesh->vertex_position, vertex_index);
                     v.position = { pos.x * scene_scale, pos.y * scene_scale, pos.z * scene_scale };
-
+                    
+                    boundsMin = glm::min(boundsMin, v.position);
+                    boundsMax = glm::max(boundsMax, v.position);
+                    
                     // Normal
                     if (ufbx_mesh->vertex_normal.exists) {
                         ufbx_vec3 normal = ufbx_get_vertex_vec3(&ufbx_mesh->vertex_normal, vertex_index);
@@ -242,22 +245,8 @@ namespace Pulse::Engine::Rendering{
             cmd.id          = objectID;
             cmd.fillMode    = GL_FILL;
 
-
-            glm::vec3 maxVec = glm::vec3(0);
-            glm::vec3 minVec = glm::vec3(0);
-
-            if(!vertices.empty()){
-                maxVec = vertices[0].position;
-                minVec = vertices[0].position;
-            }
-            
-            for (size_t i = 1; i < vertices.size(); ++i){
-                maxVec = glm::max(maxVec, vertices[i].position);
-                minVec = glm::min(minVec, vertices[i].position);
-            }
-
-            cmd.boundsMax = maxVec;
-            cmd.boundsMin = minVec;
+            cmd.boundsMax = boundsMax;
+            cmd.boundsMin = boundsMin;
 
             cmds.push_back(std::move(cmd));
         }

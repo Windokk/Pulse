@@ -39,6 +39,8 @@ namespace Pulse::Engine::Rendering{
             std::vector<Vertex> vertices;
             std::vector<GLuint> indices;
             std::vector<SubMesh> submeshes;
+            glm::vec3 boundsMin = glm::vec3(0);
+            glm::vec3 boundsMax = glm::vec3(0);
 
             bool LoadMesh(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse);
             

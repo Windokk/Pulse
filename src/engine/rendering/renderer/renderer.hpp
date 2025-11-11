@@ -59,11 +59,17 @@ namespace Pulse::Engine{
             int verticesCount = 0;
             unsigned int VAO;
             unsigned int VBO;
+            /// @brief The material to use to draw this command
             std::shared_ptr<Material> mat;
+            /// @brief A pointer to the transform of the mesh
             std::shared_ptr<ECS::Components::Transform> tr;
+            /// @brief The id of the object that sent the draw command
             int id;
+            /// @brief The fill mode : can be GL_FILL, GL_LINE, or GL_POINT
             int fillMode = GL_FILL;
+            /// @brief Represents the smallest x, y, z coordinates of the mesh
             glm::vec3 boundsMin = glm::vec3(0);
+            /// @brief Represents the biggest x, y, z coordinates of the mesh
             glm::vec3 boundsMax = glm::vec3(0);
         };
 
