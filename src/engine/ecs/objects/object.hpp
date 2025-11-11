@@ -18,6 +18,7 @@ namespace Pulse::Engine::ECS::Objects{
                 static_assert(std::is_base_of<Object, T>::value, "T must derive from Object");
                 std::shared_ptr<T> obj = std::make_shared<T>(std::forward<Args>(args)...);
                 AssignObjectID(obj);
+                Object::CallInit(obj);
                 return obj;
             }
 
@@ -63,6 +64,26 @@ namespace Pulse::Engine::ECS::Objects{
             virtual void Destroy();
         
         private:
+
+            template <typename, typename = std::void_t<>>
+            struct HasInit : std::false_type {};
+
+            template <typename T>
+            struct HasInit<T, std::void_t<decltype(std::declval<T>().Init())>> : std::true_type {};
+
+            // Primary template: HasInit<T> == true
+            template <typename U>
+            static std::enable_if_t<HasInit<U>::value>
+            CallInit(std::shared_ptr<U> obj) {
+                obj->Init();
+            }
+
+            // Fallback: HasInit<T> == false
+            template <typename U>
+            static std::enable_if_t<!HasInit<U>::value>
+            CallInit(std::shared_ptr<U>) {
+                // do nothing
+            }
 
             Object();
             ObjectID id;

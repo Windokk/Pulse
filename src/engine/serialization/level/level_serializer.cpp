@@ -12,9 +12,11 @@
 
 using namespace nlohmann;
 
+using namespace Pulse::Engine::ECS::Objects;
+
 namespace Pulse::Engine::Serialization{
     
-    void LoadModelComponent(json &component, std::shared_ptr<ECS::Objects::Actor> a, json data){
+    void LoadModelComponent(json &component, std::shared_ptr<Actor> a, json data){
         std::string mesh_name = component["mesh"];
         if (data["meshes"].contains(mesh_name)) {
             const std::string& mesh_path = data["meshes"][mesh_name];
@@ -79,7 +81,7 @@ namespace Pulse::Engine::Serialization{
             model->DeActivate();
     }
 
-    void LoadLightComponent(json &component, std::shared_ptr<ECS::Objects::Actor> a){
+    void LoadLightComponent(json &component, std::shared_ptr<Actor> a){
         a->AddComponent<ECS::Components::Light>();
         auto light = a->GetComponent<ECS::Components::Light>();
 
@@ -109,7 +111,7 @@ namespace Pulse::Engine::Serialization{
             light->DeActivate();
     }
 
-    void LoadPhysicsBodyComponent(json &component, std::shared_ptr<ECS::Objects::Actor> a){
+    void LoadPhysicsBodyComponent(json &component, std::shared_ptr<Actor> a){
         a->AddComponent<ECS::Components::PhysicsBody>();
 
         auto physics_body = a->GetComponent<ECS::Components::PhysicsBody>();
@@ -155,7 +157,7 @@ namespace Pulse::Engine::Serialization{
             physics_body->DeActivate();
     }
 
-    void LoadCameraComponent(json &component, std::shared_ptr<ECS::Objects::Actor> a){
+    void LoadCameraComponent(json &component, std::shared_ptr<Actor> a){
         a->AddComponent<ECS::Components::Camera>();
 
         auto cam = a->GetComponent<ECS::Components::Camera>();
@@ -174,7 +176,7 @@ namespace Pulse::Engine::Serialization{
             cam->DeActivate();
     }
 
-    void LoadComponents(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
+    void LoadComponents(std::shared_ptr<Actor> a, json data, json actor){
         for(auto& component : actor["components"]){
             
             if (!component.contains("type")) continue;
@@ -231,12 +233,11 @@ namespace Pulse::Engine::Serialization{
         }
     }
 
-    void LoadActor(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
+    void LoadActor(std::shared_ptr<Actor> a, json data, json actor){
 
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
             for (auto& child : actor["children"]) {
-                std::shared_ptr<ECS::Objects::Actor> b = ECS::Objects::Object::Create<ECS::Objects::Actor>(child["name"]);
-                b->Init();
+                std::shared_ptr<Actor> b = Object::Create<Actor>(child["name"]);
                 a->AddChild(b);
                 LoadActor(b, data, child);
             }
@@ -261,8 +262,7 @@ namespace Pulse::Engine::Serialization{
 
             for(auto& actor : data["actors"])
             {
-                std::shared_ptr<ECS::Objects::Actor> a = ECS::Objects::Object::Create<ECS::Objects::Actor>(actor["name"]);
-                a->Init();
+                std::shared_ptr<Actor> a = Object::Create<Actor>(actor["name"]);
                 l->AddActor(a);
                 LoadActor(a, data, actor);
             }

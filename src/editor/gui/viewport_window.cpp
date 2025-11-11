@@ -314,7 +314,6 @@ namespace Pulse::Editor {
         switch(event.changeType){
             case Engine::Events::LOADED:{
                 cameraActor = Engine::ECS::Objects::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
-                cameraActor->Init();
                 cameraActor->AddComponent<Engine::ECS::Components::Camera>();
                 int width = Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth();
                 int height = Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight();

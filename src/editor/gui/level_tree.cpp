@@ -199,7 +199,6 @@ namespace Pulse::Editor{
                 }
                 else if (selectedAction == createAction) {
                     std::shared_ptr<Engine::ECS::Objects::Actor> child = Engine::ECS::Objects::Object::Create<Engine::ECS::Objects::Actor>("New Actor");
-                    child->Init();
                     actor->AddChild(child);
                 }
             }

@@ -142,7 +142,7 @@ This will compile everything from root : the engine, the editor app, the editor 
   - Documentation (User + Source Code)
   - Optimizations
 
-## ROADMAP FIRST PROTOTYPE 0.1.0 (December 2025)
+## ROADMAP FIRST PROTOTYPE 0.1.0 (January 2026)
 
 ### Editor (Qt)
 
@@ -168,6 +168,7 @@ This will compile everything from root : the engine, the editor app, the editor 
 
 #### Serialization
 
+- [ ] Component serialization
 - [ ] Level exporter
 - [ ] Material file exporter
 
