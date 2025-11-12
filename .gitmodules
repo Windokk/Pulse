@@ -1,0 +1,30 @@
+[submodule "submodules/qtimgui"]
+	path = submodules/qtimgui
+	url = https://github.com/Windokk/qtimgui.git
+[submodule "submodules/qtads"]
+	path = submodules/qtads
+	url = https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git
+[submodule "submodules/glfw"]
+	path = submodules/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "submodules/glm"]
+	path = submodules/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "submodules/jolt"]
+	path = submodules/jolt
+	url = https://github.com/jrouwe/JoltPhysics.git
+[submodule "submodules/imguizmo"]
+	path = submodules/imguizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "submodules/freetype"]
+	path = submodules/freetype
+	url = https://github.com/freetype/freetype.git
+[submodule "submodules/stb"]
+	path = submodules/stb
+	url = https://github.com/nothings/stb.git
+[submodule "submodules/ufbx"]
+	path = submodules/ufbx
+	url = https://github.com/ufbx/ufbx.git
+[submodule "submodules/json"]
+	path = submodules/json
+	url = https://github.com/nlohmann/json.git
