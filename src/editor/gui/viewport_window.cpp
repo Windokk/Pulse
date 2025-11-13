@@ -185,13 +185,7 @@ namespace Pulse::Editor {
         ImGuiStyle& style = ImGui::GetStyle();
 
         ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 115.0f, 0.0f));
-        ImGui::Begin("##GizmoSelection", nullptr, 
-            ImGuiWindowFlags_NoBackground  |
-            ImGuiWindowFlags_NoTitleBar    | 
-            ImGuiWindowFlags_NoResize      | 
-            ImGuiWindowFlags_NoCollapse    | 
-            ImGuiWindowFlags_NoMove        | 
-            ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin("##GizmoSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         auto DrawGizmoButton = [&](const char* icon, ImGuizmo::OPERATION op)
         {
             bool selected = (currentGizmoOp == op);
@@ -210,6 +204,7 @@ namespace Pulse::Editor {
         DrawGizmoButton(ICON_LC_MOVE, ImGuizmo::TRANSLATE);
         ImGui::SameLine();
         DrawGizmoButton(ICON_LC_REFRESH_CW, ImGuizmo::ROTATE);
+
         ImGui::SameLine();
         DrawGizmoButton(ICON_LC_SCALING, ImGuizmo::SCALE);
         ImGui::End();
@@ -227,31 +222,9 @@ namespace Pulse::Editor {
 
         if(showFrameStats)
         {
-            ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 200.0f, 34.0f));
-            ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-            ImGui::Text("Statistics");
-            ImGui::Separator();
-
-            // Display frame metrics
-            Engine::Debugging::MinimalStatistics stats = Engine::Core::GetEngine().GetProfiler()->GetStats();
- 
-            ImGui::Text("Sounds: %d", stats.sounds);
-
-            // Rendering stats
-            ImGui::Text("Frame Time: %.2f ms (%.1f FPS)", stats.frameTimeMs, stats.fps);
-            ImGui::Text("Draw Calls: %d", stats.drawCalls);
-            ImGui::Text("Triangles: %d", stats.triangles);
-            ImGui::Text("Vertices: %d", stats.vertices);
-            ImGui::Text("GPU Memory: %.1f MB", stats.gpuMemoryMB);
-
-            // Level stats
-            ImGui::Text("Actors: %d", stats.actors);
-            ImGui::Text("Lights: %d", stats.lights);
-
-            ImGui::End();
+            ShowFrameStats();
         }
         
-
         std::shared_ptr<Engine::ECS::Objects::Actor> selected = parent->GetSelectedActor();
 
         if(selected != nullptr){
@@ -274,6 +247,42 @@ namespace Pulse::Editor {
         QtImGui::Render();
 
         context()->swapBuffers(this);
+    }
+
+    void QtGLViewportWindow::ShowFrameStats(){
+
+        ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 265.0f, 34.0f));
+        ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Text("Statistics");
+        ImGui::Separator();
+
+        // Display frame metrics
+        Engine::Debugging::MinimalStatistics stats = Engine::Core::GetEngine().GetProfiler()->GetStats();
+        Engine::Core::Platform::SystemInfos system = Engine::Core::GetEngine().GetWindow()->GetSystemInfos();
+
+        ImGui::Text("Sounds: %d", stats.sounds);
+
+        ImGui::Separator();
+
+        // Rendering stats
+        ImGui::Text("Frame Time: %.2f ms (%.1f FPS)", stats.frameTimeMs, stats.fps);
+        ImGui::Text("Draw Calls: %d", stats.drawCalls);
+        ImGui::Text("Triangles: %d", stats.triangles);
+        ImGui::Text("Vertices: %d", stats.vertices);
+        ImGui::Text("GPU Memory: %.1f MB", stats.gpuMemoryMB);
+
+        ImGui::Separator();
+
+        // Level stats
+        ImGui::Text("Actors: %d", stats.actors);
+        ImGui::Text("Lights: %d", stats.lights);
+
+        ImGui::Separator();
+
+        // System infos
+        ImGui::Text("Renderer : %s", system.gpu_renderer.c_str());
+
+        ImGui::End();
     }
 
     QSize QtGLViewportWindow::GetFramebufferSize() const {

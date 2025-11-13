@@ -22,6 +22,7 @@ namespace Pulse::Editor {
         void InitGL(bool vsync);
         void MakeCurrent();
         void SwapBuffers();
+        void ShowFrameStats();
         QSize GetFramebufferSize() const;
 
         void SetParentWindow(EditorMainWindow* parent);

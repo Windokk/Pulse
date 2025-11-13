@@ -612,5 +612,131 @@
         {
             "dependencies": []
         }
+    ],
+
+    "textures\\sphere_BaseColor.jpg": [
+        {
+            "id": 585
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "textures\\sphere_Metallic.jpg": [
+        {
+            "id": 586
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "textures\\sphere_Normal.jpg": [
+        {
+            "id": 587
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "textures\\sphere_Roughness.jpg": [
+        {
+            "id": 588
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "materials\\spheres\\sphere0_0.mat":[
+        {
+            "id": 589
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere0_05.mat":[
+        {
+            "id": 590
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere0_1.mat":[
+        {
+            "id": 591
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere05_0.mat":[
+        {
+            "id": 592
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere05_05.mat":[
+        {
+            "id": 593
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere05_1.mat":[
+        {
+            "id": 594
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere1_0.mat":[
+        {
+            "id": 595
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere1_05.mat":[
+        {
+            "id": 596
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "materials\\spheres\\sphere1_1.mat":[
+        {
+            "id": 597
+        },
+        {
+            "dependencies":  [585, 587, 588]
+        }
+    ],
+
+    "spheres.lvl":[
+        {
+            "id": 598
+        },
+        {
+            "dependencies": [597, 596, 595, 594, 593, 592, 591, 590, 589, 535]
+        }
     ]
 }

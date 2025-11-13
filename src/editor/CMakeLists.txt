@@ -31,6 +31,7 @@ target_include_directories(EditorModule PRIVATE
 
 target_link_directories(EditorModule PRIVATE 
   ${CMAKE_SOURCE_DIR}/build/submodules/qtimgui/src/
+  ${CMAKE_SOURCE_DIR}/build/submodules/qtimgui/modules/
   ${QT_ADS_PATH}
 )
 

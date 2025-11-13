@@ -16,4 +16,4 @@ IF %ERRORLEVEL% NEQ 0 (
 
 REM Run the editor only if build succeeded
 echo [INFO] Build succeeded. Starting editor...
-start "" ./PulseEditor.exe --editor libEditorModule.dll --project ..\\test_project\\test_project.json --vsync 0
+start "" ./PulseEditor.exe --editor libEditorModule.dll --project ..\\test_project\\test_project.json

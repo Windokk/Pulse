@@ -13,118 +13,30 @@
   (full of bugs)
 </p>
 
-## Screenshots
-
-
-
 ## Build Requirements (Windows)
 
+### Build tools :
 - CMake 3.28.2 or later
 - C++ 17 Compiler (GCC MinGW recommended)
+
+### Proprietary Dependencies :
 - Qt 6.9.2
-- GLFW
-- ZLIB
-- FMOD API
-- QtAdvancedDocking
+- FMOD API 2.03
+
+### Editor Fonts : (Place both in src/editor/gui/fonts/)
+- [OpenSans-Regular.ttf](https://github.com/googlefonts/opensans)
+- [lucide.ttf](https://unpkg.com/lucide-static@latest/font/lucide.ttf)
 
 ## Build Requirements (Linux) :
 
-### WIP
+<h3><i style="color:green"># Still WIP</i></h3>
 
 ## How to build :
 
 Run build.bat or build.sh (depending on your OS)
 
-This will compile everything from root : the engine, the editor app, the editor module, and the game module (loaded with the game app)
+This will compile everything from root : submodules, the engine, the editor app, the editor module, and the game module (loaded with the game app)
 
-(As of october 2025, the editor module will try to find Qt6 at : "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/" on Windows, you can chnage it in the parent CMakeLists.txt)
-
-
-## FEATURES IMPLEMENTED
-
-### Forward Renderer
-
-- PBR shaders/materials (transparency support (transparent & masked))
-- Light system : Directionnal, Spot, Point
-- Shadow maps : Directionnal CSM, PCF (for all shadow maps)
-- Model component (ECS)
-
-#### UI
-
-- Loading fonts
-- Text components (ECS)
-- UI Pass Type
-
-### Audio System
-
-- 3D Stereo audio
-- Audio source component (ECS)
-
-### Filesystem
-
-- Reading/Writing files
-
-### Resources Manager
-
-- Loading/Unloading per folder + file type
-
-### Game Module
-
-- Game module loading at runtime in a DLL
-- Code execution across DLL
-
-### Editor Module
-
-- Editor module loaded at runtime in a DLL
-- Editor uses Qt for gui
-
-### Debugging/Profiling
-
-- Debug levels (Log, Info, Warning, Error, Fatal)
-
-### ECS
-
-- Level hierarchy
-- Local/Global components ids
-- Actor ids
-
-### Events System
-
-- Sending/Recieving events (across custom class/across engine) via a dispatcher
-
-### Inputs System
-
-- Checking for keyboard/mouse inputs
-- Cursor state
-
-### Level System
-
-- Loading/Unloading levels
-- Adding actors to the level
-
-### Serialization
-
-- Level de-serializer
-- Material de-serializer
-
-### Physics System
-
-- Jolt integration
-- Physics shapes visualizing
-
-### Time System
-
-- Time queries (delta, fixedDelta, current global (world) time, current app time)
-- Timespeed (for physics calculations, particles and custom classes)
-
-### Project system
-
-- Project settings file
-- Editor preferences (inside project settings file)
-
-
-
-<br>
 
 ## ROADMAP FULL ENGINE
 
