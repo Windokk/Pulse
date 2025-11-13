@@ -65,12 +65,8 @@ namespace Pulse::Engine::Filesystem{
         int GetFileSize() const;
 
         Path GetParentPath() const;
-    
-        std::string GetParentArchive() const ;
 
         std::string GetPathInsideArchive() const;
-
-        bool IsPacked() const;
     
         bool Exists() const;
     

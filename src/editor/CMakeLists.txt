@@ -3,6 +3,7 @@ file(GLOB_RECURSE EDITOR_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/core/platform/qt/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/gui/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/gui/default.qrc
+  ${CMAKE_SOURCE_DIR}/submodules/imguizmo/ImGuizmo.cpp
 )
 
 set(CMAKE_AUTORCC ON)
@@ -20,11 +21,15 @@ target_compile_definitions(EditorModule PRIVATE BUILD_EDITOR)
 
 target_include_directories(EditorModule PRIVATE
   ${CMAKE_SOURCE_DIR}/src/
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/include/
+  ${CMAKE_SOURCE_DIR}/submodules/qtads/src/
+  ${CMAKE_SOURCE_DIR}/submodules/qtimgui/src/
+  ${CMAKE_SOURCE_DIR}/submodules/qtimgui/modules/
+  ${CMAKE_SOURCE_DIR}/submodules/imguizmo/
 )
 
-target_link_directories(EditorModule PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib)
+target_link_directories(EditorModule PRIVATE 
+  ${CMAKE_SOURCE_DIR}/build/submodules/qtimgui/src/
+  ${CMAKE_SOURCE_DIR}/submodules/qtads/build/Desktop_Qt_6_9_2_MinGW_64_bit-Debug/lib/  # Replace this with the path to your actual qt ads lib
+)
 
-target_link_libraries(EditorModule PRIVATE qtadvanceddocking qt_imgui_widgets imgui)
-
-target_link_libraries(EditorModule PRIVATE Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL)
+target_link_libraries(EditorModule PRIVATE qtadvanceddocking qt_imgui_widgets imgui Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL)

@@ -8,8 +8,8 @@
 
 #include "engine/core/engine.hpp"
 
-#include <qt-ads/DockAreaWidget.h>
-#include <qt-ads/DockAreaTabBar.h>
+#include <DockAreaWidget.h>
+#include <DockAreaTabBar.h>
 
 #include "editor/gui/level_tree.hpp"
 

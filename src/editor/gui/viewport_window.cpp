@@ -6,7 +6,7 @@
 
 #include "main_win.hpp"
 
-#include <imgui/IconsLucide.h>
+#include "IconsLucide.h"
 
 namespace Pulse::Editor {
 

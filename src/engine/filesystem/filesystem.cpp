@@ -1,7 +1,5 @@
 #include "filesystem.hpp"
 
-#include "packer/unpacker.hpp"
-
 #include "engine/debugging/logger.hpp"
 
 namespace Pulse::Engine::Filesystem{
@@ -88,19 +86,11 @@ namespace Pulse::Engine::Filesystem{
 
     std::string Path::ReadFile() const
     {
-        if(IsPacked()){
-            CosemUnPacker unpacker;
-            unpacker.OpenArchive(GetParentArchive());
-            std::vector<char> characters = unpacker.ExtractFileToMemory(GetPathInsideArchive());
-            return std::string(characters.begin(), characters.end());
-        }
-        else{
-            std::ifstream file(full, std::ios::binary);
-            if (!file) DEBUG_ERROR("Can't read file at path : " + full);
-            std::ostringstream sstream;
-            sstream << file.rdbuf();
-            return sstream.str();
-        }
+        std::ifstream file(full, std::ios::binary);
+        if (!file) DEBUG_ERROR("Can't read file at path : " + full);
+        std::ostringstream sstream;
+        sstream << file.rdbuf();
+        return sstream.str();
     }
 
     std::string Path::WithoutExtension() const
@@ -111,11 +101,6 @@ namespace Pulse::Engine::Filesystem{
 
     bool Path::WriteFile(const std::string &content) const
     {
-        if (IsPacked()) {
-            DEBUG_ERROR("Cannot write to a file inside a .caf archive");
-            return false;
-        }
-    
         std::ofstream out(full, std::ios::trunc); // truncate = overwrite if file exists
         if (!out.is_open()) return false;
     
@@ -130,11 +115,6 @@ namespace Pulse::Engine::Filesystem{
 
     bool Path::AppendToFile(const std::string &content) const
     {
-        if(IsPacked()){
-            DEBUG_ERROR("Cannot create append to file placed in .caf archive");
-            return false;
-        }
-
         std::ofstream out(full, std::ios::app);
         if (!out.is_open()) return false;
         try {
@@ -327,69 +307,31 @@ namespace Pulse::Engine::Filesystem{
 
     int Path::GetFileSize() const
     {
-        if (IsPacked()) {
-            CosemUnPacker unpacker;
-            unpacker.OpenArchive(GetParentArchive());
-            auto fileIndex = unpacker.GetFileIndex();
-
-            std::string insidePath = GetPathInsideArchive();
-
-            if (IsDirectory() && !insidePath.empty() && insidePath.back() != '/')
-                insidePath += '/';
-
+        if (IsDirectory()) {
             int totalSize = 0;
 
-            for (const auto& entry : fileIndex) {
-                if (entry.path == insidePath || entry.path.compare(0, insidePath.size(), insidePath) == 0) {
-                    totalSize += entry.fileSize;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(full,
+                        std::filesystem::directory_options::skip_permission_denied))
+            {
+                if (entry.is_regular_file()) {
+                    totalSize += std::filesystem::file_size(entry.path());
                 }
             }
 
             return static_cast<int>(totalSize);
-        } else {
-            if (IsDirectory()) {
-                int totalSize = 0;
-
-                for (const auto& entry : std::filesystem::recursive_directory_iterator(full,
-                            std::filesystem::directory_options::skip_permission_denied))
-                {
-                    if (entry.is_regular_file()) {
-                        totalSize += std::filesystem::file_size(entry.path());
-                    }
-                }
-
-                return static_cast<int>(totalSize);
-            } 
-            else if (std::filesystem::exists(full) && std::filesystem::is_regular_file(full)) {
-                return static_cast<int>(std::filesystem::file_size(full));
-            } 
-            else {
-                DEBUG_ERROR("File or directory does not exist: " + full);
-                return -1;
-            }
+        } 
+        else if (std::filesystem::exists(full) && std::filesystem::is_regular_file(full)) {
+            return static_cast<int>(std::filesystem::file_size(full));
+        } 
+        else {
+            DEBUG_ERROR("File or directory does not exist: " + full);
+            return -1;
         }
     }
 
     Path Path::GetParentPath() const
     {
         return Path(GetParent());
-    }
-
-    std::string Path::GetParentArchive() const
-    {
-        if(!IsPacked()){
-            DEBUG_ERROR("Cannot get parent archive for a file that is not placed in an archive");
-            return "";
-        }
-        else{
-
-            size_t pos = full.find(".caf");
-            if (pos == std::string::npos) {
-                DEBUG_ERROR("Packed resource path does not contain '.caf', it is not placed in an archive");
-            }
-
-            return full.substr(0, pos + 4);
-        }
     }
 
     std::string Path::GetPathInsideArchive() const
@@ -404,11 +346,6 @@ namespace Pulse::Engine::Filesystem{
         if (start >= fullPath.size()) return "";
     
         return fullPath.substr(start);
-    }
-
-    bool Path::IsPacked() const
-    {
-        return full.find(".caf/") != std::string::npos;
     }
 
     bool Path::Exists() const

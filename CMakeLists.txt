@@ -13,27 +13,16 @@ configure_file(${CMAKE_SOURCE_DIR}/src/config.h.in config.h)
 
 include_directories(${CMAKE_BINARY_DIR})
 
-# Platform-specific library paths
-if(WIN32)
-  set (Qt6_DIR "C:/Qt/6.9.2/mingw_64/lib/cmake/Qt6/") # Change this to your Qt cmake directory
-  set(GLFW_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/glfw/glfw-win")
-  set(FREETYPE_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/freetype/freetype-win")
-  set(COSEM_PACKER_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/filesystem/packer")
-  set(JOLT_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/jolt/jolt-win")
-  set(FMOD_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/fmod/fmod-win")
-elseif(UNIX)
-  set (Qt6_DIR "") # Change this to your Qt cmake directory
-  set(GLFW_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/glfw/glfw-linux")
-  set(FREETYPE_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/freetype/freetype-linux")
-  set(COSEM_PACKER_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/filesystem/packer/linux")
-  set(JOLT_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/jolt/jolt-linux")
-  set(FMOD_LIB_DIR "${CMAKE_SOURCE_DIR}/src/engine/third-party/lib/fmod/fmod-linux")
-endif()
+# Subdirs (Third party)
 
-# Global definitions
-add_definitions(-DGLFW_INCLUDE_NONE -DGLFW_STATIC)
+add_subdirectory(submodules/freetype)
+add_subdirectory(submodules/glfw)
+add_subdirectory(submodules/glm)
+add_subdirectory(submodules/jolt/Build)
+#add_subdirectory(submodules/qtads) For now it seems that the cmake build is broken --> use Qmake instead
+add_subdirectory(submodules/qtimgui)
 
-# Add subdirectories
+# Subdirs (Pulse)
 add_subdirectory(src/engine)
 add_subdirectory(src/game)
 add_subdirectory(src/editor)

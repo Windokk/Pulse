@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include <qt-ads/DockManager.h>
+#include <DockManager.h>
 
 #include "viewport_window.hpp"
 

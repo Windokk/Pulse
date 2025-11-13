@@ -1,27 +1,23 @@
 #include "audio_manager.hpp"
 
+#include <cassert>
+
 #include "engine/ecs/objects/actors/actor.hpp"
-
 #include "engine/levels/level_manager.hpp"
-
 #include "engine/rendering/utils.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
-
-#include <cassert>
-
 #include "engine/time/time_manager.hpp"
-
 #include "engine/core/engine.hpp"
-
 #include "engine/debugging/logger.hpp"
+
 
 namespace Pulse::Engine::Audio
 {
     using namespace Filesystem;
     using namespace Rendering;
 
-    FMOD_RESULT F_CALLBACK OnSoundStopped(FMOD_CHANNELCONTROL* chanControl,
+    FMOD_RESULT F_CALL OnSoundStopped(FMOD_CHANNELCONTROL* chanControl,
                                       FMOD_CHANNELCONTROL_TYPE controlType,
                                       FMOD_CHANNELCONTROL_CALLBACK_TYPE callbackType,
                                       void* commandData1,

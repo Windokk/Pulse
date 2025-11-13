@@ -62,7 +62,6 @@ This will compile everything from root : the engine, the editor app, the editor 
 
 ### Filesystem
 
-- Cosem Packer/Unpacker
 - Reading/Writing files
 
 ### Resources Manager

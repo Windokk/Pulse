@@ -4,8 +4,8 @@
 #include <QOpenGLExtraFunctions>
 
 #include <imgui/imgui.h>
-#include <imgui/QtImGui.h>
-#include <imgui/ImGuizmo.h>
+#include <QtImGui.h>
+#include <ImGuizmo.h>
 
 #include "editor/core/platform/qt/qt_input.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
