@@ -17,6 +17,8 @@ set_target_properties(EditorModule PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
+set(QT_ADS_PATH ${CMAKE_SOURCE_DIR}/submodules/qtads/build/Desktop_Qt_6_9_2_MinGW_64_bit-Debug/lib/ CACHE PATH "Path to qt ads lib")
+
 target_compile_definitions(EditorModule PRIVATE BUILD_EDITOR)
 
 target_include_directories(EditorModule PRIVATE
@@ -29,7 +31,7 @@ target_include_directories(EditorModule PRIVATE
 
 target_link_directories(EditorModule PRIVATE 
   ${CMAKE_SOURCE_DIR}/build/submodules/qtimgui/src/
-  ${CMAKE_SOURCE_DIR}/submodules/qtads/build/Desktop_Qt_6_9_2_MinGW_64_bit-Debug/lib/  # Replace this with the path to your actual qt ads lib
+  ${QT_ADS_PATH}
 )
 
 target_link_libraries(EditorModule PRIVATE qtadvanceddocking qt_imgui_widgets imgui Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL)

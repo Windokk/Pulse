@@ -6,6 +6,8 @@ file(GLOB_RECURSE ENGINE_SOURCES
 
 add_library(Engine STATIC ${ENGINE_SOURCES})
 
+set(FMOD_API_DIR "" CACHE PATH "Path to fmod api")
+
 target_include_directories(Engine PUBLIC 
   "${CMAKE_SOURCE_DIR}/src/engine/third-party/include/"
   "${CMAKE_SOURCE_DIR}/src/"
@@ -14,17 +16,16 @@ target_include_directories(Engine PUBLIC
   "${CMAKE_SOURCE_DIR}/submodules/"
   "${CMAKE_SOURCE_DIR}/submodules/glm"
   "${CMAKE_SOURCE_DIR}/submodules/freetype/include/"
-  "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/core/inc"
+  ${FMOD_API_DIR}/inc
 )
 
 set(FREETYPE_LIB_DIR "${CMAKE_SOURCE_DIR}/build/submodules/freetype")
 set(JOLT_LIB_DIR "${CMAKE_SOURCE_DIR}/build/submodules/jolt/Build")
-set(FMOD_LIB_DIR "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/core/lib/x64") # Set this to the lib folder of your fmod engine installation
 
 target_link_directories(Engine PUBLIC
   ${FREETYPE_LIB_DIR}
   ${JOLT_LIB_DIR}
-  ${FMOD_LIB_DIR}
+  ${FMOD_API_DIR}/lib/x64
 )
 
 set_target_properties(Engine PROPERTIES
