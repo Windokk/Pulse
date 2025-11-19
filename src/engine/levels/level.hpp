@@ -75,6 +75,7 @@ namespace Pulse::Engine::Levels{
             void SetLoaded(bool loaded) { this->loaded = loaded; }
 
             std::shared_ptr<ECS::Objects::Skybox> skybox;
+            std::shared_ptr<Rendering::Texture> ibl_texture;
             std::vector<std::shared_ptr<ECS::Components::Light>> lights;
             std::vector<std::shared_ptr<ECS::Components::Transform>> transforms;
             std::vector<std::shared_ptr<ECS::Components::Model>> models;

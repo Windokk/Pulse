@@ -131,7 +131,7 @@ namespace Pulse::Engine::Filesystem{
 
         static const std::unordered_map<std::string, Type> extensionMap = {
             // Image formats
-            {".png", Type::T_IMAGE}, {".jpg", Type::T_IMAGE}, {".jpeg", Type::T_IMAGE},
+            {".png", Type::T_IMAGE}, {".jpg", Type::T_IMAGE}, {".jpeg", Type::T_IMAGE}, {".hdr", Type::T_IMAGE},
             {".bmp", Type::T_IMAGE}, {".gif", Type::T_IMAGE}, {".tga", Type::T_IMAGE},
             // Sound formats
             {".wav", Type::T_SOUND}, {".mp3", Type::T_SOUND}, {".ogg", Type::T_SOUND},

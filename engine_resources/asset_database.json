@@ -118,5 +118,15 @@
     "shaders\\skybox\\skybox.frag":[
         {"id":24},
         {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\equirectToCubemap.vert":[
+        {"id":25},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\equirectToCubemap.frag":[
+        {"id":26},
+        {"dependencies":[]}
     ]
 }

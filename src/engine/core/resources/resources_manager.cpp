@@ -130,6 +130,9 @@ namespace Pulse::Engine::Core::Resources{
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            
+            if(assetInfos == nullptr) return nullptr;
+
             return LoadModel(pathInProject, assetInfos->baseInfos.path);
         }
     }
@@ -142,6 +145,9 @@ namespace Pulse::Engine::Core::Resources{
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+
+            if(assetInfos == nullptr) return nullptr;
+
             return LoadMaterial(pathInProject, assetInfos->baseInfos.path);
         }
     }
@@ -173,6 +179,9 @@ namespace Pulse::Engine::Core::Resources{
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+
+            if(assetInfos == nullptr) return nullptr;
+
             return LoadTexture(pathInProject, assetInfos->baseInfos.path);
         }
     }
@@ -185,6 +194,9 @@ namespace Pulse::Engine::Core::Resources{
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+
+            if(assetInfos == nullptr) return nullptr;
+
             return LoadCubemap(pathInProject, assetInfos->baseInfos.path);
         }
     }
@@ -196,6 +208,9 @@ namespace Pulse::Engine::Core::Resources{
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+
+            if(assetInfos == nullptr) return nullptr;
+
             return LoadLevel(pathInProject, assetInfos->baseInfos.path);
         }
     }

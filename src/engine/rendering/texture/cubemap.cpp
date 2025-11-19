@@ -18,7 +18,7 @@ namespace Pulse::Engine::Rendering{
             return;
         }
 
-        Init(filepath.GetParent());
+        Init(filepath);
     }
 
     void Cubemap::Draw(std::shared_ptr<Shader> shader, glm::mat4 view, glm::mat4 projection)
@@ -37,24 +37,31 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->DepthFunc(GL_LESS);
     }
 
-    void Cubemap::Init(Filesystem::Path folder)
+    void Cubemap::Init(Filesystem::Path filepath)
     {
         GenerateMesh();
 
-        infos.folder = std::make_shared<Filesystem::Path>(folder);
+        infos.filepath = std::make_shared<Filesystem::Path>(filepath);
 
+        if(infos.filepath->IsDirectory()){
+            CreateFromFolder();
+        }
+        else{
+            CreateFromHDR();
+        }
+        
+        return;
+    }
+
+    void Cubemap::CreateFromFolder(){
+         
         // Load and set up the texture
         Core::GetEngine().GetGL()->GenTextures(1, &ID);
         Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, ID);
 
         unsigned char* data = nullptr;
 
-        if(!infos.folder->Exists()){
-            DEBUG_ERROR("Couldn't find textures folder : " + infos.folder->full);
-            return;
-        }
-
-        std::vector<Filesystem::FileInfo> files = Core::GetEngine().GetFileManager()->ListDirectory(*infos.folder.get(), {Filesystem::Type::T_IMAGE}, false, false);
+        std::vector<Filesystem::FileInfo> files = Core::GetEngine().GetFileManager()->ListDirectory(*infos.filepath.get(), {Filesystem::Type::T_IMAGE}, false, false);
         
         stbi_set_flip_vertically_on_load(false);
 
@@ -98,7 +105,7 @@ namespace Pulse::Engine::Rendering{
 
 
         } else {
-            DEBUG_ERROR("Couldn't find textures (or too much files in the folder) : " + infos.folder->full);
+            DEBUG_ERROR("Couldn't find textures (or too much files in the folder) : " + infos.filepath->full);
             return;
         }
 
@@ -107,8 +114,90 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        
-        return;
+    }
+    
+    void Cubemap::CreateFromHDR(){
+
+        std::string name = Core::GetEngine().GetFileManager()->GetFileInfos(*infos.filepath.get()).nameInProject;
+
+        std::shared_ptr<Texture> hdrTex = Core::GetEngine().GetResourcesManager()->GetTexture(name);
+
+        std::shared_ptr<Shader> equirectangularToCubemapShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\ibl\\equirectToCubemap");
+
+        if(!hdrTex){
+            DEBUG_ERROR("HDR cubemap couldn't be created from texture : ", infos.filepath->full, " because the texture is not loaded !");
+            return;
+        }
+
+        if(!equirectangularToCubemapShader)
+        {
+            DEBUG_ERROR("HDR cubemap couldn't be create because shader \"shaders\\ibl\\equirectToCubemap\" is not loaded !");
+            return;
+        }
+
+        const unsigned int faceRes = 512;
+        infos.width = infos.height = faceRes;
+        infos.nrChannels = 3;
+
+        Core::GetEngine().GetGL()->GenTextures(1, &ID);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, ID);
+
+        for (unsigned int i = 0; i < 6; ++i) {
+            Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 
+                 infos.width, infos.height, 0, GL_RGB, GL_FLOAT, nullptr);
+        }
+
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        GLuint captureFBO, captureRBO;
+        Core::GetEngine().GetGL()->GenFramebuffers(1, &captureFBO);
+        Core::GetEngine().GetGL()->GenRenderbuffers(1, &captureRBO);
+
+        Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        Core::GetEngine().GetGL()->BindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+        Core::GetEngine().GetGL()->RenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, infos.width, infos.height);
+        Core::GetEngine().GetGL()->FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+
+        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+        glm::mat4 captureViews[] = 
+        {
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+        };
+
+        equirectangularToCubemapShader->Activate();
+        equirectangularToCubemapShader->setInt("equirectangularMap", 0);
+        equirectangularToCubemapShader->setMat4("projection", captureProjection);
+        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, hdrTex->GetID());
+
+        Core::GetEngine().GetGL()->Viewport(0, 0, infos.width, infos.height); // Viewport => capture's dimensions
+        Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            equirectangularToCubemapShader->setMat4("view", captureViews[i]);
+            Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, ID, 0);
+            Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            RenderUnitCube(); // renders a 1x1 cube
+        }
+        Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void Cubemap::RenderUnitCube()
+    {
+        Core::GetEngine().GetGL()->BindVertexArray(VAO);
+        Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 36);
+        Core::GetEngine().GetGL()->BindVertexArray(0);
     }
 
     void Cubemap::Bind()
@@ -132,7 +221,6 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->DeleteBuffers(1, &EBO);
         VAO = VBO = EBO = 0;
     }
-
     
     void Cubemap::GenerateMesh()
     {

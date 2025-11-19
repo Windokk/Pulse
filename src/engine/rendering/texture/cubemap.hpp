@@ -23,7 +23,7 @@ namespace Pulse::Engine::Rendering {
     struct CubemapInfos{
         int width, height;       
         int nrChannels;
-        std::shared_ptr<Filesystem::Path> folder;
+        std::shared_ptr<Filesystem::Path> filepath;
     };
 
     class Shader;
@@ -36,11 +36,15 @@ namespace Pulse::Engine::Rendering {
             void Bind();
             void UnBind();
             void Cleanup();
-            void GenerateMesh();
             unsigned int GetID() { return ID; }
             CubemapInfos* GetInfos() { return &infos; }
 
         private:
+        
+            void GenerateMesh();
+            void CreateFromFolder();
+            void CreateFromHDR();
+            void RenderUnitCube();
             unsigned int ID;
             CubemapInfos infos;
             unsigned int VAO, VBO, EBO;
