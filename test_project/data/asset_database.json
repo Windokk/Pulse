@@ -731,12 +731,12 @@
         }
     ],
 
-    "spheres.lvl":[
+    "pbr.lvl":[
         {
             "id": 598
         },
         {
-            "dependencies": [597, 596, 595, 594, 593, 592, 591, 590, 589, 535, 606]
+            "dependencies": [597, 596, 595, 594, 593, 592, 591, 590, 589, 535, 606, 607, 608, 609, 610, 611, 612]
         }
     ],
     
@@ -800,6 +800,60 @@
         },
         {
             "dependencies": [23, 24, 25, 26, 27, 28]
+        }
+    ],
+
+    "textures\\Cerberus_A.tga":[
+        {
+            "id": 607
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "textures\\Cerberus_M.tga":[
+        {
+            "id": 608
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "textures\\Cerberus_N.tga":[
+        {
+            "id": 609
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "textures\\Cerberus_R.tga":[
+        {
+            "id": 610
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "models\\Cerberus_LP.fbx":[
+        {
+            "id": 611
+        },
+        {
+            "dependencies": []
+        }
+    ],
+
+    "materials\\cerberus.mat":[
+        {
+            "id": 612
+        },
+        {
+            "dependencies": [6, 7, 607, 608, 609, 610]
         }
     ]
 }

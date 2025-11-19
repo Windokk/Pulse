@@ -125,6 +125,7 @@ This will compile everything from root : submodules, the engine, the editor app,
 - Models :
   - "Rubik's Cube" (<https://skfb.ly/6U7pp>) by RED2000 is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).
   - "Sponza" Model downloaded from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)
+  - "Cerberus" Gun model [Andrew Maximov](https://artisaverb.info/PBT.html) 
 
 - Textures :
   - [Qwantani Afternoon (Pure Sky)](https://polyhaven.com/a/qwantani_afternoon_puresky)
