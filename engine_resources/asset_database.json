@@ -128,5 +128,35 @@
     "shaders\\ibl\\equirectToCubemap.frag":[
         {"id":26},
         {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\irradiance.vert":[
+        {"id":27},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\irradiance.frag":[
+        {"id":28},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\prefilter.vert":[
+        {"id":29},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\prefilter.frag":[
+        {"id":30},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\brdf.vert":[
+        {"id":32},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\ibl\\brdf.frag":[
+        {"id":33},
+        {"dependencies":[]}
     ]
 }

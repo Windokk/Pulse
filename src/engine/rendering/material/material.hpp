@@ -15,7 +15,7 @@ namespace Pulse::Engine::Rendering {
         MASKED
     };
 
-    using UniformValue = std::variant<float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4, std::shared_ptr<Texture>>;
+    using UniformValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4, std::shared_ptr<Texture>>;
 
     class Material{
 

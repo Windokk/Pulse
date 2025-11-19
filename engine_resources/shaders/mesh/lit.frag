@@ -65,6 +65,12 @@ vec3 gridSamplingDisk[20] = vec3[](
     vec3(0,1,1), vec3(0,-1,1), vec3(0,-1,-1), vec3(0,1,-1)
 );
 
+// IBL
+
+uniform samplerCube irradianceMap;          // diffuse IBL
+uniform samplerCube prefilteredEnvMap;      // specular mipmapped env map
+uniform sampler2D   brdfLUT;                // 2D BRDF integration LUT
+
 // -------------------- Shadow Functions --------------------
 
 // -------- Cascade Selection --------
@@ -158,6 +164,33 @@ float ShadowPointArray(int index, vec3 lightPos, vec3 fragPos, float farPlane) {
 }
 
 // -------------------- Lighting --------------------
+
+vec3 IBL_Diffuse(vec3 N, vec3 albedo, float metallic) {
+    vec3 kS = mix(vec3(0.04), albedo, metallic);
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
+
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    return irradiance * albedo * kD;
+}
+
+vec3 IBL_Specular(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness)
+{
+    vec3 R = reflect(-V, N);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    // Sample BRDF LUT (NdotV, roughness)
+    float NdotV = max(dot(N, V), 0.0);
+    vec2 brdf = texture(brdfLUT, vec2(NdotV, roughness)).rg;
+
+    // Sample prefiltered env map using roughness mip level
+    const float MAX_REFLECTION_LOD = 5.0;   // depends on your cube map mip count
+    vec3 prefilteredColor = textureLod(prefilteredEnvMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+
+    // Fresnel-Schlick for IBL  
+    vec3 F = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
+
+    return prefilteredColor * (F * brdf.x + brdf.y);
+}
 
 vec3 computeLightDisney(Light light, vec3 L, vec3 V, vec3 N, vec3 baseColor, float roughness, float metallic, float shadow, float attenuation) {
     vec3 Nn = normalize(N);
@@ -281,7 +314,8 @@ void main() {
         result += computeLightDisney(l, L, V, worldNormal, baseColor.rgb, roughnessValue, metallicValue, shadow, attenuation);
     }
 
-    vec4 color = baseColor * 0.05 + vec4(result, baseColor.a);
-
-    fragColor = vec4(color);
+    vec3 specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
+    vec3 diffuseIBL = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);
+    vec3 lighting = result + diffuseIBL + specularIBL;
+    fragColor = vec4(lighting, baseColor.a);
 }

@@ -5,8 +5,9 @@
     "uniforms":[
         {"albedo":"textures\\sphere_BaseColor.jpg"},
         {"metallic":0.0},
-        {"roughness":0.8},
+        {"roughness":1.0},
         {"roughnessMap":"textures\\sphere_Roughness.jpg"},
-        {"normalMap":"textures\\sphere_Normal.jpg"}
+        {"normalMap":"textures\\sphere_Normal.jpg"},
+        {"useEnvironmentReflections":true}
     ]
 }

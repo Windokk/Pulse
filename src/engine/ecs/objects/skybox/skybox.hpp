@@ -25,6 +25,22 @@ namespace Pulse::Engine::ECS::Objects
 
                 void Destroy() override;
 
+                unsigned int GetIrradianceID() { 
+                    if(cubemap) 
+                        return cubemap->GetIrradianceID(); 
+                    return 0;
+                }
+                unsigned int GetPrefilterID() { 
+                    if(cubemap) 
+                        return cubemap->GetPrefilterID(); 
+                    return 0;
+                }
+                unsigned int GetBrdfLutID() { 
+                    if(cubemap) 
+                        return cubemap->GetBrdfLutID(); 
+                    return 0;
+                }
+
 
             private:
                 std::shared_ptr<Rendering::Shader> shader;

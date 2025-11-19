@@ -41,9 +41,9 @@ This will compile everything from root : submodules, the engine, the editor app,
 ## ROADMAP FULL ENGINE
 
 - First prototype : December 2025/January 2026
-  - All basic feature
   - Example basic project : Pong 3D
 - Alpha : Summer 2026
+  - All basic features
   - Polished Renderer
   - Polished Editor
   - Unit tests
@@ -71,7 +71,7 @@ This will compile everything from root : submodules, the engine, the editor app,
 ### Rendering
 
 - [x] Skyboxes
-  - [ ] IBL
+  - [x] IBL
 - [ ] Wireframe rendering
 - [ ] Forward+ rendering
 - [ ] Ligthmaps

@@ -36,17 +36,39 @@ namespace Pulse::Engine::Rendering {
             void Bind();
             void UnBind();
             void Cleanup();
-            unsigned int GetID() { return ID; }
+            unsigned int GetID() { return cubemapID; }
+            unsigned int GetIrradianceID() { return irradianceMapID; }
+            unsigned int GetPrefilterID() { return prefilterMapID; }
+            unsigned int GetBrdfLutID() { return brdfLUTTextureID; }
             CubemapInfos* GetInfos() { return &infos; }
 
         private:
         
-            void GenerateMesh();
+            void GenerateGeometry();
             void CreateFromFolder();
             void CreateFromHDR();
+            void CreateIrradiance();
+            void CreatePrefilter();
+            void CreateBRDFLUT();
             void RenderUnitCube();
-            unsigned int ID;
+            void RenderUnitQuad();
+            unsigned int cubemapID;
+            unsigned int irradianceMapID;
+            unsigned int prefilterMapID;
+            unsigned int brdfLUTTextureID;
+            unsigned int captureFBO, captureRBO;
             CubemapInfos infos;
-            unsigned int VAO, VBO, EBO;
+            unsigned int cubeVAO, cubeVBO;
+            unsigned int quadVAO, quadVBO;
+
+            glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+            glm::mat4 captureViews[6] = {
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+            };
     };
 }
