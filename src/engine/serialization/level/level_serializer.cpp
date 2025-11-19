@@ -10,6 +10,8 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/ecs/objects/skybox/skybox.hpp"
+
 using namespace nlohmann;
 
 using namespace Pulse::Engine::ECS::Objects;
@@ -265,6 +267,22 @@ namespace Pulse::Engine::Serialization{
                 std::shared_ptr<Actor> a = Object::Create<Actor>(actor["name"]);
                 l->AddActor(a);
                 LoadActor(a, data, actor);
+            }
+
+            if(data.contains("skybox")){
+                auto& skybox_folder = data["skybox"];
+                if(skybox_folder.is_string()){
+                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\skybox\\skybox");
+                    std::shared_ptr<Rendering::Cubemap> cubemap = Core::GetEngine().GetResourcesManager()->GetCubemap(data["skybox"]);
+                    
+                    if(shader != nullptr && cubemap != nullptr)
+                    {
+                        std::shared_ptr<Skybox> sb = Object::Create<Skybox>(cubemap, shader);
+                        sb->SetShader(shader);
+                        sb->SetCubemap(cubemap);
+                        l->skybox = sb;
+                    }
+                }
             }
 
             return l;

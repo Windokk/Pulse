@@ -198,5 +198,6 @@
                 }
             ]
         }
-    ]
+    ],
+    "skybox":"textures\\skybox\\0.png"
 }

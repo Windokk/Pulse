@@ -86,4 +86,6 @@ void OpenGL::InitFromGLAD() {
     this->GetFramebufferAttachmentParameteriv = ::glGetFramebufferAttachmentParameteriv;
     this->GetError = ::glGetError;
     this->GetIntegerv = ::glGetIntegerv;
+    this->DepthMask = ::glDepthMask;
+    this->DepthFunc = ::glDepthFunc;
 }

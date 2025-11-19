@@ -91,5 +91,6 @@ namespace Pulse::Engine::ECS::Objects{
             ObjectID parent = ObjectID(-1);
 
             friend class Actor;
+            friend class Skybox;
     };
 }

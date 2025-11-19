@@ -1901,6 +1901,8 @@ class OpenGL {
         void (*GetFramebufferAttachmentParameteriv)(GLenum target, GLenum attachment, GLenum pname, GLint* params);
         GLenum (*GetError)();
         void (*GetIntegerv)(GLenum pname, GLint *data);
+        void (*DepthMask)(GLboolean flag); 
+        void (*DepthFunc)(GLenum func);
 
     private:
 };

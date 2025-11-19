@@ -281,29 +281,34 @@ namespace Pulse::Engine::Rendering{
             cmd.mat->StopUsing();
         }
 
-        if(!Renderer::settings.showDebugShapes){
-            Core::GetEngine().GetGL()->BindVertexArray(0);
-            Core::GetEngine().GetGL()->UseProgram(0);
-            Core::GetEngine().GetGL()->Disable(GL_DEPTH_TEST);
-            return;
+        if(Renderer::settings.showDebugShapes){
+            // --- Debug Physics Shapes ---
+            unlitShader->Activate();
+            unlitShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            unlitShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+
+            for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
+
+                glm::vec3 pos = physicBody->parent->transform->GetPosition();
+                glm::quat rot = physicBody->parent->transform->GetRotation();
+
+                glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
+
+                unlitShader->setMat4("model", model);
+
+                Core::GetEngine().GetGL()->BindVertexArray(physicBody->GetDebugShape()->GetVAO());
+                Core::GetEngine().GetGL()->DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+            }
         }
+        
+        Core::GetEngine().GetGL()->BindVertexArray(0);
+        Core::GetEngine().GetGL()->UseProgram(0);
 
-        // --- Debug Physics Shapes ---
-        unlitShader->Activate();
-        unlitShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
-        unlitShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
-
-        for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
-
-            glm::vec3 pos = physicBody->parent->transform->GetPosition();
-            glm::quat rot = physicBody->parent->transform->GetRotation();
-
-            glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
-
-            unlitShader->setMat4("model", model);
-
-            Core::GetEngine().GetGL()->BindVertexArray(physicBody->GetDebugShape()->GetVAO());
-            Core::GetEngine().GetGL()->DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+        auto level = Core::GetEngine().GetLevelManager()->GetLevelAt(0);
+        if(level){
+            if(level->skybox){
+                level->skybox->Draw(Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView(), Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            }
         }
 
         Core::GetEngine().GetGL()->BindVertexArray(0);

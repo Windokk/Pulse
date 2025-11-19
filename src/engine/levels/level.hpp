@@ -9,6 +9,7 @@
 #include "engine/ecs/components/rendering/camera.hpp"
 #include "engine/ecs/components/core/script.hpp"
 #include "engine/ecs/components/rendering/model_component.hpp"
+#include "engine/ecs/objects/skybox/skybox.hpp"
 
 namespace Pulse::Engine::ECS{
 
@@ -73,6 +74,7 @@ namespace Pulse::Engine::Levels{
 
             void SetLoaded(bool loaded) { this->loaded = loaded; }
 
+            std::shared_ptr<ECS::Objects::Skybox> skybox;
             std::vector<std::shared_ptr<ECS::Components::Light>> lights;
             std::vector<std::shared_ptr<ECS::Components::Transform>> transforms;
             std::vector<std::shared_ptr<ECS::Components::Model>> models;

@@ -60,6 +60,17 @@ namespace Pulse::Engine::Core::Resources{
         return texture;
     }
 
+    std::shared_ptr<Rendering::Cubemap> ResourcesManager::LoadCubemap(const std::string &pathInProject, const Filesystem::Path &path)
+    {
+        std::shared_ptr<Rendering::Cubemap> cubemap = std::make_shared<Rendering::Cubemap>(path);
+        if(!cubemap){
+            DEBUG_ERROR("Error during cubemap import");
+            return nullptr;
+        }
+        cubemaps.emplace(pathInProject, cubemap);
+        return cubemap;
+    }
+
     std::shared_ptr<Rendering::Shader> ResourcesManager::LoadShader(const std::string &pathInProject, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath)
     {
         std::shared_ptr<Rendering::Shader> shader = std::make_shared<Rendering::Shader>(vsPath, fsPath, gsPath);
@@ -74,6 +85,7 @@ namespace Pulse::Engine::Core::Resources{
         std::shared_ptr<Rendering::Material> mat = Serialization::DeserializeMaterial(path);
         if(!mat){
             DEBUG_ERROR("Error during material import.");
+            return nullptr;
         }
         materials.emplace(pathInProject, mat);
         return mat;
@@ -165,6 +177,18 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
+    std::shared_ptr<Rendering::Cubemap> ResourcesManager::GetCubemap(std::string pathInProject)
+    {
+        auto it = cubemaps.find(pathInProject);
+        if (it != cubemaps.end())
+            return it->second;
+        else{
+            Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
+            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            return LoadCubemap(pathInProject, assetInfos->baseInfos.path);
+        }
+    }
+
     std::shared_ptr<Levels::Level> ResourcesManager::GetLevel(const std::string &pathInProject)
     {
         if (auto it = levels.find(pathInProject); it != levels.end())
@@ -215,6 +239,10 @@ namespace Pulse::Engine::Core::Resources{
         {
             textures.erase(it);
         }
+    }
+
+    void ResourcesManager::UnloadCubemap(const std::string &name)
+    {
     }
 
     void ResourcesManager::UnloadLevel(const std::string &name)

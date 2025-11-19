@@ -332,6 +332,14 @@ static void Qt_GetIntegerv(GLenum pname, GLint *params){
     g_qt->glGetIntegerv(pname, params);
 }
 
+static void Qt_DepthMask(GLboolean flag){
+    g_qt->glDepthMask(flag);
+}
+
+static void Qt_DepthFunc(GLenum func){
+    g_qt->glDepthFunc(func);
+}
+
 // === INIT FUNCTION ===
 
 void OpenGL::InitFromQt() {
@@ -427,4 +435,7 @@ void OpenGL::InitFromQt() {
     this->GetFramebufferAttachmentParameteriv = &Qt_GetFramebufferAttachmentParameteriv;
     this->GetError = &Qt_GetError;
     this->GetIntegerv = &Qt_GetIntegerv;
+
+    this->DepthMask = &Qt_DepthMask;
+    this->DepthFunc = &Qt_DepthFunc;
 }

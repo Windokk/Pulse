@@ -37,6 +37,8 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Texture
             std::shared_ptr<Rendering::Texture> LoadTexture(const std::string &pathInProject, const Filesystem::Path &path);
             
+            std::shared_ptr<Rendering::Cubemap> LoadCubemap(const std::string &pathInProject, const Filesystem::Path &path);
+
             /// @brief Loads a shader program from given vertex, fragment, and geometry shader paths and adds it to the project's loaded shaders list
             /// @param name The name of the shader program in the project
             /// @param vsPath The normalized path to the vertex shader source file
@@ -81,6 +83,8 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Texture
             std::shared_ptr<Rendering::Texture> GetTexture(std::string pathInProject);
 
+            std::shared_ptr<Rendering::Cubemap> GetCubemap(std::string pathInProject);
+
             /// @brief Retrieves level from the project's loaded levels lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the level in the project
             /// @return A shared pointer to a Level
@@ -94,12 +98,14 @@ namespace Pulse::Engine::Core::Resources{
             void UnloadMaterial(const std::string& name);
             void UnloadShader(const std::string& name);
             void UnloadTexture(const std::string& name);
+            void UnloadCubemap(const std::string& name);
             void UnloadLevel(const std::string& name);
 
         private:
 
             std::unordered_map<std::string, std::shared_ptr<Rendering::Mesh>> meshes;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Texture>> textures;
+            std::unordered_map<std::string, std::shared_ptr<Rendering::Cubemap>> cubemaps;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Shader>> shaders;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Material>> materials;
             std::unordered_map<std::string, std::shared_ptr<Levels::Level>> levels;

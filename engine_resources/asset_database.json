@@ -108,6 +108,15 @@
     "textures\\white.png":[
         {"id":22},
         {"dependencies":[]}            
-    ]
+    ],
 
+    "shaders\\skybox\\skybox.vert":[
+        {"id":23},
+        {"dependencies":[]}
+    ],
+
+    "shaders\\skybox\\skybox.frag":[
+        {"id":24},
+        {"dependencies":[]}
+    ]
 }

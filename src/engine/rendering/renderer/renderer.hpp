@@ -8,6 +8,7 @@
 #include "engine/rendering/shadow/shadow_manager.hpp"
 #include "engine/debugging/logger.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
+#include "engine/rendering/texture/cubemap.hpp"
 
 namespace Pulse::Engine{
 
