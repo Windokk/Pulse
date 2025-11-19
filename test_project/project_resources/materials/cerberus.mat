@@ -1,5 +1,5 @@
 {
-    "recievesShadows":false,
+    "recievesShadows":true,
     "renderMode": "opaque",
     "shader":"shaders\\mesh\\lit",
     "uniforms":[
@@ -9,6 +9,6 @@
         {"metallicMap":"textures\\Cerberus_M.tga"},
         {"roughnessMap":"textures\\Cerberus_R.tga"},
         {"normalMap":"textures\\Cerberus_N.tga"},
-        {"useEnvironmentReflections":true}
+        {"useEnvironmentReflections":false}
     ]
 }

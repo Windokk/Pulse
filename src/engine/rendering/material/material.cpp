@@ -100,33 +100,46 @@ namespace Pulse::Engine::Rendering{
                     textureUnit++;
                 }
             }
-            else if(std::holds_alternative<bool>(value) && name == "useEnvironmentReflections"){
+            else if(std::holds_alternative<bool>(value)){
 
-                auto skybox = Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox;
+                if(name == "useEnvironmentReflections"){
+                    auto skybox = Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox;
 
-                if(skybox && std::get<bool>(value)){
+                    if(skybox && std::get<bool>(value)){
 
-                    unsigned int irradianceMapID = skybox->GetIrradianceID();
-                    unsigned int prefilterMapID = skybox->GetPrefilterID();
-                    unsigned int brdfLUTTextureID = skybox->GetBrdfLutID();
+                        unsigned int irradianceMapID = skybox->GetIrradianceID();
+                        unsigned int prefilterMapID = skybox->GetPrefilterID();
+                        unsigned int brdfLUTTextureID = skybox->GetBrdfLutID();
 
-                    if(irradianceMapID != 0 && prefilterMapID != 0 && brdfLUTTextureID)
-                    {
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit); // Bind to GL_TEXTURE[textureUnit]
-                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, irradianceMapID); 
-                        shader->setInt("irradianceMap", textureUnit);
-                        textureUnit++;
+                        if(irradianceMapID != 0 && prefilterMapID != 0 && brdfLUTTextureID)
+                        {
+                            Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit); // Bind to GL_TEXTURE[textureUnit]
+                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, irradianceMapID); 
+                            shader->setInt("irradianceMap", textureUnit);
+                            textureUnit++;
 
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit); // Bind to GL_TEXTURE[textureUnit]
-                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, prefilterMapID); 
-                        shader->setInt("prefilteredEnvMap", textureUnit);
-                        textureUnit++;
+                            Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit); // Bind to GL_TEXTURE[textureUnit]
+                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, prefilterMapID); 
+                            shader->setInt("prefilteredEnvMap", textureUnit);
+                            textureUnit++;
 
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit); // Bind to GL_TEXTURE[textureUnit]
-                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, brdfLUTTextureID); 
-                        shader->setInt("brdfLUT", textureUnit);
-                        textureUnit++;
+                            Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit); // Bind to GL_TEXTURE[textureUnit]
+                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, brdfLUTTextureID); 
+                            shader->setInt("brdfLUT", textureUnit);
+                            textureUnit++;
+
+                            shader->setBool("useEnvReflections", true);
+                        }
+                        else{
+                            shader->setBool("useEnvReflections", false);
+                        }
                     }
+                    else{
+                        shader->setBool("useEnvReflections", false);
+                    }
+                }
+                else{
+                    shader->setBool("useEnvReflections", false);
                 }
             }
         }

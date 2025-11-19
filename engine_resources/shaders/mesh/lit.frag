@@ -71,6 +71,8 @@ uniform samplerCube irradianceMap;          // diffuse IBL
 uniform samplerCube prefilteredEnvMap;      // specular mipmapped env map
 uniform sampler2D   brdfLUT;                // 2D BRDF integration LUT
 
+uniform bool useEnvReflections;
+
 // -------------------- Shadow Functions --------------------
 
 // -------- Cascade Selection --------
@@ -314,8 +316,17 @@ void main() {
         result += computeLightDisney(l, L, V, worldNormal, baseColor.rgb, roughnessValue, metallicValue, shadow, attenuation);
     }
 
-    vec3 specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
-    vec3 diffuseIBL = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);
-    vec3 lighting = result + diffuseIBL + specularIBL;
-    fragColor = vec4(lighting, baseColor.a);
+
+    if(useEnvReflections){
+        vec3 specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
+        vec3 diffuseIBL = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);
+        vec3 lighting = result + diffuseIBL + specularIBL;
+        fragColor = vec4(lighting, baseColor.a);
+    }
+    else{
+        vec4 color = baseColor * 0.05 + vec4(result, baseColor.a);
+        fragColor = color;
+    }
+
+
 }
