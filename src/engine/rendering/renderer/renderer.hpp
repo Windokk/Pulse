@@ -127,7 +127,9 @@ namespace Pulse::Engine{
                 std::vector<RenderPass> renderPasses;
 
                 std::shared_ptr<Shader> blendShader;
-                FrameBuffer* viewportBuffer = nullptr;
+
+                std::shared_ptr<FrameBuffer> viewportBuffer;
+                std::shared_ptr<FrameBuffer> tempBuffer;
 
                 std::shared_ptr<Shader> framebufferShader;
 

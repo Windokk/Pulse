@@ -77,10 +77,11 @@ namespace Pulse::Engine::Rendering{
         framebufferShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\framebuffer");
 
         if(framebufferShader == nullptr || blendShader == nullptr){
-            DEBUG_ERROR("Viewport buffer cannot be created if the framebuffer shader or the blend shader are null");
+            DEBUG_FATAL("Viewport buffer cannot be created if the framebuffer shader or the blend shader are null");
         }
         else{
-            viewportBuffer = new FrameBuffer(settings.windowWidth, settings.windowHeight, framebufferShader, true);
+            viewportBuffer = std::make_shared<FrameBuffer>(settings.windowWidth, settings.windowHeight, framebufferShader, true);
+            tempBuffer = std::make_shared<FrameBuffer>(settings.windowWidth, settings.windowHeight, framebufferShader, false);
         }
 
         //DEBUG_SHAPES
@@ -323,12 +324,13 @@ namespace Pulse::Engine::Rendering{
             }
         }
         
-        if(!viewportBuffer){
-            DEBUG_FATAL("Called \"RescaleFramebuffers\" with null viewportBuffer");
+        if(!viewportBuffer || !tempBuffer){
+            DEBUG_FATAL("Called \"RescaleFramebuffers\" with null viewportBuffer or null tempBuffer");
             return;
         }
 
         viewportBuffer->RescaleFrameBuffer(newWidth, newHeight);
+        tempBuffer->RescaleFrameBuffer(newWidth, newHeight);
 
         Core::GetEngine().GetGL()->Viewport(0, 0, newWidth, newHeight);
 
@@ -348,97 +350,162 @@ namespace Pulse::Engine::Rendering{
             });
     }
 
-    void Renderer::ExecuteRenderPasses(){
-        for (const auto& pass : renderPasses) {
-            switch (pass.stage) {
-                case RenderStage::UI:{
-                    // No FBO
+    void Renderer::ExecuteRenderPasses()
+    {
+        auto* gl = Core::GetEngine().GetGL();
+
+        for (const auto& pass : renderPasses)
+        {
+            switch (pass.stage)
+            {
+                // ---------------------------------------------------------
+                // UI — rendered to default framebuffer or already drawn viewport
+                // ---------------------------------------------------------
+                case RenderStage::UI:
+                {
                     pass.callback();
                     break;
                 }
-                case RenderStage::PostProcess:{
-                    if(!pass.target)
-                        DEBUG_ERROR("Couldn't render pass without framebuffer");
 
-                    if(!Renderer::settings.enablePostProcessing)
+                // ---------------------------------------------------------
+                // POST PROCESSING
+                // ---------------------------------------------------------
+                case RenderStage::PostProcess:
+                {
+                    if (!settings.enablePostProcessing)
                         break;
 
-                    pass.target->Bind();
-                    viewportBuffer->Draw(rectVAO);
-                    pass.target->Unbind();
-                    
-                    if(pass.appendToViewport){
-                        viewportBuffer->Bind();
+                    if (!pass.target)
+                    {
+                        DEBUG_ERROR("PostProcess pass missing target framebuffer");
+                        break;
                     }
-                        pass.callback();
-                        pass.target->Draw(rectVAO);
 
-                    if(pass.appendToViewport){
+                    // Render the postprocess pass into pass.target
+                    pass.target->Bind();
+                    gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    pass.callback();
+                    pass.target->Unbind();
+
+                    // Resolve viewport MSAA before sampling it
+                    if (viewportBuffer->isMultisampled)
+                        viewportBuffer->Resolve();
+
+                    GLuint viewportTex = viewportBuffer->GetFrameTexture();
+                    GLuint passTex = pass.target->GetFrameTexture();
+
+                    // If blending into viewport
+                    if (pass.appendToViewport)
+                    {
+                        // Blend into tempBuffer
+                        tempBuffer->Bind();
+                        gl->Clear(GL_COLOR_BUFFER_BIT);
+
+                        blendShader->Activate();
+                        blendShader->setInt("blendMode", (int)pass.blendMode);
+                        blendShader->setInt("texA", 0); // viewport
+                        blendShader->setInt("texB", 1); // postprocess output
+
+                        gl->ActiveTexture(GL_TEXTURE0);
+                        gl->BindTexture(GL_TEXTURE_2D, viewportTex);
+
+                        gl->ActiveTexture(GL_TEXTURE1);
+                        gl->BindTexture(GL_TEXTURE_2D, passTex);
+
+                        gl->Disable(GL_DEPTH_TEST);
+                        gl->BindVertexArray(rectVAO);
+                        gl->DrawArrays(GL_TRIANGLES, 0, 6);
+
+                        gl->BindVertexArray(0);
+                        blendShader->Deactivate();
+                        tempBuffer->Unbind();
+
+                        // Write blended result back into the viewport MSAA FBO
+                        viewportBuffer->Bind();
+                        gl->Clear(GL_COLOR_BUFFER_BIT);
+                        tempBuffer->Draw(rectVAO);  // resolves itself
                         viewportBuffer->Unbind();
-                        viewportBuffer->Draw(rectVAO);
                     }
 
                     break;
                 }
+
+                // ---------------------------------------------------------
+                // SCENE PASS
+                // ---------------------------------------------------------
                 case RenderStage::Scene:
-                default:{
-                    if(!pass.target)
-                        DEBUG_ERROR("Couldn't render pass without framebuffer");
+                default:
+                {
+                    if (!pass.target)
+                    {
+                        DEBUG_ERROR("Scene pass missing target framebuffer");
+                        break;
+                    }
+
+                    //
+                    // 1. Render scene into pass.target (maybe MSAA)
+                    //
                     pass.target->Bind();
+                    gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                     pass.callback();
                     pass.target->Unbind();
 
+                    //
+                    // 2. Resolve MSAA scene FBO if needed
+                    //
                     if (pass.target->isMultisampled)
                         pass.target->Resolve();
 
+                    //
+                    // 3. Draw scene result to screen/UI target
+                    //
                     pass.target->Draw(rectVAO);
 
-                    if(pass.appendToViewport){
-                        viewportBuffer->Bind();
+                    //
+                    // 4. Append to viewport?
+                    //
+                    if (pass.appendToViewport)
+                    {
+                        // Resolve viewport before sampling it
+                        if (viewportBuffer->isMultisampled)
+                            viewportBuffer->Resolve();
 
-                        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-                        Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                        
+                        GLuint viewportTex = viewportBuffer->GetFrameTexture();
+                        GLuint sceneTex = pass.target->GetFrameTexture();
+
+                        // ---- A) Blend to temp ----
+                        tempBuffer->Bind();
+                        gl->Clear(GL_COLOR_BUFFER_BIT);
+
                         blendShader->Activate();
-
                         blendShader->setInt("blendMode", (int)pass.blendMode);
                         blendShader->setInt("texA", 0);
                         blendShader->setInt("texB", 1);
 
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
-                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, viewportBuffer->GetFrameTexture());
+                        gl->ActiveTexture(GL_TEXTURE0);
+                        gl->BindTexture(GL_TEXTURE_2D, viewportTex);
 
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE1);
-                        if(pass.target->isMultisampled)
-                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
-                        else
-                            Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
-        
-                        Core::GetEngine().GetGL()->BindVertexArray(rectVAO);
-                        Core::GetEngine().GetGL()->Disable(GL_DEPTH_TEST);
-                        
-                        Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 6);
-                        
-                        Core::GetEngine().GetGL()->BindVertexArray(0);
+                        gl->ActiveTexture(GL_TEXTURE1);
+                        gl->BindTexture(GL_TEXTURE_2D, sceneTex);
 
+                        gl->Disable(GL_DEPTH_TEST);
+                        gl->BindVertexArray(rectVAO);
+                        gl->DrawArrays(GL_TRIANGLES, 0, 6);
+
+                        gl->BindVertexArray(0);
                         blendShader->Deactivate();
+                        tempBuffer->Unbind();
 
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
-                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
-                        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE1);
-                        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
-
+                        // Write temp back to viewport MSAA
+                        viewportBuffer->Bind();
+                        gl->Clear(GL_COLOR_BUFFER_BIT);
+                        tempBuffer->Draw(rectVAO);
                         viewportBuffer->Unbind();
-
-                        viewportBuffer->Draw(rectVAO);
-
                     }
 
                     break;
                 }
             }
         }
-
     }
-
 }

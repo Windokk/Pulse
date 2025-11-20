@@ -13,6 +13,11 @@
   (full of bugs)
 </p>
 
+## ScreenShot
+
+<img src=".github/ScreenShot0.png"/>
+<img src=".github/ScreenShot1.png"/>
+
 ## Build Requirements (Windows)
 
 ### Build tools :

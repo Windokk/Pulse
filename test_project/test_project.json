@@ -6,8 +6,8 @@
     "pluginsFolder":    "plugins",
     "assetDatabase":    "data\\asset_database.json",
     "buildSettings":[
-        "sponza.lvl",
         "pbr.lvl",
+        "sponza.lvl",
         "level1.lvl"
     ],
     "editorPreferences":[
