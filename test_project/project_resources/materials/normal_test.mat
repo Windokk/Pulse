@@ -8,6 +8,7 @@
         {"roughnessMap":"textures\\grey.png"},
         {"normalMap":"textures\\bricks_normal.jpg"},
         {"metallic":0.01},
-        {"roughness":1.0}
+        {"roughness":1.0},
+        {"useEnvReflections":false}
     ]
 }

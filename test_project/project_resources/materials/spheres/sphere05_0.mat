@@ -8,6 +8,6 @@
         {"roughness":0.0},
         {"roughnessMap":"textures\\sphere_Roughness.jpg"},
         {"normalMap":"textures\\sphere_Normal.jpg"},
-        {"useEnvironmentReflections":true}
+        {"useEnvReflections":true}
     ]
 }

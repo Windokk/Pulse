@@ -67,7 +67,6 @@ namespace Pulse::Engine::Rendering{
 
     bool Mesh::LoadMesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse)
     {
-        
         double scene_scale = scene_unit_meters;
 
         struct GroupedTriangles {
@@ -120,10 +119,10 @@ namespace Pulse::Engine::Rendering{
                     // Position
                     ufbx_vec3 pos = ufbx_get_vertex_vec3(&ufbx_mesh->vertex_position, vertex_index);
                     v.position = { pos.x * scene_scale, pos.y * scene_scale, pos.z * scene_scale };
-                    
+
                     boundsMin = glm::min(boundsMin, v.position);
                     boundsMax = glm::max(boundsMax, v.position);
-                    
+
                     // Normal
                     if (ufbx_mesh->vertex_normal.exists) {
                         ufbx_vec3 normal = ufbx_get_vertex_vec3(&ufbx_mesh->vertex_normal, vertex_index);

@@ -139,7 +139,7 @@ namespace Pulse::Engine::Rendering{
                     }
                 }
                 else{
-                    shader->setBool("useEnvReflections", false);
+                    shader->setBool(name, std::get<bool>(value));
                 }
             }
         }

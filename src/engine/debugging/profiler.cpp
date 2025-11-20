@@ -64,7 +64,7 @@ namespace Pulse::Engine::Debugging{
         MinimalStatistics ret{};
 
         for(auto& cmd : *Core::GetEngine().GetRenderer()->GetDrawList()){
-            ret.drawCalls++;
+            ret.cmds++;
             ret.triangles += cmd.indexCount / 3;
             ret.vertices += cmd.verticesCount;
         }

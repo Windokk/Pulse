@@ -238,8 +238,26 @@ namespace Pulse::Engine::Rendering{
         // --- Main Draw Calls ---
         for (auto& cmd : drawList) {
 
-            glm::vec3 worldMin = glm::vec3(cmd.tr->GetTransformMatrix() * glm::vec4(cmd.boundsMin, 1.0f));
-            glm::vec3 worldMax = glm::vec3(cmd.tr->GetTransformMatrix() * glm::vec4(cmd.boundsMax, 1.0f));
+            glm::mat4 M = cmd.tr->GetTransformMatrix();
+
+            glm::vec3 corners[8] = {
+                M * glm::vec4(cmd.boundsMin.x, cmd.boundsMin.y, cmd.boundsMin.z, 1.0),
+                M * glm::vec4(cmd.boundsMin.x, cmd.boundsMin.y, cmd.boundsMax.z, 1.0),
+                M * glm::vec4(cmd.boundsMin.x, cmd.boundsMax.y, cmd.boundsMin.z, 1.0),
+                M * glm::vec4(cmd.boundsMin.x, cmd.boundsMax.y, cmd.boundsMax.z, 1.0),
+                M * glm::vec4(cmd.boundsMax.x, cmd.boundsMin.y, cmd.boundsMin.z, 1.0),
+                M * glm::vec4(cmd.boundsMax.x, cmd.boundsMin.y, cmd.boundsMax.z, 1.0),
+                M * glm::vec4(cmd.boundsMax.x, cmd.boundsMax.y, cmd.boundsMin.z, 1.0),
+                M * glm::vec4(cmd.boundsMax.x, cmd.boundsMax.y, cmd.boundsMax.z, 1.0)
+            };
+
+            glm::vec3 worldMin( std::numeric_limits<float>::max() );
+            glm::vec3 worldMax( std::numeric_limits<float>::lowest() );
+
+            for (int i = 0; i < 8; i++) {
+                worldMin = glm::min(worldMin, corners[i]);
+                worldMax = glm::max(worldMax, corners[i]);
+            }
 
             if (!cmd.mat || cmd.indexCount <= 0 || (Core::GetEngine().GetCameraManager()->GetActiveCamera()->frustumCulling && !Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsInFrustum(worldMin, worldMax)))
                 continue;

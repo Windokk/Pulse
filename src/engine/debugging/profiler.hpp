@@ -16,7 +16,7 @@ namespace Pulse::Engine::Debugging{
         //Rendering
         float frameTimeMs = 0;
         float fps = 0;
-        int drawCalls = 0;
+        int cmds = 0;
         int triangles = 0;
         int vertices = 0;
         float gpuMemoryMB = 0;

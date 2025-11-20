@@ -9,6 +9,6 @@
         {"metallicMap":"textures\\Cerberus_M.tga"},
         {"roughnessMap":"textures\\Cerberus_R.tga"},
         {"normalMap":"textures\\Cerberus_N.tga"},
-        {"useEnvironmentReflections":true}
+        {"useEnvReflections":true}
     ]
 }
