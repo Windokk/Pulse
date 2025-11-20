@@ -143,6 +143,7 @@ namespace Pulse::Engine::Rendering{
             glm::vec3 up = (fabs(glm::dot(direction, glm::vec3(0,1,0))) > 0.99f) ? glm::vec3(1,0,0) : glm::vec3(0,1,0);
             glm::mat4 lightView = glm::lookAt(center - lightDir, center, up);
 
+            /*
             //Frustum "radius" computation
             float radius = 0.0f;
             for (const auto& v : corners) {
@@ -178,6 +179,45 @@ namespace Pulse::Engine::Rendering{
             roundOffset.w = 0.0f;
             lightProjection[3] += roundOffset;
 
+            return lightProjection * lightView;*/
+
+            float minX = std::numeric_limits<float>::max();
+            float maxX = std::numeric_limits<float>::lowest();
+            float minY = std::numeric_limits<float>::max();
+            float maxY = std::numeric_limits<float>::lowest();
+            float minZ = std::numeric_limits<float>::max();
+            float maxZ = std::numeric_limits<float>::lowest();
+            for (const auto& v : corners)
+            {
+                const auto trf = lightView * v;
+                minX = std::min(minX, trf.x);
+                maxX = std::max(maxX, trf.x);
+                minY = std::min(minY, trf.y);
+                maxY = std::max(maxY, trf.y);
+                minZ = std::min(minZ, trf.z);
+                maxZ = std::max(maxZ, trf.z);
+            }
+
+            // Tune this parameter according to the scene
+            constexpr float zMult = 10.0f;
+            if (minZ < 0)
+            {
+                minZ *= zMult;
+            }
+            else
+            {
+                minZ /= zMult;
+            }
+            if (maxZ < 0)
+            {
+                maxZ /= zMult;
+            }
+            else
+            {
+                maxZ *= zMult;
+            }
+
+            const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
             return lightProjection * lightView;
         }
         else if (type == static_cast<int>(LightType::Spot))
