@@ -2,9 +2,11 @@
     "name": "pbr",
     "meshes": {
         "sphere": "models\\sphere.fbx",
-        "revolver": "models\\Cerberus_LP.fbx"
+        "revolver": "models\\Cerberus_LP.fbx",
+        "plane": "models\\plane.fbx"
     },
     "materials": {
+        "lit_mat1": "materials\\lit_mat1.mat",
         "sphere0": "materials\\spheres\\sphere0_0.mat",
         "sphere1": "materials\\spheres\\sphere0_05.mat",
         "sphere2": "materials\\spheres\\sphere0_1.mat",
@@ -16,7 +18,38 @@
         "sphere8": "materials\\spheres\\sphere1_1.mat",
         "revolver": "materials\\cerberus.mat"
     },
-    "actors": [
+    "actors": [{
+            "name": "plane",
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    },
+                    "rotation": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "scale": {
+                        "x": 1,
+                        "y": 1,
+                        "z": 1
+                    }
+                },
+                {
+                    "type": "model",
+                    "active": true,
+                    "mesh": "plane",
+                    "materials": {
+                        "0": "lit_mat1"
+                    }
+                }
+            ]
+        },
         {
             "name": "dir",
             "components": [

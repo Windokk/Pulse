@@ -47,7 +47,7 @@ namespace Pulse::Editor {
 
         //Gizmo
         ImGuizmo::OPERATION currentGizmoOp = ImGuizmo::TRANSLATE;
-        ImGuizmo::MODE currentGizmoMode = ImGuizmo::WORLD;
+        ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
 
         //Frame Stats
         bool showFrameStats = false;

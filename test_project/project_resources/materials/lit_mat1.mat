@@ -7,7 +7,7 @@
         {"metallicMap":"textures\\white.png"},
         {"roughnessMap":"textures\\grey.png"},
         {"normalMap":"textures\\default_normal.png"},
-        {"metallic":0.9},
+        {"metallic":0.2},
         {"roughness":1.0},
         {"useEnvReflections":false}
     ]

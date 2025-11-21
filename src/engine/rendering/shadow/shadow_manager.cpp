@@ -268,7 +268,7 @@ namespace Pulse::Engine::Rendering{
         gl->Enable(GL_DEPTH_TEST);
         gl->Enable(GL_CULL_FACE);
         gl->CullFace(GL_FRONT);
-        gl->FrontFace(GL_CCW);
+        gl->FrontFace(GL_CW);
 
         for (auto& sm : shadowMaps)
         {
@@ -330,13 +330,15 @@ namespace Pulse::Engine::Rendering{
                 // Render each cascade individually
                 dirShader->Activate();
 
+                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
+                    sm.cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
+
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
                     gl->Viewport(0, 0, sm.resolution, sm.resolution);
                     gl->BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[c]);
                     gl->Clear(GL_DEPTH_BUFFER_BIT);
 
-                    sm.cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
                     float splitNear = c == 0 ? cam->nearPlane : sm.cascadeSplits[c - 1];
                     float splitFar  = sm.cascadeSplits[c];
                     sm.lightMatrix[c] = light->GetLightMatrix(cam->GetView(), cam->fov, cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, dirShadowsResolution);

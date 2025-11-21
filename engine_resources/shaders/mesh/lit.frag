@@ -79,42 +79,55 @@ uniform bool useEnvReflections;
 
 int selectCascade(int lightIndex){
     vec4 viewPos = viewMatrix * vec4(worldPos, 1.0);
-    float depth = -viewPos.z;
-    int baseIndex = lightIndex * CASCADES_PER_LIGHT;
+    float depth = abs(viewPos.z);
+
+    int base = lightIndex * CASCADES_PER_LIGHT;
 
     for (int i = 0; i < CASCADES_PER_LIGHT; ++i) {
-        if (depth < cascadeSplits[baseIndex + i])
-            return baseIndex + i;
+        if (depth < cascadeSplits[base + i])
+            return base + i;
     }
 
-    return baseIndex + CASCADES_PER_LIGHT - 1;
+    return base + CASCADES_PER_LIGHT - 1;
 }
 
-float ShadowCalculationCSM(sampler2DShadow shadowMap, mat4 lightSpaceMatrix, vec3 lightDir, vec3 fragPos, vec3 worldNormal){
-    vec4 fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
+float ShadowCalculationCSM(
+    sampler2DShadow shadowMap,
+    mat4 lightSpaceMatrix,
+    vec3 lightDir,
+    vec3 worldPos,
+    vec3 worldNormal)
+{
+    vec4 fragLS = lightSpaceMatrix * vec4(worldPos, 1.0);
+    vec3 proj = fragLS.xyz / fragLS.w;
 
-    if (projCoords.z > 1.0 || projCoords.z < 0.0)
+    // Transform to [0..1]
+    proj = proj * 0.5 + 0.5;
+
+    // Outside light frustum → not shadowed
+    if (proj.x < 0.0 || proj.x > 1.0 ||
+        proj.y < 0.0 || proj.y > 1.0 ||
+        proj.z > 1.0)
         return 0.0;
 
-    float bias = max(0.015 * (1.0 - dot(normalize(worldNormal), -lightDir)), 0.005);
+    // ----- Slope-scale bias -----
+    float bias = max(0.0005 * (1.0 - dot(normalize(worldNormal), -lightDir)), 0.00005);
 
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-
+    // ----- PCF -----
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
     float shadow = 0.0;
 
-    // 3x3 PCF kernel sampling
-    for(int x = -2; x <= 2; ++x) {
-        for(int y = -2; y <= 2; ++y) {
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
             vec2 offset = vec2(x, y) * texelSize;
-            shadow += texture(shadowMap, vec3(projCoords.xy + offset, projCoords.z - bias));
+            // sampler2DShadow expects vec3 (uv, depth)
+            shadow += texture(shadowMap, vec3(proj.xy + offset, proj.z - bias));
         }
     }
 
     shadow /= 25.0;
 
-    return 1.0 - shadow;
+    return 1.0 - shadow; // return shadow factor (0..1)
 }
 
 float ShadowCalculation(sampler2DShadow shadowMap, vec3 lightDir, mat4 lightSpaceMatrix, vec3 worldNormal) {
@@ -125,7 +138,7 @@ float ShadowCalculation(sampler2DShadow shadowMap, vec3 lightDir, mat4 lightSpac
     if (projCoords.z > 1.0 || projCoords.z < 0.0)
         return 0.0;
 
-    float bias = max(0.005 * (1.0 - dot(normalize(worldNormal), -lightDir)), 0.002);
+    float bias = max(0.005 * (1.0 - dot(normalize(worldNormal), lightDir)), 0.002);
 
     float shadow = 0.0;
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
@@ -268,10 +281,11 @@ void main() {
         vec3 L = vec3(0.0);
 
         if (l.type == 0) { // Directional
-            L = normalize(-l.direction);
+            L = normalize(l.direction);
             if (l.castShadow) {
                 int cascadeIdx = selectCascade(dirIdx);
-                shadow = ShadowCalculationCSM(shadow_dirShadowMaps[cascadeIdx], shadow_dirLightSpaceMatrices[cascadeIdx], l.direction, worldPos, worldNormal);
+                shadow = ShadowCalculationCSM(shadow_dirShadowMaps[cascadeIdx], shadow_dirLightSpaceMatrices[cascadeIdx], L, worldPos, worldNormal);
+                dirIdx++;
             }
         }
         else if (l.type == 1) { // Point

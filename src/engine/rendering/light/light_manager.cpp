@@ -134,52 +134,11 @@ namespace Pulse::Engine::Rendering{
 
             //Frustum center
             glm::vec3 center(0.0f);
-            for (const auto& v : corners)
+            for (auto& v : corners)
                 center += glm::vec3(v);
             center /= corners.size();
 
-            //Light view
-            glm::vec3 lightDir = glm::normalize(direction);
-            glm::vec3 up = (fabs(glm::dot(direction, glm::vec3(0,1,0))) > 0.99f) ? glm::vec3(1,0,0) : glm::vec3(0,1,0);
-            glm::mat4 lightView = glm::lookAt(center - lightDir, center, up);
-
-            /*
-            //Frustum "radius" computation
-            float radius = 0.0f;
-            for (const auto& v : corners) {
-                float dist = glm::length(glm::vec3(v) - center);
-                radius = glm::max(radius, dist);
-            }
-            radius = std::ceil(radius);
-
-            //AABB from radius
-            glm::vec3 maxOrtho = center + glm::vec3(radius);
-            glm::vec3 minOrtho = center - glm::vec3(radius);
-
-            maxOrtho = glm::vec3(lightView * glm::vec4(maxOrtho, 1.0f));
-            minOrtho = glm::vec3(lightView * glm::vec4(minOrtho, 1.0f));
-
-            float zMult = (cascadeFar - cascadeNear);
-            float nearPlane = minOrtho.z - zMult;
-            float farPlane = maxOrtho.z + zMult;
-
-            glm::mat4 lightProjection = glm::ortho(minOrtho.x, maxOrtho.x,
-                                                minOrtho.y, maxOrtho.y,
-                                                nearPlane, farPlane);
-
-            // Texel snaapping
-            glm::mat4 shadowMatrix = lightProjection * lightView;
-            glm::vec4 shadowOrigin = shadowMatrix * glm::vec4(0, 0, 0, 1);
-            float shadowMapSize = shadowRes;
-            shadowOrigin = shadowOrigin * (shadowMapSize / 2.0f);
-            glm::vec4 roundedOrigin = glm::round(shadowOrigin);
-            glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
-            roundOffset = roundOffset * (2.0f / shadowMapSize);
-            roundOffset.z = 0.0f;
-            roundOffset.w = 0.0f;
-            lightProjection[3] += roundOffset;
-
-            return lightProjection * lightView;*/
+            const auto lightView = glm::lookAt(center + direction, center, glm::vec3(0.0f, 1.0f, 0.0f));
 
             float minX = std::numeric_limits<float>::max();
             float maxX = std::numeric_limits<float>::lowest();
@@ -217,7 +176,7 @@ namespace Pulse::Engine::Rendering{
                 maxZ *= zMult;
             }
 
-            const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+            const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, -1 * maxZ, -1 * minZ);
             return lightProjection * lightView;
         }
         else if (type == static_cast<int>(LightType::Spot))

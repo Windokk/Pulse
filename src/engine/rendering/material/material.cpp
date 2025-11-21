@@ -102,7 +102,7 @@ namespace Pulse::Engine::Rendering{
             }
             else if(std::holds_alternative<bool>(value)){
 
-                if(name == "useEnvironmentReflections"){
+                if(name == "useEnvReflections"){
                     auto skybox = Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox;
 
                     if(skybox && std::get<bool>(value)){
