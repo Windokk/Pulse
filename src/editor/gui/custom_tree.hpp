@@ -12,6 +12,7 @@ namespace Pulse::Editor{
 
     signals:
         void itemClicked(const QModelIndex &index, Qt::MouseButton button);
+        void noItemClicked(Qt::MouseButton button);
 
     protected:
         void mousePressEvent(QMouseEvent *event) override;

@@ -24,6 +24,8 @@ namespace Pulse::Editor{
 
             void OnItemClicked(const QModelIndex &index, Qt::MouseButton button);
 
+            void ClickOutsideItems(Qt::MouseButton button);
+
             void SetParentWindow(EditorMainWindow *parent);
 
         private:

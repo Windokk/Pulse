@@ -93,6 +93,10 @@ int main(int argc, char* argv[]) {
         early_crash();
     }
 
+    EngineInstance* engine = &EngineInstance::GetInstance();
+
+    Core::SetEngine(engine);
+
     //Editor init
     {
         auto initEditor = loader.GetSymbol<EditorInitFn>("editor", "InitializeSingletons");
@@ -101,7 +105,7 @@ int main(int argc, char* argv[]) {
             early_crash();
         }
 
-        initEditor(&EngineInstance::GetInstance());
+        initEditor(&Core::GetEngine());
     }
 
     {
@@ -114,7 +118,7 @@ int main(int argc, char* argv[]) {
         engineSettings.platform = createPlatform(argc, argv);
 
         // Engine startup
-        EngineInstance::GetInstance().Init(engineSettings);
+        Core::GetEngine().Init(engineSettings);
         
         // Editor startup
         auto startEditor = loader.GetSymbol<EditorStartFn>("editor", "EditorStart");
@@ -150,8 +154,8 @@ int main(int argc, char* argv[]) {
     }
 
     //Main Loop
-    while (!EngineInstance::GetInstance().shouldEnd()) {
-        if (!EngineInstance::GetInstance().Run()) break;
+    while (!Core::GetEngine().shouldEnd()) {
+        if (!Core::GetEngine().Run()) break;
 
         auto tickEditor = loader.GetSymbol<EditorTickFn>("editor", "EditorTick");
         if (!tickEditor) return 1;
@@ -166,7 +170,7 @@ int main(int argc, char* argv[]) {
         cleanupEditor();
     }
 
-    EngineInstance::GetInstance().Destroy();
+    Core::GetEngine().Destroy();
 
     std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

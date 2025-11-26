@@ -209,6 +209,13 @@ namespace Pulse::Editor{
         }
     }
 
+    void LevelTree::ClickOutsideItems(Qt::MouseButton button){
+        if (button == Qt::LeftButton){
+            parent->SetSelectedActor(nullptr);
+            treeView->clearSelection();
+        }
+    }
+
     void LevelTree::SetParentWindow(EditorMainWindow *parent)
     {
         this->parent = parent;
@@ -223,6 +230,8 @@ namespace Pulse::Editor{
         
         connect(treeView, &CustomTreeView::itemClicked, this, [this](const QModelIndex &index, Qt::MouseButton button) { OnItemClicked(index, button); });
     
+        connect(treeView, &CustomTreeView::noItemClicked, this, [this](Qt::MouseButton button) { ClickOutsideItems(button); });
+
         connect(model, &QStandardItemModel::itemChanged, this, [this](QStandardItem *changedItem) {
             QVariant var = changedItem->data(Qt::UserRole);
             if (!var.isValid()) return;

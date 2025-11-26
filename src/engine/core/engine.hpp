@@ -145,8 +145,16 @@ namespace Pulse::Engine{
         #if defined(BUILD_ENGINE)
 
             // Used by the EXE/engine
+            inline EngineInstance* gSharedEnginePtr = nullptr;
+
+            inline void SetEngine(EngineInstance* ptr) {
+                gSharedEnginePtr = ptr;
+            }
+
             inline EngineInstance& GetEngine() {
-                return EngineInstance::GetInstance();
+                if (!gSharedEnginePtr)
+                    exit(2);
+                return *gSharedEnginePtr;
             }
 
         #elif defined(BUILD_GAME)

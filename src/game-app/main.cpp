@@ -82,6 +82,11 @@ int main(int argc, char* argv[]) {
         early_crash();
     }
 
+    
+    EngineInstance* engine = &EngineInstance::GetInstance();
+
+    Core::SetEngine(engine);
+
     //Module loader init
     auto& loader = ModuleLoader::GetInstance();
     const std::string mainModuleName = "game";
