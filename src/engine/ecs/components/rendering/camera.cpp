@@ -114,6 +114,23 @@ namespace Pulse::Engine::ECS::Components {
             DeActivate();
     }
 
+    json Camera::Serialize()
+    {
+        json comp;
+
+        comp["type"] = "camera";
+
+        comp["active"] = activated;
+
+        comp["near"] = nearPlane;
+
+        comp["far"] = farPlane;
+
+        json ret;
+        ret["component"] = comp;
+        return ret;
+    }
+
     std::shared_ptr<Component> Camera::Clone() const
     {
         auto cloned = std::make_shared<Camera>(*this);

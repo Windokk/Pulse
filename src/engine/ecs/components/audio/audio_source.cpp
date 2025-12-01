@@ -39,6 +39,23 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
+    json AudioSource::Serialize()
+    {
+        json comp;
+
+        comp["type"] = "audio";
+
+        comp["active"] = activated;
+
+        comp["volume"] = volume;
+
+        comp["path"] = path.full;
+
+        json ret;
+        ret["component"] = comp;
+        return ret;
+    }
+
     void AudioSource::Destroy()
     {
         RemoveSound();

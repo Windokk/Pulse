@@ -19,6 +19,8 @@ namespace Pulse::Engine::ECS::Components
 
         void Deserialize(json componentData, json levelData) override;
 
+        json Serialize() override;
+
         const glm::vec3& GetPosition() const { return position; };
         glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); };
         const glm::vec3& GetScale() const { return scale; };

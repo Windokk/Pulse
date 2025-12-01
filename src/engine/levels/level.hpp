@@ -10,6 +10,7 @@
 #include "engine/ecs/components/core/script.hpp"
 #include "engine/ecs/components/rendering/model_component.hpp"
 #include "engine/ecs/objects/skybox/skybox.hpp"
+#include "engine/filesystem/filesystem.hpp"
 
 namespace Pulse::Engine::ECS{
 
@@ -36,14 +37,19 @@ namespace Pulse::Engine::Levels{
         std::vector<std::shared_ptr<ECS::Objects::Actor>> rootActors;
         std::string name;
         
+        Filesystem::Path path;
+
         bool loaded = false;
 
         int buildIndex = -1;
 
+        Filesystem::AssetID assetID;
+
         public:
-            Level(std::string name);
+            Level(std::string name, Filesystem::Path path);
 
             void Deserialize(Filesystem::Path filePath);
+            void Serialize(Filesystem::Path filePath);
 
             void SetBuildIndex(int buildIndex);
 
@@ -54,6 +60,8 @@ namespace Pulse::Engine::Levels{
             void OnLoad();
             void Unload();
 
+            Filesystem::Path GetPath() { return path; }
+
             void AddActor(std::shared_ptr<ECS::Objects::Actor> a);
             void RemoveActor(ECS::ObjectID id);
             std::shared_ptr<ECS::Objects::Actor> GetActor(ECS::ObjectID id, bool recursive = false);
@@ -63,10 +71,13 @@ namespace Pulse::Engine::Levels{
             const std::string& GetName() const;
             void SetName(const std::string& name);
             
-            Filesystem::AssetID assetID;
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
+            }
+
+            Filesystem::AssetID GetAssetID() {
+                return this->assetID;
             }
 
             int GetBuildIndex() { return buildIndex; }

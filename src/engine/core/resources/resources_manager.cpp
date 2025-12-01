@@ -44,6 +44,7 @@ namespace Pulse::Engine::Core::Resources{
 
         std::shared_ptr<Rendering::Mesh> mesh = std::make_shared<Rendering::Mesh>(ufbx_mesh, scene->settings.unit_meters, scene->materials);
         meshes.emplace(pathInProject, mesh);
+        mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
 
         ufbx_free_scene(scene);
 
@@ -55,6 +56,7 @@ namespace Pulse::Engine::Core::Resources{
     {
         std::shared_ptr<Rendering::Texture> texture = std::make_shared<Rendering::Texture>(path);
         textures.emplace(pathInProject, texture);
+        texture->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
         return texture;
     }
 
@@ -66,6 +68,7 @@ namespace Pulse::Engine::Core::Resources{
             return nullptr;
         }
         cubemaps.emplace(pathInProject, cubemap);
+        cubemap->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
         return cubemap;
     }
 
@@ -85,12 +88,13 @@ namespace Pulse::Engine::Core::Resources{
             return nullptr;
         }
         materials.emplace(pathInProject, mat);
+        mat->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
         return mat;
     }
 
     std::shared_ptr<Levels::Level> ResourcesManager::LoadLevel(const std::string &pathInProject, const Filesystem::Path& path){
 
-        std::shared_ptr<Levels::Level> level = std::make_shared<Levels::Level>("unitialized_level");
+        std::shared_ptr<Levels::Level> level = std::make_shared<Levels::Level>("unitialized_level", path);
         int buildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(pathInProject);
         if(buildIndex != -1){
             level->SetBuildIndex(buildIndex);
@@ -105,6 +109,7 @@ namespace Pulse::Engine::Core::Resources{
         if (!inserted) {
             DEBUG_WARNING("Level '" + pathInProject + "' already loaded.");
         }
+        level->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
         return level;
     }
 

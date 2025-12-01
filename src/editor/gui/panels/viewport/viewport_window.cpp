@@ -345,6 +345,12 @@ namespace Pulse::Editor {
 
         Engine::Time::TimeManager* time = Engine::Core::GetEngine().GetTimeManager();
 
+        if(input->WasKeyPressed(Engine::Input::Key::F3)){
+            Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
+                Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
+            );
+        }
+
         if(input->IsKeyDown(Engine::Input::Key::W)){
             cameraActor->transform->Translate(cameraActor->transform->GetForward() * speed * time->GetDeltaTime());
         }

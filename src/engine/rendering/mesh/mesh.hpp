@@ -26,14 +26,18 @@ namespace Pulse::Engine::Rendering{
             int SubMeshesCount() const { return submeshes.size(); }
 
             int materialsSlots;
-            
-            Filesystem::AssetID assetID;
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
             }
 
+            Filesystem::AssetID GetAssetID() {
+                return this->assetID;
+            }
+
         private:
+            Filesystem::AssetID assetID;
+
             GLuint VAO, VBO, EBO;
             size_t totalIndexCount;
             std::vector<Vertex> vertices;

@@ -149,6 +149,57 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
+    json PhysicsBody::Serialize()
+    {
+        json comp;
+
+        comp["type"] = "physics_body";
+
+        comp["active"] = activated;
+
+        switch(shape){
+            case Physics::BOX:{
+                comp["shape"] = "box";
+                break;
+            }
+            case Physics::CAPSULE:{
+                comp["shape"] = "capsule";
+                break;
+            }
+            case Physics::CYLINDER:{
+                comp["shape"] = "cylinder";
+                break;
+            }
+            case Physics::SPHERE:{
+                comp["shape"] = "sphere";
+                break;
+            }
+        }
+
+        comp["size"]["x"] = scale.x;
+        comp["size"]["y"] = scale.y;
+        comp["size"]["z"] = scale.z;
+
+        switch(motionType){
+            case JPH::EMotionType::Dynamic:{
+                comp["motion_type"] = "dynamic";
+                break;
+            }
+            case JPH::EMotionType::Static:{
+                comp["motion_type"] = "static";
+                break;
+            }
+            case JPH::EMotionType::Kinematic:{
+                comp["motion_type"] = "kinematic";
+                break;
+            }
+        }
+
+        json ret;
+        ret["component"] = comp;
+        return ret;
+    }
+
     std::shared_ptr<Component> PhysicsBody::Clone() const
     {
         auto cloned = std::make_shared<PhysicsBody>(*this);

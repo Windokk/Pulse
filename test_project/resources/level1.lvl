@@ -84,7 +84,7 @@
                 {
                     "type": "light",
                     "active": true,
-                    "light_type": "directionnal",
+                    "light_type": "directional",
                     "intensity": 1,
                     "radius": 100,
                     "color": {

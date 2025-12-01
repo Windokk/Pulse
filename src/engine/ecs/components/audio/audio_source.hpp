@@ -28,6 +28,8 @@ namespace Pulse::Engine::ECS::Components
 
             void Deserialize(json componentData, json levelData) override;
 
+            json Serialize() override;
+
             void Destroy() override;
 
             void DeActivate() override

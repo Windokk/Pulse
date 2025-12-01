@@ -78,6 +78,36 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
+    json Model::Serialize()
+    {
+        json comp;
+
+        comp["type"] = "model";
+
+        comp["active"] = activated;
+
+        std::string meshName = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.name;
+
+        comp["mesh"] = meshName;
+
+        json ret;
+
+        std::string meshNameInProject = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
+
+        ret["meshes"][meshName] = meshNameInProject;
+
+        for(int i = 0; i < materials.size(); i++){
+            std::string matNameInProject = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.nameInProject;
+            std::string matName = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.name;
+            ret["materials"][matName] = matNameInProject;
+            comp["materials"][std::to_string(i)] = matName;
+        }
+
+        ret["component"] = comp;
+
+        return ret;
+    }
+
     void Model::SetMesh(std::shared_ptr<Rendering::Mesh> mesh)
     {
         if(!activated)

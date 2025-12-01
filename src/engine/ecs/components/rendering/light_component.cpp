@@ -21,7 +21,7 @@ namespace Pulse::Engine::ECS::Components{
     }
 
     /// @brief Set the light's type
-    /// @param type The new type (Directionnal, Spot, Point...)
+    /// @param type The new type (Directional, Spot, Point...)
     void Light::SetType(Rendering::LightType type)
     {
         if(!activated)
@@ -154,7 +154,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void Light::Deserialize(json componentData, json levelData)
     {
-        if(componentData["light_type"] == "directionnal"){
+        if(componentData["light_type"] == "directional"){
             SetType(Rendering::LightType::Directional);
         }
         else if(componentData["light_type"] == "point"){
@@ -178,6 +178,43 @@ namespace Pulse::Engine::ECS::Components{
             Activate();
         else
             DeActivate();
+    }
+
+    json Light::Serialize()
+    {
+        json comp;
+
+        comp["type"] = "light";
+
+        comp["active"] = activated;
+
+        switch(lightData->type){
+            case (int)Rendering::LightType::Directional:{
+                comp["light_type"] = "directional";
+                break;
+            }
+            case (int)Rendering::LightType::Spot:{
+                comp["light_type"] = "spot";
+                break;
+            }
+            case (int)Rendering::LightType::Point:{
+                comp["light_type"] = "point";
+                break;
+            }
+        }
+
+        comp["intensity"] = lightData->intensity;
+        comp["radius"] = lightData->radius;
+        comp["color"]["r"] = lightData->color.r;
+        comp["color"]["g"] = lightData->color.g;
+        comp["color"]["b"] = lightData->color.b;
+        comp["innerCutoff"] = lightData->innerCutoff;
+        comp["outerCutoff"] = lightData->outerCutoff;
+        comp["castShadow"] = lightData->castShadow;
+
+        json ret;
+        ret["component"] = comp;
+        return ret;
     }
 
     /// @brief Getter for this light component's data

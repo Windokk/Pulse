@@ -21,6 +21,8 @@ namespace Pulse::Engine::ECS::Objects
 
                 void SetShader(std::shared_ptr<Rendering::Shader> shader);
 
+                std::shared_ptr<Rendering::Cubemap> GetCubemap() { return cubemap; }
+
                 void Draw(glm::mat4 view, glm::mat4 projection);
 
                 void Destroy() override;

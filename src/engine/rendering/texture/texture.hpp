@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/ecs/components/core/transform.hpp"
+#include "engine/filesystem/assetID.hpp"
 
 #include <stb/stb_image.h>
 #include <stb/stb_image_resize2.h>
@@ -17,7 +18,7 @@ namespace Pulse::Engine::Rendering {
     struct DrawCommand;
 
     struct TextureInfos{
-        int width, height;         
+        int width, height;           
         int nrChannels;
         std::shared_ptr<Filesystem::Path> filepath;
     };
@@ -32,7 +33,17 @@ namespace Pulse::Engine::Rendering {
             unsigned int GetID() { return ID; }
             TextureInfos* GetInfos() { return &infos; }
 
+            void SetAssetID(Filesystem::AssetID assetID) {
+                this->assetID = assetID;
+            }
+
+            Filesystem::AssetID GetAssetID() {
+                return this->assetID;
+            }
+
         private:
+            Filesystem::AssetID assetID;
+
             unsigned int ID;
             TextureInfos infos;
             unsigned int VAO, VBO, EBO;

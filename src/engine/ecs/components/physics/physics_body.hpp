@@ -67,6 +67,8 @@ namespace Pulse::Engine::ECS::Components
 
             void Deserialize(json componentData, json levelData) override;
             
+            json Serialize() override;
+            
             std::shared_ptr<Component> Clone() const override;
             
             Physics::PhysicsShape GetShapeType() { return shape; }

@@ -36,14 +36,17 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<Shader> shader;
             bool recievesShadows = false;
             RenderMode renderMode = OPAQUE;
-            
-            Filesystem::AssetID assetID;
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
             }
 
+            Filesystem::AssetID GetAssetID() {
+                return this->assetID;
+            }
+
         private:
+            Filesystem::AssetID assetID;
             void Init(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode);
             std::map<std::string, UniformValue> parameters;
 

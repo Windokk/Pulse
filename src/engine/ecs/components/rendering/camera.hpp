@@ -60,6 +60,8 @@ namespace Pulse::Engine::ECS::Components {
 
             void Deserialize(json componentData, json levelData) override;
             
+            json Serialize() override;
+            
             std::shared_ptr<Component> Clone() const override;
 
             bool IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax);

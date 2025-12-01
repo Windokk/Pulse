@@ -13,12 +13,13 @@
 namespace Pulse::Engine::Levels{
 
 
-    Level::Level(std::string name)
+    Level::Level(std::string name, Filesystem::Path path)
     {
         this->name = name;
+        this->path = path;
     }
 
-    void LoadComponents(std::shared_ptr<ECS::Objects::Actor> a, json levelData, json actorData){
+    void DeserializeComponents(std::shared_ptr<ECS::Objects::Actor> a, json levelData, json actorData){
         if(!actorData["components"].is_array()){
             DEBUG_ERROR("Couldn't deserialize actor's components as actor[components] is not an array");
             return; 
@@ -68,17 +69,17 @@ namespace Pulse::Engine::Levels{
         }
     }
 
-    void LoadActor(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
+    void DeserializeActor(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
 
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
             for (auto& child : actor["children"]) {
                 std::shared_ptr<ECS::Objects::Actor> b = ECS::Objects::Object::Create<ECS::Objects::Actor>(child["name"]);
                 a->AddChild(b);
-                LoadActor(b, data, child);
+                DeserializeActor(b, data, child);
             }
         }
 
-        LoadComponents(a, data, actor);
+        DeserializeComponents(a, data, actor);
     }
 
     void Level::Deserialize(Filesystem::Path filePath)
@@ -94,7 +95,7 @@ namespace Pulse::Engine::Levels{
             {
                 std::shared_ptr<ECS::Objects::Actor> a = ECS::Objects::Object::Create<ECS::Objects::Actor>(actor["name"]);
                 AddActor(a);
-                LoadActor(a, data, actor);
+                DeserializeActor(a, data, actor);
             }
 
             if(data.contains("skybox")){
@@ -120,6 +121,73 @@ namespace Pulse::Engine::Levels{
             DEBUG_ERROR("JSON parse error: " + (std::string)e.what());
             return;
         }
+    }
+
+    void SerializeActor(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> a, json* actorsArray, json* meshes, json* materials){
+        
+        json actor;
+
+        actor["name"] = a->GetName();
+
+        for(auto& childrenID : a->GetChildrenID(false)){
+            auto child = a->GetChild(childrenID);
+            SerializeActor(std::dynamic_pointer_cast<ECS::Objects::Actor>(child), actorsArray, meshes, materials);
+        }
+
+        for(auto& comp : a->GetComponents()){
+            json serializedComp = comp->Serialize();
+            if(serializedComp.contains("meshes") && serializedComp["meshes"].is_array()){
+                for(auto& item : serializedComp["meshes"].items()){
+                    if(!(*meshes).contains(item.key())){
+                        (*meshes)[item.key()] = item.value();
+                    }
+                }
+            }
+            if(serializedComp.contains("materials") && serializedComp["materials"].is_array()){
+                for(auto& item : serializedComp["materials"].items()){
+
+                    if(!(*materials).contains(item.key())){
+                        (*materials)[item.key()] = item.value();
+                    }
+                }
+            }
+            if(serializedComp.contains("component")){
+                actor["components"].push_back(serializedComp["component"]);
+            }
+        }
+
+        actorsArray->push_back(actor);
+    }
+
+    void Level::Serialize(Filesystem::Path filePath)
+    {
+        json actorsArray;
+
+        json meshes;
+
+        json materials;
+
+        json full;
+
+        full["name"] = name;
+
+        for(auto& actor : rootActors){
+            SerializeActor(actor, &actorsArray, &meshes, &materials);
+        }
+
+        full["actors"] = actorsArray;
+
+        full["materials"] = materials;
+
+        full["meshes"] = meshes;
+
+        if(skybox){
+            full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(skybox->GetCubemap()->GetInfos()->filepath->full).nameInProject;
+        }
+
+        std::string fileContent = full.dump();
+
+        filePath.WriteFile(fileContent);
     }
 
     void Level::SetBuildIndex(int buildIndex)
