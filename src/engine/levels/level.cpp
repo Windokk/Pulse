@@ -3,11 +3,12 @@
 
 #include "engine/ecs/objects/objectID.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
-
-#include "engine/ecs/components/rendering/light_component.hpp"
-#include "engine/ecs/components/rendering/model_component.hpp"
-
+#include "engine/ecs/components/core/registry/component_registry.hpp"
 #include "engine/core/engine.hpp"
+#include "engine/core/resources/resources_manager.hpp"
+#include "engine/ecs/objects/skybox/skybox.hpp"
+
+#include <nlohmann/json.hpp>
 
 namespace Pulse::Engine::Levels{
 
@@ -15,6 +16,110 @@ namespace Pulse::Engine::Levels{
     Level::Level(std::string name)
     {
         this->name = name;
+    }
+
+    void LoadComponents(std::shared_ptr<ECS::Objects::Actor> a, json levelData, json actorData){
+        if(!actorData["components"].is_array()){
+            DEBUG_ERROR("Couldn't deserialize actor's components as actor[components] is not an array");
+            return; 
+        }
+
+        for(auto& component : actorData["components"]){
+            
+            if (!component.contains("type")) continue;
+        
+            const std::string& type = component["type"];
+
+            if(type == "transform"){
+                a->GetComponent<ECS::Components::Transform>()->Deserialize(component, levelData);
+            }
+            else if(type == "model"){
+                std::shared_ptr<ECS::Components::Model> model = a->AddComponent<ECS::Components::Model>();
+                model->Deserialize(component, levelData);
+            }
+            else if(type == "light"){
+                std::shared_ptr<ECS::Components::Light> light = a->AddComponent<ECS::Components::Light>();
+                light->Deserialize(component, levelData);
+            }
+            else if(type == "physics_body"){
+                std::shared_ptr<ECS::Components::PhysicsBody> body = a->AddComponent<ECS::Components::PhysicsBody>();
+                body->Deserialize(component, levelData);
+            }
+            else if(type == "camera"){
+                std::shared_ptr<ECS::Components::Camera> cam = a->AddComponent<ECS::Components::Camera>();
+                cam->Deserialize(component, levelData);
+            }
+            else if(type == "audio"){
+                std::shared_ptr<ECS::Components::AudioSource> audio = a->AddComponent<ECS::Components::AudioSource>();
+                audio->Deserialize(component, levelData);
+            }
+            else{
+                //Custom component/Inherited component case
+                //Note : The custom component has to be already registered
+                ECS::Components::Component* rawComponent = Pulse::Engine::ECS::Components::GetComponentRegistry().CreateComponentByName(type);
+                if (!rawComponent) {
+                    DEBUG_WARNING("Unknown component type: " + type);
+                    continue;
+                }
+
+                a->AddComponentRaw(rawComponent);
+                rawComponent->Deserialize(component, levelData);
+            }
+        }
+    }
+
+    void LoadActor(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
+
+        if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
+            for (auto& child : actor["children"]) {
+                std::shared_ptr<ECS::Objects::Actor> b = ECS::Objects::Object::Create<ECS::Objects::Actor>(child["name"]);
+                a->AddChild(b);
+                LoadActor(b, data, child);
+            }
+        }
+
+        LoadComponents(a, data, actor);
+    }
+
+    void Level::Deserialize(Filesystem::Path filePath)
+    {
+        std::string src = filePath.ReadFile();
+
+        try {
+            json data = json::parse(src);
+
+            name = data["name"];
+
+            for(auto& actor : data["actors"])
+            {
+                std::shared_ptr<ECS::Objects::Actor> a = ECS::Objects::Object::Create<ECS::Objects::Actor>(actor["name"]);
+                AddActor(a);
+                LoadActor(a, data, actor);
+            }
+
+            if(data.contains("skybox")){
+                auto& skybox_folder = data["skybox"];
+                if(skybox_folder.is_string()){
+                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\skybox\\skybox");
+                    std::shared_ptr<Rendering::Cubemap> cubemap = Core::GetEngine().GetResourcesManager()->GetCubemap(data["skybox"]);
+                    
+                    if(shader != nullptr && cubemap != nullptr)
+                    {
+                        std::shared_ptr<ECS::Objects::Skybox> sb = ECS::Objects::Object::Create<ECS::Objects::Skybox>(cubemap, shader);
+                        sb->SetShader(shader);
+                        sb->SetCubemap(cubemap);
+                        this->skybox = sb;
+                    }
+                    else{
+                        DEBUG_ERROR("Couldn't deserialize skybox : shader or cubemap missing");
+                    }
+                }
+            }
+
+        } catch (const json::parse_error& e) {
+            DEBUG_ERROR("JSON parse error: " + (std::string)e.what());
+            return;
+        }
     }
 
     void Level::SetBuildIndex(int buildIndex)

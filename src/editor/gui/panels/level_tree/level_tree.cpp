@@ -9,7 +9,7 @@
 
 #include "engine/core/engine.hpp"
 
-#include "main_win.hpp"
+#include "editor/gui/main_win.hpp"
 
 namespace Pulse::Editor{
     

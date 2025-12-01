@@ -292,6 +292,7 @@ namespace Pulse::Engine::Rendering{
             cmd.mat->SetParameter("model", cmd.tr->GetTransformMatrix());
             cmd.mat->SetParameter("lightNB", lightMan->GetLightsCount());
             cmd.mat->SetParameter("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
+            cmd.mat->SetParameter("ambientIntensity", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->ambientIntensity);
             cmd.mat->Use();
             Core::GetEngine().GetGL()->BindVertexArray(cmd.VAO);
             Core::GetEngine().GetGL()->PolygonMode(GL_FRONT_AND_BACK, cmd.fillMode);

@@ -21,6 +21,8 @@ namespace Pulse::Engine::ECS::Components
             void SetLightIndex(int index);
             void SetCastShadow(bool castShadows);
 
+            void Deserialize(json componentData, json levelData) override;
+
             Rendering::LightData GetData();
             
             void Destroy() override;

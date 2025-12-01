@@ -87,7 +87,7 @@ namespace Pulse::Engine::ECS::Objects{
 
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::DESTROYED, name, GetID()));
@@ -120,7 +120,7 @@ namespace Pulse::Engine::ECS::Objects{
 
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::CREATED, name, GetID()));
@@ -148,7 +148,7 @@ namespace Pulse::Engine::ECS::Objects{
         }
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::ACTIVATED, name, GetID()));
@@ -163,7 +163,7 @@ namespace Pulse::Engine::ECS::Objects{
         }
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
+            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
             Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::DEACTIVATED, name, GetID()));

@@ -53,10 +53,6 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Material
             std::shared_ptr<Rendering::Material> LoadMaterial(const std::string &pathInProject, const Filesystem::Path &path);
 
-            /// @brief Loads all dependencies of a given asset (recursively)
-            /// @param assetName The name of the "root" asset
-            void LoadDependencies(const std::string &assetName);
-
             /// @brief Loads a level from a given path and adds it to the project's loaded levels list
             /// @param name The name of the level in the project
             /// @param path The normalized path at which the level is located (filename + extension expected)

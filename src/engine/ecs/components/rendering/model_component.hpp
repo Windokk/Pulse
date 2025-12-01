@@ -17,6 +17,8 @@ namespace Pulse::Engine::ECS::Components
 
             public:
 
+            void Deserialize(json componentData, json levelData) override;
+
             void SetMesh(std::shared_ptr<Rendering::Mesh> mesh);
             void UpdateReferenceInLevel();
             void SetMaterials(std::vector<std::shared_ptr<Rendering::Material>> &&materials);

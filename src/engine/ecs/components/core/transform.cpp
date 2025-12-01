@@ -17,6 +17,13 @@ namespace Pulse::Engine::ECS::Components{
         this->scale = glm::vec3(1,1,1);
     }
 
+    void Transform::Deserialize(json componentData, json levelData)
+    {
+		SetPosition(glm::vec3(componentData["position"]["x"], componentData["position"]["y"], componentData["position"]["z"]));
+        SetRotation(glm::vec3(componentData["rotation"]["x"], componentData["rotation"]["y"], componentData["rotation"]["z"]));
+        SetScale(glm::vec3(componentData["scale"]["x"], componentData["scale"]["y"], componentData["scale"]["z"]));
+    }
+
     void Transform::SetPosition(glm::vec3 position)
     {
         if(!activated)

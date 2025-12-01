@@ -7,6 +7,8 @@
 
 namespace Pulse::Engine::Debugging{
 
+    LoggerFuncType gLoggerFunc = nullptr;
+
     void Logger::EnableTimestamp()
     {
         useTimestamp = true;
@@ -32,7 +34,8 @@ namespace Pulse::Engine::Debugging{
         return "UNKNOWN";
     }
 
-    std::string Logger::GetTimestamp() {
+    std::string Logger::GetTimestamp()
+    {
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
         std::tm tm{};
@@ -42,5 +45,4 @@ namespace Pulse::Engine::Debugging{
         oss << std::put_time(&tm, "[%Y-%m-%d %H:%M:%S]");
         return oss.str();
     }
-  
 }

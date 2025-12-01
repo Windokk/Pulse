@@ -1,14 +1,27 @@
+<!DOCTYPE RCC>
 <RCC>
-    <qresource prefix="/pulse/default">
-        <file>stylesheets/default_dock.qss</file>
-        <file>stylesheets/default_tree.qss</file>
-        <file>icons/chevron_right.svg</file>
-        <file>icons/chevron_down.svg</file>
-        <file>icons/rename.svg</file>
-        <file>icons/delete.svg</file>
-        <file>icons/duplicate.svg</file>
-        <file>icons/add.svg</file>
-        <file>fonts/lucide.ttf</file>
-        <file>fonts/OpenSans-Regular.ttf</file>
-    </qresource>
+  <qresource prefix="/pulse/default">
+    <file>stylesheets/default_dock.qss</file>
+    <file>stylesheets/default_tree.qss</file>
+    <file>icons/chevron_right.svg</file>
+    <file>icons/chevron_down.svg</file>
+    <file>icons/rename.svg</file>
+    <file>icons/delete.svg</file>
+    <file>icons/duplicate.svg</file>
+    <file>icons/add.svg</file>
+    <file>fonts/lucide.ttf</file>
+    <file>fonts/OpenSans-Regular.ttf</file>
+    <file>icons/folder.svg</file>
+    <file>icons/shader.svg</file>
+    <file>icons/text.svg</file>
+    <file>icons/texture.svg</file>
+    <file>icons/unknown.svg</file>
+    <file>icons/material.svg</file>
+    <file>icons/model.svg</file>
+    <file>icons/level.svg</file>
+    <file>icons/font.svg</file>
+    <file>icons/audio.svg</file>
+    <file>icons/code.svg</file>
+    <file>icons/config.svg</file>
+  </qresource>
 </RCC>

@@ -35,7 +35,6 @@ namespace Pulse::Engine::Levels{
 
         std::vector<std::shared_ptr<ECS::Objects::Actor>> rootActors;
         std::string name;
-        std::string path;
         
         bool loaded = false;
 
@@ -43,6 +42,8 @@ namespace Pulse::Engine::Levels{
 
         public:
             Level(std::string name);
+
+            void Deserialize(Filesystem::Path filePath);
 
             void SetBuildIndex(int buildIndex);
 
@@ -74,6 +75,7 @@ namespace Pulse::Engine::Levels{
 
             void SetLoaded(bool loaded) { this->loaded = loaded; }
 
+            float ambientIntensity = 0.2f;
             std::shared_ptr<ECS::Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture> ibl_texture;
             std::vector<std::shared_ptr<ECS::Components::Light>> lights;

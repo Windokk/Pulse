@@ -152,6 +152,34 @@ namespace Pulse::Engine::ECS::Components{
             Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
+    void Light::Deserialize(json componentData, json levelData)
+    {
+        if(componentData["light_type"] == "directionnal"){
+            SetType(Rendering::LightType::Directional);
+        }
+        else if(componentData["light_type"] == "point"){
+            SetType(Rendering::LightType::Point);
+        }
+        else if(componentData["light_type"] == "spot"){
+            SetType(Rendering::LightType::Spot);
+        }
+        else{
+            DEBUG_ERROR("Light type not recognized : " + (std::string)componentData["light_type"]);
+        }
+        
+        SetIntensity(componentData["intensity"]);
+        SetRadius(componentData["radius"]);
+        SetColor(COL_RGB(componentData["color"]["r"], componentData["color"]["g"], componentData["color"]["b"]));
+        SetInnerCuttof(componentData["innerCutoff"]);
+        SetOuterCutoff(componentData["outerCutoff"]);
+        SetCastShadow(componentData["castShadow"]);
+        
+        if(componentData.contains("active") && componentData["active"].get<bool>())
+            Activate();
+        else
+            DeActivate();
+    }
+
     /// @brief Getter for this light component's data
     /// @return A copy of this light component's data
     Rendering::LightData Light::GetData()

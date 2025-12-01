@@ -12,7 +12,7 @@
 
 #include <DockManager.h>
 
-#include "viewport_window.hpp"
+#include "panels/viewport/viewport_window.hpp"
 
 #include "engine/debugging/logger.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"

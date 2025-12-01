@@ -26,6 +26,8 @@ namespace Pulse::Engine::ECS::Components
             void RemoveSound();
             void Update();
 
+            void Deserialize(json componentData, json levelData) override;
+
             void Destroy() override;
 
             void DeActivate() override

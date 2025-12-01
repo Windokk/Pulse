@@ -98,6 +98,22 @@ namespace Pulse::Engine::ECS::Components {
 			isOnOrForwardPlane(center, extents, camFrustum.farFace));
     }
 
+    void Camera::Deserialize(json componentData, json levelData)
+    {
+        int width = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+        int height = Core::GetEngine().GetWindow()->GetFramebufferHeight();
+
+        float near = componentData["near"];
+        float far = componentData["far"];
+
+        Init(width, height, near, far);
+        
+        if(componentData.contains("active") && componentData["active"].get<bool>())
+            Activate();
+        else
+            DeActivate();
+    }
+
     std::shared_ptr<Component> Camera::Clone() const
     {
         auto cloned = std::make_shared<Camera>(*this);

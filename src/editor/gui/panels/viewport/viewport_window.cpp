@@ -4,9 +4,9 @@
 #include "engine/rendering/opengl/opengl.hpp"
 #include "engine/core/platform/iplatform.hpp"
 
-#include "main_win.hpp"
+#include "editor/gui/main_win.hpp"
 
-#include "IconsLucide.h"
+#include "editor/gui/IconsLucide.h"
 
 namespace Pulse::Editor {
 

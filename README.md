@@ -43,27 +43,15 @@ Run build.bat or build.sh (depending on your OS)
 This will compile everything from root : submodules, the engine, the editor app, the editor module, and the game module (loaded with the game app)
 
 
-## ROADMAP FULL ENGINE
 
-- First prototype : December 2025/January 2026
-  - Example basic project : Pong 3D
-- Alpha : Summer 2026
-  - All basic features
-  - Polished Renderer
-  - Polished Editor
-  - Unit tests
-  - Demos (YouTube ?)
-- Major First Beta Release 0.1.0 : December 2026/January 2027
-  - Bug fixes
-  - Documentation (User + Source Code)
-  - Optimizations
-
-## ROADMAP FIRST PROTOTYPE 0.1.0 (January 2026)
-
-### Editor (Qt)
+## ROADMAP EDITOR
 
 - [x] Docking
 - [x] Scene Tree panel
+  - [ ] Keyboard shortcuts
+  - [ ] Multi selection
+  - [ ] Template actors creation
+  - [ ]
 - [ ] Material editor panel
 - [ ] Viewport panel
 - [ ] Asset Browser
@@ -73,11 +61,14 @@ This will compile everything from root : submodules, the engine, the editor app,
   - [x] Minimal frame profiler (FPS, Draw Calls, Lights counts, etc...)
   - [ ] Hardware infos (CPU, GPU, RAM) (Name, Vendor, Usage...)
 
+
+## ROADMAP ENGINE
+
 ### Rendering
 
 - [x] Skyboxes
   - [x] IBL
-- [ ] Wireframe rendering
+- [x] Wireframe rendering
 - [ ] Forward+ rendering
 - [ ] Ligthmaps
 - [ ] FBX importer (multiple meshes)

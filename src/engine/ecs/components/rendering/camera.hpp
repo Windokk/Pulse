@@ -57,6 +57,8 @@ namespace Pulse::Engine::ECS::Components {
             void SetNearFarPlanes(float newNear, float newFar) { nearPlane = newNear; farPlane = newFar; }
 
             void ToggleFrustumCulling() { frustumCulling = !frustumCulling; }
+
+            void Deserialize(json componentData, json levelData) override;
             
             std::shared_ptr<Component> Clone() const override;
 

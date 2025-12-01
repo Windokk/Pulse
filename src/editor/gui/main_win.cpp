@@ -11,8 +11,8 @@
 #include <DockAreaWidget.h>
 #include <DockAreaTabBar.h>
 
-#include "editor/gui/level_tree.hpp"
-
+#include "editor/gui/panels/level_tree/level_tree.hpp"
+#include "editor/gui/panels/asset_browser/asset_browser.hpp"
 
 namespace Pulse::Editor
 {
@@ -68,8 +68,15 @@ namespace Pulse::Editor
         levelTreeDock->setWidget(treeWidget);
         levelTreeDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
 
+        auto* assetBrowser = new AssetBrowser(this);
+
+        auto* assetBrowserDock = dockManager->createDockWidget("Asset Browser");
+        assetBrowserDock->setWidget(assetBrowser);
+        assetBrowserDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
+
         dockManager->addDockWidget(ads::CenterDockWidgetArea, viewportDock);
         dockManager->addDockWidget(ads::LeftDockWidgetArea, levelTreeDock);
+        dockManager->addDockWidget(ads::BottomDockWidgetArea, assetBrowserDock);
 
         show();
     }

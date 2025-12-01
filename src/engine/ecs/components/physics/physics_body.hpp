@@ -64,6 +64,8 @@ namespace Pulse::Engine::ECS::Components
                     mBodyID = JPH::BodyID();
                 }
             }
+
+            void Deserialize(json componentData, json levelData) override;
             
             std::shared_ptr<Component> Clone() const override;
             

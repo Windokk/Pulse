@@ -1,15 +1,31 @@
 file(GLOB_RECURSE EDITOR_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/platform/qt/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/gui/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/gui/default.qrc
   ${CMAKE_SOURCE_DIR}/submodules/imguizmo/ImGuizmo.cpp
 )
 
+# Expand the wildcard into actual files
+file(GLOB NON_QOBJECT_HEADERS_GLOB
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/platform/qt/*.hpp
+)
+
+# Add the other single headers
+list(APPEND NON_QOBJECT_HEADERS_GLOB
+    ${CMAKE_CURRENT_SOURCE_DIR}/gui/IconsLucide.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/gui/panels/asset_browser/flow_alyout.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/gui/panels/viewport/viewport_window.hpp
+)
+
+# Apply SKIP_AUTOMOC properly
+foreach(hpp ${NON_QOBJECT_HEADERS_GLOB})
+    set_property(SOURCE ${hpp} PROPERTY SKIP_AUTOMOC ON)
+endforeach()
+
+
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGL)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGL Svg)
 
 add_library(EditorModule SHARED ${EDITOR_SOURCES})
 
@@ -35,4 +51,4 @@ target_link_directories(EditorModule PRIVATE
   ${QT_ADS_PATH}
 )
 
-target_link_libraries(EditorModule PRIVATE qtadvanceddocking qt_imgui_widgets imgui Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL)
+target_link_libraries(EditorModule PRIVATE qtadvanceddocking qt_imgui_widgets imgui Engine Qt6::Core Qt6::Widgets Qt6::Gui Qt6::OpenGL Qt6::Svg)

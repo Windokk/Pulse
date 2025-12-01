@@ -37,14 +37,14 @@ namespace Pulse::Engine{
 
             this->settings = settings;
             this->context.platform = settings.platform;
-            context.platform->CreateWindow("Pulse", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync);
-
             context.currentProject = Serialization::DeserializeProject(Filesystem::Path(settings.project, true));
 
             context.fileManager->Init(context.currentProject->GetProjectResourcesPath(), context.fileManager->GetCurrentExecutablePath() / "engine_resources", context.currentProject->GetProjectRoot());
             
             context.resourcesManager->ConstructGlobalFileIndex(context.currentProject->GetProjectResourcesPath());
 
+            context.platform->CreateWindow("Pulse", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync);
+            
             context.physicsSystem->Init(settings.gravity);
             context.audioManager->Init(100.0f);
             context.renderer->Init();

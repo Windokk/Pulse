@@ -17,6 +17,8 @@ namespace Pulse::Engine::ECS::Components
         public:
         Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
+        void Deserialize(json componentData, json levelData) override;
+
         const glm::vec3& GetPosition() const { return position; };
         glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); };
         const glm::vec3& GetScale() const { return scale; };
@@ -31,6 +33,7 @@ namespace Pulse::Engine::ECS::Components
         void Scale(glm::vec3 deltaScale);
 
         void UpdateMeshReferencesInLevel();
+
 
         glm::vec3 GetForward() {
             return glm::normalize(rotation * glm::vec3(0, 0, 1));

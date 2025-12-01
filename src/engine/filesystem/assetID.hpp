@@ -8,7 +8,7 @@
 
 namespace Pulse::Engine::Filesystem
 {
-    struct AssetInfo;
+    struct AssetInfos;
 
     class Path;
 
@@ -67,7 +67,7 @@ namespace Pulse::Engine::Filesystem
             bool generated = false;
     };
 
-    struct FileInfo; 
+    struct FileInfos; 
 
     class AssetIDManager {
         public:
@@ -76,13 +76,13 @@ namespace Pulse::Engine::Filesystem
             
             AssetID GenerateNewID();
 
-            void AssignID(AssetID id, std::shared_ptr<AssetInfo> info);
+            void AssignID(AssetID id, std::shared_ptr<AssetInfos> info);
         
-            std::shared_ptr<AssetInfo> GetAssetFromID(AssetID id);
+            std::shared_ptr<AssetInfos> GetAssetFromID(AssetID id);
 
-            AssetID GetIDFromRelativeFilePath(const Filesystem::Path& path);
+            AssetID GetIDFromNameInProject(const std::string nameInProject);
 
-            std::map<AssetID, std::shared_ptr<AssetInfo>> AssetIDMap;
+            std::map<AssetID, std::shared_ptr<AssetInfos>> AssetIDMap;
         private:
             std::unordered_set<int> availableIDs;
     };

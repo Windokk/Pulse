@@ -26,7 +26,7 @@ namespace Pulse::Engine::Serialization{
             json data = json::parse(src);
 
             for(auto [key, value] : data.items()){
-                std::shared_ptr<Filesystem::AssetInfo> assetInfos = std::make_shared<Filesystem::AssetInfo>();
+                std::shared_ptr<Filesystem::AssetInfos> assetInfos = std::make_shared<Filesystem::AssetInfos>();
                 std::vector<Filesystem::AssetID> dependencies;
                 assetInfos->baseInfos = Core::GetEngine().GetFileManager()->GetFileInfos(resourcesPath / key);
                 if (value.is_array() && value.size() > 1 && value[1].contains("dependencies")) {

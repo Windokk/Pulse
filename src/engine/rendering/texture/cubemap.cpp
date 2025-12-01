@@ -67,7 +67,7 @@ namespace Pulse::Engine::Rendering{
 
         unsigned char* data = nullptr;
 
-        std::vector<Filesystem::FileInfo> files = Core::GetEngine().GetFileManager()->ListDirectory(*infos.filepath.get(), {Filesystem::Type::T_IMAGE}, false, false);
+        std::vector<Filesystem::FileInfos> files = Core::GetEngine().GetFileManager()->ListDirectory(*infos.filepath.get(), {Filesystem::Type::T_IMAGE}, false, false);
         
         stbi_set_flip_vertically_on_load(false);
 

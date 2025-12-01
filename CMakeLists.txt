@@ -6,8 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_MAKEFILE ON)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 # Set binary dir
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+
+set(FMOD_API_DIR "" CACHE PATH "Path to fmod api")
 
 configure_file(${CMAKE_SOURCE_DIR}/src/config.h.in config.h)
 

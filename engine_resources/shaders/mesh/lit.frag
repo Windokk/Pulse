@@ -56,6 +56,7 @@ uniform sampler2D roughnessMap;
 uniform sampler2D normalMap;
 uniform float metallic;
 uniform float roughness;
+uniform float ambientIntensity;
 
 vec3 gridSamplingDisk[20] = vec3[](
     vec3(1,1,1), vec3(1,-1,1), vec3(-1,-1,1), vec3(-1,1,1), 
@@ -338,7 +339,7 @@ void main() {
         fragColor = vec4(lighting, baseColor.a);
     }
     else{
-        vec4 color = baseColor * 0.05 + vec4(result, baseColor.a);
+        vec4 color = baseColor * ambientIntensity + vec4(result, baseColor.a);
         fragColor = color;
     }
 

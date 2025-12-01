@@ -24,7 +24,9 @@ namespace Pulse::Engine::Rendering {
             
             void SetParameter(const std::string &name, const UniformValue &value)
             {
-                parameters[name] = value;
+                if(parameters.find(name) != parameters.end()){
+                    parameters[name] = value;
+                }
             }
     
             std::map<std::string, UniformValue>* GetParameters() { return &parameters; };

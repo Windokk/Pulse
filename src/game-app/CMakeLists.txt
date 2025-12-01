@@ -2,8 +2,6 @@ add_executable(PulseGame
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 )
 
-set(CMAKE_BUILD_TYPE Release)
-
 target_compile_definitions(PulseGame PRIVATE BUILD_ENGINE)
 
 target_link_libraries(PulseGame PRIVATE Engine)

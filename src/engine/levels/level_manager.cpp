@@ -14,7 +14,7 @@ namespace Pulse::Engine::Levels{
         lvl->SetLoaded(true);
 
         int levelBuildIndex = lvl->GetBuildIndex();
-        int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromRelativeFilePath(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex]).GetAsInt();
+        int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
         Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::LOADED, "", ECS::ObjectID(-1)));

@@ -16,8 +16,6 @@ namespace Pulse::Editor{
 
     class LevelTree : public QWidget{ 
 
-        Q_OBJECT
-
         public:
             LevelTree();
             void OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event);

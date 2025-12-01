@@ -1,5 +1,4 @@
 #include "engine/core/engine.hpp"
-#include "engine/serialization/level/level_serializer.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "editor_module_loader.hpp"
 

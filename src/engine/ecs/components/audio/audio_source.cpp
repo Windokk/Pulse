@@ -24,6 +24,21 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
+    void AudioSource::Deserialize(json componentData, json levelData)
+    {
+        float volume = componentData["volume"];
+        std::string path = componentData["path"];
+
+        SetPath(Filesystem::Path(path, false));
+
+        SetVolume(volume);
+
+        if(componentData.contains("active") && componentData["active"].get<bool>())
+            Activate();
+        else
+            DeActivate();
+    }
+
     void AudioSource::Destroy()
     {
         RemoveSound();

@@ -1,6 +1,7 @@
 #include "filesystem.hpp"
 
 #include "engine/debugging/logger.hpp"
+#include "engine/core/engine.hpp"
 
 namespace Pulse::Engine::Filesystem{
 
@@ -12,9 +13,9 @@ namespace Pulse::Engine::Filesystem{
     }
 
 
-    std::vector<FileInfo> FileManager::ListDirectory(const Path &path, std::vector<Type> acceptedExtensions, bool includeDirs, bool recursive)
+    std::vector<FileInfos> FileManager::ListDirectory(const Path &path, std::vector<Type> acceptedExtensions, bool includeDirs, bool recursive)
     {
-        std::vector<FileInfo> files;
+        std::vector<FileInfos> files;
 
         if (!std::filesystem::exists(path.full) || !std::filesystem::is_directory(path.full))
             DEBUG_ERROR("Cannot list files inside non-existing directory");
@@ -24,7 +25,7 @@ namespace Pulse::Engine::Filesystem{
             
             if (entry.is_directory() && includeDirs)
             {
-                FileInfo info = GetFileInfos(filePath);
+                FileInfos info = GetFileInfos(filePath);
                 files.push_back(info);
             }
             else if (entry.is_regular_file())
@@ -61,9 +62,9 @@ namespace Pulse::Engine::Filesystem{
         return Path(std::filesystem::current_path().string(), true);
     }
 
-    FileInfo FileManager::GetFileInfos(const Path &path)
+    FileInfos FileManager::GetFileInfos(const Path &path)
     {
-        FileInfo infos;
+        FileInfos infos;
     
         infos.path = path.full;
         infos.name = path.GetFilename(false);
@@ -72,10 +73,15 @@ namespace Pulse::Engine::Filesystem{
         if(IsPathInside(engineResPath, path)){
             // This file is part of the engine ressources
             infos.nameInProject = path.RelativeTo(engineResPath).full;
+            infos.ID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(infos.nameInProject);
         }
         else if(IsPathInside(projectResPath, path)){
             // This file is part of the project ressources
             infos.nameInProject = path.RelativeTo(projectResPath).full;
+            infos.ID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(infos.nameInProject);
+        }
+        else{
+            infos.nameInProject = "";
         }
         infos.isDirectory = path.IsDirectory();
         infos.size = path.GetFileSize();
@@ -291,12 +297,13 @@ namespace Pulse::Engine::Filesystem{
 
     std::string Path::GetFilename(bool withExtension) const
     {
-        if(IsDirectory()){
-            DEBUG_ERROR("Called GetFilename on folder ! Returning empty string.");
-            return "";
+        std::filesystem::path p(full);
+
+        if (IsDirectory())
+        {
+            return p.filename().string();
         }
-            
-        auto p = std::filesystem::path(full);
+
         return withExtension ? p.filename().string() : p.stem().string();
     }
 

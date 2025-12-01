@@ -85,10 +85,10 @@ namespace Pulse::Engine::Projects{
             EditorPreferences GetEditorPrefs() { return editorPreferences; }
             
         private:
-            Filesystem::Path projectRoot;
-            Filesystem::Path projectResourcesRoot;
-            Filesystem::Path pluginsFolder;
-            Filesystem::Path assetDatabasePath;
+            Filesystem::Path projectRoot = Filesystem::Path("");
+            Filesystem::Path projectResourcesRoot = Filesystem::Path("");
+            Filesystem::Path pluginsFolder = Filesystem::Path("");
+            Filesystem::Path assetDatabasePath = Filesystem::Path("");
             BuildSettings buildSettings;
             EditorPreferences editorPreferences;
     };

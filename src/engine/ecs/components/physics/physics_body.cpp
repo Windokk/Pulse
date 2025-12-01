@@ -106,6 +106,49 @@ namespace Pulse::Engine::ECS::Components{
         this->parent->transform->SetRotation(glm::vec3(glm::degrees(rot.GetX()), glm::degrees(rot.GetY()), glm::degrees(rot.GetZ())));
     }
 
+    void PhysicsBody::Deserialize(json componentData, json levelData)
+    {
+        Physics::PhysicsShape shape;
+
+        if(componentData["shape"] == "box"){
+            shape = Physics::PhysicsShape::BOX;
+        }
+        else if(componentData["shape"] == "sphere"){
+            shape = Physics::PhysicsShape::SPHERE;
+        }
+        else if(componentData["shape"] == "capsule"){
+            shape = Physics::PhysicsShape::CAPSULE;
+        }
+        else if(componentData["shape"] == "cylinder"){
+            shape = Physics::PhysicsShape::CYLINDER;
+        }
+        else{
+            DEBUG_ERROR("Physics shape not recognized : " + (std::string)componentData["shape"]);
+        }
+        
+        JPH::EMotionType motion;
+
+        if(componentData["motion_type"] == "dynamic"){
+            motion = JPH::EMotionType::Dynamic;
+        }
+        else if(componentData["motion_type"] == "kinematic"){
+            motion = JPH::EMotionType::Kinematic;
+        }
+        else if(componentData["motion_type"] == "static"){
+            motion = JPH::EMotionType::Static;
+        }
+        else{
+            DEBUG_ERROR("Physics motion type not recognized : " + (std::string)componentData["shape"]);
+        }
+
+        CreateBody(shape, glm::vec3(componentData["size"]["x"], componentData["size"]["y"], componentData["size"]["z"]), motion);
+
+        if(componentData.contains("active") && componentData["active"].get<bool>())
+            Activate();
+        else
+            DeActivate();
+    }
+
     std::shared_ptr<Component> PhysicsBody::Clone() const
     {
         auto cloned = std::make_shared<PhysicsBody>(*this);

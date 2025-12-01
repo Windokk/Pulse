@@ -2,8 +2,6 @@
 
 #include "engine/serialization/material/material_serializer.hpp"
 
-#include "engine/serialization/level/level_serializer.hpp"
-
 #include "engine/serialization/assets/asset_database_serializer.hpp"
 
 #include "engine/core/engine.hpp"
@@ -79,8 +77,7 @@ namespace Pulse::Engine::Core::Resources{
     }
 
     std::shared_ptr<Rendering::Material> ResourcesManager::LoadMaterial(const std::string &pathInProject, const Filesystem::Path &path)
-    {   
-        LoadDependencies(pathInProject);
+    {
 
         std::shared_ptr<Rendering::Material> mat = Serialization::DeserializeMaterial(path);
         if(!mat){
@@ -91,26 +88,15 @@ namespace Pulse::Engine::Core::Resources{
         return mat;
     }
 
-    void ResourcesManager::LoadDependencies(const std::string &assetName){
-        Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-
-        std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(assetName));
-
-        if (!assetInfos) {
-            DEBUG_ERROR("Asset info not found for: " + assetName);
-            return;
-        }
-
-        for(int i = 0; i < assetInfos->dependencies.size(); i++){
-            LoadDependencies(assetManager->GetAssetFromID(assetInfos->dependencies[i])->baseInfos.nameInProject);
-        }
-    }
-
     std::shared_ptr<Levels::Level> ResourcesManager::LoadLevel(const std::string &pathInProject, const Filesystem::Path& path){
 
-        LoadDependencies(pathInProject);
+        std::shared_ptr<Levels::Level> level = std::make_shared<Levels::Level>("unitialized_level");
+        int buildIndex = Core::GetEngine().GetBuildSettings()->GetLevelBuildIndex(pathInProject);
+        if(buildIndex != -1){
+            level->SetBuildIndex(buildIndex);
+        }
+        level->Deserialize(path);
 
-        std::shared_ptr<Levels::Level> level = Serialization::DeserializeLevel(pathInProject, path);
         if(!level){
             DEBUG_ERROR("Unknown error during level import.");
             return nullptr;
@@ -129,7 +115,7 @@ namespace Pulse::Engine::Core::Resources{
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
             
             if(assetInfos == nullptr) return nullptr;
 
@@ -144,7 +130,7 @@ namespace Pulse::Engine::Core::Resources{
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
 
             if(assetInfos == nullptr) return nullptr;
 
@@ -160,7 +146,7 @@ namespace Pulse::Engine::Core::Resources{
         }
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject+".vert"));
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject+".vert"));
             
             if(assetInfos == nullptr) return nullptr;
 
@@ -178,7 +164,7 @@ namespace Pulse::Engine::Core::Resources{
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
 
             if(assetInfos == nullptr) return nullptr;
 
@@ -193,7 +179,7 @@ namespace Pulse::Engine::Core::Resources{
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
 
             if(assetInfos == nullptr) return nullptr;
 
@@ -207,7 +193,7 @@ namespace Pulse::Engine::Core::Resources{
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
-            std::shared_ptr<Filesystem::AssetInfo> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromRelativeFilePath(pathInProject));
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
 
             if(assetInfos == nullptr) return nullptr;
 

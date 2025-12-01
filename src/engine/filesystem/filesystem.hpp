@@ -91,7 +91,7 @@ namespace Pulse::Engine::Filesystem{
     };
 
     // --- Basic file info ---
-    struct FileInfo {
+    struct FileInfos {
         Path path;
         std::string nameInProject = "";
         std::string extension = "";
@@ -99,10 +99,11 @@ namespace Pulse::Engine::Filesystem{
         Type type;
         bool isDirectory;
         int size;
+        AssetID ID;
     };
 
-    struct AssetInfo{
-        FileInfo baseInfos;
+    struct AssetInfos {
+        FileInfos baseInfos;
         std::vector<AssetID> dependencies;
     };
 
@@ -112,9 +113,9 @@ namespace Pulse::Engine::Filesystem{
             Path GetCurrentExecutablePath();
 
             // File and directory browsing
-            FileInfo GetFileInfos(const Path& path);
+            FileInfos GetFileInfos(const Path& path);
             void Init(Path projectResPath, Path engineResPath, Path projectRoot);
-            std::vector<FileInfo> ListDirectory(const Path &path, std::vector<Type> acceptedExtensions, bool includeDirs = false, bool recursive = false);
+            std::vector<FileInfos> ListDirectory(const Path &path, std::vector<Type> acceptedExtensions, bool includeDirs = false, bool recursive = false);
 
             // Path tools
             bool IsPathInside(const Path& parent, const Path& child);
@@ -130,8 +131,8 @@ namespace Pulse::Engine::Filesystem{
             Path GetProjectResRoot() { return projectResPath; };
 
         private:
-            Path engineResPath;
-            Path projectRoot;
-            Path projectResPath;
+            Path engineResPath = Path("");
+            Path projectRoot = Path("");
+            Path projectResPath = Path("");
     };
 }
