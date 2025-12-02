@@ -180,9 +180,9 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
-    json Light::Serialize()
+    ordered_json Light::Serialize()
     {
-        json comp;
+        ordered_json comp;
 
         comp["type"] = "light";
 
@@ -212,7 +212,7 @@ namespace Pulse::Engine::ECS::Components{
         comp["outerCutoff"] = lightData->outerCutoff;
         comp["castShadow"] = lightData->castShadow;
 
-        json ret;
+        ordered_json ret;
         ret["component"] = comp;
         return ret;
     }

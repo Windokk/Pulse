@@ -149,9 +149,9 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
-    json PhysicsBody::Serialize()
+    ordered_json PhysicsBody::Serialize()
     {
-        json comp;
+        ordered_json comp;
 
         comp["type"] = "physics_body";
 
@@ -195,7 +195,7 @@ namespace Pulse::Engine::ECS::Components{
             }
         }
 
-        json ret;
+        ordered_json ret;
         ret["component"] = comp;
         return ret;
     }

@@ -39,9 +39,9 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
-    json AudioSource::Serialize()
+    ordered_json AudioSource::Serialize()
     {
-        json comp;
+        ordered_json comp;
 
         comp["type"] = "audio";
 
@@ -51,7 +51,7 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["path"] = path.full;
 
-        json ret;
+        ordered_json ret;
         ret["component"] = comp;
         return ret;
     }

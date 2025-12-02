@@ -54,6 +54,7 @@ namespace Pulse::Editor::Core::Platform
             case Engine::Input::Key::D: return Qt::Key_D;
             case Engine::Input::Key::Escape: return Qt::Key_Escape;
             case Engine::Input::Key::Space: return Qt::Key_Space;
+            case Engine::Input::Key::F3: return Qt::Key_F3;
             // TODO: Add other keys as needed
             default: return Qt::Key_unknown;
         }

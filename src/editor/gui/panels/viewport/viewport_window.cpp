@@ -349,6 +349,7 @@ namespace Pulse::Editor {
             Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
                 Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
             );
+            DEBUG_LOG("Serialized level");
         }
 
         if(input->IsKeyDown(Engine::Input::Key::W)){

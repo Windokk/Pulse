@@ -78,9 +78,9 @@ namespace Pulse::Engine::ECS::Components{
             DeActivate();
     }
 
-    json Model::Serialize()
+    ordered_json Model::Serialize()
     {
-        json comp;
+        ordered_json comp;
 
         comp["type"] = "model";
 
@@ -90,7 +90,7 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["mesh"] = meshName;
 
-        json ret;
+        ordered_json ret;
 
         std::string meshNameInProject = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
 

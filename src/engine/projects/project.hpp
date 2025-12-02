@@ -69,11 +69,17 @@ namespace Pulse::Engine::Projects{
 
             std::string name;
 
+            int versionMajor;
+            int versionMinor;
+            int versionPatch;
+
             Project(std::string name, Filesystem::Path projectRoot,
                     Filesystem::Path projectResourcesRoot,
                     Filesystem::Path pluginsFolder,
                     BuildSettings buildSettings,
                     EditorPreferences editorPreferences, Filesystem::Path assetDatabasePath);
+
+            void Shutdown(std::string path);
 
             Filesystem::Path GetProjectResourcesPath() { return projectResourcesRoot; }
             Filesystem::Path GetProjectRoot() { return projectRoot; }

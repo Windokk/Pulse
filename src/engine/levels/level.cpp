@@ -8,8 +8,6 @@
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/ecs/objects/skybox/skybox.hpp"
 
-#include <nlohmann/json.hpp>
-
 namespace Pulse::Engine::Levels{
 
 
@@ -123,9 +121,9 @@ namespace Pulse::Engine::Levels{
         }
     }
 
-    void SerializeActor(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> a, json* actorsArray, json* meshes, json* materials){
+    void SerializeActor(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> a, ordered_json* actorsArray, ordered_json* meshes, ordered_json* materials){
         
-        json actor;
+        ordered_json actor;
 
         actor["name"] = a->GetName();
 
@@ -135,22 +133,23 @@ namespace Pulse::Engine::Levels{
         }
 
         for(auto& comp : a->GetComponents()){
-            json serializedComp = comp->Serialize();
-            if(serializedComp.contains("meshes") && serializedComp["meshes"].is_array()){
-                for(auto& item : serializedComp["meshes"].items()){
-                    if(!(*meshes).contains(item.key())){
+            ordered_json serializedComp = comp->Serialize();
+            if (serializedComp.contains("meshes") && serializedComp["meshes"].is_object()) {
+                for (auto& item : serializedComp["meshes"].items()) {
+                    if (!meshes->contains(item.key())) {
                         (*meshes)[item.key()] = item.value();
                     }
                 }
             }
-            if(serializedComp.contains("materials") && serializedComp["materials"].is_array()){
-                for(auto& item : serializedComp["materials"].items()){
-
-                    if(!(*materials).contains(item.key())){
+            
+            if (serializedComp.contains("materials") && serializedComp["materials"].is_object()) {
+                for (auto& item : serializedComp["materials"].items()) {
+                    if (!materials->contains(item.key())) {
                         (*materials)[item.key()] = item.value();
                     }
                 }
             }
+
             if(serializedComp.contains("component")){
                 actor["components"].push_back(serializedComp["component"]);
             }
@@ -161,13 +160,13 @@ namespace Pulse::Engine::Levels{
 
     void Level::Serialize(Filesystem::Path filePath)
     {
-        json actorsArray;
+        ordered_json actorsArray;
 
-        json meshes;
+        ordered_json meshes;
 
-        json materials;
+        ordered_json materials;
 
-        json full;
+        ordered_json full;
 
         full["name"] = name;
 

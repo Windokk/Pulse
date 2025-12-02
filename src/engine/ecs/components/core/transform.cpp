@@ -24,9 +24,9 @@ namespace Pulse::Engine::ECS::Components{
         SetScale(glm::vec3(componentData["scale"]["x"], componentData["scale"]["y"], componentData["scale"]["z"]));
     }
 
-    json Transform::Serialize()
+    ordered_json Transform::Serialize()
     {
-        json comp;
+        ordered_json comp;
 
         comp["type"] = "transform";
 
@@ -44,7 +44,7 @@ namespace Pulse::Engine::ECS::Components{
 		comp["scale"]["y"] = scale.y;
 		comp["scale"]["z"] = scale.z;
 
-		json ret;
+		ordered_json ret;
 		ret["component"] = comp;
 		return ret;
     }

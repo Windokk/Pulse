@@ -3,8 +3,6 @@
 #include "engine/debugging/logger.hpp"
 #include "engine/core/engine.hpp"
 
-#include <nlohmann/json.hpp>
-
 using namespace nlohmann;
 
 namespace Pulse::Engine::Serialization{
@@ -29,8 +27,8 @@ namespace Pulse::Engine::Serialization{
                 std::shared_ptr<Filesystem::AssetInfos> assetInfos = std::make_shared<Filesystem::AssetInfos>();
                 std::vector<Filesystem::AssetID> dependencies;
                 assetInfos->baseInfos = Core::GetEngine().GetFileManager()->GetFileInfos(resourcesPath / key);
-                if (value.is_array() && value.size() > 1 && value[1].contains("dependencies")) {
-                    for (const auto& dependencyID : value[1]["dependencies"]) {
+                if (value.is_object() && value.size() > 1 && value.contains("dependencies")) {
+                    for (const auto& dependencyID : value["dependencies"]) {
                         if (dependencyID.is_number_integer()) {
                             dependencies.push_back(Filesystem::AssetID(dependencyID.get<int>()));
                         }
@@ -38,16 +36,34 @@ namespace Pulse::Engine::Serialization{
                 }
                 assetInfos->dependencies = dependencies;
 
-                if (value.is_array() && value.size() >= 1 && value[0].contains("id")) {
-                    Core::GetEngine().GetAssetIDManager()->AssignID(Filesystem::AssetIDBuilder().WithValue(value[0]["id"].get<int>()).Build(), assetInfos);
+                if (value.is_object() && value.size() >= 1 && value.contains("id")) {
+                    Core::GetEngine().GetAssetIDManager()->AssignID(Filesystem::AssetIDBuilder().WithValue(value["id"].get<int>()).Build(), assetInfos);
                 }
             }
-            
 
         } catch (const json::parse_error& e) {
-            DEBUG_ERROR("JSON parse error: " + (std::string)e.what());
+            DEBUG_ERROR("JSON parse error for : ", databasePath.full , ", error : " , (std::string)e.what());
             return;
         }
     }
 
+    void SerializeAssetDataBase(const Filesystem::Path databasePath)
+    {
+        ordered_json fileContent;
+
+        for(auto& pair : Core::GetEngine().GetAssetIDManager()->AssetIDMap){
+
+            if(pair.first.GetAsInt() > 500) //This means it's a project resource, as engine resources IDs stop at 500
+            {
+                ordered_json assetData;
+                assetData["id"] = pair.first.GetAsInt();
+                for(auto& dependency : pair.second->dependencies){
+                    assetData["dependencies"].push_back(dependency.GetAsInt());
+                }
+                fileContent[pair.second->baseInfos.nameInProject] = assetData;
+            }
+        }
+
+        databasePath.WriteFile(fileContent.dump());
+    }
 }

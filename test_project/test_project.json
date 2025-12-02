@@ -1,17 +1,1 @@
-{
-    "versionMajor": 0,
-    "versionMinor": 1,
-    "versionPatch": 0,
-    "projectResources": "resources",
-    "pluginsFolder":    "plugins",
-    "assetDatabase":    "data\\asset_database.json",
-    "buildSettings":[
-        "pbr copy.lvl",
-        "pbr.lvl",
-        "sponza.lvl",
-        "level1.lvl"
-    ],
-    "editorPreferences":[
-        
-    ]
-}
+{"versionMajor":0,"versionMinor":1,"versionPatch":0,"projectResources":"resources","pluginsFolder":"plugins","assetDatabase":"data\\asset_database.json","buildSettings":["pbr.lvl","sponza.lvl","level1.lvl"]}

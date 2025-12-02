@@ -20,8 +20,8 @@ void Character::Deserialize(json componentData, json levelData) {
     // Deserialize fields
 }
 
-json Character::Serialize() {
-    return json();
+ordered_json Character::Serialize() {
+    return ordered_json();
 }
 
 void Character::Begin() {

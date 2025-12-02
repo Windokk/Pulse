@@ -111,6 +111,7 @@ namespace Pulse::Engine{
 
         void EngineInstance::Destroy()
         {
+            context.currentProject->Shutdown(settings.project);
             context.profiler->Shutdown();
             context.platform->GetInput()->Shutdown();
             context.audioManager->Shutdown();

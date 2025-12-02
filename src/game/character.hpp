@@ -6,7 +6,7 @@ using namespace nlohmann;
 BEGIN_COMPONENT(Character, Pulse::Engine::ECS::Components::Script)
 
     void Deserialize(json componentData, json levelData) override;
-    json Serialize() override;
+    ordered_json Serialize() override;
 
     void Begin() override;
     void Tick() override;

@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 using namespace nlohmann;
+using ordered_json = nlohmann::ordered_json;
 
 namespace Pulse::Engine::ECS{
     namespace Objects{
@@ -30,7 +31,7 @@ namespace Pulse::Engine::ECS{
                 virtual void DeActivate() { activated = false; }
 
                 virtual void Deserialize(json componentData, json levelData) {};
-                virtual json Serialize() { json dummy; return dummy; };
+                virtual ordered_json Serialize() { ordered_json dummy; return dummy; };
 
                 template<typename T>
                 bool IsInstanceOf() const {

@@ -2,9 +2,6 @@
 
 #include "config.h"
 
-#include <nlohmann/json.hpp>
-
-
 #include "engine/debugging/logger.hpp"
 
 using namespace nlohmann;
@@ -40,9 +37,9 @@ namespace Pulse::Engine::Serialization{
                 DEBUG_FATAL("No version specified/Incorrect version format for project: "+path.full);
                 return nullptr;
             }
-            else if(projectMajorVersion != PROJECT_VERSION_MAJOR || projectMinorVersion != PROJECT_VERSION_MINOR || projectPatchVersion != PROJECT_VERSION_PATCH){
+            else if(projectMajorVersion != VERSION_MAJOR || projectMinorVersion != VERSION_MINOR || projectPatchVersion != VERSION_PATCH){
                 DEBUG_FATAL("Version incompatibility found between engine and project : "+path.full+ "\nProject version : "
-                            + std::to_string(projectMajorVersion)+"."+std::to_string(projectMinorVersion)+"."+std::to_string(projectPatchVersion)+" Engine version : "+std::to_string(PROJECT_VERSION_MAJOR)+"."+std::to_string(PROJECT_VERSION_MINOR)+"."+std::to_string(PROJECT_VERSION_PATCH));
+                            + std::to_string(projectMajorVersion)+"."+std::to_string(projectMinorVersion)+"."+std::to_string(projectPatchVersion)+" Engine version : "+std::to_string(VERSION_MAJOR)+"."+std::to_string(VERSION_MINOR)+"."+std::to_string(VERSION_PATCH));
                 return nullptr;
             }
             
@@ -93,6 +90,10 @@ namespace Pulse::Engine::Serialization{
 
             project = std::make_shared<Projects::Project>(path.GetFilename(false), projectRoot, projectResPath, pluginsPath, buildSettings, editorPrefs, assetDatabasePath);
 
+            project->versionMajor = projectMajorVersion;
+            project->versionMinor = projectMinorVersion;
+            project->versionPatch = projectPatchVersion;
+
             return project;
 
         } catch (const json::parse_error& e) {
@@ -101,4 +102,24 @@ namespace Pulse::Engine::Serialization{
         }
     }
 
+    void SerializeProject(Projects::Project* pro, const Filesystem::Path path)
+    {
+        ordered_json data;
+
+        data["versionMajor"] = pro->versionMajor;
+        data["versionMinor"] = pro->versionMinor;
+        data["versionPatch"] = pro->versionPatch;
+
+        data["projectResources"] = pro->GetProjectResourcesPath().RelativeTo(pro->GetProjectRoot()).full;
+        data["pluginsFolder"] = pro->GetPluginsFolderPath().RelativeTo(pro->GetProjectRoot()).full;
+        data["assetDatabase"] = pro->GetAssetDatabasePath().RelativeTo(pro->GetProjectRoot()).full;
+
+        for(auto& lvl : pro->GetBuildSettings()->buildIndex){
+            data["buildSettings"].push_back(lvl.full);
+        }
+
+        //TODO data["editorPreferences"] = pro->GetEditorPrefs();
+
+        path.WriteFile(data.dump());
+    }
 }

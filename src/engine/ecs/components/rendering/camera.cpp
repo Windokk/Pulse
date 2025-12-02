@@ -114,9 +114,9 @@ namespace Pulse::Engine::ECS::Components {
             DeActivate();
     }
 
-    json Camera::Serialize()
+    ordered_json Camera::Serialize()
     {
-        json comp;
+        ordered_json comp;
 
         comp["type"] = "camera";
 
@@ -126,7 +126,7 @@ namespace Pulse::Engine::ECS::Components {
 
         comp["far"] = farPlane;
 
-        json ret;
+        ordered_json ret;
         ret["component"] = comp;
         return ret;
     }
