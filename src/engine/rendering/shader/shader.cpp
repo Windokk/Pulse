@@ -112,7 +112,7 @@ namespace Pulse::Engine::Rendering {
     
             if (name.find("gl_") == 0) continue;
     
-            uniforms.push_back({ name, type, location });
+            uniforms.push_back({ name, type, location, size });
         }
         
         return uniforms;

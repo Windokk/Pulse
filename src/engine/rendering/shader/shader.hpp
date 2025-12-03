@@ -13,6 +13,7 @@ namespace Pulse::Engine::Rendering {
         std::string name;
         GLenum type;
         GLint location;
+        GLint arraySize;
     };
 
     class Shader{

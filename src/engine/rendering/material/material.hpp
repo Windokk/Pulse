@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <memory>
 
+#include "engine/debugging/logger.hpp"
+
 namespace Pulse::Engine::Rendering {
 
     enum RenderMode{

@@ -45,6 +45,18 @@ namespace Pulse::Engine::Rendering{
 
         auto uniforms = this->shader->GetActiveUniforms();
         for (const auto& uniform : uniforms) {
+            if (uniform.arraySize > 1) {
+                std::string base = uniform.name;
+                size_t pos = base.find("[0]");
+                if (pos != std::string::npos) {
+                    for (int i = 0; i < uniform.arraySize; i++) {
+                        std::string elementName = base;
+                        elementName.replace(pos, 3, "[" + std::to_string(i) + "]");
+                        parameters[elementName] = DefaultValueForType(uniform);
+                    }
+                    continue;
+                }
+            }
             parameters[uniform.name] = DefaultValueForType(uniform);
         }
     }

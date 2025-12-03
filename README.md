@@ -78,6 +78,7 @@ This will compile everything from root : submodules, the engine, the editor app,
 
 - [x] Component serialization
 - [x] Level exporter
+- [x] Project exporter (project file + asset database)
 - [ ] Material file exporter
 
 #### Debugging
