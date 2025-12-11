@@ -1873,6 +1873,7 @@ class OpenGL {
         void (*ActiveTexture)(GLenum texture);
         void (*TexStorage3D)(GLenum target, GLsizei levels, GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth);
         void (*TexParameteri)(GLenum target, GLenum pname, GLint param);
+        void (*TexParameterfv)(GLenum  target, GLenum  pname, const GLfloat *params);
         void (*TexImage2D)(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* data);
         void (*GenFramebuffers)(GLsizei n, GLuint* ids);
         void (*BindFramebuffer)(GLenum target, GLuint framebuffer);
@@ -1903,7 +1904,7 @@ class OpenGL {
         void (*GetIntegerv)(GLenum pname, GLint *data);
         void (*DepthMask)(GLboolean flag); 
         void (*DepthFunc)(GLenum func);
-
+        
     private:
 };
 

@@ -196,7 +196,7 @@ namespace Pulse::Engine::Rendering {
         Core::GetEngine().GetGL()->UniformMatrix4fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
-    /// @brief Checks if the different Shaders have compiled properly
+    /// @brief Checks if the different shaders have compiled properly
     void Shader::CompileErrors(unsigned int shader, const char* type)
     {
         // Stores status of compilation

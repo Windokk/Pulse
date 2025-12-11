@@ -15,8 +15,8 @@ namespace Pulse::Engine::Rendering{
     struct LightData {
         alignas(4) int type = 0;
         alignas(4) float intensity= 1.0f;
-        alignas(16) glm::vec3 position = glm::vec3(0, 0, 0);
-        alignas(16) glm::vec3 direction = glm::vec3(0, -1, 0);
+        alignas(16) glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+        alignas(16) glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
         alignas(4) float radius = 100;
         alignas(16) glm::vec3 color = COL_RGB(1.0f);
         alignas(4) float innerCutoff = glm::cos(glm::radians(1.5f));

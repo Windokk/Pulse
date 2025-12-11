@@ -67,7 +67,7 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
 
-        lightData->direction = direction;
+        lightData->direction = glm::normalize(direction);
             
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
@@ -167,6 +167,8 @@ namespace Pulse::Engine::ECS::Components{
             DEBUG_ERROR("Light type not recognized : " + (std::string)componentData["light_type"]);
         }
         
+        SetPosition(parent->transform ? parent->transform->GetPosition() : glm::vec3(0.0f));
+        SetDirection(parent->transform ? parent->transform->GetRotation() : glm::vec3(0.0f, -1.0f, 0.0f));
         SetIntensity(componentData["intensity"]);
         SetRadius(componentData["radius"]);
         SetColor(COL_RGB(componentData["color"]["r"], componentData["color"]["g"], componentData["color"]["b"]));

@@ -1,66 +1,73 @@
 {
     "name": "sponza",
-    "meshes": {
-        "sponza": "models\\Sponza.fbx",
-        "cube": "models\\cube.fbx"
-    },
-    "materials": {
-        "leaf": "materials\\leaf.mat",
-        "Material_57": "materials\\Material_57.mat",
-        "vase_round": "materials\\vase_round.mat",
-        "Material_298": "materials\\Material_298.mat",
-        "bricks": "materials\\bricks.mat",
-        "arch": "materials\\arch.mat",
-        "ceiling": "materials\\ceiling.mat",
-        "column_a": "materials\\column_a.mat",
-        "floor": "materials\\floor.mat",
-        "column_c": "materials\\column_c.mat",
-        "details": "materials\\details.mat",
-        "column_b": "materials\\column_b.mat",
-        "Material__47": "materials\\Material__47.mat",
-        "flagpole": "materials\\flagpole.mat",
-        "fabric_e": "materials\\fabric_e.mat",
-        "fabric_d": "materials\\fabric_d.mat",
-        "fabric_a": "materials\\fabric_a.mat",
-        "fabric_g": "materials\\fabric_g.mat",
-        "fabric_c": "materials\\fabric_c.mat",
-        "fabric_f": "materials\\fabric_f.mat",
-        "chain": "materials\\chain.mat",
-        "vase_hanging": "materials\\vase_hanging.mat",
-        "vase": "materials\\vase.mat",
-        "Material__25": "materials\\Material__25.mat",
-        "roof": "materials\\roof.mat",
-        "lit_mat1": "materials\\lit_mat1.mat",
-        "unlit": "materials\\default.mat",
-        "normal_test": "materials\\normal_test.mat"
-    },
     "actors": [
         {
             "name": "sponza",
+            "children": [
+                {
+                    "name": "light",
+                    "components": [
+                        {
+                            "type": "transform",
+                            "active": true,
+                            "position": {
+                                "x": 0.0,
+                                "y": 11.0,
+                                "z": 0.0
+                            },
+                            "rotation": {
+                                "x": -91.2117691040039,
+                                "y": -87.36433410644531,
+                                "z": -176.20526123046875
+                            },
+                            "scale": {
+                                "x": 1.0000015497207642,
+                                "y": 0.9999858736991882,
+                                "z": 1.000034213066101
+                            }
+                        },
+                        {
+                            "type": "light",
+                            "active": true,
+                            "light_type": "directional",
+                            "intensity": 3.0,
+                            "radius": 100.0,
+                            "color": {
+                                "r": 1.0,
+                                "g": 1.0,
+                                "b": 1.0
+                            },
+                            "innerCutoff": 0.9998506307601929,
+                            "outerCutoff": 0.9998542666435242,
+                            "castShadow": true
+                        }
+                    ]
+                }
+            ],
             "components": [
                 {
                     "type": "transform",
                     "active": true,
                     "position": {
-                        "x": 0,
-                        "y": -10,
-                        "z": 0
+                        "x": 0.0,
+                        "y": -10.0,
+                        "z": 0.0
                     },
                     "rotation": {
-                        "x": 0,
-                        "y": 0,
-                        "z": 0
+                        "x": 0.0,
+                        "y": -0.0,
+                        "z": 0.0
                     },
                     "scale": {
-                        "x": 2,
-                        "y": 2,
-                        "z": 2
+                        "x": 2.0,
+                        "y": 2.0,
+                        "z": 2.0
                     }
                 },
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sponza",
+                    "mesh": "Sponza",
                     "materials": {
                         "0": "leaf",
                         "1": "Material_57",
@@ -89,47 +96,6 @@
                         "24": "roof"
                     }
                 }
-            ],
-            "children":[
-                {
-                    "name": "light",
-                    "components": [
-                        {
-                            "type": "transform",
-                            "active": true,
-                            "position": {
-                                "x": 0,
-                                "y": 11,
-                                "z": 0
-                            },
-                            "rotation": {
-                                "x": -90,
-                                "y": 0,
-                                "z": 0
-                            },
-                            "scale": {
-                                "x": 1,
-                                "y": 1,
-                                "z": 1
-                            }
-                        },
-                        {
-                            "type": "light",
-                            "active": true,
-                            "light_type": "directional",
-                            "intensity": 3,
-                            "radius": 100,
-                            "color": {
-                                "r": 1,
-                                "g": 1,
-                                "b": 1
-                            },
-                            "innerCutoff": 8,
-                            "outerCutoff": 12,
-                            "castShadow": true
-                        }
-                    ]
-                }
             ]
         },
         {
@@ -139,30 +105,26 @@
                     "type": "transform",
                     "active": true,
                     "position": {
-                        "x": 0,
-                        "y": 0,
-                        "z": 0
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
                     },
                     "rotation": {
-                        "x": 0,
-                        "y": 0,
-                        "z": 0
+                        "x": 0.0,
+                        "y": -0.0,
+                        "z": 0.0
                     },
                     "scale": {
-                        "x": 1,
-                        "y": 1,
-                        "z": 1
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
                     }
-                },
-                {
-                    "type":"Character",
-                    "active": true
                 },
                 {
                     "type": "camera",
                     "active": true,
-                    "near": 0.1,
-                    "far": 100
+                    "near": 0.10000000149011612,
+                    "far": 100.0
                 }
             ]
         },
@@ -173,19 +135,19 @@
                     "type": "transform",
                     "active": true,
                     "position": {
-                        "x": 0,
-                        "y": 0,
-                        "z": 0
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
                     },
                     "rotation": {
-                        "x": 45,
-                        "y": 45,
-                        "z": 0
+                        "x": 45.0,
+                        "y": 45.000003814697266,
+                        "z": 0.0
                     },
                     "scale": {
-                        "x": 2,
-                        "y": 2,
-                        "z": 2
+                        "x": 2.0,
+                        "y": 2.0,
+                        "z": 2.0
                     }
                 },
                 {
@@ -193,11 +155,43 @@
                     "active": true,
                     "mesh": "cube",
                     "materials": {
-                        "0": "unlit"
+                        "0": "default"
                     }
                 }
             ]
         }
     ],
-    "skybox":"textures\\qwantani_afternoon_puresky_4k.hdr"
+    "materials": {
+        "leaf": "materials\\leaf.mat",
+        "Material_57": "materials\\Material_57.mat",
+        "vase_round": "materials\\vase_round.mat",
+        "Material_298": "materials\\Material_298.mat",
+        "bricks": "materials\\bricks.mat",
+        "arch": "materials\\arch.mat",
+        "ceiling": "materials\\ceiling.mat",
+        "column_a": "materials\\column_a.mat",
+        "floor": "materials\\floor.mat",
+        "column_c": "materials\\column_c.mat",
+        "details": "materials\\details.mat",
+        "column_b": "materials\\column_b.mat",
+        "Material__47": "materials\\Material__47.mat",
+        "flagpole": "materials\\flagpole.mat",
+        "fabric_e": "materials\\fabric_e.mat",
+        "fabric_d": "materials\\fabric_d.mat",
+        "fabric_a": "materials\\fabric_a.mat",
+        "fabric_g": "materials\\fabric_g.mat",
+        "fabric_c": "materials\\fabric_c.mat",
+        "fabric_f": "materials\\fabric_f.mat",
+        "chain": "materials\\chain.mat",
+        "vase_hanging": "materials\\vase_hanging.mat",
+        "vase": "materials\\vase.mat",
+        "Material__25": "materials\\Material__25.mat",
+        "roof": "materials\\roof.mat",
+        "default": "materials\\default.mat"
+    },
+    "meshes": {
+        "Sponza": "models\\Sponza.fbx",
+        "cube": "models\\cube.fbx"
+    },
+    "skybox": "textures\\qwantani_afternoon_puresky_4k.hdr"
 }

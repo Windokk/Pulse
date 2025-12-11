@@ -138,7 +138,10 @@ namespace Pulse::Engine::Rendering{
                 center += glm::vec3(v);
             center /= corners.size();
 
-            const auto lightView = glm::lookAt(center + direction, center, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::vec3 up(0, 1, 0);
+            if (fabs(glm::dot(direction, up)) > 0.99f)
+                up = glm::vec3(1, 0, 0);
+            const auto lightView = glm::lookAt(center + direction, center, up);
 
             float minX = std::numeric_limits<float>::max();
             float maxX = std::numeric_limits<float>::lowest();
@@ -176,7 +179,8 @@ namespace Pulse::Engine::Rendering{
                 maxZ *= zMult;
             }
 
-            const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, -1 * maxZ, -1 * minZ);
+            const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, maxZ, minZ);
+
             return lightProjection * lightView;
         }
         else if (type == static_cast<int>(LightType::Spot))

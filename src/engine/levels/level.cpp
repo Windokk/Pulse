@@ -127,9 +127,11 @@ namespace Pulse::Engine::Levels{
 
         actor["name"] = a->GetName();
 
+
+
         for(auto& childrenID : a->GetChildrenID(false)){
             auto child = a->GetChild(childrenID);
-            SerializeActor(std::dynamic_pointer_cast<ECS::Objects::Actor>(child), actorsArray, meshes, materials);
+            SerializeActor(std::dynamic_pointer_cast<ECS::Objects::Actor>(child), &actor["children"], meshes, materials);
         }
 
         for(auto& comp : a->GetComponents()){

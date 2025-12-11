@@ -88,4 +88,5 @@ void OpenGL::InitFromGLAD() {
     this->GetIntegerv = ::glGetIntegerv;
     this->DepthMask = ::glDepthMask;
     this->DepthFunc = ::glDepthFunc;
+    this->TexParameterfv = ::glTexParameterfv;
 }

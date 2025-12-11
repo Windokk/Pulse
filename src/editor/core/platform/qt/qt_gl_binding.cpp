@@ -340,6 +340,10 @@ static void Qt_DepthFunc(GLenum func){
     g_qt->glDepthFunc(func);
 }
 
+static void Qt_TexParameterfv(GLenum target, GLenum pname, const GLfloat* params){
+    g_qt->glTexParameterfv(target, pname, params);
+}
+
 // === INIT FUNCTION ===
 
 void OpenGL::InitFromQt() {
@@ -406,6 +410,7 @@ void OpenGL::InitFromQt() {
     this->ActiveTexture           = &Qt_ActiveTexture;
     this->TexStorage3D            = &Qt_TexStorage3D;
     this->TexParameteri           = &Qt_TexParameteri;
+    this->TexParameterfv          = &Qt_TexParameterfv;
     this->TexImage2D              = &Qt_TexImage2D;
     this->GenFramebuffers         = &Qt_GenFramebuffers;
     this->BindFramebuffer         = &Qt_BindFramebuffer;

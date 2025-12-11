@@ -74,10 +74,9 @@ uniform sampler2D   brdfLUT;                // 2D BRDF integration LUT
 
 uniform bool useEnvReflections;
 
-// -------------------- Shadow Functions --------------------
+///////// Shadow Functions /////////
 
-// -------- Cascade Selection --------
-
+// Cascade Selection
 int selectCascade(int lightIndex){
     vec4 viewPos = viewMatrix * vec4(worldPos, 1.0);
     float depth = abs(viewPos.z);
@@ -179,7 +178,7 @@ float ShadowPointArray(int index, vec3 lightPos, vec3 fragPos, float farPlane) {
     return shadow / 20.0;
 }
 
-// -------------------- Lighting --------------------
+///////// Lighting /////////
 
 vec3 IBL_Diffuse(vec3 N, vec3 albedo, float metallic) {
     vec3 kS = mix(vec3(0.04), albedo, metallic);
@@ -282,7 +281,7 @@ void main() {
         vec3 L = vec3(0.0);
 
         if (l.type == 0) { // Directional
-            L = normalize(l.direction);
+            L = -normalize(l.direction);
             if (l.castShadow) {
                 int cascadeIdx = selectCascade(dirIdx);
                 shadow = ShadowCalculationCSM(shadow_dirShadowMaps[cascadeIdx], shadow_dirLightSpaceMatrices[cascadeIdx], L, worldPos, worldNormal);
@@ -342,6 +341,4 @@ void main() {
         vec4 color = baseColor * ambientIntensity + vec4(result, baseColor.a);
         fragColor = color;
     }
-
-
 }
