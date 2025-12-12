@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
 
     {
         // Scene framebuffer
-        auto fbShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\framebuffer");
+        auto fbShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
         Rendering::FrameBuffer sceneFB(
             Core::GetEngine().GetWindow()->GetFramebufferWidth(),
             Core::GetEngine().GetWindow()->GetFramebufferHeight(),

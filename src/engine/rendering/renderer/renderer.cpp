@@ -73,8 +73,8 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::InitFramebuffers()
     {
-        blendShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\blend");
-        framebufferShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\framebuffer");
+        blendShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/blend");
+        framebufferShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
 
         if(framebufferShader == nullptr || blendShader == nullptr){
             DEBUG_FATAL("Viewport buffer cannot be created if the framebuffer shader or the blend shader are null");
@@ -85,7 +85,7 @@ namespace Pulse::Engine::Rendering{
         }
 
         //DEBUG_SHAPES
-        Renderer::unlitShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\mesh\\unlit");
+        Renderer::unlitShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit");
 
         initialized = true;
     }

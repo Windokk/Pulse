@@ -6,10 +6,31 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COLOR_MAKEFILE ON)
 
+if(UNIX)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    set(QT_NO_PRIVATE_MODULE_WARNING ON)
+endif()
+
 set(CMAKE_BUILD_TYPE Debug)
 
-# Set binary dir
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+# --- Unified build output directory ---
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
+
+# Executables
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
+
+# Shared libraries (.so / .dll)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
+
+# Static libraries (.a / .lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
+
+# For multi-config generators (Xcode / Visual Studio)
+foreach(OUTPUTCONFIG Debug Release RelWithDebInfo MinSizeRel)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${OUTPUT_DIR}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${OUTPUT_DIR}")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${OUTPUT_DIR}")
+endforeach()
 
 set(FMOD_API_DIR "" CACHE PATH "Path to fmod api")
 
@@ -18,12 +39,13 @@ configure_file(${CMAKE_SOURCE_DIR}/src/config.h.in config.h)
 include_directories(${CMAKE_BINARY_DIR})
 
 # Subdirs (Third party)
-
 add_subdirectory(submodules/freetype)
 add_subdirectory(submodules/glfw)
 add_subdirectory(submodules/glm)
 add_subdirectory(submodules/jolt/Build)
-#add_subdirectory(submodules/qtads) For now it seems that the cmake build is broken --> use Qmake instead
+if(UNIX)
+    add_subdirectory(submodules/qtads) # For now it seems that on Windows that the cmake build is broken --> use Qmake instead
+endif()
 add_subdirectory(submodules/qtimgui)
 
 # Subdirs (Pulse)

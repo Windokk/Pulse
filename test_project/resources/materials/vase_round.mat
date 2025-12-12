@@ -1,14 +1,14 @@
 {
     "recievesShadows":true,
     "renderMode": "opaque",
-    "shader":"shaders\\mesh\\lit",
+    "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures\\vase_round.png"},
+        {"albedo":"textures/vase_round.png"},
         {"metallic":0.0},
         {"roughness":1.0},
-        {"metallicMap":"textures\\black.png"},
-        {"roughnessMap":"textures\\white.png"},
-        {"normalMap":"textures\\default_normal.png"},
+        {"metallicMap":"textures/black.png"},
+        {"roughnessMap":"textures/white.png"},
+        {"normalMap":"textures/default_normal.png"},
         {"useEnvReflections":false}
     ]
 }

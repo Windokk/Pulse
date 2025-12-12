@@ -1,13 +1,13 @@
 {
     "name": "level1",
     "meshes": {
-        "rubik": "models\\Rubik_Cube.fbx",
-        "sphere": "models\\sphere.fbx",
-        "plane": "models\\plane.fbx"
+        "rubik": "models/Rubik_Cube.fbx",
+        "sphere": "models/sphere.fbx",
+        "plane": "models/plane.fbx"
     },
     "materials": {
-        "lit_mat1": "materials\\lit_mat1.mat",
-        "lit_rubik": "materials\\rubik.mat"
+        "lit_mat1": "materials/lit_mat1.mat",
+        "lit_rubik": "materials/rubik.mat"
     },
     "actors": [
         {
@@ -54,7 +54,7 @@
                 {
                     "type": "audio",
                     "active": true,
-                    "path": "sounds\\TownTheme.mp3",
+                    "path": "sounds/TownTheme.mp3",
                     "volume": 1.0
                 }
             ]
@@ -287,5 +287,5 @@
             ]
         }
     ],
-    "skybox":"textures\\qwantani_afternoon_puresky_4k.hdr"
+    "skybox":"textures/qwantani_afternoon_puresky_4k.hdr"
 }

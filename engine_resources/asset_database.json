@@ -1,160 +1,160 @@
 {
-    "materials\\default.mat":{
+    "materials/default.mat":{
         "id":1,
         "dependencies":[5]          
     },   
 
-    "shaders\\fb\\blend.vert":{
+    "shaders/fb/blend.vert":{
         "id":2,
         "dependencies":[]            
     },
 
-    "shaders\\fb\\blend.frag":{
+    "shaders/fb/blend.frag":{
         "id":3,
         "dependencies":[]            
     },
 
-    "shaders\\fb\\framebuffer.vert":{
+    "shaders/fb/framebuffer.vert":{
         "id":4,
         "dependencies":[]            
     },
 
-    "shaders\\fb\\framebuffer.frag":{
+    "shaders/fb/framebuffer.frag":{
         "id":5,
         "dependencies":[]            
     },
 
-    "shaders\\mesh\\lit.vert":{
+    "shaders/mesh/lit.vert":{
         "id":6,
         "dependencies":[]            
     },
 
-    "shaders\\mesh\\lit.frag":{
+    "shaders/mesh/lit.frag":{
         "id":7,
         "dependencies":[]            
     },
 
-    "shaders\\mesh\\unlit.vert":{
+    "shaders/mesh/unlit.vert":{
         "id":8,
         "dependencies":[]            
     },
 
-    "shaders\\mesh\\unlit.frag":{
+    "shaders/mesh/unlit.frag":{
         "id":9,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_dir.vert":{
+    "shaders/shadows/shadow_dir.vert":{
         "id":10,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_dir.frag":{
+    "shaders/shadows/shadow_dir.frag":{
         "id":11,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_point.vert":{
+    "shaders/shadows/shadow_point.vert":{
         "id":12,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_point.frag":{
+    "shaders/shadows/shadow_point.frag":{
         "id":13,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_point.geom":{
+    "shaders/shadows/shadow_point.geom":{
         "id":14,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_spot.vert":{
+    "shaders/shadows/shadow_spot.vert":{
         "id":15,
         "dependencies":[]            
     },
 
-    "shaders\\shadows\\shadow_spot.frag":{
+    "shaders/shadows/shadow_spot.frag":{
         "id":16,
         "dependencies":[]            
     },
 
-    "shaders\\text\\text.vert":{
+    "shaders/text/text.vert":{
         "id":17,
         "dependencies":[]            
     },
 
-    "shaders\\text\\text.frag":{
+    "shaders/text/text.frag":{
         "id":18,
         "dependencies":[]            
     },
 
-    "textures\\black.png":{
+    "textures/black.png":{
         "id":19,
         "dependencies":[]            
     },
 
-    "textures\\default_normal.png":{
+    "textures/default_normal.png":{
         "id":20,
         "dependencies":[]            
     },
 
-    "textures\\grey.png":{
+    "textures/grey.png":{
         "id":21,
         "dependencies":[]            
     },
 
-    "textures\\white.png":{
+    "textures/white.png":{
         "id":22,
         "dependencies":[]            
     },
 
-    "shaders\\skybox\\skybox.vert":{
+    "shaders/skybox/skybox.vert":{
         "id":23,
         "dependencies":[]
     },
 
-    "shaders\\skybox\\skybox.frag":{
+    "shaders/skybox/skybox.frag":{
         "id":24,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\equirectToCubemap.vert":{
+    "shaders/ibl/equirectToCubemap.vert":{
         "id":25,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\equirectToCubemap.frag":{
+    "shaders/ibl/equirectToCubemap.frag":{
         "id":26,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\irradiance.vert":{
+    "shaders/ibl/irradiance.vert":{
         "id":27,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\irradiance.frag":{
+    "shaders/ibl/irradiance.frag":{
         "id":28,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\prefilter.vert":{
+    "shaders/ibl/prefilter.vert":{
         "id":29,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\prefilter.frag":{
+    "shaders/ibl/prefilter.frag":{
         "id":30,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\brdf.vert":{
+    "shaders/ibl/brdf.vert":{
         "id":32,
         "dependencies":[]
     },
 
-    "shaders\\ibl\\brdf.frag":{
+    "shaders/ibl/brdf.frag":{
         "id":33,
         "dependencies":[]
     }

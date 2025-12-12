@@ -1,10 +1,10 @@
 {
     "recievesShadows":false,
     "renderMode": "opaque",
-    "shader":"shaders\\mesh\\unlit",
+    "shader":"shaders/mesh/unlit",
     "uniforms":[
         {"useTexture":false},
-        {"diffuse":"textures\\white.png"},
+        {"diffuse":"textures/white.png"},
         {"useCustomColor":false},
         {"customColor": 
             [

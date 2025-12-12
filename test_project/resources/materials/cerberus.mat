@@ -1,14 +1,14 @@
 {
     "recievesShadows":true,
     "renderMode": "opaque",
-    "shader":"shaders\\mesh\\lit",
+    "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures\\Cerberus_A.tga"},
+        {"albedo":"textures/Cerberus_A.tga"},
         {"metallic":0.3},
         {"roughness":0.9},
-        {"metallicMap":"textures\\Cerberus_M.tga"},
-        {"roughnessMap":"textures\\Cerberus_R.tga"},
-        {"normalMap":"textures\\Cerberus_N.tga"},
+        {"metallicMap":"textures/Cerberus_M.tga"},
+        {"roughnessMap":"textures/Cerberus_R.tga"},
+        {"normalMap":"textures/Cerberus_N.tga"},
         {"useEnvReflections":true}
     ]
 }

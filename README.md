@@ -38,6 +38,8 @@
 
 ## How to build :
 
+Build jolt inside its submodule folder, build QtADS, place the fonts inside their folder
+
 Run build.bat or build.sh (depending on your OS)
 
 This will compile everything from root : submodules, the engine, the editor app, the editor module, and the game module (loaded with the game app)

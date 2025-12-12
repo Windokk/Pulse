@@ -51,7 +51,7 @@ namespace Pulse::Game {
         #else
             handle = dlopen(path.c_str(), RTLD_NOW);
             if (!handle) {
-                std::cerr<<"Failed to load module: " + std::to_string(dlerror())<<std::endl;
+                std::cerr<<"Failed to load module: " + std::string(dlerror())<<std::endl;
                 return false;
             }
         #endif

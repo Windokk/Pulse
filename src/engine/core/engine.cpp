@@ -37,7 +37,13 @@ namespace Pulse::Engine{
 
             this->settings = settings;
             this->context.platform = settings.platform;
-            context.currentProject = Serialization::DeserializeProject(Filesystem::Path(settings.project, true));
+            std::shared_ptr<Pulse::Engine::Projects::Project> project = Serialization::DeserializeProject(Filesystem::Path(settings.project, true));
+            if(!project){
+                DEBUG_FATAL("Project is nullptr, aborting...");
+            }
+            else{
+                context.currentProject = project;
+            }
 
             context.fileManager->Init(context.currentProject->GetProjectResourcesPath(), context.fileManager->GetCurrentExecutablePath() / "engine_resources", context.currentProject->GetProjectRoot());
             

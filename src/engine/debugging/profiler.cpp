@@ -23,40 +23,88 @@
 namespace Pulse::Engine::Debugging{
    
     Profiler::Profiler(){
-        std::string counterMBPath = std::string("\\GPU Process Memory(pid_") +
-                                 std::to_string(getpid()) +
-                                 "*)\\Dedicated Usage";
 
-        fmtValue = new PDH_FMT_COUNTERVALUE;
+        #ifdef _WIN32
+            std::string counterMBPath = std::string("\\GPU Process Memory(pid_") +
+                                    std::to_string(getpid()) +
+                                    "*)\\Dedicated Usage";
 
-        pdhStatus = PdhOpenQuery(NULL, 0, &hQuery);
-        if (pdhStatus != ERROR_SUCCESS)
-        {
-            DEBUG_ERROR(L"PdhOpenQuery failed with 0x%x", pdhStatus);
-        }
+            fmtValue = new PDH_FMT_COUNTERVALUE;
 
-        // Add counters
-        pdhStatus = PdhAddEnglishCounterA(hQuery,
-            counterMBPath.c_str(),
-            0,
-            &hCounter);
+            pdhStatus = PdhOpenQuery(NULL, 0, &hQuery);
+            if (pdhStatus != ERROR_SUCCESS)
+            {
+                DEBUG_ERROR(L"PdhOpenQuery failed with 0x%x", pdhStatus);
+            }
 
-        if (pdhStatus != ERROR_SUCCESS)
-        {
-            DEBUG_ERROR(L"PdhAddCounter failed with 0x%x", pdhStatus);
-        }
+            // Add counters
+            pdhStatus = PdhAddEnglishCounterA(hQuery,
+                counterMBPath.c_str(),
+                0,
+                &hCounter);
+
+            if (pdhStatus != ERROR_SUCCESS)
+            {
+                DEBUG_ERROR(L"PdhAddCounter failed with 0x%x", pdhStatus);
+            }
+        #endif
     }
 
-    float Profiler::GetGPUMem(){
-        
-        // Get formatted value (as double)
-        pdhStatus = PdhGetFormattedCounterValue(hCounter, PDH_FMT_DOUBLE, NULL, fmtValue);
-        if (pdhStatus != ERROR_SUCCESS || fmtValue->CStatus != ERROR_SUCCESS)
-        {
-            DEBUG_ERROR("PdhGetFormattedCounterValue for counter : GPU Mem MB failed : pdh=0x%08x cstatus=0x%08x", pdhStatus, fmtValue->CStatus);
-        }
+    float Profiler::GetGPUMem()
+    {
+        #ifdef __WIN32__
+            // Windows (PDH)
+            pdhStatus = PdhGetFormattedCounterValue(hCounter, PDH_FMT_DOUBLE, NULL, fmtValue);
+            if (pdhStatus != ERROR_SUCCESS || fmtValue->CStatus != ERROR_SUCCESS)
+                DEBUG_ERROR("PdhGetFormattedCounterValue failed.");
 
-        return static_cast<float>(fmtValue->doubleValue);
+            return static_cast<float>(fmtValue->doubleValue);
+
+        #elif defined(__unix__)
+
+            // detect GPU vendor via sysfs
+            std::string vendorPath = "/sys/class/drm/card0/device/vendor";
+            std::ifstream vendorFile(vendorPath);
+
+            if (vendorFile.good()) {
+                std::string vendorHex;
+                vendorFile >> vendorHex;
+
+                // 0x1002 = AMD
+                // 0x10de = NVIDIA
+                // 0x8086 = Intel
+                int vendor = std::stoi(vendorHex, nullptr, 16);
+
+                // AMD path
+                if (vendor == 0x1002) {
+                    long used = 0;
+
+                    std::ifstream file("/sys/class/drm/card0/device/mem_info_vram_used");
+                    if (file.good())
+                        file >> used;
+
+                    return used / 1024.0f / 1024.0f; // bytes → MB
+                }
+
+                // NVIDIA path (NVML)
+                if (vendor == 0x10de) {
+        #ifdef USE_NVML
+                    nvmlMemory_t mem;
+                    if (nvmlDeviceGetMemoryInfo(nvmlDevice, &mem) == NVML_SUCCESS)
+                        return mem.used / 1024.0f / 1024.0f;
+        #endif
+                    return 0.0f; // NVML not enabled
+                }
+
+                // Intel (no unified per-process VRAM usage)
+                if (vendor == 0x8086) {
+                    return 0.0f; // unsupported
+                }
+            }
+
+            return 0.0f; // fallback
+
+        #endif
     }
 
     MinimalStatistics Profiler::GetStats()
@@ -103,7 +151,9 @@ namespace Pulse::Engine::Debugging{
     void Profiler::Shutdown()
     {
         // Close the query object
-        if (hQuery)
-            PdhCloseQuery (hQuery);
+        #ifdef __WIN32__
+            if (hQuery)
+                PdhCloseQuery (hQuery);
+        #endif
     }
 }

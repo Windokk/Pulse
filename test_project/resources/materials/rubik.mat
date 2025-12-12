@@ -1,9 +1,9 @@
 {
     "recievesShadows":true,
     "renderMode": "opaque",
-    "shader":"shaders\\mesh\\lit",
+    "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures\\initialShadingGroup_Base_Color.png"},
+        {"albedo":"textures/initialShadingGroup_Base_Color.png"},
         {"metallic":0.7},
         {"roughness":0.3},
         {"useEnvReflections":false}

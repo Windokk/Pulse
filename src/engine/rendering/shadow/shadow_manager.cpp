@@ -33,9 +33,9 @@ namespace Pulse::Engine::Rendering{
         this->spotShadowsResolution = spotShadowsResolution;
         this->dirShadowsResolution = dirShadowsResolution;
 
-        dirShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\shadows\\shadow_dir");
-        pointShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\shadows\\shadow_point");
-        spotShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\shadows\\shadow_spot");
+        dirShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/shadows/shadow_dir");
+        pointShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/shadows/shadow_point");
+        spotShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/shadows/shadow_spot");
         shadowMaps.clear();
         pointLightCount = 0;
         currentCapacity = 0;

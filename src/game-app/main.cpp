@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 
     //Game module loading
     if (!loader.LoadModule(mainModuleName, mainModuleLib)) {
-        std::cerr << "Failed to load module: editor" << std::endl;
+        std::cerr << "Failed to load module: game" << std::endl;
         early_crash();
     }
 
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
 
     {
         // Scene framebuffer
-        auto fbShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\fb\\framebuffer");
+        auto fbShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
         Rendering::FrameBuffer sceneFB(
             Core::GetEngine().GetWindow()->GetFramebufferWidth(),
             Core::GetEngine().GetWindow()->GetFramebufferHeight(),

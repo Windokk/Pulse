@@ -86,6 +86,8 @@ namespace Pulse::Engine::Rendering{
 
         for (const auto& [name, value] : parameters)
         {
+            DEBUG_LOG(name);
+
             if (std::holds_alternative<float>(value)){
                 shader->setFloat(name, std::get<float>(value));
             }

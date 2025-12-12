@@ -53,17 +53,17 @@ namespace Pulse::Engine::ECS::Components{
             } else {
                 DEBUG_WARNING("Material '" + materialName
                         + "' not found in global materials. Using fallback.");
-                materialPath = "materials\\default";
+                materialPath = "materials/default";
             }
 
             auto material = Core::GetEngine().GetResourcesManager()->GetMaterial(materialPath);
             if (!material) {
                 DEBUG_ERROR("Failed to load material at path: " + materialPath
                         + ". Using fallback.");
-                material = Core::GetEngine().GetResourcesManager()->GetMaterial("materials\\default");
+                material = Core::GetEngine().GetResourcesManager()->GetMaterial("materials/default");
 
                 if (!material) {
-                    DEBUG_ERROR("Failed to load fallback material: materials\\default");
+                    DEBUG_ERROR("Failed to load fallback material: materials/default");
                 }
             }
 

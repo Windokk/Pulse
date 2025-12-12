@@ -12,15 +12,15 @@ target_include_directories(GameModule PRIVATE
   ${CMAKE_SOURCE_DIR}/src/
   ${CMAKE_CURRENT_SOURCE_DIR}/third-party/include/
   ${CMAKE_SOURCE_DIR}/submodules/glfw/include/
-)
-
-set_target_properties(GameModule PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+  ${CMAKE_SOURCE_DIR}/submodules/json/single_include/
+  ${CMAKE_SOURCE_DIR}/submodules/jolt/
+  ${CMAKE_SOURCE_DIR}/submodules/
+  ${CMAKE_SOURCE_DIR}/submodules/glm
+  ${CMAKE_SOURCE_DIR}/submodules/freetype/include/
+  ${FMOD_API_DIR}/inc
 )
 
 set(GLFW_LIB_DIR "${CMAKE_SOURCE_DIR}/build/submodules/glfw/src")
 
-if(WIN32)
-  target_link_directories(GameModule PUBLIC ${GLFW_LIB_DIR})
-  target_link_libraries(GameModule PRIVATE Engine glfw3)
-endif()
+target_link_directories(GameModule PUBLIC ${GLFW_LIB_DIR})
+target_link_libraries(GameModule PRIVATE Engine glfw3)

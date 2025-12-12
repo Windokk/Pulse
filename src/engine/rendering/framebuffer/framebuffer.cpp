@@ -54,6 +54,11 @@ namespace Pulse::Engine::Rendering {
     FrameBuffer::FrameBuffer(int width, int height, std::shared_ptr<Shader> shader, bool multisampled)
     {
 
+        if(!shader){
+            DEBUG_FATAL("Tried to create framebuffer with null shader !");
+            return;
+        }
+
         auto* gl = Engine::Core::GetEngine().GetGL();
 
         this->shader = shader;

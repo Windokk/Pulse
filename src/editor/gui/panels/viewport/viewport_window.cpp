@@ -129,7 +129,6 @@ namespace Pulse::Editor {
         : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, nullptr)
     {
         setSurfaceType(QWindow::OpenGLSurface);
-
         Engine::Core::GetEngine().GetEventDispatcher()->subscribeGlobal<Engine::Events::LevelStructureChangedEvent>([this](const Engine::Events::LevelStructureChangedEvent& event) {
             this->OnLevelStructureChanged(event);
         });

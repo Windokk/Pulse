@@ -128,7 +128,7 @@ namespace Pulse::Engine::Rendering{
 
         std::shared_ptr<Texture> hdrTex = Core::GetEngine().GetResourcesManager()->GetTexture(name);
 
-        std::shared_ptr<Shader> equirectangularToCubemapShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\ibl\\equirectToCubemap");
+        std::shared_ptr<Shader> equirectangularToCubemapShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/equirectToCubemap");
 
         if(!hdrTex){
             DEBUG_ERROR("HDR cubemap couldn't be created from texture : ", infos.filepath->full, " because the texture is not loaded !");
@@ -137,7 +137,7 @@ namespace Pulse::Engine::Rendering{
 
         if(!equirectangularToCubemapShader)
         {
-            DEBUG_ERROR("HDR cubemap couldn't be created because shader \"shaders\\ibl\\equirectToCubemap\" is not loaded !");
+            DEBUG_ERROR("HDR cubemap couldn't be created because shader \"shaders/ibl/equirectToCubemap\" is not loaded !");
             return;
         }
 
@@ -189,11 +189,11 @@ namespace Pulse::Engine::Rendering{
 
     void Cubemap::CreateIrradiance(){
 
-        std::shared_ptr<Shader> irradianceShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\ibl\\irradiance");
+        std::shared_ptr<Shader> irradianceShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/irradiance");
 
         if(!irradianceShader)
         {
-            DEBUG_ERROR("Cubemap irradiance map couldn't be created because shader \"shaders\\ibl\\irradiance\" is not loaded !");
+            DEBUG_ERROR("Cubemap irradiance map couldn't be created because shader \"shaders/ibl/irradiance\" is not loaded !");
             return;
         }
 
@@ -234,11 +234,11 @@ namespace Pulse::Engine::Rendering{
 
     void Cubemap::CreatePrefilter(){
 
-        std::shared_ptr<Shader> prefilterShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\ibl\\prefilter");
+        std::shared_ptr<Shader> prefilterShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/prefilter");
 
         if(!prefilterShader)
         {
-            DEBUG_ERROR("Cubemap prefilter map couldn't be created because shader \"shaders\\ibl\\equirectToCubemap\" is not loaded !");
+            DEBUG_ERROR("Cubemap prefilter map couldn't be created because shader \"shaders/ibl/equirectToCubemap\" is not loaded !");
             return;
         }
 
@@ -289,11 +289,11 @@ namespace Pulse::Engine::Rendering{
 
     void Cubemap::CreateBRDFLUT(){
         
-        std::shared_ptr<Shader> brdfShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders\\ibl\\brdf");
+        std::shared_ptr<Shader> brdfShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/brdf");
 
         if(!brdfShader)
         {
-            DEBUG_ERROR("Cubemap brdf lookup table couldn't be created because shader \"shaders\\ibl\\brdf\" is not loaded !");
+            DEBUG_ERROR("Cubemap brdf lookup table couldn't be created because shader \"shaders/ibl/brdf\" is not loaded !");
             return;
         }
 

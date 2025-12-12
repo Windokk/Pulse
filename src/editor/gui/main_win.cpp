@@ -16,9 +16,6 @@
 
 namespace Pulse::Editor
 {
-
-
-
     void EditorMainWindow::Init(const std::string& title, const int& width, const int& height,
                         const bool& fullscreen, const int& vsync) {
 
@@ -36,8 +33,8 @@ namespace Pulse::Editor
         InitGui();
     }
 
-    void EditorMainWindow::InitGui(){
-        
+    void EditorMainWindow::InitGui()
+    {
         dockManager = std::make_unique<ads::CDockManager>(this);
 
         dockManager->setStyleSheet("");
@@ -78,7 +75,7 @@ namespace Pulse::Editor
         dockManager->addDockWidget(ads::LeftDockWidgetArea, levelTreeDock);
         dockManager->addDockWidget(ads::BottomDockWidgetArea, assetBrowserDock);
 
-        show();
+        QTimer::singleShot(0, this, [this](){ this->show(); });
     }
 
     void EditorMainWindow::PollEvents()

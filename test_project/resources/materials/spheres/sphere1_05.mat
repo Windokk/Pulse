@@ -1,13 +1,13 @@
 {
-    "recievesShadows":false,
+    "recievesShadows":true,
     "renderMode": "opaque",
-    "shader":"shaders\\mesh\\lit",
+    "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures\\sphere_BaseColor.jpg"},
+        {"albedo":"textures/sphere_BaseColor.jpg"},
         {"metallic":1.0},
         {"roughness":0.5},
-        {"roughnessMap":"textures\\sphere_Roughness.jpg"},
-        {"normalMap":"textures\\sphere_Normal.jpg"},
+        {"roughnessMap":"textures/sphere_Roughness.jpg"},
+        {"normalMap":"textures/sphere_Normal.jpg"},
         {"useEnvReflections":true}
     ]
 }
