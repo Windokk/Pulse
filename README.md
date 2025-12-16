@@ -25,7 +25,7 @@
 - C++ 17 Compiler (GCC MinGW recommended)
 
 ### Proprietary Dependencies :
-- Qt 6.9.2
+- Qt 6.10
 - FMOD API 2.03
 
 ### Editor Fonts : (Place both in src/editor/gui/fonts/)
@@ -33,6 +33,8 @@
 - [lucide.ttf](https://unpkg.com/lucide-static@latest/font/lucide.ttf)
 
 ## Build Requirements (Linux) :
+
+Note : Doesn't work on Wayland, since QtAds isn't fully working on Wayland
 
 <h3><i style="color:green"># Still WIP</i></h3>
 
@@ -43,7 +45,6 @@ Build jolt inside its submodule folder, build QtADS, place the fonts inside thei
 Run build.bat or build.sh (depending on your OS)
 
 This will compile everything from root : submodules, the engine, the editor app, the editor module, and the game module (loaded with the game app)
-
 
 
 ## ROADMAP EDITOR

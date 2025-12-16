@@ -52,24 +52,24 @@ namespace Pulse::Engine::Core::Resources{
 
     }
 
-    std::shared_ptr<Rendering::Texture> ResourcesManager::LoadTexture(const std::string &pathInProject, const Filesystem::Path &path)
+    std::shared_ptr<Rendering::Image> ResourcesManager::LoadImage(const std::string &pathInProject, const Filesystem::Path &path)
     {
-        std::shared_ptr<Rendering::Texture> texture = std::make_shared<Rendering::Texture>(path);
-        textures.emplace(pathInProject, texture);
-        texture->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
-        return texture;
+        std::shared_ptr<Rendering::Image> img = std::make_shared<Rendering::Image>(path);
+        images.emplace(pathInProject, img);
+        img->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
+        return img;
     }
 
-    std::shared_ptr<Rendering::Cubemap> ResourcesManager::LoadCubemap(const std::string &pathInProject, const Filesystem::Path &path)
+    std::shared_ptr<Rendering::EnvironmentMap> ResourcesManager::LoadEnvMap(const std::string &pathInProject, const Filesystem::Path &path)
     {
-        std::shared_ptr<Rendering::Cubemap> cubemap = std::make_shared<Rendering::Cubemap>(path);
-        if(!cubemap){
+        std::shared_ptr<Rendering::EnvironmentMap> envMap = std::make_shared<Rendering::EnvironmentMap>(path);
+        if(!envMap){
             DEBUG_ERROR("Error during cubemap import");
             return nullptr;
         }
-        cubemaps.emplace(pathInProject, cubemap);
-        cubemap->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
-        return cubemap;
+        envmaps.emplace(pathInProject, envMap);
+        envMap->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
+        return envMap;
     }
 
     std::shared_ptr<Rendering::Shader> ResourcesManager::LoadShader(const std::string &pathInProject, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath)
@@ -162,10 +162,10 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
-    std::shared_ptr<Rendering::Texture> ResourcesManager::GetTexture(std::string pathInProject)
+    std::shared_ptr<Rendering::Image> ResourcesManager::GetImage(std::string pathInProject)
     {
-        auto it = textures.find(pathInProject);
-        if (it != textures.end())
+        auto it = images.find(pathInProject);
+        if (it != images.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
@@ -173,14 +173,14 @@ namespace Pulse::Engine::Core::Resources{
 
             if(assetInfos == nullptr) return nullptr;
 
-            return LoadTexture(pathInProject, assetInfos->baseInfos.path);
+            return LoadImage(pathInProject, assetInfos->baseInfos.path);
         }
     }
 
-    std::shared_ptr<Rendering::Cubemap> ResourcesManager::GetCubemap(std::string pathInProject)
+    std::shared_ptr<Rendering::EnvironmentMap> ResourcesManager::GetEnvMap(std::string pathInProject)
     {
-        auto it = cubemaps.find(pathInProject);
-        if (it != cubemaps.end())
+        auto it = envmaps.find(pathInProject);
+        if (it != envmaps.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
@@ -188,7 +188,7 @@ namespace Pulse::Engine::Core::Resources{
 
             if(assetInfos == nullptr) return nullptr;
 
-            return LoadCubemap(pathInProject, assetInfos->baseInfos.path);
+            return LoadEnvMap(pathInProject, assetInfos->baseInfos.path);
         }
     }
 
@@ -238,16 +238,16 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
-    void ResourcesManager::UnloadTexture(const std::string &name)
+    void ResourcesManager::UnloadImage(const std::string &name)
     {
-        auto it = textures.find(name);
-        if (it != textures.end())
+        auto it = images.find(name);
+        if (it != images.end())
         {
-            textures.erase(it);
+            images.erase(it);
         }
     }
 
-    void ResourcesManager::UnloadCubemap(const std::string &name)
+    void ResourcesManager::UnloadEnvMap(const std::string &name)
     {
     }
 

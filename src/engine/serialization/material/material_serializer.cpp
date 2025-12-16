@@ -64,9 +64,9 @@ namespace Pulse::Engine::Serialization{
 
                     // Texture
                     if (value.is_string()) {
-                        std::shared_ptr<Texture> tex = Core::GetEngine().GetResourcesManager()->GetTexture(value.get<std::string>());
+                        std::shared_ptr<Texture> tex = Core::GetEngine().GetResourcesManager()->GetImage(value.get<std::string>())->texture;
                         if(tex){
-                            mat->SetParameter(name, tex);
+                            mat->SetTextureParameter(name, tex);
                         }
                         else{
                             DEBUG_ERROR("No texture found : " + value.get<std::string>());
@@ -74,33 +74,33 @@ namespace Pulse::Engine::Serialization{
                         }
                     }
                     else if(value.is_boolean()){
-                        mat->SetParameter(name, value.get<bool>());
+                        mat->SetScalarParameter(name, value.get<bool>());
                     }
                     // Float
                     else if (value.is_number_float()) {
-                        mat->SetParameter(name, value.get<float>());
+                        mat->SetScalarParameter(name, value.get<float>());
                     }
                     // Int
                     else if (value.is_number_integer()) {
-                        mat->SetParameter(name, value.get<int>());
+                        mat->SetScalarParameter(name, value.get<int>());
                     }
                     // Vectors
                     else if (value.is_array()) {
                         size_t len = value.size();
                         if (len == 2) {
-                            mat->SetParameter(name, glm::vec2(value[0].get<float>(), value[1].get<float>()));
+                            mat->SetScalarParameter(name, glm::vec2(value[0].get<float>(), value[1].get<float>()));
                         }
                         else if (len == 3) {
-                            mat->SetParameter(name, glm::vec3(value[0].get<float>(), value[1].get<float>(), value[2].get<float>()));
+                            mat->SetScalarParameter(name, glm::vec3(value[0].get<float>(), value[1].get<float>(), value[2].get<float>()));
                         }
                         else if (len == 4) {
-                            mat->SetParameter(name, glm::vec4(value[0].get<float>(), value[1].get<float>(), value[2].get<float>(), value[3].get<float>()));
+                            mat->SetScalarParameter(name, glm::vec4(value[0].get<float>(), value[1].get<float>(), value[2].get<float>(), value[3].get<float>()));
                         }
                         else if (len == 16) {
                             glm::mat4 mat4;
                             for (int i = 0; i < 16; ++i)
                                 mat4[i / 4][i % 4] = value[i].get<float>();
-                            mat->SetParameter(name, mat4);
+                            mat->SetScalarParameter(name, mat4);
                         } else {
                             DEBUG_ERROR("Unknown array size for uniform: " + name);
                         }

@@ -2,6 +2,7 @@
 
 #include "engine/ecs/components/core/transform.hpp"
 #include "engine/filesystem/assetID.hpp"
+#include "engine/rendering/opengl/opengl.hpp"
 
 #include <stb/stb_image.h>
 #include <stb/stb_image_resize2.h>
@@ -20,18 +21,32 @@ namespace Pulse::Engine::Rendering {
     struct TextureInfos{
         int width, height;           
         int nrChannels;
-        std::shared_ptr<Filesystem::Path> filepath;
     };
 
     class Texture{
         public:
-            Texture(Filesystem::Path filepath);
-            void Init(Filesystem::Path filepath);
+            Texture(int width, int height, int nrChannels, GLenum filterMode[2], GLenum wrapMode[2], GLenum internalFormat, GLenum format, unsigned char *data, bool generateMipmap);
             void Bind(int unit);
             void UnBind(int unit);
             void Cleanup();
             unsigned int GetID() { return ID; }
             TextureInfos* GetInfos() { return &infos; }
+
+
+        private:
+
+            unsigned int ID;
+            TextureInfos infos;
+    };
+
+    class Image{
+        public:
+            Image(Filesystem::Path filepath);
+        
+            std::shared_ptr<Texture> texture;
+
+            GLenum wrapModes[2] = {GL_REPEAT, GL_REPEAT};
+            GLenum filterModes[2] = {GL_LINEAR, GL_LINEAR};
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
@@ -40,13 +55,8 @@ namespace Pulse::Engine::Rendering {
             Filesystem::AssetID GetAssetID() {
                 return this->assetID;
             }
-
         private:
             Filesystem::AssetID assetID;
-
-            unsigned int ID;
-            TextureInfos infos;
-            unsigned int VAO, VBO, EBO;
-            unsigned int indices[6] = { 0, 1, 2, 2, 3, 0 };
+            
     };
 }

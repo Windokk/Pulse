@@ -11,7 +11,50 @@ namespace Pulse::Engine::Rendering{
 
     using namespace Filesystem;
 
-    Cubemap::Cubemap(Filesystem::Path filepath)
+
+    Cubemap::Cubemap(int width, int height, GLenum filterMode[2], GLenum wrapMode[3], GLenum internalFormat, GLenum format, unsigned char* data[6], bool generateMipmap)
+    {
+        Core::GetEngine().GetGL()->GenTextures(1, &ID);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, ID);
+
+        for(int i = 0; i < 6; i++){
+            Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, data[i]);
+        }
+
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, filterMode[0]);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, filterMode[1]);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, wrapMode[0]);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrapMode[1]);
+        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, wrapMode[2]);
+
+        if(generateMipmap)
+        {
+            Core::GetEngine().GetGL()->GenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        }
+    }
+
+    Cubemap::Cubemap(unsigned int ID)
+    {
+        this->ID = ID;
+    }
+
+    void Cubemap::Draw(int cubeVAO, std::shared_ptr<Shader> shader, glm::mat4 view, glm::mat4 projection)
+    {
+        Core::GetEngine().GetGL()->DepthFunc(GL_LEQUAL);
+        shader->Activate();
+        Core::GetEngine().GetGL()->BindVertexArray(cubeVAO);
+        Bind(0);
+        view = glm::mat4(glm::mat3(view));
+        shader->setMat4("view", view);
+        shader->setMat4("projection", projection);
+        shader->setInt("gCubemapTexture", 0);
+        Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 36);
+        shader->Deactivate();
+        UnBind(0);
+        Core::GetEngine().GetGL()->DepthFunc(GL_LESS);
+    }
+
+    EnvironmentMap::EnvironmentMap(Filesystem::Path filepath)
     {
         if(!filepath.Exists() || filepath.GetParent().empty()){
             DEBUG_ERROR("Texture at path : ", filepath.full, "doesn't exist, or doesn't have a valid parent");
@@ -21,23 +64,7 @@ namespace Pulse::Engine::Rendering{
         Init(filepath);
     }
 
-    void Cubemap::Draw(std::shared_ptr<Shader> shader, glm::mat4 view, glm::mat4 projection)
-    {
-        Core::GetEngine().GetGL()->DepthFunc(GL_LEQUAL);
-        shader->Activate();
-        Core::GetEngine().GetGL()->BindVertexArray(cubeVAO);
-        Bind();
-        view = glm::mat4(glm::mat3(view));
-        shader->setMat4("view", view);
-        shader->setMat4("projection", projection);
-        shader->setInt("gCubemapTexture", 0);
-        Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 36);
-        shader->Deactivate();
-        UnBind();
-        Core::GetEngine().GetGL()->DepthFunc(GL_LESS);
-    }
-
-    void Cubemap::Init(Filesystem::Path filepath)
+    void EnvironmentMap::Init(Filesystem::Path filepath)
     {
         GenerateGeometry();
 
@@ -50,7 +77,7 @@ namespace Pulse::Engine::Rendering{
             CreateFromHDR();
         }
         
-        if(cubemapID != 0){
+        if(cubemap->GetID() != 0){
             CreateIrradiance();
             CreatePrefilter();
             CreateBRDFLUT();
@@ -59,13 +86,25 @@ namespace Pulse::Engine::Rendering{
         return;
     }
 
-    void Cubemap::CreateFromFolder(){
-         
-        // Load and set up the texture
-        Core::GetEngine().GetGL()->GenTextures(1, &cubemapID);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+    void EnvironmentMap::Draw(std::shared_ptr<Shader> shader, glm::mat4 view, glm::mat4 projection)
+    {
+        cubemap->Draw(cubeVAO, shader, view, projection);
+    }
 
-        unsigned char* data = nullptr;
+    void EnvironmentMap::Cleanup()
+    {
+        Core::GetEngine().GetGL()->DeleteVertexArrays(1, &cubeVAO);
+        Core::GetEngine().GetGL()->DeleteBuffers(1, &cubeVBO);
+        Core::GetEngine().GetGL()->DeleteFramebuffers(1, &captureFBO);
+        Core::GetEngine().GetGL()->DeleteRenderbuffers(1, &captureRBO);
+        captureFBO = captureRBO = 0;
+        cubeVAO = cubeVBO = 0;
+    }
+
+    void EnvironmentMap::CreateFromFolder()
+    {
+
+        unsigned char* data[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
         std::vector<Filesystem::FileInfos> files = Core::GetEngine().GetFileManager()->ListDirectory(*infos.filepath.get(), {Filesystem::Type::T_IMAGE}, false, false);
         
@@ -73,67 +112,65 @@ namespace Pulse::Engine::Rendering{
 
         if (files.size() == 6) {
             
+            GLenum format;
+
             for(int i = 0; i < files.size(); i++){
 
                 std::string file = files[i].path.ReadFile();
-                data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(file.data()),
+                data[i] = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(file.data()),
                                                 static_cast<int>(file.size()),
                                                 &infos.width, &infos.height, &infos.nrChannels, 0);
-            
-                if (data) {
-                    GLenum format;
-                    if (infos.nrChannels == 1){
-                        format = GL_RED;
-                    }
-                    else if (infos.nrChannels == 2){
-                        format = GL_RG;
-                    }
-                    else if (infos.nrChannels == 3){
-                        format = GL_RGB;
-                    }
-                    else if (infos.nrChannels == 4){
-                        format = GL_RGBA;
-                    }
-                    else{
-                        format = GL_RGB; // Default to RGB
-                    }
 
-                    Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, infos.width, infos.height, 0, format, GL_UNSIGNED_BYTE, data);
-                    
+                if (infos.nrChannels == 1){
+                    format = GL_RED;
                 }
-                else {
+                else if (infos.nrChannels == 2){
+                    format = GL_RG;
+                }
+                else if (infos.nrChannels == 3){
+                    format = GL_RGB;
+                }
+                else if (infos.nrChannels == 4){
+                    format = GL_RGBA;
+                }
+                else{
+                    format = GL_RGB; // Default to RGB
+                }
+
+                if(!data[i]){
                     DEBUG_ERROR("Couldn't load texture : " + files[i].path.full);   
                 }
-
-                stbi_image_free(data);
-
             }
+            
+            for (int i = 0; i < 6; i++) {
+                stbi_image_free(data[i]);
+            }
+            
+            GLenum filters[2] = {GL_LINEAR, GL_LINEAR};
+            GLenum wrapModes[3] = {GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
 
+            cubemap = std::make_shared<Cubemap>(infos.width, infos.height, filters, wrapModes, format, format, data, false);
 
         } else {
-            DEBUG_ERROR("Couldn't find textures (or too much files in the folder) : " + infos.filepath->full);
+            DEBUG_ERROR("Couldn't find textures (or too much files in the folder) while creating cubemap : " + infos.filepath->full);
             return;
         }
-
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     }
-    
-    void Cubemap::CreateFromHDR(){
+
+    void EnvironmentMap::CreateFromHDR(){
 
         std::string name = Core::GetEngine().GetFileManager()->GetFileInfos(*infos.filepath.get()).nameInProject;
 
-        std::shared_ptr<Texture> hdrTex = Core::GetEngine().GetResourcesManager()->GetTexture(name);
+        std::shared_ptr<Pulse::Engine::Rendering::Image> hdrImg = Core::GetEngine().GetResourcesManager()->GetImage(name);
 
-        std::shared_ptr<Shader> equirectangularToCubemapShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/equirectToCubemap");
-
-        if(!hdrTex){
+        if(!hdrImg){
             DEBUG_ERROR("HDR cubemap couldn't be created from texture : ", infos.filepath->full, " because the texture is not loaded !");
             return;
         }
+
+        std::shared_ptr<Texture> hdrTex = hdrImg->texture;
+
+        std::shared_ptr<Shader> equirectangularToCubemapShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/equirectToCubemap");
 
         if(!equirectangularToCubemapShader)
         {
@@ -141,23 +178,14 @@ namespace Pulse::Engine::Rendering{
             return;
         }
 
-        const unsigned int faceRes = 512;
-        infos.width = infos.height = faceRes;
+        infos.width = infos.height = 512;
         infos.nrChannels = 3;
 
-        Core::GetEngine().GetGL()->GenTextures(1, &cubemapID);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+        unsigned char* data[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+        GLenum filters[2] = {GL_LINEAR, GL_LINEAR};
+        GLenum wrapModes[3] = {GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
 
-        for (unsigned int i = 0; i < 6; ++i) {
-            Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 
-                 infos.width, infos.height, 0, GL_RGB, GL_FLOAT, nullptr);
-        }
-
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        cubemap = std::make_shared<Cubemap>(infos.width, infos.height, filters, wrapModes, GL_RGB16F, GL_RGB, data, false);
 
         Core::GetEngine().GetGL()->GenFramebuffers(1, &captureFBO);
         Core::GetEngine().GetGL()->GenRenderbuffers(1, &captureRBO);
@@ -179,7 +207,7 @@ namespace Pulse::Engine::Rendering{
         {
             equirectangularToCubemapShader->setMat4("view", captureViews[i]);
             Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubemapID, 0);
+                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubemap->GetID(), 0);
             Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             RenderUnitCube(); // renders a 1x1 cube
@@ -187,7 +215,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void Cubemap::CreateIrradiance(){
+    void EnvironmentMap::CreateIrradiance(){
 
         std::shared_ptr<Shader> irradianceShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/irradiance");
 
@@ -196,18 +224,12 @@ namespace Pulse::Engine::Rendering{
             DEBUG_ERROR("Cubemap irradiance map couldn't be created because shader \"shaders/ibl/irradiance\" is not loaded !");
             return;
         }
+        
+        unsigned char* data[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+        GLenum filters[2] = {GL_LINEAR, GL_LINEAR};
+        GLenum wrapModes[3] = {GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
 
-        Core::GetEngine().GetGL()->GenTextures(1, &irradianceMapID);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, irradianceMapID);
-        for (unsigned int i = 0; i < 6; ++i)
-        {
-            Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
-        }
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        irradianceMap = std::make_shared<Cubemap>(32, 32, filters, wrapModes, GL_RGB16F, GL_RGB, data, false);
 
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         Core::GetEngine().GetGL()->BindRenderbuffer(GL_RENDERBUFFER, captureRBO);
@@ -217,14 +239,14 @@ namespace Pulse::Engine::Rendering{
         irradianceShader->setInt("environmentMap", 0);
         irradianceShader->setMat4("projection", captureProjection);
         Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetID());
 
-        Core::GetEngine().GetGL()->Viewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
+        Core::GetEngine().GetGL()->Viewport(0, 0, 32, 32);
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         for (unsigned int i = 0; i < 6; ++i)
         {
             irradianceShader->setMat4("view", captureViews[i]);
-            Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMapID, 0);
+            Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap->GetID(), 0);
             Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             RenderUnitCube();
@@ -232,7 +254,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void Cubemap::CreatePrefilter(){
+    void EnvironmentMap::CreatePrefilter(){
 
         std::shared_ptr<Shader> prefilterShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/prefilter");
 
@@ -242,25 +264,17 @@ namespace Pulse::Engine::Rendering{
             return;
         }
 
-        Core::GetEngine().GetGL()->GenTextures(1, &prefilterMapID);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, prefilterMapID);
-        for (unsigned int i = 0; i < 6; ++i)
-        {
-            Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
-        }
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear 
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // generate mipmaps for the cubemap so OpenGL automatically allocates the required memory.
-        Core::GetEngine().GetGL()->GenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        unsigned char* data[6] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+        GLenum filters[2] = {GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR};
+        GLenum wrapModes[3] = {GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
+
+        prefilterMap = std::make_shared<Cubemap>(128, 128, filters, wrapModes, GL_RGB16F, GL_RGB, data, true);
 
         prefilterShader->Activate();
         prefilterShader->setInt("environmentMap", 0);
         prefilterShader->setMat4("projection", captureProjection);
         Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetID());
 
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         unsigned int maxMipLevels = 5;
@@ -278,7 +292,7 @@ namespace Pulse::Engine::Rendering{
             for (unsigned int i = 0; i < 6; ++i)
             {
                 prefilterShader->setMat4("view", captureViews[i]);
-                Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMapID, mip);
+                Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap->GetID(), mip);
 
                 Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 RenderUnitCube();
@@ -287,7 +301,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void Cubemap::CreateBRDFLUT(){
+    void EnvironmentMap::CreateBRDFLUT(){
         
         std::shared_ptr<Shader> brdfShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/brdf");
 
@@ -297,22 +311,16 @@ namespace Pulse::Engine::Rendering{
             return;
         }
 
-        Core::GetEngine().GetGL()->GenTextures(1, &brdfLUTTextureID);
+        GLenum filters[2] = {GL_LINEAR, GL_LINEAR};
+        GLenum wrapModes[2] = {GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE};
 
-        // pre-allocate enough memory for the LUT texture.
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, brdfLUTTextureID);
-        Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
-        // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        brdfLUT = std::make_shared<Texture>(512, 512, 2, filters, wrapModes, GL_RG16F, GL_RG, nullptr, false);
 
         // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         Core::GetEngine().GetGL()->BindRenderbuffer(GL_RENDERBUFFER, captureRBO);
         Core::GetEngine().GetGL()->RenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
-        Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTextureID, 0);
+        Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT->GetID(), 0);
 
         Core::GetEngine().GetGL()->Viewport(0, 0, 512, 512);
         brdfShader->Activate();
@@ -322,41 +330,37 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void Cubemap::RenderUnitCube()
+    void EnvironmentMap::RenderUnitCube()
     {
         Core::GetEngine().GetGL()->BindVertexArray(cubeVAO);
         Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 36);
         Core::GetEngine().GetGL()->BindVertexArray(0);
     }
 
-    void Cubemap::RenderUnitQuad(){
+    void EnvironmentMap::RenderUnitQuad(){
         Core::GetEngine().GetGL()->BindVertexArray(quadVAO);
         Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         Core::GetEngine().GetGL()->BindVertexArray(0);
     }
 
-    void Cubemap::Bind()
+    void Cubemap::Bind(int unit)
     {
-        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + unit);
+        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, ID);
     }
 
-    void Cubemap::UnBind()
+    void Cubemap::UnBind(int unit)
     {
-        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
+        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + unit);
         Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 
     void Cubemap::Cleanup()
     {
-        Core::GetEngine().GetGL()->DeleteTextures(1, &cubemapID);
-
-        Core::GetEngine().GetGL()->DeleteVertexArrays(1, &cubeVAO);
-        Core::GetEngine().GetGL()->DeleteBuffers(1, &cubeVBO);
-        cubeVAO = cubeVBO = 0;
+        Core::GetEngine().GetGL()->DeleteTextures(1, &ID);
     }
     
-    void Cubemap::GenerateGeometry()
+    void EnvironmentMap::GenerateGeometry()
     {
         float skyboxVertices[] = {
             // positions          

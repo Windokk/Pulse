@@ -270,16 +270,16 @@ namespace Pulse::Engine::Rendering{
                 case TRANSLUCENT:
                     Core::GetEngine().GetGL()->Enable(GL_BLEND);
                     Core::GetEngine().GetGL()->BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    cmd.mat->SetParameter("masked", false);
+                    cmd.mat->SetScalarParameter("masked", false);
                     break;
 
                 case MASKED:
-                    cmd.mat->SetParameter("masked", true);
+                    cmd.mat->SetScalarParameter("masked", true);
                     Core::GetEngine().GetGL()->Disable(GL_BLEND);
                     break;
 
                 case OPAQUE:
-                    cmd.mat->SetParameter("masked", false);
+                    cmd.mat->SetScalarParameter("masked", false);
                     Core::GetEngine().GetGL()->Disable(GL_BLEND);
                     break;
                     
@@ -287,12 +287,18 @@ namespace Pulse::Engine::Rendering{
                     break;
             }
 
-            cmd.mat->SetParameter("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
-            cmd.mat->SetParameter("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
-            cmd.mat->SetParameter("model", cmd.tr->GetTransformMatrix());
-            cmd.mat->SetParameter("lightNB", lightMan->GetLightsCount());
-            cmd.mat->SetParameter("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
-            cmd.mat->SetParameter("ambientIntensity", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->ambientIntensity);
+            if(std::get<bool>(cmd.mat->GetScalarParameter("useEnvReflections"))){
+                cmd.mat->SetTextureParameter("irradianceMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->irradianceMap);
+                cmd.mat->SetTextureParameter("prefilteredEnvMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->prefilterMap);
+                cmd.mat->SetTextureParameter("brdfLUT", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->brdfLUT);
+            }
+
+            cmd.mat->SetScalarParameter("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            cmd.mat->SetScalarParameter("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+            cmd.mat->SetScalarParameter("model", cmd.tr->GetTransformMatrix());
+            cmd.mat->SetScalarParameter("lightNB", lightMan->GetLightsCount());
+            cmd.mat->SetScalarParameter("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
+            cmd.mat->SetScalarParameter("ambientIntensity", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->ambientIntensity);
             cmd.mat->Use();
             Core::GetEngine().GetGL()->BindVertexArray(cmd.VAO);
             Core::GetEngine().GetGL()->PolygonMode(GL_FRONT_AND_BACK, cmd.fillMode);

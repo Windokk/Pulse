@@ -99,14 +99,12 @@ namespace Pulse::Engine::Levels{
             if(data.contains("skybox")){
                 auto& skybox_folder = data["skybox"];
                 if(skybox_folder.is_string()){
-                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/skybox/skybox");
-                    std::shared_ptr<Rendering::Cubemap> cubemap = Core::GetEngine().GetResourcesManager()->GetCubemap(data["skybox"]);
+                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/cubemap/cubemap");
+                    std::shared_ptr<Rendering::EnvironmentMap> envMap = Core::GetEngine().GetResourcesManager()->GetEnvMap(data["skybox"]);
                     
-                    if(shader != nullptr && cubemap != nullptr)
+                    if(shader != nullptr && envMap != nullptr)
                     {
-                        std::shared_ptr<ECS::Objects::Skybox> sb = ECS::Objects::Object::Create<ECS::Objects::Skybox>(cubemap, shader);
-                        sb->SetShader(shader);
-                        sb->SetCubemap(cubemap);
+                        std::shared_ptr<ECS::Objects::Skybox> sb = ECS::Objects::Object::Create<ECS::Objects::Skybox>(envMap, shader);
                         this->skybox = sb;
                     }
                     else{
@@ -183,7 +181,7 @@ namespace Pulse::Engine::Levels{
         full["meshes"] = meshes;
 
         if(skybox){
-            full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(skybox->GetCubemap()->GetInfos()->filepath->full).nameInProject;
+            full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(skybox->envMap->GetInfos()->filepath->full).nameInProject;
         }
 
         std::string fileContent = full.dump();

@@ -15,38 +15,25 @@ namespace Pulse::Engine::ECS::Objects
 
             public:
 
-                Skybox(std::shared_ptr<Rendering::Cubemap> cubemap, std::shared_ptr<Rendering::Shader> shader);
+                Skybox(std::shared_ptr<Rendering::EnvironmentMap> envMap, std::shared_ptr<Rendering::Shader> shader);
 
                 void SetCubemap(std::shared_ptr<Rendering::Cubemap> cubemap);
 
                 void SetShader(std::shared_ptr<Rendering::Shader> shader);
 
-                std::shared_ptr<Rendering::Cubemap> GetCubemap() { return cubemap; }
-
                 void Draw(glm::mat4 view, glm::mat4 projection);
 
                 void Destroy() override;
 
-                unsigned int GetIrradianceID() { 
-                    if(cubemap) 
-                        return cubemap->GetIrradianceID(); 
-                    return 0;
-                }
-                unsigned int GetPrefilterID() { 
-                    if(cubemap) 
-                        return cubemap->GetPrefilterID(); 
-                    return 0;
-                }
-                unsigned int GetBrdfLutID() { 
-                    if(cubemap) 
-                        return cubemap->GetBrdfLutID(); 
-                    return 0;
-                }
+                unsigned int GetIrradianceID();
+                unsigned int GetPrefilterID();
+                unsigned int GetBrdfLutID();
+
+                std::shared_ptr<Rendering::EnvironmentMap> envMap;
 
 
             private:
                 std::shared_ptr<Rendering::Shader> shader;
-                std::shared_ptr<Rendering::Cubemap> cubemap;
 
     };
 }

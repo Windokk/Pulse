@@ -11,9 +11,41 @@ namespace Pulse::Engine::Rendering {
 
     struct UniformInfo {
         std::string name;
-        GLenum type;
+        GLenum glType;
         GLint location;
         GLint arraySize;
+
+        bool IsTexture() const {
+            switch (glType) {
+                case GL_SAMPLER_1D:
+                case GL_SAMPLER_2D:
+                case GL_SAMPLER_CUBE:
+
+                case GL_SAMPLER_1D_SHADOW:
+                case GL_SAMPLER_2D_SHADOW:
+                case GL_SAMPLER_CUBE_SHADOW:
+
+                case GL_SAMPLER_1D_ARRAY:
+                case GL_SAMPLER_2D_ARRAY:
+                case GL_SAMPLER_CUBE_MAP_ARRAY:
+
+                case GL_SAMPLER_1D_ARRAY_SHADOW:
+                case GL_SAMPLER_2D_ARRAY_SHADOW:
+                case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+
+                case GL_INT_SAMPLER_1D:
+                case GL_INT_SAMPLER_2D:
+                case GL_INT_SAMPLER_CUBE:
+
+                case GL_UNSIGNED_INT_SAMPLER_1D:
+                case GL_UNSIGNED_INT_SAMPLER_2D:
+                case GL_UNSIGNED_INT_SAMPLER_CUBE:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
     };
 
     class Shader{

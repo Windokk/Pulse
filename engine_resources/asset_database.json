@@ -109,12 +109,12 @@
         "dependencies":[]            
     },
 
-    "shaders/skybox/skybox.vert":{
+    "shaders/cubemap/cubemap.vert":{
         "id":23,
         "dependencies":[]
     },
 
-    "shaders/skybox/skybox.frag":{
+    "shaders/cubemap/cubemap.frag":{
         "id":24,
         "dependencies":[]
     },

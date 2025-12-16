@@ -376,18 +376,18 @@ namespace Pulse::Engine::Rendering{
 
         // Initialize all shadow map references and matrices to safe defaults
         for (int i = 0; i < NUM_CASCADES; ++i) {
-            material->SetParameter("shadow_dirShadowMaps[" + std::to_string(i) + "]", 0);
-            material->SetParameter("shadow_dirLightSpaceMatrices[" + std::to_string(i) + "]", glm::mat4(1.0f));
-            material->SetParameter("cascadeSplits[" + std::to_string(i) + "]", 1.0f); // Default to max depth
+            material->SetScalarParameter("shadow_dirShadowMaps[" + std::to_string(i) + "]", 0);
+            material->SetScalarParameter("shadow_dirLightSpaceMatrices[" + std::to_string(i) + "]", glm::mat4(1.0f));
+            material->SetScalarParameter("cascadeSplits[" + std::to_string(i) + "]", 1.0f); // Default to max depth
         }
 
         for (int i = 0; i < MAX_SPOT_LIGHTS; ++i) {
-            material->SetParameter("shadow_spotShadowMaps[" + std::to_string(i) + "]", 0);
-            material->SetParameter("shadow_spotLightSpaceMatrices[" + std::to_string(i) + "]", glm::mat4(1.0f));
+            material->SetScalarParameter("shadow_spotShadowMaps[" + std::to_string(i) + "]", 0);
+            material->SetScalarParameter("shadow_spotLightSpaceMatrices[" + std::to_string(i) + "]", glm::mat4(1.0f));
         }
 
         for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
-            material->SetParameter("shadow_pointLightFarPlanes[" + std::to_string(i) + "]", 0.0f);
+            material->SetScalarParameter("shadow_pointLightFarPlanes[" + std::to_string(i) + "]", 0.0f);
         }
 
         int cascadeIndex = 0;
@@ -411,9 +411,9 @@ namespace Pulse::Engine::Rendering{
                     gl->ActiveTexture(GL_TEXTURE0 + textureUnit);
                     gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
 
-                    material->SetParameter("shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]", textureUnit);
-                    material->SetParameter("shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]", sm.lightMatrix[c]);
-                    material->SetParameter("cascadeSplits[" + std::to_string(cascadeIndex) + "]", sm.cascadeSplits[c]);
+                    material->SetScalarParameter("shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]", textureUnit);
+                    material->SetScalarParameter("shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]", sm.lightMatrix[c]);
+                    material->SetScalarParameter("cascadeSplits[" + std::to_string(cascadeIndex) + "]", sm.cascadeSplits[c]);
                     
                     ++cascadeIndex;
                     ++textureUnit;
@@ -428,8 +428,8 @@ namespace Pulse::Engine::Rendering{
                 gl->ActiveTexture(GL_TEXTURE0 + textureUnit);
                 gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
 
-                material->SetParameter("shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]", textureUnit);
-                material->SetParameter("shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]", sm.lightMatrix[0]);
+                material->SetScalarParameter("shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]", textureUnit);
+                material->SetScalarParameter("shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]", sm.lightMatrix[0]);
 
                 ++spotIndex;
                 ++textureUnit;
@@ -440,7 +440,7 @@ namespace Pulse::Engine::Rendering{
                 if (sm.cubeArrayLayer >= MAX_POINT_LIGHTS)
                     continue;
 
-                material->SetParameter("shadow_pointLightFarPlanes[" + std::to_string(sm.cubeArrayLayer) + "]", light.radius);
+                material->SetScalarParameter("shadow_pointLightFarPlanes[" + std::to_string(sm.cubeArrayLayer) + "]", light.radius);
             }
         }
 
@@ -448,6 +448,6 @@ namespace Pulse::Engine::Rendering{
         constexpr int cubeArrayUnit = 31;
         gl->ActiveTexture(GL_TEXTURE0 + cubeArrayUnit);
         gl->BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
-        material->SetParameter("shadow_pointShadowMapArray", cubeArrayUnit);
+        material->SetScalarParameter("shadow_pointShadowMapArray", cubeArrayUnit);
     }
 }
