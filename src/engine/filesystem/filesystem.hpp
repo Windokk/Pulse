@@ -34,8 +34,8 @@ namespace Pulse::Engine::Filesystem{
     class Path {
 
         public:
-        std::string full;  // Full/normalized path
-    
+        std::string full;  // Full path string
+
         Path() = default;
         Path(const std::string &raw, bool normalize = false);
 
@@ -43,6 +43,8 @@ namespace Pulse::Engine::Filesystem{
         static std::string Normalize(const std::string& raw);
     
         Path RelativeTo(const Path& other) const;
+
+        std::string GetNativePath() const;
 
         std::string GetExtensionString() const;
 

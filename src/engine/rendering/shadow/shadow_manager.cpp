@@ -445,9 +445,6 @@ namespace Pulse::Engine::Rendering{
         }
 
         // Bind cube map array texture (point lights)
-        constexpr int cubeArrayUnit = 31;
-        gl->ActiveTexture(GL_TEXTURE0 + cubeArrayUnit);
-        gl->BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
-        material->SetScalarParameter("shadow_pointShadowMapArray", cubeArrayUnit);
+        material->SetTextureParameter("shadow_pointShadowMapArray", cubeArrayTex);
     }
 }

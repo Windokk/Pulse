@@ -92,8 +92,18 @@ namespace Pulse::Engine::Filesystem{
 
     std::string Path::ReadFile() const
     {
-        std::ifstream file(full, std::ios::binary);
-        if (!file) DEBUG_ERROR("Can't read file at path : " + full);
+        // Replace "/" with native dir separator
+
+        std::string filepath = full;
+
+        #if defined(__WIN32__)
+
+        std::replace(filepath.begin(), filepath.end(), '/', '\\');
+
+        #endif
+
+        std::ifstream file(filepath, std::ios::binary);
+        if (!file) DEBUG_ERROR("Can't read file at path : " + filepath);
         std::ostringstream sstream;
         sstream << file.rdbuf();
         return sstream.str();
@@ -275,11 +285,31 @@ namespace Pulse::Engine::Filesystem{
             }
 
             std::filesystem::path rel = std::filesystem::relative(from, base);
-            return Path(rel.string(), false);
+
+            std::string ret = rel.string();
+
+            std::replace(ret.begin(), ret.end(), '\\', '/');
+
+            return Path(ret, false);
         } catch (const std::filesystem::filesystem_error& e) {
             DEBUG_ERROR("Couldn't compute " + from.string() + " relative to " + base.string() + " : unknown error : "+ e.what());
             return *this;
         }
+    }
+
+    std::string Path::GetNativePath() const
+    {
+        
+        std::string filepath = full;
+
+        #if defined(__WIN32__)
+
+        std::replace(filepath.begin(), filepath.end(), '/', '\\');
+
+        #endif
+
+        return filepath;
+
     }
 
     std::string Path::GetExtensionString() const

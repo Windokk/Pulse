@@ -64,7 +64,7 @@ namespace Pulse::Engine::Serialization{
 
                     // Texture
                     if (value.is_string()) {
-                        std::shared_ptr<Texture> tex = Core::GetEngine().GetResourcesManager()->GetImage(value.get<std::string>())->texture;
+                        GLuint tex = Core::GetEngine().GetResourcesManager()->GetImage(value.get<std::string>())->texture->GetID();
                         if(tex){
                             mat->SetTextureParameter(name, tex);
                         }

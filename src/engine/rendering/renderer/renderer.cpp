@@ -288,9 +288,9 @@ namespace Pulse::Engine::Rendering{
             }
 
             if(std::get<bool>(cmd.mat->GetScalarParameter("useEnvReflections"))){
-                cmd.mat->SetTextureParameter("irradianceMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->irradianceMap);
-                cmd.mat->SetTextureParameter("prefilteredEnvMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->prefilterMap);
-                cmd.mat->SetTextureParameter("brdfLUT", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->brdfLUT);
+                cmd.mat->SetTextureParameter("irradianceMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->irradianceMap->GetID());
+                cmd.mat->SetTextureParameter("prefilteredEnvMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->prefilterMap->GetID());
+                cmd.mat->SetTextureParameter("brdfLUT", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->brdfLUT->GetID());
             }
 
             cmd.mat->SetScalarParameter("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());

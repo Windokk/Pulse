@@ -25,7 +25,7 @@ namespace Pulse::Engine::Core::Resources{
     {
         ufbx_load_opts opts = { 0 }; // Optional, pass NULL for defaults
         ufbx_error error; // Optional, pass NULL if you don't care about errors
-        const std::string filePath = path.full;
+        const std::string filePath = path.GetNativePath();
         ufbx_scene *scene = ufbx_load_file(filePath.c_str(), &opts, &error);
         if (!scene) {
             DEBUG_ERROR(
@@ -122,7 +122,9 @@ namespace Pulse::Engine::Core::Resources{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
             
-            if(assetInfos == nullptr) return nullptr;
+            if(assetInfos == nullptr){
+                return nullptr;
+            }
 
             return LoadModel(pathInProject, assetInfos->baseInfos.path);
         }

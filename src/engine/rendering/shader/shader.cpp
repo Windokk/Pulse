@@ -111,6 +111,8 @@ namespace Pulse::Engine::Rendering {
             GLint location = Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str());
     
             if (name.find("gl_") == 0) continue;
+
+            switch(tagLC_ID}
     
             uniforms.push_back({ name, type, location, size });
         }

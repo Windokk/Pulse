@@ -20,8 +20,6 @@ namespace Pulse::Engine::Rendering {
 
     using ScalarValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
 
-    using TextureValue = std::variant<std::shared_ptr<Texture>, std::shared_ptr<Cubemap>>;
-
     struct ScalarParameter {
         GLint location;
         GLenum glType;
@@ -31,7 +29,7 @@ namespace Pulse::Engine::Rendering {
     struct TextureParameter {
         GLint location;
         GLenum samplerType;
-        TextureValue texture;
+        GLuint texture;
     };
 
     class Material{
@@ -46,7 +44,7 @@ namespace Pulse::Engine::Rendering {
                 }
             }
 
-            void SetTextureParameter(const std::string &name, const TextureValue &value)
+            void SetTextureParameter(const std::string &name, const GLuint &value)
             {
                 if(textureParameters.find(name) != textureParameters.end()){
                     textureParameters[name] = {textureParameters[name].location, textureParameters[name].samplerType, value};
@@ -54,7 +52,6 @@ namespace Pulse::Engine::Rendering {
             }
 
             ScalarValue GetScalarParameter(std::string name);
-            std::shared_ptr<Texture> GetTexture(std::string name);
             void Use();
             void StopUsing();
             std::shared_ptr<Shader> shader;

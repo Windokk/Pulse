@@ -26,37 +26,6 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    TextureValue DefaultTextureValueForType(UniformInfo uniform){
-        switch (uniform.glType) {
-            case GL_SAMPLER_1D:
-            case GL_SAMPLER_2D:
-            case GL_SAMPLER_1D_SHADOW:
-            case GL_SAMPLER_2D_SHADOW:
-            case GL_SAMPLER_1D_ARRAY:
-            case GL_SAMPLER_2D_ARRAY:
-            case GL_SAMPLER_1D_ARRAY_SHADOW:
-            case GL_SAMPLER_2D_ARRAY_SHADOW:
-            case GL_INT_SAMPLER_1D:
-            case GL_INT_SAMPLER_2D:
-            case GL_UNSIGNED_INT_SAMPLER_1D:
-            case GL_UNSIGNED_INT_SAMPLER_2D:
-                return std::shared_ptr<Texture>(nullptr);
-
-            case GL_SAMPLER_CUBE:
-            case GL_SAMPLER_CUBE_SHADOW:
-            case GL_SAMPLER_CUBE_MAP_ARRAY:
-            case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-            case GL_INT_SAMPLER_CUBE:
-            case GL_UNSIGNED_INT_SAMPLER_CUBE:
-                return std::shared_ptr<Cubemap>(nullptr);
-
-            default:{
-                DEBUG_ERROR("Failed to query default variable type : "+std::to_string(uniform.glType)+" , uniform name : "+uniform.name);
-                return std::shared_ptr<Texture>(nullptr);
-            }
-        }
-    }
-
     Material::Material(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode)
     {
         this->Init(shader, recievesShadows, mode);
@@ -81,7 +50,7 @@ namespace Pulse::Engine::Rendering{
                         std::string elementName = base;
                         elementName.replace(pos, 3, "[" + std::to_string(i) + "]");
                         if(uniform.IsTexture()){ 
-                            textureParameters[uniform.name] = {uniform.location, uniform.glType, DefaultTextureValueForType(uniform)};
+                            textureParameters[uniform.name] = {uniform.location, uniform.glType, 0};
                         }
                         else{
                             scalarParameters[uniform.name] = {uniform.location,uniform.glType, DefaultScalarValueForType(uniform)};
@@ -92,7 +61,7 @@ namespace Pulse::Engine::Rendering{
             }
 
             if(uniform.IsTexture()){ 
-                textureParameters[uniform.name] = {uniform.location, uniform.glType, DefaultTextureValueForType(uniform)};
+                textureParameters[uniform.name] = {uniform.location, uniform.glType, 0};
             }
             else{
                 scalarParameters[uniform.name] = {uniform.location,uniform.glType, DefaultScalarValueForType(uniform)};
@@ -113,22 +82,6 @@ namespace Pulse::Engine::Rendering{
         DEBUG_WARNING("Couldn't find scalar with name : "+name);
 
         return 0;
-    }
-
-    std::shared_ptr<Texture> Material::GetTexture(std::string name)
-    {
-        for (const auto& [_name, _value] : textureParameters)
-        {
-            if (_name == name)
-            {
-                if(std::holds_alternative<std::shared_ptr<Texture>>(_value.texture))
-                    return std::get<std::shared_ptr<Texture>>(_value.texture);
-            }
-        }
-
-        DEBUG_WARNING("Couldn't find texture with name : "+name);
-
-        return nullptr;
     }
 
     void Material::Use()
@@ -160,24 +113,10 @@ namespace Pulse::Engine::Rendering{
         }
 
         for(const auto& [name, value] : textureParameters){
-            if (std::holds_alternative<std::shared_ptr<Texture>>(value.texture)){
-                std::shared_ptr<Texture> val = std::get<std::shared_ptr<Texture>>(value.texture);
-                if (val != nullptr) {
-                    val->Bind(textureUnit); // Bind to GL_TEXTURE0 + textureUnit
-                    shader->setInt(name, textureUnit);
-                    textureUnit++;
-                }
-            }
-            else if(std::holds_alternative<std::shared_ptr<Cubemap>>(value.texture)){
-            
-                std::shared_ptr<Cubemap> val = std::get<std::shared_ptr<Cubemap>>(value.texture);
-                
-                if (val != nullptr) {
-                    val->Bind(textureUnit);
-                    shader->setInt(name, textureUnit);
-                    textureUnit++;
-                }
-            }
+            Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit);
+            Core::GetEngine().GetGL()->BindTexture(value.samplerType, value.texture);
+            shader->setInt(name, textureUnit);
+            textureUnit++;
         }
     }
 
