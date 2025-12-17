@@ -368,30 +368,54 @@ namespace Pulse::Engine::Rendering{
     {
         OpenGL* gl = Core::GetEngine().GetGL();
 
-        constexpr int MAX_SHADOW_LIGHTS = 16;
-        constexpr int MAX_SPOT_LIGHTS = 12;
-        constexpr int MAX_POINT_LIGHTS = 12;
+        constexpr int MAX_SPOT_LIGHTS  = 10;
+        constexpr int MAX_POINT_LIGHTS = 10;
 
-        int textureUnit = 10;  // Start binding textures from unit 10
+        material->shader->Activate();
 
-        // Initialize all shadow map references and matrices to safe defaults
-        for (int i = 0; i < NUM_CASCADES; ++i) {
-            material->SetScalarParameter("shadow_dirShadowMaps[" + std::to_string(i) + "]", 0);
-            material->SetScalarParameter("shadow_dirLightSpaceMatrices[" + std::to_string(i) + "]", glm::mat4(1.0f));
-            material->SetScalarParameter("cascadeSplits[" + std::to_string(i) + "]", 1.0f); // Default to max depth
+        // Initialize scalar uniforms
+        for (int i = 0; i < NUM_CASCADES; ++i)
+        {
+            material->shader->setMat4(
+                "shadow_dirLightSpaceMatrices[" + std::to_string(i) + "]",
+                glm::mat4(1.0f)
+            );
+            material->shader->setFloat(
+                "shadow_cascadeSplits[" + std::to_string(i) + "]",
+                1.0f
+            );
+
+            // Also initialize sampler to -1 to indicate "no texture bound"
+            material->shader->setInt(
+                "shadow_dirShadowMaps[" + std::to_string(i) + "]",
+                -1
+            );
         }
 
-        for (int i = 0; i < MAX_SPOT_LIGHTS; ++i) {
-            material->SetScalarParameter("shadow_spotShadowMaps[" + std::to_string(i) + "]", 0);
-            material->SetScalarParameter("shadow_spotLightSpaceMatrices[" + std::to_string(i) + "]", glm::mat4(1.0f));
+        for (int i = 0; i < MAX_SPOT_LIGHTS; ++i)
+        {
+            material->shader->setMat4(
+                "shadow_spotLightSpaceMatrices[" + std::to_string(i) + "]",
+                glm::mat4(1.0f)
+            );
+
+            material->shader->setInt(
+                "shadow_spotShadowMaps[" + std::to_string(i) + "]",
+                -1
+            );
         }
 
-        for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
-            material->SetScalarParameter("shadow_pointLightFarPlanes[" + std::to_string(i) + "]", 0.0f);
+        for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
+        {
+            material->shader->setFloat(
+                "shadow_pointLightFarPlanes[" + std::to_string(i) + "]",
+                0.0f
+            );
         }
 
+        // Bind shadow textures
         int cascadeIndex = 0;
-        int spotIndex = 0;
+        int spotIndex    = 0;
 
         for (const auto& sm : shadowMaps)
         {
@@ -400,39 +424,59 @@ namespace Pulse::Engine::Rendering{
             if (!light.castShadow)
                 continue;
 
-            // Handle Directional Lights (with cascades)
+            // Directional lights
             if (light.type == static_cast<int>(LightType::Directional))
             {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
-                    if (cascadeIndex >= NUM_CASCADES || textureUnit >= 32)
+                    if (cascadeIndex >= NUM_CASCADES)
                         break;
 
-                    gl->ActiveTexture(GL_TEXTURE0 + textureUnit);
+                    int unit = DIR_SHADOW_BASE_UNIT + cascadeIndex;
+                    gl->ActiveTexture(GL_TEXTURE0 + unit);
                     gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
 
-                    material->SetScalarParameter("shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]", textureUnit);
-                    material->SetScalarParameter("shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]", sm.lightMatrix[c]);
-                    material->SetScalarParameter("cascadeSplits[" + std::to_string(cascadeIndex) + "]", sm.cascadeSplits[c]);
-                    
+                    // Set sampler uniform
+                    material->shader->setInt(
+                        "shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]",
+                        unit
+                    );
+
+                    material->shader->setMat4(
+                        "shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]",
+                        sm.lightMatrix[c]
+                    );
+
+                    material->shader->setFloat(
+                        "shadow_cascadeSplits[" + std::to_string(cascadeIndex) + "]",
+                        sm.cascadeSplits[c]
+                    );
+
                     ++cascadeIndex;
-                    ++textureUnit;
                 }
             }
             // Spot lights
             else if (light.type == static_cast<int>(LightType::Spot))
             {
-                if (spotIndex >= MAX_SPOT_LIGHTS || textureUnit >= 32)
-                    break;
+                if (spotIndex >= MAX_SPOT_LIGHTS)
+                    continue;
 
-                gl->ActiveTexture(GL_TEXTURE0 + textureUnit);
+                int unit = SPOT_SHADOW_BASE_UNIT + spotIndex;
+                gl->ActiveTexture(GL_TEXTURE0 + unit);
                 gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
 
-                material->SetScalarParameter("shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]", textureUnit);
-                material->SetScalarParameter("shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]", sm.lightMatrix[0]);
+                // Set sampler uniform
+                material->shader->setInt(
+                    "shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]",
+                    unit
+                );
+
+                material->shader->setMat4(
+                    "shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]",
+                    sm.lightMatrix[0]
+                );
 
                 ++spotIndex;
-                ++textureUnit;
             }
             // Point lights
             else if (light.type == static_cast<int>(LightType::Point))
@@ -440,11 +484,17 @@ namespace Pulse::Engine::Rendering{
                 if (sm.cubeArrayLayer >= MAX_POINT_LIGHTS)
                     continue;
 
-                material->SetScalarParameter("shadow_pointLightFarPlanes[" + std::to_string(sm.cubeArrayLayer) + "]", light.radius);
+                material->shader->setFloat(
+                    "shadow_pointLightFarPlanes[" + std::to_string(sm.cubeArrayLayer) + "]",
+                    light.radius
+                );
             }
         }
 
-        // Bind cube map array texture (point lights)
-        material->SetTextureParameter("shadow_pointShadowMapArray", cubeArrayTex);
+        // Bind point light cube map array
+        gl->ActiveTexture(GL_TEXTURE0 + POINT_SHADOW_UNIT);
+        gl->BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
+        material->shader->setInt("shadow_pointShadowMapArray", POINT_SHADOW_UNIT);
     }
+
 }

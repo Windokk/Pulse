@@ -114,6 +114,8 @@ namespace Pulse::Engine{
 
                 std::vector<DrawCommand>* GetDrawList() { return &drawList; }
 
+                GLint maxTextures;
+
             private:
 
                 void CreateRectGeometry();

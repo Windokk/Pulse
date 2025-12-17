@@ -69,6 +69,9 @@ namespace Pulse::Engine::Rendering{
         //SHADOWS
         shadowMan = new ShadowManager();
         shadowMan->Init(512, 1024, 2048);
+
+        //RENDERING LIMITS
+        Core::GetEngine().GetGL()->GetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTextures);
     }
 
     void Renderer::InitFramebuffers()
@@ -287,10 +290,8 @@ namespace Pulse::Engine::Rendering{
                     break;
             }
 
-            if(std::get<bool>(cmd.mat->GetScalarParameter("useEnvReflections"))){
-                cmd.mat->SetTextureParameter("irradianceMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->irradianceMap->GetID());
-                cmd.mat->SetTextureParameter("prefilteredEnvMap", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->prefilterMap->GetID());
-                cmd.mat->SetTextureParameter("brdfLUT", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->envMap->brdfLUT->GetID());
+            if(std::get<bool>(cmd.mat->GetScalarParameter("useEnvReflections").value)){
+                Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->Bind(cmd.mat);
             }
 
             cmd.mat->SetScalarParameter("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());

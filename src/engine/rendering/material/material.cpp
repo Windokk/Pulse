@@ -10,7 +10,7 @@
 
 namespace Pulse::Engine::Rendering{
 
-    ScalarValue DefaultScalarValueForType(UniformInfo uniform) {
+    NumericValue DefaultScalarValueForType(UniformInfo uniform) {
         switch (uniform.glType) {
             case GL_FLOAT: return 0.0f;
             case GL_INT: return 0;
@@ -20,7 +20,7 @@ namespace Pulse::Engine::Rendering{
             case GL_FLOAT_VEC4: return glm::vec4(0.0f);
             case GL_FLOAT_MAT4: return glm::mat4(1.0f);
             default:{
-                DEBUG_ERROR("Failed to query default variable type : "+std::to_string(uniform.glType)+" , uniform name : "+uniform.name);
+                DEBUG_ERROR("Failed to query default variable value for type : "+std::to_string(uniform.glType)+", uniform name : "+uniform.name);
                 return -1;
             }
         }
@@ -36,59 +36,127 @@ namespace Pulse::Engine::Rendering{
         if(!shader)
             DEBUG_FATAL("Tried creating a material with a null shader");
 
+        this->shader = shader;
         this->renderMode = mode;
         this->recievesShadows = recievesShadows;
-        this->shader = shader;
 
-        auto uniforms = this->shader->GetActiveUniforms();
-        for (const auto& uniform : uniforms) {
-            if (uniform.arraySize > 1) {
-                std::string base = uniform.name;
-                size_t pos = base.find("[0]");
-                if (pos != std::string::npos) {
-                    for (int i = 0; i < uniform.arraySize; i++) {
-                        std::string elementName = base;
-                        elementName.replace(pos, 3, "[" + std::to_string(i) + "]");
-                        if(uniform.IsTexture()){ 
-                            textureParameters[uniform.name] = {uniform.location, uniform.glType, 0};
-                        }
-                        else{
-                            scalarParameters[uniform.name] = {uniform.location,uniform.glType, DefaultScalarValueForType(uniform)};
+        scalarParameters.clear();
+        textureParameters.clear();
+
+        auto uniforms = shader->GetActiveUniforms();
+
+        for (const UniformInfo& uniform : uniforms)
+        {
+            // Skip uniforms optimized out by the compiler
+            if (uniform.location == -1)
+                continue;
+
+            if(uniform.name.find("shadow_") == 0 || uniform.name.find("ibl_") == 0)
+                continue;
+
+            // arrays uniforms
+            if (uniform.arraySize > 1)
+            {
+                std::string baseName = uniform.name;
+                size_t pos = baseName.find("[0]");
+
+                if (pos == std::string::npos)
+                    continue;
+
+                baseName = baseName.substr(0, pos);
+
+                for (GLint i = 0; i < uniform.arraySize; ++i)
+                {
+                    std::string elementName = baseName + "[" + std::to_string(i) + "]";
+                    GLint location = Core::GetEngine().GetGL()->GetUniformLocation(shader->ID, elementName.c_str());
+
+                    if (location == -1)
+                        continue;
+
+                    if (uniform.IsTexture())
+                    {
+                        if(textureParameters.size() < 9){
+                            textureParameters[elementName] = {
+                                location,
+                                uniform.glType,
+                                0u
+                            };
                         }
                     }
-                    continue;
+                    else
+                    {
+                        scalarParameters[elementName] = {
+                            location,
+                            uniform.glType,
+                            DefaultScalarValueForType(uniform)
+                        };
+                    }
+                }
+
+                continue;
+            }
+
+            if (uniform.IsTexture())
+            {
+                if(textureParameters.size() < 9){
+                    textureParameters[uniform.name] = {
+                        uniform.location,
+                        uniform.glType,
+                        0u
+                    };
                 }
             }
-
-            if(uniform.IsTexture()){ 
-                textureParameters[uniform.name] = {uniform.location, uniform.glType, 0};
-            }
-            else{
-                scalarParameters[uniform.name] = {uniform.location,uniform.glType, DefaultScalarValueForType(uniform)};
+            else
+            {
+                scalarParameters[uniform.name] = {
+                    uniform.location,
+                    uniform.glType,
+                    DefaultScalarValueForType(uniform)
+                };
             }
         }
+    
+        GLint unit = 0;
+
+        for (auto& [name, tex] : textureParameters)
+        {
+            unit++;
+
+            shader->Activate();
+            shader->setIntLoc(tex.location, unit);
+        }
+        shader->Deactivate();
     }
 
-    ScalarValue Material::GetScalarParameter(std::string name)
+    NumericParameter Material::GetScalarParameter(std::string name)
     {
         for (const auto& [_name, _value] : scalarParameters)
         {
             if (_name == name)
             {
-                return _value.value;
+                return _value;
             }
         }
 
-        DEBUG_WARNING("Couldn't find scalar with name : "+name);
+        return NumericParameter{0};
+    }
 
-        return 0;
+    TextureParameter Material::GetTextureParameter(std::string name)
+    {
+        for (const auto& [_name, _value] : textureParameters)
+        {
+            if (_name == name)
+            {
+                return _value;
+            }
+        }
+
+        return TextureParameter{0};
     }
 
     void Material::Use()
     {
         shader->Activate();
-
-        int textureUnit = 0;
 
         for (const auto& [name, scalar] : scalarParameters)
         {
@@ -97,6 +165,9 @@ namespace Pulse::Engine::Rendering{
             }
             else if (std::holds_alternative<int>(scalar.value)){
                 shader->setInt(name, std::get<int>(scalar.value));
+            }
+            else if (std::holds_alternative<bool>(scalar.value)){
+                shader->setBool(name, std::get<bool>(scalar.value));
             }
             else if (std::holds_alternative<glm::vec2>(scalar.value)){
                 shader->setVec2(name, std::get<glm::vec2>(scalar.value));
@@ -112,10 +183,25 @@ namespace Pulse::Engine::Rendering{
             }
         }
 
-        for(const auto& [name, value] : textureParameters){
+        int textureUnit = 0;
+        const int maxUnits = Core::GetEngine().GetRenderer()->maxTextures;
+
+        for (const auto& [name, value] : textureParameters)
+        {
+            if (value.texture == 0)
+                continue;
+
+            if (textureUnit >= maxUnits) {
+                DEBUG_WARNING("Exceeded max texture units with texture : ", name);
+                break;
+            }
+
             Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + textureUnit);
             Core::GetEngine().GetGL()->BindTexture(value.samplerType, value.texture);
+
+            // Tell shader which unit this sampler is on
             shader->setInt(name, textureUnit);
+
             textureUnit++;
         }
     }

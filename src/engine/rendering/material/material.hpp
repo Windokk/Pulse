@@ -18,18 +18,18 @@ namespace Pulse::Engine::Rendering {
         MASKED
     };
 
-    using ScalarValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
+    using NumericValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
 
-    struct ScalarParameter {
+    struct NumericParameter {
         GLint location;
         GLenum glType;
-        ScalarValue value;
+        NumericValue value;
     };
 
     struct TextureParameter {
         GLint location;
         GLenum samplerType;
-        GLuint texture;
+        GLuint texture = 0;
     };
 
     class Material{
@@ -37,7 +37,7 @@ namespace Pulse::Engine::Rendering {
         public:
             Material(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode);
             
-            void SetScalarParameter(const std::string &name, const ScalarValue &value)
+            void SetScalarParameter(const std::string &name, const NumericValue &value)
             {
                 if(scalarParameters.find(name) != scalarParameters.end()){
                     scalarParameters[name] = {scalarParameters[name].location, scalarParameters[name].glType, value};
@@ -51,7 +51,13 @@ namespace Pulse::Engine::Rendering {
                 }
             }
 
-            ScalarValue GetScalarParameter(std::string name);
+            NumericParameter GetScalarParameter(std::string name);
+            TextureParameter GetTextureParameter(std::string name);
+
+            int GetTexturesCount(){
+                return textureParameters.size();
+            }
+
             void Use();
             void StopUsing();
             std::shared_ptr<Shader> shader;
@@ -70,7 +76,7 @@ namespace Pulse::Engine::Rendering {
             Filesystem::AssetID assetID;
             void Init(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode);
 
-            std::unordered_map<std::string, ScalarParameter> scalarParameters;
+            std::unordered_map<std::string, NumericParameter> scalarParameters;
             std::unordered_map<std::string, TextureParameter> textureParameters;
 
     };

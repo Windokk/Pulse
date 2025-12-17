@@ -110,10 +110,62 @@ namespace Pulse::Engine::Rendering {
     
             GLint location = Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str());
     
+            switch (type)
+            {
+                case GL_SAMPLER_1D:
+                case GL_SAMPLER_1D_SHADOW:
+                    type = GL_TEXTURE_1D;
+                    break;
+
+                case GL_SAMPLER_2D:
+                case GL_SAMPLER_2D_SHADOW:
+                    type = GL_TEXTURE_2D;
+                    break;
+
+                case GL_SAMPLER_3D:
+                    type = GL_TEXTURE_3D;
+                    break;
+
+                case GL_SAMPLER_CUBE:
+                case GL_SAMPLER_CUBE_SHADOW:
+                    type = GL_TEXTURE_CUBE_MAP;
+                    break;
+
+                case GL_SAMPLER_2D_RECT:
+                case GL_SAMPLER_2D_RECT_SHADOW:
+                    type = GL_TEXTURE_RECTANGLE;
+                    break;
+
+                case GL_SAMPLER_1D_ARRAY:
+                case GL_SAMPLER_1D_ARRAY_SHADOW:
+                    type = GL_TEXTURE_1D_ARRAY;
+                    break;
+
+                case GL_SAMPLER_2D_ARRAY:
+                case GL_SAMPLER_2D_ARRAY_SHADOW:
+                    type = GL_TEXTURE_2D_ARRAY;
+                    break;
+
+                case GL_SAMPLER_CUBE_MAP_ARRAY:
+                case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+                    type = GL_TEXTURE_CUBE_MAP_ARRAY;
+                    break;
+
+                case GL_SAMPLER_BUFFER:
+                    type = GL_TEXTURE_BUFFER;
+                    break;
+
+                case GL_SAMPLER_2D_MULTISAMPLE:
+                    type = GL_TEXTURE_2D_MULTISAMPLE;
+                    break;
+
+                case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+                    type = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+                    break;
+            }
+
             if (name.find("gl_") == 0) continue;
 
-            switch(tagLC_ID}
-    
             uniforms.push_back({ name, type, location, size });
         }
         
@@ -196,6 +248,78 @@ namespace Pulse::Engine::Rendering {
     void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
     {
         Core::GetEngine().GetGL()->UniformMatrix4fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+    }
+
+    void Shader::setBoolLoc(GLint location, bool value) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform1i(location, (int)value);
+    }
+
+    void Shader::setIntLoc(GLint location, int value) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform1i(location, value);
+    }
+
+    void Shader::setFloatLoc(GLint location, float value) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform1f(location, value);
+    }
+
+    void Shader::setVec2Loc(GLint location, const glm::vec2& value) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform2fv(location, 1, &value[0]);
+    }
+
+    void Shader::setVec2Loc(GLint location, float x, float y) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform2f(location, x, y);
+    }
+
+    void Shader::setVec3Loc(GLint location, const glm::vec3& value) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform3fv(location, 1, &value[0]);
+    }
+
+    void Shader::setVec3Loc(GLint location, float x, float y, float z) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform3f(location, x, y, z);
+    }
+
+    void Shader::setVec4Loc(GLint location, const glm::vec4& value) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform4fv(location, 1, &value[0]);
+    }
+
+    void Shader::setVec4Loc(GLint location, float x, float y, float z, float w) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->Uniform4f(location, x, y, z, w);
+    }
+
+    void Shader::setMat2Loc(GLint location, const glm::mat2& mat) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->UniformMatrix2fv(location, 1, GL_FALSE, &mat[0][0]);
+    }
+
+    void Shader::setMat3Loc(GLint location, const glm::mat3& mat) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->UniformMatrix3fv(location, 1, GL_FALSE, &mat[0][0]);
+    }
+
+    void Shader::setMat4Loc(GLint location, const glm::mat4& mat) const
+    {
+        if (location != -1)
+            Core::GetEngine().GetGL()->UniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
     }
 
     /// @brief Checks if the different shaders have compiled properly

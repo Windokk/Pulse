@@ -28,6 +28,28 @@ namespace Pulse::Engine::ECS::Objects{
         this->envMap->Draw(shader, view, projection);
     }
 
+    void Skybox::Bind(std::shared_ptr<Rendering::Material> mat)
+    {
+        OpenGL* gl = Core::GetEngine().GetGL();
+
+        mat->shader->Activate();
+
+        const int maxUnits = Core::GetEngine().GetRenderer()->maxTextures;
+        const int matTexturesCount = mat->GetTexturesCount();
+
+        gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount);
+        gl->BindTexture(GL_TEXTURE_CUBE_MAP, envMap->irradianceMap->GetID());
+        mat->shader->setInt("ibl_irradianceMap", matTexturesCount);
+
+        gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount + 1);
+        gl->BindTexture(GL_TEXTURE_CUBE_MAP, envMap->prefilterMap->GetID());
+        mat->shader->setInt("ibl_prefilteredEnvMap", matTexturesCount + 1);
+
+        gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount + 2);
+        gl->BindTexture(GL_TEXTURE_2D, envMap->brdfLUT->GetID());
+        mat->shader->setInt("ibl_brdfLUT", matTexturesCount + 2);
+    }
+
     void Skybox::Destroy()
     {
         Object::Destroy();

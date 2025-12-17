@@ -40,13 +40,13 @@ uniform bool masked;
 
 uniform sampler2DShadow shadow_dirShadowMaps[NUM_CASCADES];
 uniform mat4 shadow_dirLightSpaceMatrices[NUM_CASCADES];
-uniform float cascadeSplits[NUM_CASCADES];
+uniform float shadow_cascadeSplits[NUM_CASCADES];
 
-uniform sampler2DShadow shadow_spotShadowMaps[12];
-uniform mat4 shadow_spotLightSpaceMatrices[12];
+uniform sampler2DShadow shadow_spotShadowMaps[10];
+uniform mat4 shadow_spotLightSpaceMatrices[10];
 
 uniform samplerCubeArrayShadow shadow_pointShadowMapArray;
-uniform float shadow_pointLightFarPlanes[12];
+uniform float shadow_pointLightFarPlanes[10];
 
 // PBR values
 const float PI = 3.141592653589793;
@@ -68,9 +68,9 @@ vec3 gridSamplingDisk[20] = vec3[](
 
 // IBL
 
-uniform samplerCube irradianceMap;          // diffuse IBL
-uniform samplerCube prefilteredEnvMap;      // specular mipmapped env map
-uniform sampler2D   brdfLUT;                // 2D BRDF integration LUT
+uniform samplerCube ibl_irradianceMap;          // diffuse IBL
+uniform samplerCube ibl_prefilteredEnvMap;      // specular mipmapped env map
+uniform sampler2D   ibl_brdfLUT;                // 2D BRDF integration LUT
 
 uniform bool useEnvReflections;
 
@@ -84,7 +84,7 @@ int selectCascade(int lightIndex){
     int base = lightIndex * CASCADES_PER_LIGHT;
 
     for (int i = 0; i < CASCADES_PER_LIGHT; ++i) {
-        if (depth < cascadeSplits[base + i])
+        if (depth < shadow_cascadeSplits[base + i])
             return base + i;
     }
 
@@ -184,7 +184,7 @@ vec3 IBL_Diffuse(vec3 N, vec3 albedo, float metallic) {
     vec3 kS = mix(vec3(0.04), albedo, metallic);
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
-    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 irradiance = texture(ibl_irradianceMap, N).rgb;
     return irradiance * albedo * kD;
 }
 
@@ -195,11 +195,11 @@ vec3 IBL_Specular(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness)
 
     // Sample BRDF LUT (NdotV, roughness)
     float NdotV = max(dot(N, V), 0.0);
-    vec2 brdf = texture(brdfLUT, vec2(NdotV, roughness)).rg;
+    vec2 brdf = texture(ibl_brdfLUT, vec2(NdotV, roughness)).rg;
 
     // Sample prefiltered env map using roughness mip level
     const float MAX_REFLECTION_LOD = 5.0;   // depends on your cube map mip count
-    vec3 prefilteredColor = textureLod(prefilteredEnvMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec3 prefilteredColor = textureLod(ibl_prefilteredEnvMap, R, roughness * MAX_REFLECTION_LOD).rgb;
 
     // Fresnel-Schlick for IBL  
     vec3 F = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);

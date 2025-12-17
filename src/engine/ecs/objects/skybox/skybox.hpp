@@ -6,6 +6,8 @@
 
 namespace Pulse::Engine::Rendering{
     class Shader;
+
+    class Material;
 }
 
 
@@ -22,6 +24,8 @@ namespace Pulse::Engine::ECS::Objects
                 void SetShader(std::shared_ptr<Rendering::Shader> shader);
 
                 void Draw(glm::mat4 view, glm::mat4 projection);
+
+                void Bind(std::shared_ptr<Rendering::Material> mat);
 
                 void Destroy() override;
 
