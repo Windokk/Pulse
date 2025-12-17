@@ -73,7 +73,7 @@ This will compile everything from root : submodules, the engine, the editor app,
   - [x] IBL
 - [x] Wireframe rendering
 - [ ] Forward+ rendering
-- [ ] Ligthmaps
+- [ ] Lightmaps
 - [ ] FBX importer (multiple meshes)
 - [ ] Post processing effects shaders (SSAO, Bloom, Vignette, Tone Mapping, Film Grain, Chromatic Abberration)
 

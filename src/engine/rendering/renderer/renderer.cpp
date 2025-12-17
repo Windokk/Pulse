@@ -290,7 +290,7 @@ namespace Pulse::Engine::Rendering{
                     break;
             }
 
-            if(std::get<bool>(cmd.mat->GetScalarParameter("useEnvReflections").value)){
+            if(cmd.mat->GetScalarParameter<bool>("useEnvReflections", false)){
                 Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->Bind(cmd.mat);
             }
 

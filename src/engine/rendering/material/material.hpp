@@ -23,7 +23,7 @@ namespace Pulse::Engine::Rendering {
     struct NumericParameter {
         GLint location;
         GLenum glType;
-        NumericValue value;
+        NumericValue value = -1;
     };
 
     struct TextureParameter {
@@ -51,8 +51,9 @@ namespace Pulse::Engine::Rendering {
                 }
             }
 
-            NumericParameter GetScalarParameter(std::string name);
-            TextureParameter GetTextureParameter(std::string name);
+            template<typename T>
+            T GetScalarParameter(std::string name, T defaultValue = {});
+            std::optional<TextureParameter> GetTextureParameter(std::string name);
 
             int GetTexturesCount(){
                 return textureParameters.size();
@@ -80,5 +81,19 @@ namespace Pulse::Engine::Rendering {
             std::unordered_map<std::string, TextureParameter> textureParameters;
 
     };
+
+
+    template<typename T>
+    T GetScalarParameter(const std::string& name, T defaultValue)
+    {
+        auto param = GetScalarParameter(name);
+        if (!param)
+            return defaultValue;
+
+        if (auto v = std::get_if<T>(&param->value))
+            return *v;
+
+        return defaultValue;
+    }
 
 }
