@@ -128,6 +128,19 @@ namespace Pulse::Engine::Rendering{
         shader->Deactivate();
     }
 
+    std::optional<NumericParameter> Material::GetScalarParameter(std::string name)
+    {
+        for (const auto& [_name, _value] : scalarParameters)
+        {
+            if (_name == name)
+            {
+                return _value;
+            }
+        }
+
+        return std::nullopt;
+    }
+
     std::optional<TextureParameter> Material::GetTextureParameter(std::string name)
     {
         for (const auto& [_name, _value] : textureParameters)

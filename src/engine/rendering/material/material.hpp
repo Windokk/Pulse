@@ -53,6 +53,7 @@ namespace Pulse::Engine::Rendering {
 
             template<typename T>
             T GetScalarParameter(std::string name, T defaultValue = {});
+            std::optional<NumericParameter> GetScalarParameter(std::string name);
             std::optional<TextureParameter> GetTextureParameter(std::string name);
 
             int GetTexturesCount(){
@@ -82,10 +83,10 @@ namespace Pulse::Engine::Rendering {
 
     };
 
-
-    template<typename T>
-    T GetScalarParameter(const std::string& name, T defaultValue)
+    template <typename T>
+    inline T Material::GetScalarParameter(std::string name, T defaultValue)
     {
+        
         auto param = GetScalarParameter(name);
         if (!param)
             return defaultValue;
