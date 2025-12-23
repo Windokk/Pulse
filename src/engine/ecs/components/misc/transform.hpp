@@ -72,12 +72,12 @@ namespace Pulse::Engine::ECS::Components
     };
 }
 
-void ReadRotationFromTransform(void* object, void* outValue) {
+inline void ReadRotationFromTransform(void* object, void* outValue) {
     Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
     *static_cast<glm::vec3*>(outValue) = comp->GetRotation();
 }
 
-void WriteRotationToTransform(void* object, const void* value) {
+inline void WriteRotationToTransform(void* object, const void* value) {
     Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
     const glm::vec3* rot = static_cast<const glm::vec3*>(value);
     comp->SetRotation(*rot);
