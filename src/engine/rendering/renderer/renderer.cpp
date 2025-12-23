@@ -72,6 +72,18 @@ namespace Pulse::Engine::Rendering{
 
         //RENDERING LIMITS
         Core::GetEngine().GetGL()->GetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTextures);
+
+        //DEFAULTS
+        defaultShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit");
+
+        GLenum filter[2] = {GL_LINEAR,GL_LINEAR};
+        GLenum wrapC[3] = {GL_REPEAT,GL_REPEAT,GL_REPEAT};
+        GLenum wrapT[2] = {GL_REPEAT,GL_REPEAT};
+        unsigned char* cubemapData[6] = {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr};
+
+        defaultCubemap = std::make_shared<Cubemap>(1, 1, filter, wrapC, GL_RGB, GL_RGB, cubemapData, false);
+
+        defaultTexture = std::make_shared<Texture>(1, 1, 3, filter, wrapT, GL_RGB, GL_RGB, nullptr, false);
     }
 
     void Renderer::InitFramebuffers()
@@ -86,9 +98,6 @@ namespace Pulse::Engine::Rendering{
             viewportBuffer = std::make_shared<FrameBuffer>(settings.windowWidth, settings.windowHeight, framebufferShader, true);
             tempBuffer = std::make_shared<FrameBuffer>(settings.windowWidth, settings.windowHeight, framebufferShader, false);
         }
-
-        //DEBUG_SHAPES
-        Renderer::unlitShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit");
 
         initialized = true;
     }
@@ -293,6 +302,9 @@ namespace Pulse::Engine::Rendering{
             if(cmd.mat->GetScalarParameter<bool>("useEnvReflections", false)){
                 Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->Bind(cmd.mat);
             }
+            else {
+                Core::GetEngine().GetLevelManager()->GetLevelAt(0)->skybox->BindEmpty(cmd.mat);
+            }
 
             cmd.mat->SetScalarParameter("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
             cmd.mat->SetScalarParameter("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
@@ -309,9 +321,9 @@ namespace Pulse::Engine::Rendering{
 
         if(Renderer::settings.showDebugShapes){
             // --- Debug Physics Shapes ---
-            unlitShader->Activate();
-            unlitShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
-            unlitShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+            defaultShader->Activate();
+            defaultShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            defaultShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
 
             for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
@@ -320,7 +332,7 @@ namespace Pulse::Engine::Rendering{
 
                 glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
 
-                unlitShader->setMat4("model", model);
+                defaultShader->setMat4("model", model);
 
                 Core::GetEngine().GetGL()->BindVertexArray(physicBody->GetDebugShape()->GetVAO());
                 Core::GetEngine().GetGL()->DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);

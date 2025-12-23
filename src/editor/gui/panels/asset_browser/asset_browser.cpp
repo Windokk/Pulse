@@ -34,40 +34,14 @@ namespace Pulse::Editor{
         breadcrumbLayout = new QHBoxLayout(breadcrumbWidget);
         breadcrumbLayout->setContentsMargins(10, 10, 10, 10);
         breadcrumbLayout->setSpacing(5);
-        breadcrumbWidget->setStyleSheet(R"(
-            QWidget {
-                background-color: #1d1d1d;
-                border-bottom: 1px solid #6e6e6e;
-            }
-
-            /* BREADCRUMB BUTTONS */
-            QPushButton {
-                color: #d0d0d0;
-                background: transparent;
-                border: none;
-                padding: 4px 8px;
-                font-size: 13px;
-                font-weight: 500;
-            }
-
-            QPushButton:hover {
-                color: #ffffff;
-                background-color: #2a2a2a;
-                border-radius: 0px;
-            }
-
-            QPushButton:pressed {
-                background-color: #353535;
-            }
-
-            /* SEPARATORS ("/") */
-            QLabel {
-                color: #555555;
-                font-size: 13px;
-                padding: 0px 4px;
-                border-bottom: none;
-            }
-        )");
+        QFile styleSheetFile(":/pulse/default/stylesheets/default_asset_browser.qss");
+	    if(styleSheetFile.open(QIODevice::ReadOnly)){
+            QTextStream styleSheetStream(&styleSheetFile);
+            QString result;
+            result = styleSheetStream.readAll();
+            styleSheetFile.close();
+            breadcrumbWidget->setStyleSheet(result);
+        }
 
         // MAIN LAYOUT
         QVBoxLayout* mainLayout = new QVBoxLayout(this);

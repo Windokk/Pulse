@@ -54,8 +54,8 @@ This will compile everything from root : submodules, the engine, the editor app,
   - [ ] Keyboard shortcuts
   - [ ] Multi selection
   - [ ] Template actors creation
+- [ ] Properties panel
 - [ ] Material editor panel
-- [ ] Components panel
 - [ ] Viewport panel
 - [ ] Asset Browser
 - [ ] Console

@@ -15,24 +15,22 @@ namespace Pulse::Engine::ECS::Components{
     {
     }
 
-    void Model::Deserialize(json componentData, json levelData)
+    void Model::Deserialize(json componentData, json /*levelData*/)
     {
-        if(!parent)
+        if (!parent)
             return;
 
-        std::string mesh_name = componentData["mesh"];
-        if (levelData["meshes"].contains(mesh_name) && levelData["meshes"][mesh_name].is_string()) {
-            const std::string& mesh_path = levelData["meshes"][mesh_name];
+        if (componentData.contains("mesh") && componentData["mesh"].is_string()) {
+            const std::string& mesh_path = componentData["mesh"];
             std::shared_ptr<Rendering::Mesh> mesh = Core::GetEngine().GetResourcesManager()->GetMesh(mesh_path);
-            if(mesh)
+            if (mesh)
                 SetMesh(mesh);
             else
-                DEBUG_ERROR("Failed to retrieve mesh : " + mesh_path);
+                DEBUG_ERROR("Failed to retrieve mesh: " + mesh_path);
         }
 
+        // Load materials directly from componentData
         const auto& localMaterials = componentData["materials"];
-        const auto& globalMaterials = levelData["materials"];
-
         int maxSlot = -1;
         for (auto it = localMaterials.begin(); it != localMaterials.end(); ++it) {
             int slot = std::stoi(it.key());
@@ -43,36 +41,24 @@ namespace Pulse::Engine::ECS::Components{
 
         for (auto it = localMaterials.begin(); it != localMaterials.end(); ++it) {
             int slot = std::stoi(it.key());
-            const std::string& materialName = it.value();
-
-            auto matIt = globalMaterials.find(materialName);
-            std::string materialPath;
-
-            if (matIt != globalMaterials.end()) {
-                materialPath = matIt.value();
-            } else {
-                DEBUG_WARNING("Material '" + materialName
-                        + "' not found in global materials. Using fallback.");
-                materialPath = "materials/default";
-            }
+            const std::string& materialPath = it.value();
 
             auto material = Core::GetEngine().GetResourcesManager()->GetMaterial(materialPath);
             if (!material) {
-                DEBUG_ERROR("Failed to load material at path: " + materialPath
-                        + ". Using fallback.");
-                material = Core::GetEngine().GetResourcesManager()->GetMaterial("materials/default");
+                DEBUG_ERROR("Failed to load material at path: " + materialPath + ". Using fallback.");
+                material = Core::GetEngine().GetResourcesManager()->GetMaterial("materials/default.mat");
 
                 if (!material) {
-                    DEBUG_ERROR("Failed to load fallback material: materials/default");
+                    DEBUG_ERROR("Failed to load fallback material: materials/default.mat");
                 }
             }
 
             materials[slot] = material;
         }
-        
+
         SetMaterials(std::move(materials));
 
-        if(componentData.contains("active") && componentData["active"].get<bool>())
+        if (componentData.contains("active") && componentData["active"].get<bool>())
             Activate();
         else
             DeActivate();
@@ -86,26 +72,14 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["active"] = activated;
 
-        std::string meshName = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.name;
-
-        comp["mesh"] = meshName;
-
-        ordered_json ret;
-
-        std::string meshNameInProject = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
-
-        ret["meshes"][meshName] = meshNameInProject;
+        comp["mesh"] = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
 
         for(int i = 0; i < materials.size(); i++){
             std::string matNameInProject = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.nameInProject;
-            std::string matName = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.name;
-            ret["materials"][matName] = matNameInProject;
-            comp["materials"][std::to_string(i)] = matName;
+            comp["materials"][std::to_string(i)] = matNameInProject;
         }
 
-        ret["component"] = comp;
-
-        return ret;
+        return comp;
     }
 
     void Model::SetMesh(std::shared_ptr<Rendering::Mesh> mesh)

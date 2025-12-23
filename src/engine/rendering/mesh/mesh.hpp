@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/ecs/components/core/transform.hpp"
+#include "engine/ecs/components/misc/transform.hpp"
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/rendering/material/material.hpp"
 

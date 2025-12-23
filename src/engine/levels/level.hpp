@@ -7,7 +7,7 @@
 #include "engine/ecs/components/physics/physics_body.hpp"
 #include "engine/ecs/components/audio/audio_source.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
-#include "engine/ecs/components/core/script.hpp"
+#include "engine/ecs/components/misc/script.hpp"
 #include "engine/ecs/components/rendering/model_component.hpp"
 #include "engine/ecs/objects/skybox/skybox.hpp"
 #include "engine/filesystem/filesystem.hpp"

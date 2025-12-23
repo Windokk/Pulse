@@ -27,6 +27,8 @@ namespace Pulse::Engine::ECS::Objects
 
                 void Bind(std::shared_ptr<Rendering::Material> mat);
 
+                void BindEmpty(std::shared_ptr<Rendering::Material> mat);
+
                 void Destroy() override;
 
                 unsigned int GetIrradianceID();

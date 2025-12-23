@@ -44,9 +44,7 @@ namespace Pulse::Engine::ECS::Components{
 		comp["scale"]["y"] = scale.y;
 		comp["scale"]["z"] = scale.z;
 
-		ordered_json ret;
-		ret["component"] = comp;
-		return ret;
+		return comp;
     }
 
     void Transform::SetPosition(glm::vec3 position)

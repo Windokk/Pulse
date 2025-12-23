@@ -2,7 +2,7 @@
 
 #include "engine/ecs/components/core/component.hpp"
 #include "component_registry.hpp"
-#include "dll_component_registration.hpp"
+#include "component_registration.hpp"
 
 using namespace Pulse::Engine::ECS;
 

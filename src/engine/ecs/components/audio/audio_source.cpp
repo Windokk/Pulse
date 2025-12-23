@@ -51,9 +51,7 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["path"] = path.full;
 
-        ordered_json ret;
-        ret["component"] = comp;
-        return ret;
+        return comp;
     }
 
     void AudioSource::Destroy()

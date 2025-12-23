@@ -126,9 +126,7 @@ namespace Pulse::Engine::ECS::Components {
 
         comp["far"] = farPlane;
 
-        ordered_json ret;
-        ret["component"] = comp;
-        return ret;
+        return comp;
     }
 
     std::shared_ptr<Component> Camera::Clone() const

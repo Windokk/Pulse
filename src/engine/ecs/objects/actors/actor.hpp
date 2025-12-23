@@ -2,7 +2,7 @@
 
 #include "engine/ecs/objects/object.hpp"
 
-#include "engine/ecs/components/core/transform.hpp"
+#include "engine/ecs/components/misc/transform.hpp"
 #include "engine/ecs/components/rendering/light_component.hpp"
 #include "engine/ecs/components/physics/physics_body.hpp"
 

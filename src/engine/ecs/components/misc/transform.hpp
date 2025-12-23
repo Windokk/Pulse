@@ -10,6 +10,8 @@
 
 #include "engine/ecs/components/core/component.hpp"
 
+#include "engine/core/attributes.hpp"
+
 namespace Pulse::Engine::ECS::Components
 {
     class Transform : public Component{
@@ -22,7 +24,7 @@ namespace Pulse::Engine::ECS::Components
         ordered_json Serialize() override;
 
         const glm::vec3& GetPosition() const { return position; };
-        glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); };
+        const glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); };
         const glm::vec3& GetScale() const { return scale; };
 
         void SetPosition(glm::vec3 position);
@@ -60,8 +62,23 @@ namespace Pulse::Engine::ECS::Components
         std::shared_ptr<Component> Clone() const override;
 
         private:
-            glm::vec3 position = glm::vec3(0);
+
+            ATTRIBUTE(Editable) glm::vec3 position = glm::vec3(0);
+
+            ATTRIBUTE(Editable, read=ReadRotationFromTransform, write=WriteRotationToTransform, type=glm::vec3) 
             glm::quat rotation = glm::quat(glm::vec3(0, 0, 0));
-            glm::vec3 scale = glm::vec3(1);
+
+            ATTRIBUTE(Editable) glm::vec3 scale = glm::vec3(1);
     };
+}
+
+void ReadRotationFromTransform(void* object, void* outValue) {
+    Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
+    *static_cast<glm::vec3*>(outValue) = comp->GetRotation();
+}
+
+void WriteRotationToTransform(void* object, const void* value) {
+    Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
+    const glm::vec3* rot = static_cast<const glm::vec3*>(value);
+    comp->SetRotation(*rot);
 }

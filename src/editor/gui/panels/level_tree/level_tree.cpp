@@ -285,12 +285,13 @@ namespace Pulse::Editor{
     void LevelTree::SetupStyle() {
         
         QFile styleSheetFile(":/pulse/default/stylesheets/default_tree.qss");
-	    styleSheetFile.open(QIODevice::ReadOnly);
-	    QTextStream styleSheetStream(&styleSheetFile);
-	    QString result;
-	    result = styleSheetStream.readAll();
-	    styleSheetFile.close();
-        treeView->setStyleSheet(result);
+	    if(styleSheetFile.open(QIODevice::ReadOnly)){
+            QTextStream styleSheetStream(&styleSheetFile);
+            QString result;
+            result = styleSheetStream.readAll();
+            styleSheetFile.close();
+            treeView->setStyleSheet(result);
+        }
     }
 }
 

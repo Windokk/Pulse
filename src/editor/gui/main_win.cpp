@@ -40,12 +40,13 @@ namespace Pulse::Editor
         dockManager->setStyleSheet("");
 
         QFile styleSheetFile(":/pulse/default/stylesheets/default_dock.qss");
-	    styleSheetFile.open(QIODevice::ReadOnly);
-	    QTextStream styleSheetStream(&styleSheetFile);
-	    QString result;
-	    result = styleSheetStream.readAll();
-	    styleSheetFile.close();
-	    dockManager->setStyleSheet(result);
+	    if(styleSheetFile.open(QIODevice::ReadOnly)){
+            QTextStream styleSheetStream(&styleSheetFile);
+            QString result;
+            result = styleSheetStream.readAll();
+            styleSheetFile.close();
+            dockManager->setStyleSheet(result);
+        }
 
         glViewportWindow = new Editor::QtGLViewportWindow();
         glViewportWindow->SetParentWindow(this);
@@ -71,9 +72,16 @@ namespace Pulse::Editor
         assetBrowserDock->setWidget(assetBrowser);
         assetBrowserDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
 
+        propertiesPanel = new PropertiesPanel(this);
+
+        auto* propertiesDock = dockManager->createDockWidget("Properties");
+        propertiesDock->setWidget(propertiesPanel);
+        propertiesDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
+
         dockManager->addDockWidget(ads::CenterDockWidgetArea, viewportDock);
         dockManager->addDockWidget(ads::LeftDockWidgetArea, levelTreeDock);
         dockManager->addDockWidget(ads::BottomDockWidgetArea, assetBrowserDock);
+        dockManager->addDockWidget(ads::LeftDockWidgetArea, propertiesDock);
 
         QTimer::singleShot(0, this, [this](){ this->show(); });
     }

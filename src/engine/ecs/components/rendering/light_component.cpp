@@ -1,7 +1,7 @@
 #include "light_component.hpp"
 
 #include "engine/rendering/renderer/renderer.hpp"
-#include "engine/ecs/components/core/transform.hpp"
+#include "engine/ecs/components/misc/transform.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 
 #include "engine/core/engine.hpp"
@@ -214,9 +214,7 @@ namespace Pulse::Engine::ECS::Components{
         comp["outerCutoff"] = lightData->outerCutoff;
         comp["castShadow"] = lightData->castShadow;
 
-        ordered_json ret;
-        ret["component"] = comp;
-        return ret;
+        return comp;
     }
 
     /// @brief Getter for this light component's data

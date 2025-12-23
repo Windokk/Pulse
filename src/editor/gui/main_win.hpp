@@ -13,6 +13,7 @@
 #include <DockManager.h>
 
 #include "panels/viewport/viewport_window.hpp"
+#include "panels/properties/properties_panel.hpp"
 
 #include "engine/debugging/logger.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
@@ -89,6 +90,9 @@ namespace Pulse::Editor{
 
             void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
                 this->selectedActor = newPtr;
+                
+                if(propertiesPanel)
+                    propertiesPanel->Update(selectedActor);
             }
 
             std::shared_ptr<Engine::ECS::Objects::Actor> GetSelectedActor(){
@@ -109,6 +113,8 @@ namespace Pulse::Editor{
 
                 return (redBits + greenBits + blueBits + alphaBits) / 8;
             };
+
+            PropertiesPanel* propertiesPanel = nullptr;
 
         private:
                 

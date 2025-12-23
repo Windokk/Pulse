@@ -1,5 +1,5 @@
-#include "engine/ecs/components/core/script.hpp"
-#include "engine/ecs/components/core/registry/dll_component_macros.hpp"
+#include "engine/ecs/components/misc/script.hpp"
+#include "engine/ecs/components/core/registry/component_macros.hpp"
 
 using namespace nlohmann;
 

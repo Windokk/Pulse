@@ -71,7 +71,7 @@ namespace Pulse::Engine::ECS::Components
             
             std::shared_ptr<Component> Clone() const override;
             
-            Physics::PhysicsShape GetShapeType() { return shape; }
+            ATTRIBUTE(Editable) Physics::PhysicsShape GetShapeType() { return shape; }
             Rendering::DebugShape* GetDebugShape()  { return debugShape; }
             JPH::BodyID GetBodyID() const { return mBodyID; }
             glm::vec3 GetScale() { return scale; }

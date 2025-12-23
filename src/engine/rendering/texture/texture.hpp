@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/ecs/components/core/transform.hpp"
+#include "engine/ecs/components/misc/transform.hpp"
 #include "engine/filesystem/assetID.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
 

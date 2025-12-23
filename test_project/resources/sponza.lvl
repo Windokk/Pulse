@@ -16,9 +16,9 @@
                                 "z": 0.0
                             },
                             "rotation": {
-                                "x": -91.2117691040039,
+                                "x": -91.21188354492188,
                                 "y": -87.36433410644531,
-                                "z": -176.20526123046875
+                                "z": -176.20518493652344
                             },
                             "scale": {
                                 "x": 1.0000015497207642,
@@ -37,8 +37,8 @@
                                 "g": 1.0,
                                 "b": 1.0
                             },
-                            "innerCutoff": 0.9998506307601929,
-                            "outerCutoff": 0.9998542666435242,
+                            "innerCutoff": 0.9998477697372437,
+                            "outerCutoff": 0.9998477101325989,
                             "castShadow": true
                         }
                     ]
@@ -67,33 +67,33 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "Sponza",
+                    "mesh": "models/Sponza.fbx",
                     "materials": {
-                        "0": "leaf",
-                        "1": "Material_57",
-                        "2": "vase_round",
-                        "3": "Material_298",
-                        "4": "bricks",
-                        "5": "arch",
-                        "6": "ceiling",
-                        "7": "column_a",
-                        "8": "floor",
-                        "9": "column_c",
-                        "10": "details",
-                        "11": "column_b",
-                        "12": "Material__47",
-                        "13": "flagpole",
-                        "14": "fabric_e",
-                        "15": "fabric_d",
-                        "16": "fabric_a",
-                        "17": "fabric_g",
-                        "18": "fabric_c",
-                        "19": "fabric_f",
-                        "20": "chain",
-                        "21": "vase_hanging",
-                        "22": "vase",
-                        "23": "Material__25",
-                        "24": "roof"
+                        "0": "materials/leaf.mat",
+                        "1": "materials/Material_57.mat",
+                        "2": "materials/vase_round.mat",
+                        "3": "materials/Material_298.mat",
+                        "4": "materials/bricks.mat",
+                        "5": "materials/arch.mat",
+                        "6": "materials/ceiling.mat",
+                        "7": "materials/column_a.mat",
+                        "8": "materials/floor.mat",
+                        "9": "materials/column_c.mat",
+                        "10": "materials/details.mat",
+                        "11": "materials/column_b.mat",
+                        "12": "materials/Material__47.mat",
+                        "13": "materials/flagpole.mat",
+                        "14": "materials/fabric_e.mat",
+                        "15": "materials/fabric_d.mat",
+                        "16": "materials/fabric_a.mat",
+                        "17": "materials/fabric_g.mat",
+                        "18": "materials/fabric_c.mat",
+                        "19": "materials/fabric_f.mat",
+                        "20": "materials/chain.mat",
+                        "21": "materials/vase_hanging.mat",
+                        "22": "materials/vase.mat",
+                        "23": "materials/Material__25.mat",
+                        "24": "materials/roof.mat"
                     }
                 }
             ]
@@ -153,45 +153,13 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "cube",
+                    "mesh": "models/cube.fbx",
                     "materials": {
-                        "0": "default"
+                        "0": "materials/default.mat"
                     }
                 }
             ]
         }
     ],
-    "materials": {
-        "leaf": "materials/leaf.mat",
-        "Material_57": "materials/Material_57.mat",
-        "vase_round": "materials/vase_round.mat",
-        "Material_298": "materials/Material_298.mat",
-        "bricks": "materials/bricks.mat",
-        "arch": "materials/arch.mat",
-        "ceiling": "materials/ceiling.mat",
-        "column_a": "materials/column_a.mat",
-        "floor": "materials/floor.mat",
-        "column_c": "materials/column_c.mat",
-        "details": "materials/details.mat",
-        "column_b": "materials/column_b.mat",
-        "Material__47": "materials/Material__47.mat",
-        "flagpole": "materials/flagpole.mat",
-        "fabric_e": "materials/fabric_e.mat",
-        "fabric_d": "materials/fabric_d.mat",
-        "fabric_a": "materials/fabric_a.mat",
-        "fabric_g": "materials/fabric_g.mat",
-        "fabric_c": "materials/fabric_c.mat",
-        "fabric_f": "materials/fabric_f.mat",
-        "chain": "materials/chain.mat",
-        "vase_hanging": "materials/vase_hanging.mat",
-        "vase": "materials/vase.mat",
-        "Material__25": "materials/Material__25.mat",
-        "roof": "materials/roof.mat",
-        "default": "materials/default.mat"
-    },
-    "meshes": {
-        "Sponza": "models/Sponza.fbx",
-        "cube": "models/cube.fbx"
-    },
     "skybox": "textures/qwantani_afternoon_puresky_4k.hdr"
 }

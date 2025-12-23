@@ -46,9 +46,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "plane",
+                    "mesh": "models/plane.fbx",
                     "materials": {
-                        "0": "lit_mat1"
+                        "0": "materials/lit_mat1.mat"
                     }
                 },
                 {
@@ -236,9 +236,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "rubik",
+                    "mesh": "models/rubik.fbx",
                     "materials": {
-                        "0": "lit_rubik"
+                        "0": "materials/lit_rubik.mat"
                     }
                 }
             ]
@@ -268,9 +268,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "lit_mat1"
+                        "0": "materials/lit_mat1.mat"
                     }
                 },
                 {

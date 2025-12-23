@@ -195,9 +195,7 @@ namespace Pulse::Engine::ECS::Components{
             }
         }
 
-        ordered_json ret;
-        ret["component"] = comp;
-        return ret;
+        return comp;
     }
 
     std::shared_ptr<Component> PhysicsBody::Clone() const

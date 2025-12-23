@@ -26,9 +26,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "plane",
+                    "mesh": "models/plane.fbx",
                     "materials": {
-                        "0": "lit_mat1"
+                        "0": "materials/lit_mat1.mat"
                     }
                 }
             ]
@@ -97,9 +97,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere0_0"
+                        "0": "materials/spheres/sphere0_0.mat"
                     }
                 }
             ]
@@ -129,9 +129,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere0_05"
+                        "0": "materials/spheres/sphere0_05.mat"
                     }
                 }
             ]
@@ -161,9 +161,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere0_1"
+                        "0": "materials/spheres/sphere0_1.mat"
                     }
                 }
             ]
@@ -193,9 +193,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere05_0"
+                        "0": "materials/spheres/sphere05_0.mat"
                     }
                 }
             ]
@@ -225,9 +225,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere05_05"
+                        "0": "materials/spheres/sphere05_05.mat"
                     }
                 }
             ]
@@ -257,9 +257,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere05_1"
+                        "0": "materials/spheres/sphere05_1.mat"
                     }
                 }
             ]
@@ -289,9 +289,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere1_0"
+                        "0": "materials/spheres/sphere1_0.mat"
                     }
                 }
             ]
@@ -321,9 +321,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere1_05"
+                        "0": "materials/spheres/sphere1_05.mat"
                     }
                 }
             ]
@@ -353,9 +353,9 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "sphere",
+                    "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "sphere1_1"
+                        "0": "materials/spheres/sphere1_1.mat"
                     }
                 }
             ]
@@ -385,31 +385,13 @@
                 {
                     "type": "model",
                     "active": true,
-                    "mesh": "Cerberus_LP",
+                    "mesh": "models/Cerberus_LP.fbx",
                     "materials": {
-                        "0": "cerberus"
+                        "0": "materials/cerberus.mat"
                     }
                 }
             ]
         }
     ],
-    "materials": {
-        "lit_mat1": "materials/lit_mat1.mat",
-        "sphere0_0": "materials/spheres/sphere0_0.mat",
-        "sphere0_05": "materials/spheres/sphere0_05.mat",
-        "sphere0_1": "materials/spheres/sphere0_1.mat",
-        "sphere05_0": "materials/spheres/sphere05_0.mat",
-        "sphere05_05": "materials/spheres/sphere05_05.mat",
-        "sphere05_1": "materials/spheres/sphere05_1.mat",
-        "sphere1_0": "materials/spheres/sphere1_0.mat",
-        "sphere1_05": "materials/spheres/sphere1_05.mat",
-        "sphere1_1": "materials/spheres/sphere1_1.mat",
-        "cerberus": "materials/cerberus.mat"
-    },
-    "meshes": {
-        "plane": "models/plane.fbx",
-        "sphere": "models/sphere.fbx",
-        "Cerberus_LP": "models/Cerberus_LP.fbx"
-    },
     "skybox": "textures/qwantani_afternoon_puresky_4k.hdr"
 }

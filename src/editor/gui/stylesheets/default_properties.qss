@@ -1,0 +1,125 @@
+#PropertiesPanel {
+    background-color: #2b2b2b;
+}
+
+/* Scroll area frame */
+#PropertiesPanel QScrollArea {
+    border: none;
+    background: transparent;
+}
+
+/* Scrollbar base */
+#PropertiesPanel QScrollBar:vertical, QScrollBar:horizontal {
+    background: #1e1e1e;        /* Scrollbar background */
+    width: 8px;                  /* Vertical scrollbar width */
+    height: 8px;                 /* Horizontal scrollbar height */
+    margin: 0px;
+    border-radius: 4px;
+}
+
+/* Scrollbar handle */
+#PropertiesPanel QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+    background: #555555;         /* Dark grey handle */
+    min-height: 20px;
+    min-width: 20px;
+    border-radius: 4px;
+}
+
+/* Hover effect on handle */
+#PropertiesPanel QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
+    background: #888888;         /* Lighter grey on hover */
+}
+
+/* Pressed handle effect */
+#PropertiesPanel QScrollBar::handle:vertical:pressed, QScrollBar::handle:horizontal:pressed {
+    background: #aaaaaa;
+}
+
+/* Scrollbar sub-page */
+#PropertiesPanel QScrollBar::sub-page:vertical, QScrollBar::add-page:vertical,
+#PropertiesPanel QScrollBar::sub-page:horizontal, QScrollBar::add-page:horizontal {
+    background: transparent;
+}
+
+/* Remove arrows */
+#PropertiesPanel QScrollBar::add-line, QScrollBar::sub-line {
+    height: 0px;
+    width: 0px;
+    subcontrol-origin: margin;
+}
+
+/* Scroll contents */
+#PropertiesPanel QScrollArea::viewport {
+    background-color: #2b2b2b;
+}
+
+/* Container widget inside scroll */
+#PropertiesPanel QWidget {
+    background: transparent;
+}
+
+/* Component header */
+#PropertiesPanel QToolButton {
+    background-color: transparent;
+    color: #e0e0e0;
+    padding: 2px;
+    text-align: left;
+    font-weight: bold;
+}
+
+#PropertiesPanel #HeaderRoot{
+    background-color: #3d3d3d;
+    border: 1px solid #6b6b6b;
+    font-weight: bold;
+    padding: 3px;
+}
+
+/* Property labels */
+#PropertiesPanel QLabel {
+    color: #d0d0d0;
+}
+
+/* Input fields */
+#PropertiesPanel QLineEdit,
+#PropertiesPanel QComboBox {
+    background-color: #2b2b2b;
+    color: white;
+    border: 1px solid #666;
+    padding: 2px 4px;
+    min-height: 20px;
+    border-radius:5px;
+}
+
+#PropertiesPanel QFrame#InspectorSeparator {
+    background-color: #1a1a1a;
+    min-height: 1px;
+    max-height: 1px;
+    border: none;
+}
+
+#PropertiesPanel QCheckBox {
+    spacing: 4px;
+    border-radius:4px;
+}
+
+#PropertiesPanel QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #777;
+    background-color: #2b2b2b;
+}
+
+#PropertiesPanel QCheckBox::indicator:checked {
+    image: url(:/pulse/default/icons/checkmark.svg);
+    border: 1px solid #5c9ded;
+    background-color: #5c9ded;
+}
+
+#PropertiesPanel QCheckBox::indicator:unchecked:hover {
+    border: 1px solid #aaa;
+}
+
+#PropertiesPanel QCheckBox::indicator:checked:hover {
+    background-color: #6fa6f0;
+    border: 1px solid #6fa6f0;
+}

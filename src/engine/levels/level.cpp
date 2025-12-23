@@ -119,40 +119,20 @@ namespace Pulse::Engine::Levels{
         }
     }
 
-    void SerializeActor(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> a, ordered_json* actorsArray, ordered_json* meshes, ordered_json* materials){
+    void SerializeActor(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> a, ordered_json* actorsArray){
         
         ordered_json actor;
 
         actor["name"] = a->GetName();
 
-
-
         for(auto& childrenID : a->GetChildrenID(false)){
             auto child = a->GetChild(childrenID);
-            SerializeActor(std::dynamic_pointer_cast<ECS::Objects::Actor>(child), &actor["children"], meshes, materials);
+            SerializeActor(std::dynamic_pointer_cast<ECS::Objects::Actor>(child), &actor["children"]);
         }
 
         for(auto& comp : a->GetComponents()){
             ordered_json serializedComp = comp->Serialize();
-            if (serializedComp.contains("meshes") && serializedComp["meshes"].is_object()) {
-                for (auto& item : serializedComp["meshes"].items()) {
-                    if (!meshes->contains(item.key())) {
-                        (*meshes)[item.key()] = item.value();
-                    }
-                }
-            }
-            
-            if (serializedComp.contains("materials") && serializedComp["materials"].is_object()) {
-                for (auto& item : serializedComp["materials"].items()) {
-                    if (!materials->contains(item.key())) {
-                        (*materials)[item.key()] = item.value();
-                    }
-                }
-            }
-
-            if(serializedComp.contains("component")){
-                actor["components"].push_back(serializedComp["component"]);
-            }
+            actor["components"].push_back(serializedComp);
         }
 
         actorsArray->push_back(actor);
@@ -171,14 +151,10 @@ namespace Pulse::Engine::Levels{
         full["name"] = name;
 
         for(auto& actor : rootActors){
-            SerializeActor(actor, &actorsArray, &meshes, &materials);
+            SerializeActor(actor, &actorsArray);
         }
 
         full["actors"] = actorsArray;
-
-        full["materials"] = materials;
-
-        full["meshes"] = meshes;
 
         if(skybox){
             full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(skybox->envMap->GetInfos()->filepath->full).nameInProject;

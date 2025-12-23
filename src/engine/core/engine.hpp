@@ -11,6 +11,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/projects/project.hpp"
 #include "engine/debugging/profiler.hpp"
+#include "engine/core/attributes.hpp"
 
 namespace Pulse::Engine{
  

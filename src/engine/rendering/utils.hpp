@@ -2,7 +2,7 @@
 
 #include "engine/rendering/opengl/opengl.hpp"
 
-#include "engine/ecs/components/core/transform.hpp"
+#include "engine/ecs/components/misc/transform.hpp"
 
 //3D
 struct Vertex {

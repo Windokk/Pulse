@@ -5,7 +5,7 @@
 #include "engine/rendering/utils.hpp"
 #include "engine/rendering/shader/shader.hpp"
 
-#include "engine/ecs/components/core/transform.hpp"
+#include "engine/ecs/components/misc/transform.hpp"
 
 #include <string>
 

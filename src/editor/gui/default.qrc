@@ -23,5 +23,8 @@
     <file>icons/audio.svg</file>
     <file>icons/code.svg</file>
     <file>icons/config.svg</file>
+    <file>stylesheets/default_properties.qss</file>
+    <file>icons/checkmark.svg</file>
+    <file>stylesheets/default_asset_browser.qss</file>
   </qresource>
 </RCC>

@@ -115,6 +115,10 @@ namespace Pulse::Engine{
                 std::vector<DrawCommand>* GetDrawList() { return &drawList; }
 
                 GLint maxTextures;
+                
+                std::shared_ptr<Shader> defaultShader;
+                std::shared_ptr<Cubemap> defaultCubemap;
+                std::shared_ptr<Texture> defaultTexture;
 
             private:
 
@@ -135,7 +139,6 @@ namespace Pulse::Engine{
 
                 std::shared_ptr<Shader> framebufferShader;
 
-                std::shared_ptr<Shader> unlitShader;
 
                 RendererSettings settings;
         };

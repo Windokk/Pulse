@@ -248,9 +248,44 @@ namespace Pulse::Editor {
         context()->swapBuffers(this);
     }
 
+    void TextEllipsis(const char* text)
+    {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window->SkipItems)
+            return;
+
+        ImGuiContext& g = *ImGui::GetCurrentContext();
+        const ImGuiStyle& style = g.Style;
+
+        ImVec2 pos = window->DC.CursorPos;
+        float width = ImGui::GetContentRegionAvail().x;
+        float height = ImGui::GetTextLineHeight();
+
+        ImGui::ItemSize(ImVec2(width, height));
+        ImGui::ItemAdd(
+            ImRect(
+                pos,
+                ImVec2(pos.x + width, pos.y + height)
+            ),
+            0
+        );
+
+        ImVec2 pos_max(pos.x + width, pos.y + height);
+
+        ImGui::RenderTextEllipsis(
+            window->DrawList,
+            pos,
+            pos_max,
+            pos.x + width, // ellipsis_max_x
+            text,
+            nullptr,
+            nullptr
+        );
+    }
+
     void QtGLViewportWindow::ShowFrameStats(){
 
-        ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 265.0f, 34.0f));
+        ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 185.0f, 34.0f));
         ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Statistics");
         ImGui::Separator();
@@ -278,8 +313,12 @@ namespace Pulse::Editor {
 
         ImGui::Separator();
 
-        // System infos
-        ImGui::Text("Renderer : %s", system.gpu_renderer.c_str());
+        std::string text = "Renderer : " + system.gpu_renderer;
+        TextEllipsis(text.c_str());
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("%s", system.gpu_renderer.c_str());
+        }
 
         ImGui::End();
     }
