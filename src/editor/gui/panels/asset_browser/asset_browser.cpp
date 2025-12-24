@@ -1,7 +1,7 @@
 #include "asset_browser.hpp"
 #include <QPushButton>
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     QPixmap AssetBrowser::IconForFile(const QString &path) const
     {

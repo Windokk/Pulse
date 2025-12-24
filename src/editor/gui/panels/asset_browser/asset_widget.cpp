@@ -5,7 +5,7 @@
 #include <QDir>
 #include <QGraphicsDropShadowEffect>
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     AssetItemWidget::AssetItemWidget(const AssetItem& asset, QWidget* parent) : QWidget(parent), asset(asset)
     {

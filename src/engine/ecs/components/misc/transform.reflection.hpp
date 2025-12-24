@@ -1,5 +1,5 @@
 #include "transform.hpp"
-#include "engine/core/reflection_types.hpp"
+#include "engine/core/reflection_fields.hpp"
 
 //Reflection for component : Transform
 
@@ -12,7 +12,9 @@ FieldInfo position_info = {
     nullptr,
     nullptr,
     Editable,
-    
+    0,0,
+    nullptr,
+    nullptr
 };
 
 FieldInfo rotation_info = {
@@ -24,7 +26,9 @@ FieldInfo rotation_info = {
     nullptr,
     nullptr,
     Editable,
-    
+    0,0,
+    nullptr,
+    nullptr
 };
 
 FieldInfo scale_info = {
@@ -36,7 +40,9 @@ FieldInfo scale_info = {
     nullptr,
     nullptr,
     Editable,
-    
+    0,0,
+    nullptr,
+    nullptr
 };
 
 ComponentDescriptor Transform_descriptor = {

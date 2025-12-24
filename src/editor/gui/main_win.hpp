@@ -20,7 +20,7 @@
 
 #include <memory>
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     static QPalette createDarkPalette()
     {
@@ -56,7 +56,6 @@ namespace Pulse::Editor{
     }
 
     class EditorMainWindow : public QMainWindow, public Engine::Core::Platform::IWindow {
-        Q_OBJECT
 
         public:
 

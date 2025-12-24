@@ -3,12 +3,14 @@
 #include "engine/core/engine.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
 #include "engine/core/platform/iplatform.hpp"
+#include "engine/ecs/components/misc/transform.reflection.hpp"
 
 #include "editor/gui/main_win.hpp"
 
 #include "editor/gui/IconsLucide.h"
 
-namespace Pulse::Editor {
+
+namespace Pulse::Editor::GUI {
 
     ImFont* LoadFontFromQRC(const QString& resourcePath, float fontSize, bool icons)
     {
@@ -235,9 +237,42 @@ namespace Pulse::Editor {
 
             glm::mat4 tr = selected->transform->GetTransformMatrix();
 
-            ImGuizmo::Manipulate(cameraView, cameraProjection, currentGizmoOp, currentGizmoMode, glm::value_ptr(tr), NULL, NULL);
+            ImGuizmo::Manipulate(
+                cameraView,
+                cameraProjection,
+                currentGizmoOp,
+                currentGizmoMode,
+                glm::value_ptr(tr)
+            );
 
-            selected->transform->SetFromTransformMatrix(tr);
+            if (ImGuizmo::IsUsing() && !gizmoActive)
+            {
+                gizmoActive = true;
+                gizmoCommand = std::make_unique<Commands::CompositeCommand>();
+
+                // Capture BEFORE values
+                for (FieldInfo* field : Transform_descriptor.fields) {
+                    auto cmd = std::make_unique<Commands::ModifyFieldCommand>(&selected->transform, field);
+                    gizmoCommand->Add(std::move(cmd));
+                }
+            }
+            if (ImGuizmo::IsUsing())
+            {
+                selected->transform->SetFromTransformMatrix(tr); // writes position/rotation/scale as a mtrix
+            }
+            if (!ImGuizmo::IsUsing() && gizmoActive)
+            {
+                gizmoActive = false;
+
+                // Capture AFTER values
+                for (auto& cmd : gizmoCommand->commands)
+                    static_cast<Commands::ModifyFieldCommand*>(cmd.get())->CaptureAfter();
+
+                if (!gizmoCommand->Empty())
+                    Commands::CommandStack::GetInstance().Execute(std::move(gizmoCommand));
+            }
+
+
         }
 
         uiHovered = ImGui::IsAnyItemActive();

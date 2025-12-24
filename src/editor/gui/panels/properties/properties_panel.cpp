@@ -5,7 +5,7 @@
 #include <QLineEdit>
 #include <QFile>
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
 
     PropertiesPanel::PropertiesPanel(QWidget* parent) : QWidget(parent)
@@ -204,7 +204,6 @@ namespace Pulse::Editor{
                         foldButton->setArrowType(checked ? Qt::DownArrow : Qt::RightArrow);
                         headerText->setText(checked ? "Collapse" : "Expand");
                     });
-
 
                     headerLayout->addWidget(foldButton);
                     headerLayout->addWidget(headerText);

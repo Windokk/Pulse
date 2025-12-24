@@ -3,6 +3,7 @@
 #include "engine/rendering/ui/text.hpp"
 #include "editor/core/platform/qt/qt_platform.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
+#include "editor/commands/command_stack.hpp"
 
 #include <QApplication>
 
@@ -14,6 +15,7 @@ using namespace Pulse::Engine::Core;
 using namespace Pulse::Engine::Rendering;
 using namespace Pulse::Engine::ECS::Components;
 using namespace Pulse::Engine::ECS::Objects;
+using namespace Pulse::Editor::Commands;
 
 static QApplication* s_app = nullptr;
 
@@ -28,7 +30,7 @@ extern "C" API_EXPORT void InitializeSingletons(Core::EngineInstance* engine) {
 }
 
 extern "C" API_EXPORT void EditorStart(){
-    
+    CommandStack::GetInstance();
 }
 
 extern "C" API_EXPORT void EditorTick(){
@@ -54,7 +56,7 @@ extern "C" API_EXPORT Platform::IPlatform* CreatePlatform(int argc, char** argv)
 
         QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
         s_app = new QApplication(qt_argc, qt_argv);
-        s_app->setPalette(Editor::createDarkPalette());
+        s_app->setPalette(Editor::GUI::createDarkPalette());
     }
     
     return new Editor::Core::Platform::QTPlatform();

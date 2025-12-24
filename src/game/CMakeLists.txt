@@ -20,7 +20,7 @@ target_include_directories(GameModule PRIVATE
   ${FMOD_API_DIR}/inc
 )
 
-set(GLFW_LIB_DIR "${CMAKE_SOURCE_DIR}/build/submodules/glfw/src")
+set(GLFW_LIB_DIR ${CMAKE_BINARY_DIR})
 
 target_link_directories(GameModule PUBLIC ${GLFW_LIB_DIR})
 target_link_libraries(GameModule PRIVATE Engine glfw3)

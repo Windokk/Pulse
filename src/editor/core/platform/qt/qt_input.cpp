@@ -106,7 +106,7 @@ namespace Pulse::Editor::Core::Platform{
 
     void QTInput::SetCursorVisibility(bool visible) const {
 
-        EditorMainWindow* win = dynamic_cast<EditorMainWindow*>(Engine::Core::GetEngine().GetWindow());
+        GUI::EditorMainWindow* win = dynamic_cast<GUI::EditorMainWindow*>(Engine::Core::GetEngine().GetWindow());
 
         if(win != nullptr){
             if (visible) {

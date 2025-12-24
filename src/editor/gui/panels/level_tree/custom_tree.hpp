@@ -3,7 +3,7 @@
 #include <QTreeView>
 #include <QMouseEvent>
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     class CustomTreeView : public QTreeView {
         Q_OBJECT

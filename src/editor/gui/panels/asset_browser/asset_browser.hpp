@@ -12,7 +12,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     class AssetBrowser : public QWidget{
         Q_OBJECT

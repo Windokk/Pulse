@@ -20,7 +20,7 @@ namespace Pulse::Editor::Core::Platform {
             Engine::Core::Platform::IInput* GetInput() override { return input.get(); };
             
             void CreateWindow(const std::string& title, const int& width, const int& height, const bool& fullscreen, const int& vsync) override {
-                window = std::make_unique<EditorMainWindow>();
+                window = std::make_unique<GUI::EditorMainWindow>();
                 window->Init(title, width, height, fullscreen, vsync);
 
                 for (int i = 0; i < 10; ++i)
@@ -31,7 +31,7 @@ namespace Pulse::Editor::Core::Platform {
                 input = std::make_unique<QTInput>();
                 input->Init();
                 
-                auto qtWindow = dynamic_cast<EditorMainWindow*>(window.get());
+                auto qtWindow = dynamic_cast<GUI::EditorMainWindow*>(window.get());
                 if (qtWindow) {
                     qtWindow->SetQTInputManager(static_cast<QTInput*>(input.get()));
                 }

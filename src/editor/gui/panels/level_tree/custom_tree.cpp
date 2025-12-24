@@ -1,6 +1,6 @@
 #include "custom_tree.hpp"
 
-namespace Pulse::Editor {
+namespace Pulse::Editor::GUI {
     void CustomTreeView::mousePressEvent(QMouseEvent *event)
     {
         QModelIndex index = indexAt(event->pos());

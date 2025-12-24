@@ -25,10 +25,10 @@ namespace Pulse::Engine::ECS::Components
     class PhysicsBody : public Component {
         private:
         JPH::BodyID mBodyID = JPH::BodyID();
-        Physics::PhysicsShape shape;
-        glm::vec3 scale;
+        ATTRIBUTE(Editable) Physics::PhysicsShape shape;
+        ATTRIBUTE(Editable) glm::vec3 scale;
         Rendering::DebugShape* debugShape = nullptr;
-        EMotionType motionType = EMotionType::Static;
+        ATTRIBUTE(Editable) EMotionType motionType = EMotionType::Static;
 
         public:
             PhysicsBody(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
@@ -71,7 +71,7 @@ namespace Pulse::Engine::ECS::Components
             
             std::shared_ptr<Component> Clone() const override;
             
-            ATTRIBUTE(Editable) Physics::PhysicsShape GetShapeType() { return shape; }
+            Physics::PhysicsShape GetShapeType() { return shape; }
             Rendering::DebugShape* GetDebugShape()  { return debugShape; }
             JPH::BodyID GetBodyID() const { return mBodyID; }
             glm::vec3 GetScale() { return scale; }

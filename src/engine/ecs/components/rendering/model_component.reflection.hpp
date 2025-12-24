@@ -1,5 +1,5 @@
 #include "model_component.hpp"
-#include "engine/core/reflection_types.hpp"
+#include "engine/core/reflection_fields.hpp"
 
 //Reflection for component : Model
 

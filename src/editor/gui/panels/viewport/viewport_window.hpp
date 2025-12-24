@@ -12,7 +12,9 @@
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/events/event_system.hpp"
 
-namespace Pulse::Editor {
+#include "editor/commands/command_stack.hpp"
+
+namespace Pulse::Editor::GUI {
 
     class EditorMainWindow;
 
@@ -65,5 +67,8 @@ namespace Pulse::Editor {
         float far = 100.0f;
 
         bool uiHovered = false;
+
+        bool gizmoActive = false;
+        std::unique_ptr<Commands::CompositeCommand> gizmoCommand;
     };
 }

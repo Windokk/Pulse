@@ -11,7 +11,7 @@
 
 #include "editor/gui/main_win.hpp"
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
     
     using Engine::Core::GetEngine;
 

@@ -14,7 +14,7 @@
 #include "editor/gui/panels/level_tree/level_tree.hpp"
 #include "editor/gui/panels/asset_browser/asset_browser.hpp"
 
-namespace Pulse::Editor
+namespace Pulse::Editor::GUI
 {
     void EditorMainWindow::Init(const std::string& title, const int& width, const int& height,
                         const bool& fullscreen, const int& vsync) {
@@ -48,7 +48,7 @@ namespace Pulse::Editor
             dockManager->setStyleSheet(result);
         }
 
-        glViewportWindow = new Editor::QtGLViewportWindow();
+        glViewportWindow = new Editor::GUI::QtGLViewportWindow();
         glViewportWindow->SetParentWindow(this);
         glViewportWindow->InitGL(vsync);
 

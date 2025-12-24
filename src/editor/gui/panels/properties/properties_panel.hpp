@@ -18,7 +18,7 @@
 #include <memory>
 #include <typeinfo>
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     class EditorMainWindow;
 

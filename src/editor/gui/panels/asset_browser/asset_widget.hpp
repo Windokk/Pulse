@@ -10,7 +10,7 @@
 #include "engine/filesystem/assetID.hpp"
 
 
-namespace Pulse::Editor{
+namespace Pulse::Editor::GUI{
 
     struct AssetItem {
         QString name;
