@@ -8,6 +8,8 @@
 
 #include "engine/core/engine.hpp"
 
+#include "transform.reflection.hpp"
+
 namespace Pulse::Engine::ECS::Components{
 
     Transform::Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)

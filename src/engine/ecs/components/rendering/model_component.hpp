@@ -21,7 +21,7 @@ namespace Pulse::Engine::ECS::Components
 
             ordered_json Serialize() override;
             
-            void SetMesh(std::shared_ptr<Rendering::Mesh> mesh);
+            void SetMesh(std::string mesh_path);
             void UpdateReferenceInLevel();
             void SetMaterials(std::vector<std::shared_ptr<Rendering::Material>> &&materials);
 
@@ -41,8 +41,18 @@ namespace Pulse::Engine::ECS::Components
 
             bool alreadySubmitted = false;
 
-            std::shared_ptr<Rendering::Mesh> mesh;
-            std::vector<std::shared_ptr<Rendering::Material>> materials;
+            ATTRIBUTE(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=std::string) std::shared_ptr<Rendering::Mesh> mesh;
+            ATTRIBUTE(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=std::string) std::vector<std::shared_ptr<Rendering::Material>> materials;
+
+            DECLARE_DESCRIPTOR(Model)
 
     };
 }
+
+inline void WriteMeshAssetToModel(void* object, const void* value);
+
+inline void ReadMeshAssetFromModel(void* object, void* outValue);
+
+inline void WriteMaterialAssetToModel(void* element, const void* editorValue);
+
+inline void ReadMaterialAssetFromModel(const void* element, void* outEditorValue);

@@ -12,7 +12,7 @@ static EnumDescriptor PhysicsShape_descriptor = {
         { "CYLINDER", 3 },
     }
 };
-FieldInfo shape_info = {
+inline FieldInfo PhysicsBody_shape_info = {
     "shape",
     TypeID::Unknown,
     36,
@@ -26,7 +26,7 @@ FieldInfo shape_info = {
     &PhysicsShape_descriptor
 };
 
-FieldInfo scale_info = {
+inline FieldInfo PhysicsBody_scale_info = {
     "scale",
     TypeID::Vec3,
     40,
@@ -48,7 +48,7 @@ static EnumDescriptor EMotionType_descriptor = {
         { "Dynamic", 2 },
     }
 };
-FieldInfo motionType_info = {
+inline FieldInfo PhysicsBody_motionType_info = {
     "motionType",
     TypeID::Unknown,
     64,
@@ -62,11 +62,11 @@ FieldInfo motionType_info = {
     &EMotionType_descriptor
 };
 
-ComponentDescriptor PhysicsBody_descriptor = {
+inline ComponentDescriptor Pulse::Engine::ECS::Components::PhysicsBody::descriptor = {
     "PhysicsBody",
     {
-        &shape_info,
-        &scale_info,
-        &motionType_info,
+        &PhysicsBody_shape_info,
+        &PhysicsBody_scale_info,
+        &PhysicsBody_motionType_info,
     }
 };

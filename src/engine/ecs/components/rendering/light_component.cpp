@@ -6,6 +6,8 @@
 
 #include "engine/core/engine.hpp"
 
+#include "light_component.reflection.hpp"
+
 using namespace Pulse::Engine::Core;
 
 namespace Pulse::Engine::ECS::Components{

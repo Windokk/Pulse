@@ -5,8 +5,9 @@
 #include <QLineEdit>
 #include <QFile>
 
-namespace Pulse::Editor::GUI{
+#include "engine/core/reflection_fields.hpp"
 
+namespace Pulse::Editor::GUI{
 
     PropertiesPanel::PropertiesPanel(QWidget* parent) : QWidget(parent)
     {
@@ -53,6 +54,8 @@ namespace Pulse::Editor::GUI{
 
             delete item;
         }
+
+        properties.clear();
     }
 
     void PropertiesPanel::AddSeparator()
@@ -64,56 +67,72 @@ namespace Pulse::Editor::GUI{
         mainLayout->addWidget(line);
     }
 
-    QWidget* PropertiesPanel::AddPropertyWidget(QVBoxLayout* targetLayout, const QString& name, const nlohmann::ordered_json& value, int rowIndex)
+    QWidget* PropertiesPanel::AddPropertyWidget(QVBoxLayout* targetLayout, const QString& name, const FieldInfo* field, void* value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex)
     {
-        if(name == "type" || name == "active"){
-            return nullptr;
-        }
+        QWidget* wField = nullptr;
+        
+        switch(field->type){
+            case TypeID::String:{
+                std::string& strVal = *static_cast<std::string*>(value);
+                auto* edit = new QLineEdit(QString::fromStdString(strVal));
+                edit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+                /*QObject::connect(edit, &QLineEdit::editingFinished,
+                    this, [this, field, comp, edit]() {
+                        std::string newValue = edit->text().toStdString();
+                        FieldWrite(*field, comp.get(), &newValue);
+                });*/
+                wField = edit;
+                break;
+            }
+            case TypeID::Float:{
+                float& floatVal = *static_cast<float*>(value);
+                auto* edit = new QLineEdit(QString::number(floatVal));
+                wField = edit;
+                QObject::connect(edit, &QLineEdit::editingFinished, [this, field, comp, edit]() {
+                    if (edit->text().isEmpty()) {
+                        edit->setText("0.0");
+                    }
+                    float newValue = edit->text().toFloat();
+                    FieldWrite(*field, comp.get(), &newValue);
+                });
+                break;
+            }
+            case TypeID::Int32:{
+                int& intVal = *static_cast<int*>(value);
+                auto* edit = new QLineEdit(QString::number(intVal));
+                wField = edit;
+                QObject::connect(edit, &QLineEdit::editingFinished, [this, field, comp, edit]() {
+                    if (edit->text().isEmpty()) {
+                        edit->setText("0");
+                    }
+                    float newValue = edit->text().toInt();
+                    FieldWrite(*field, comp.get(), &newValue);
+                });
+                break;
+            }
+            case TypeID::Bool:{
+                bool& boolVal = *static_cast<bool*>(value);
+                auto* box = new QCheckBox();
+                box->setCheckState(boolVal ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+                wField = box;
+                QObject::connect(box, &QCheckBox::toggled,
+                this, [this, field, comp](bool checked) {
 
-        QWidget* field = nullptr;
-
-        if (value.is_string())
-        {
-            auto* edit = new QLineEdit(QString::fromStdString(value.dump()));
-            edit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-            field = edit;
-        }
-        else if(value.is_number_float()){
-            auto* edit = new QLineEdit(QString::fromStdString(value.dump()));
-            field = edit;
-            QObject::connect(edit, &QLineEdit::editingFinished, [edit]() {
-                if (edit->text().isEmpty()) {
-                    edit->setText("0.0");
-                }
-            });
-        }
-        else if(value.is_number_integer() || value.is_number_unsigned()){
-            auto* edit = new QLineEdit(QString::fromStdString(value.dump()));
-            field = edit;
-            QObject::connect(edit, &QLineEdit::editingFinished, [edit]() {
-                if (edit->text().isEmpty()) {
-                    edit->setText("0");
-                }
-            });
-        }
-        else if (value.is_boolean())
-        {
-            auto* combo = new QComboBox();
-            combo->addItems({ "False", "True" });
-            combo->setCurrentIndex(value.get<bool>() ? 1 : 0);
-            field = combo;
-        }
-        else if(value.is_object()){
-            //Vector
-            if(value.contains("x") && value.contains("y") && value.contains("z")){
+                    FieldWrite(*field, comp.get(), &checked);
+                });
+                break;
+            }
+            case TypeID::Vec3:{
                 QWidget* vectorRow = new QWidget();
                 QHBoxLayout* vectorLayout = new QHBoxLayout(vectorRow);
                 vectorLayout->setContentsMargins(0, 0, 0, 0);
                 vectorLayout->setSpacing(4);
 
-                auto* xEdit = new QLineEdit(QString::number(value["x"].get<float>()));
-                auto* yEdit = new QLineEdit(QString::number(value["y"].get<float>()));
-                auto* zEdit = new QLineEdit(QString::number(value["z"].get<float>()));
+                glm::vec3& vec3Val = *static_cast<glm::vec3*>(value);
+
+                auto* xEdit = new QLineEdit(QString::number(vec3Val.x));
+                auto* yEdit = new QLineEdit(QString::number(vec3Val.y));
+                auto* zEdit = new QLineEdit(QString::number(vec3Val.z));
 
                 auto setDefault = [](QLineEdit* edit){
                     QObject::connect(edit, &QLineEdit::editingFinished, [edit]() {
@@ -139,102 +158,144 @@ namespace Pulse::Editor::GUI{
                 vectorLayout->addWidget(yEdit);
                 vectorLayout->addWidget(zEdit);
 
-                field = vectorRow;
+                auto updateVec3 = [this, field, comp, xEdit, yEdit, zEdit]() {
+                    glm::vec3 v{
+                        xEdit->text().toFloat(),
+                        yEdit->text().toFloat(),
+                        zEdit->text().toFloat()
+                    };
+                    FieldWrite(*field, comp.get(), &v);
+                };
+
+                QObject::connect(xEdit, &QLineEdit::editingFinished, this, updateVec3);
+                QObject::connect(yEdit, &QLineEdit::editingFinished, this, updateVec3);
+                QObject::connect(zEdit, &QLineEdit::editingFinished, this, updateVec3);
+
+                wField = vectorRow;
+                break;
             }
-            else{
-                // Lists
-                bool isNumericKeys = true;
-                for (auto it = value.begin(); it != value.end(); ++it)
-                {
-                    for (char c : it.key()) {
-                        if (!isdigit(c)) { isNumericKeys = false; break; }
-                    }
-                    if (!isNumericKeys) break;
-                }
+            case TypeID::Vector:{
+                
+                if(!field->container)
+                    return nullptr;
 
-                if (isNumericKeys)
-                {
-                    QWidget* arrayRow = new QWidget();
-                    QVBoxLayout* arrayLayout = new QVBoxLayout(arrayRow);
-                    arrayLayout->setContentsMargins(0, 0, 0, 0);
-                    arrayLayout->setSpacing(2);
+                QWidget* arrayRow = new QWidget();
+                QVBoxLayout* arrayLayout = new QVBoxLayout(arrayRow);
+                arrayLayout->setContentsMargins(0, 0, 0, 0);
+                arrayLayout->setSpacing(2);
 
-                    QWidget* arrayContent = new QWidget();
-                    QVBoxLayout* arrayContentLayout = new QVBoxLayout(arrayContent);
-                    arrayContentLayout->setContentsMargins(0, 0, 0, 0);
-                    arrayContentLayout->setSpacing(2);
+                QWidget* arrayContent = new QWidget();
+                QVBoxLayout* arrayContentLayout = new QVBoxLayout(arrayContent);
+                arrayContentLayout->setContentsMargins(0, 0, 0, 0);
+                arrayContentLayout->setSpacing(2);
 
-                    int index = 0;
-                    for (auto it = value.begin(); it != value.end(); ++it, ++index)
-                    {
+                int index = 0;
+
+                TypeID vecType = field->container->editorElementType;
+
+                FieldInfo* containedField = new FieldInfo{
+                    "",
+                    vecType,
+                    0,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    field->flags,
+                    field->min,
+                    field->max,
+                    nullptr,
+                    nullptr
+                };
+
+                for (size_t i = 0; i < field->container->size(value); i++, index++) {
+                    const void* vectorValue = field->container->getByIndex(value, i);
+
+                    // Ensure buffer is resized to the correct size for the type
+                    std::vector<uint8_t> buffer(GetTypeSize(vecType));
+
+                    void* valuePtr = nullptr;
+
+                    buffer.resize(GetTypeSize(vecType));
+
+                    // Read the element into the buffer
+                    field->container->elementRead(vectorValue, buffer.data());
+
+                    valuePtr = buffer.data();
+
+                    if (valuePtr != nullptr) {
+
+                        // Now, let's add the widget to the layout
                         QWidget* childRow = AddPropertyWidget(arrayContentLayout,
-                                                            QString("[%1]").arg(QString::fromStdString(it.key())),
-                                                            it.value(),
-                                                            index);
-                        if (childRow)
-                        {
+                                                            QString("[%1]").arg(QString::number((int)i)),
+                                                            containedField,
+                                                            valuePtr, comp, index);
+
+                        // Set background color for alternating rows
+                        if (childRow) {
                             if (index % 2 == 0)
                                 childRow->setStyleSheet("background-color: rgba(50,50,50,255);");
                             else
-                                childRow->setStyleSheet(""); // keep default
+                                childRow->setStyleSheet("");  // keep default
                         }
+                    } else {
+                        // Debugging: Output if valuePtr is null
+                        std::cerr << "Error: valuePtr is null at index " << i << std::endl;
                     }
-
-
-                    // Row with button and array name
-                    QWidget* headerRow = new QWidget();
-                    QHBoxLayout* headerLayout = new QHBoxLayout(headerRow);
-                    headerLayout->setContentsMargins(0, 0, 0, 0);
-                    headerLayout->setSpacing(4);
-
-                    QLabel* headerText = new QLabel("Collapse");
-
-
-                    // Create fold/unfold button
-                    QToolButton* foldButton = new QToolButton();
-                    foldButton->setCheckable(true);
-                    foldButton->setChecked(true);
-                    foldButton->setArrowType(Qt::DownArrow);
-                    foldButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
-                    QObject::connect(foldButton, &QToolButton::toggled, [arrayContent, foldButton, headerText](bool checked) {
-                        arrayContent->setVisible(checked);            // Hide/show content
-                        arrayContent->setSizePolicy(QSizePolicy::Preferred, checked ? QSizePolicy::Minimum : QSizePolicy::Ignored); // Adjust size policy
-                        arrayContent->updateGeometry();               // Force layout update
-                        arrayContent->parentWidget()->updateGeometry(); // Update parent container
-                        foldButton->setArrowType(checked ? Qt::DownArrow : Qt::RightArrow);
-                        headerText->setText(checked ? "Collapse" : "Expand");
-                    });
-
-                    headerLayout->addWidget(foldButton);
-                    headerLayout->addWidget(headerText);
-
-                    // Add header and content to main layout
-                    arrayLayout->addWidget(headerRow);
-                    arrayLayout->addWidget(arrayContent);
-
-                    field = arrayRow;
                 }
-                else
-                {
-                    // Normal object, recursion
-                    QWidget* objectRow = new QWidget();
-                    QVBoxLayout* objectLayout = new QVBoxLayout(objectRow);
-                    objectLayout->setContentsMargins(0, 0, 0, 0);
-                    objectLayout->setSpacing(2);
 
-                    for (auto it = value.begin(); it != value.end(); ++it)
-                    {
-                        AddPropertyWidget(objectLayout, QString::fromStdString(it.key()), it.value());
+                // Row with button and array name
+                QWidget* headerRow = new QWidget();
+                QHBoxLayout* headerLayout = new QHBoxLayout(headerRow);
+                headerLayout->setContentsMargins(0, 0, 0, 0);
+                headerLayout->setSpacing(4);
+
+                QLabel* headerText = new QLabel("Collapse");
+
+
+                // Create fold/unfold button
+                QToolButton* foldButton = new QToolButton();
+                foldButton->setCheckable(true);
+                foldButton->setChecked(true);
+                foldButton->setIcon(QIcon(":/pulse/default/icons/down-arrow.svg"));
+                foldButton->setIconSize(QSize(16, 16));
+                foldButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+                QObject::connect(foldButton, &QToolButton::toggled,
+                    [arrayContent, foldButton, headerText](bool checked) {
+
+                    arrayContent->setVisible(checked);
+                    arrayContent->setSizePolicy(QSizePolicy::Preferred, checked ? QSizePolicy::Minimum : QSizePolicy::Ignored
+                    );
+
+                    foldButton->setIcon(QIcon(
+                        checked ? ":/pulse/default/icons/down-arrow.svg"
+                                : ":/pulse/default/icons/right-arrow.svg"
+                    ));
+
+                    headerText->setText(checked ? "Collapse" : "Expand");
+
+                    if (auto layout = arrayContent->parentWidget()->layout()) {
+                        layout->invalidate();
+                        layout->activate();
                     }
+                });
 
-                    field = objectRow;
-                }
+                headerLayout->addWidget(foldButton);
+                headerLayout->addWidget(headerText);
+
+                // Add header and content to main layout
+                arrayLayout->addWidget(headerRow);
+                arrayLayout->addWidget(arrayContent);
+
+                wField = arrayRow;
+                break;
             }
         }
 
         QWidget* rowWidget = nullptr;
-        if (field)
-            rowWidget = CreatePropertyRow(name, field);
+        if (wField)
+            rowWidget = CreatePropertyRow(name, wField);
 
         if(rowWidget)
             targetLayout->addWidget(rowWidget);
@@ -242,13 +303,9 @@ namespace Pulse::Editor::GUI{
         return rowWidget;
     }
 
-    void PropertiesPanel::AddComponent(const std::string& name, const nlohmann::ordered_json& data)
+    void PropertiesPanel::AddComponent(const std::string& name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data)
     {
-        const auto& component = data;
-
-        bool active = true;
-        if (component.contains("active"))
-            active = component["active"].get<bool>();
+        bool active = comp->Active();
 
         auto header = CreateComponentHeader(
             QString::fromStdString(name),
@@ -267,19 +324,38 @@ namespace Pulse::Editor::GUI{
 
         // Active toggle → component enabled state
         connect(header.activeToggle, &QCheckBox::toggled,
-            this, [this, &data](bool enabled)
+            this, [this, &data, comp](bool enabled)
             {
-                // TODO: write back to ECS
-                // data["active"] = enabled;
+                enabled ? comp->Activate() : comp->DeActivate();
             });
 
-        for (auto& [propName, value] : component.items())
+        for (FieldInfo* field : data)
         {
-            AddPropertyWidget(
+            std::vector<uint8_t> buffer(GetTypeSize(field->type));
+
+            void* valuePtr = nullptr;
+
+            if (field->container)
+            {
+                valuePtr = reinterpret_cast<uint8_t*>(comp.get()) + field->offset;
+            }
+            else
+            {
+                // non-container → copy value
+                buffer.resize(GetTypeSize(field->type));
+                FieldRead(*field, comp.get(), buffer.data());
+                valuePtr = buffer.data();
+            }
+
+            QWidget* w = AddPropertyWidget(
                 bodyLayout,
-                QString::fromStdString(propName),
-                value
+                QString::fromStdString(field->name),
+                field,
+                valuePtr,
+                comp
             );
+            
+            properties.push_back({*field, comp, w});
         }
 
         AddSeparator();
@@ -295,8 +371,8 @@ namespace Pulse::Editor::GUI{
         auto components = selectedActor->GetComponents();
         for (auto& comp : components)
         {
-            nlohmann::ordered_json data = comp->Serialize();
-            AddComponent(data["type"], data);
+            const ComponentDescriptor* desc = comp->GetDescriptor();
+            AddComponent(desc->name, comp, desc->fields);
         }
     }
 

@@ -50,6 +50,8 @@ namespace Pulse::Engine::ECS::Components
 
             std::shared_ptr<Component> Clone() const override;
 
+            DECLARE_DESCRIPTOR(Script)
+
         private:
 
 

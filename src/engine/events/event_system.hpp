@@ -106,7 +106,6 @@ namespace Pulse::Engine::Events {
             }
 
             // Emission
-            
             template<typename T>
             void emitGlobal(const T& event) {
                 dispatchTo(globalSubscribers, event);

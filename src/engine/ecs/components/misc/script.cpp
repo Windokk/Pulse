@@ -1,5 +1,7 @@
 #include "script.hpp"
 
+#include "script.reflection.hpp"
+
 namespace Pulse::Engine::ECS::Components
 {
     Script::Script(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)

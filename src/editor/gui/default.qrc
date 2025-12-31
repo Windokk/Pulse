@@ -26,5 +26,7 @@
     <file>stylesheets/default_properties.qss</file>
     <file>icons/checkmark.svg</file>
     <file>stylesheets/default_asset_browser.qss</file>
+    <file>icons/down-arrow.svg</file>
+    <file>icons/right-arrow.svg</file>
   </qresource>
 </RCC>

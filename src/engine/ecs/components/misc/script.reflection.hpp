@@ -3,7 +3,7 @@
 
 //Reflection for component : Script
 
-ComponentDescriptor Script_descriptor = {
+inline ComponentDescriptor Pulse::Engine::ECS::Components::Script::descriptor = {
     "Script",
     {
     }

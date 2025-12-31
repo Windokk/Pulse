@@ -3,7 +3,7 @@
 
 //Reflection for component : AudioSource
 
-ComponentDescriptor AudioSource_descriptor = {
+inline ComponentDescriptor Pulse::Engine::ECS::Components::AudioSource::descriptor = {
     "AudioSource",
     {
     }

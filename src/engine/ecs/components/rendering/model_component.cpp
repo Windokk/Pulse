@@ -8,6 +8,8 @@
 
 #include "engine/core/engine.hpp"
 
+#include "model_component.reflection.hpp"
+
 namespace Pulse::Engine::ECS::Components{
     
 
@@ -22,11 +24,7 @@ namespace Pulse::Engine::ECS::Components{
 
         if (componentData.contains("mesh") && componentData["mesh"].is_string()) {
             const std::string& mesh_path = componentData["mesh"];
-            std::shared_ptr<Rendering::Mesh> mesh = Core::GetEngine().GetResourcesManager()->GetMesh(mesh_path);
-            if (mesh)
-                SetMesh(mesh);
-            else
-                DEBUG_ERROR("Failed to retrieve mesh: " + mesh_path);
+            SetMesh(mesh_path);
         }
 
         // Load materials directly from componentData
@@ -82,12 +80,12 @@ namespace Pulse::Engine::ECS::Components{
         return comp;
     }
 
-    void Model::SetMesh(std::shared_ptr<Rendering::Mesh> mesh)
+    void Model::SetMesh(std::string mesh_path)
     {
         if(!activated)
             return;
-
-        this->mesh = mesh;
+        
+        this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(mesh_path);
         this->Update();
         UpdateReferenceInLevel();
     }
@@ -152,4 +150,49 @@ namespace Pulse::Engine::ECS::Components{
 
         return cloned;
     }
+}
+
+inline void WriteMeshAssetToModel(void* object, const void* value) {
+    Pulse::Engine::ECS::Components::Model* comp = static_cast<Pulse::Engine::ECS::Components::Model*>(object);
+    const std::string* mesh_path = static_cast<const std::string*>(value);
+    comp->SetMesh(*mesh_path);
+}
+
+inline void ReadMeshAssetFromModel(void* object, void* outValue) {
+    Pulse::Engine::ECS::Components::Model* comp = static_cast<Pulse::Engine::ECS::Components::Model*>(object);
+    *static_cast<std::string*>(outValue) = Pulse::Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(comp->GetMesh()->GetAssetID())->baseInfos.nameInProject;
+}
+
+inline void WriteMaterialAssetToModel(void* element, const void* editorValue)
+{
+    const std::string* matNameInProject = static_cast<const std::string*>(editorValue);
+
+    auto* matPtr = static_cast<std::shared_ptr<Pulse::Engine::Rendering::Material>*>(element);
+
+    std::shared_ptr<Pulse::Engine::Rendering::Material> newMat = Pulse::Engine::Core::GetEngine().GetResourcesManager()->GetMaterial(*matNameInProject);
+
+    if(newMat){
+        *matPtr = std::move(newMat);
+    }
+}
+
+inline void ReadMaterialAssetFromModel(const void* element, void* outEditorValue)
+{
+    const std::shared_ptr<Pulse::Engine::Rendering::Material>* matPtr = static_cast<const std::shared_ptr<Pulse::Engine::Rendering::Material>*>(element);
+
+    if (!matPtr || !(*matPtr))
+    {
+        *static_cast<std::string*>(outEditorValue) = "<none>";
+        return;
+    }
+
+    auto asset = Pulse::Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID((*matPtr)->GetAssetID());
+
+    if (!asset)
+    {
+        *static_cast<std::string*>(outEditorValue) = "<missing>";
+        return;
+    }
+
+    *static_cast<std::string*>(outEditorValue) = asset->baseInfos.nameInProject;
 }

@@ -3,12 +3,12 @@
 
 //Reflection for component : Transform
 
-FieldInfo position_info = {
+inline FieldInfo Transform_position_info = {
     "position",
     TypeID::Vec3,
     32,
     nullptr,
-    nullptr,
+    WritePositionToTransform,
     nullptr,
     nullptr,
     Editable,
@@ -17,7 +17,7 @@ FieldInfo position_info = {
     nullptr
 };
 
-FieldInfo rotation_info = {
+inline FieldInfo Transform_rotation_info = {
     "rotation",
     TypeID::Vec3,
     44,
@@ -31,12 +31,12 @@ FieldInfo rotation_info = {
     nullptr
 };
 
-FieldInfo scale_info = {
+inline FieldInfo Transform_scale_info = {
     "scale",
     TypeID::Vec3,
     60,
     nullptr,
-    nullptr,
+    WriteScaleToTransform,
     nullptr,
     nullptr,
     Editable,
@@ -45,11 +45,11 @@ FieldInfo scale_info = {
     nullptr
 };
 
-ComponentDescriptor Transform_descriptor = {
+inline ComponentDescriptor Pulse::Engine::ECS::Components::Transform::descriptor = {
     "Transform",
     {
-        &position_info,
-        &rotation_info,
-        &scale_info,
+        &Transform_position_info,
+        &Transform_rotation_info,
+        &Transform_scale_info,
     }
 };

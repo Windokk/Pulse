@@ -18,6 +18,8 @@
 #include <memory>
 #include <typeinfo>
 
+#include "engine/core/reflection_fields.hpp"
+
 namespace Pulse::Editor::GUI{
 
     class EditorMainWindow;
@@ -27,6 +29,13 @@ namespace Pulse::Editor::GUI{
         QWidget* root;
         QToolButton* foldout;
         QCheckBox* activeToggle;
+    };
+
+    struct PropertyBinding
+    {
+        FieldInfo field;
+        std::shared_ptr<Engine::ECS::Components::Component> comp;
+        QWidget* widget = nullptr;
     };
 
     class PropertiesPanel : public QWidget{
@@ -46,8 +55,11 @@ namespace Pulse::Editor::GUI{
             QWidget *CreatePropertyRow(const QString &name, QWidget *field);
             ComponentHeader CreateComponentHeader(const QString &name, bool active);
             QWidget *CreateComponentBody();
-            void AddComponent(const std::string &name, const nlohmann::ordered_json &data);
             void AddSeparator();
-            QWidget* AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const nlohmann::ordered_json &value, int rowIndex = -1);
+            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1);
+
+            void AddComponent(const std::string &name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data);
+
+            std::vector<PropertyBinding> properties;
     };
 }

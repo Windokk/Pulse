@@ -4,6 +4,8 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include "camera.reflection.hpp"
+
 #include "engine/core/engine.hpp"
 
 namespace Pulse::Engine::ECS::Components {

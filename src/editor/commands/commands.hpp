@@ -58,30 +58,6 @@ namespace Pulse::Editor::Commands{
         const void* ptr() const { return data.data(); }
     };
 
-    inline void FieldRead(const FieldInfo& field, void* object, void* out) {
-        if (field.read) {
-            field.read(object, out);
-        } else {
-            std::memcpy(
-                out,
-                static_cast<uint8_t*>(object) + field.offset,
-                GetTypeSize(field.type)
-            );
-        }
-    }
-
-    inline void FieldWrite(const FieldInfo& field, void* object, const void* value) {
-        if (field.write) {
-            field.write(object, value);
-        } else {
-            std::memcpy(
-                static_cast<uint8_t*>(object) + field.offset,
-                value,
-                GetTypeSize(field.type)
-            );
-        }
-    }
-
     class ModifyFieldCommand : public Command {
         private:
             void* object;              // The object being modified

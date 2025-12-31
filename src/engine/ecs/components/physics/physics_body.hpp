@@ -76,5 +76,7 @@ namespace Pulse::Engine::ECS::Components
             JPH::BodyID GetBodyID() const { return mBodyID; }
             glm::vec3 GetScale() { return scale; }
             EMotionType GetMotionType() { return motionType; } 
+
+            DECLARE_DESCRIPTOR(PhysicsBody)
     };
 }

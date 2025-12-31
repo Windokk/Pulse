@@ -112,5 +112,7 @@ namespace Pulse::Engine::ECS::Components {
             int height = 0;
 
             bool canInteract = true;
+            
+            DECLARE_DESCRIPTOR(Camera)
     };
 }

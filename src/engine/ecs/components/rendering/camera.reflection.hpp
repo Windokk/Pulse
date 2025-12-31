@@ -3,7 +3,7 @@
 
 //Reflection for component : Camera
 
-ComponentDescriptor Camera_descriptor = {
+inline ComponentDescriptor Pulse::Engine::ECS::Components::Camera::descriptor = {
     "Camera",
     {
     }

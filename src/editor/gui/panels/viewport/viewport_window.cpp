@@ -251,7 +251,7 @@ namespace Pulse::Editor::GUI {
                 gizmoCommand = std::make_unique<Commands::CompositeCommand>();
 
                 // Capture BEFORE values
-                for (FieldInfo* field : Transform_descriptor.fields) {
+                for (FieldInfo* field : selected->transform->GetDescriptor()->fields) {
                     auto cmd = std::make_unique<Commands::ModifyFieldCommand>(&selected->transform, field);
                     gizmoCommand->Add(std::move(cmd));
                 }

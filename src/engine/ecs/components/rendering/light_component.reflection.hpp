@@ -3,7 +3,7 @@
 
 //Reflection for component : Light
 
-ComponentDescriptor Light_descriptor = {
+inline ComponentDescriptor Pulse::Engine::ECS::Components::Light::descriptor = {
     "Light",
     {
     }

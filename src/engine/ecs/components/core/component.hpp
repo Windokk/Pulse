@@ -7,6 +7,8 @@
 using namespace nlohmann;
 using ordered_json = nlohmann::ordered_json;
 
+struct ComponentDescriptor;
+
 namespace Pulse::Engine::ECS{
     namespace Objects{
         class Actor;
@@ -55,6 +57,9 @@ namespace Pulse::Engine::ECS{
                 void SetParent(std::shared_ptr<Objects::Actor> newParent){
                     parent = newParent;
                 }
+
+
+                virtual const ComponentDescriptor* GetDescriptor() const = 0;
 
             private:
 

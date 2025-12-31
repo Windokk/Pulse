@@ -34,5 +34,7 @@ namespace Pulse::Engine::ECS::Components
         private:
             int lightIndex = -1;
             std::shared_ptr<Rendering::LightData> lightData;
+
+            DECLARE_DESCRIPTOR(Light)
     };
 }

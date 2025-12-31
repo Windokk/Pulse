@@ -2,6 +2,8 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include "physics_body.reflection.hpp"
+
 #include <iostream>
 
 namespace Pulse::Engine::ECS::Components{
