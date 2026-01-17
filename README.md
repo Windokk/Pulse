@@ -10,7 +10,6 @@
 
 <p align="center">
   Yet another game engine<br>
-  (full of bugs)
 </p>
 
 ## ScreenShot
