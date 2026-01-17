@@ -98,10 +98,7 @@ namespace Pulse::Editor::GUI{
                 return selectedActor;
             }
 
-            void ProcessInputs() const override {
-                if(glViewportWindow)
-                    glViewportWindow->ProcessInputs();
-            }
+            void ProcessInputs() const override;
 
             int GetBytesPerPixel() const override{
                 QSurfaceFormat format = QSurfaceFormat::defaultFormat();

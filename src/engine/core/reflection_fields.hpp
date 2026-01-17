@@ -230,6 +230,7 @@ inline void* FieldRead(const FieldInfo& field, void* object, void* scratchBuffer
 }
 
 inline void FieldWrite(const FieldInfo& field, void* object, const void* value) {
+    
     if (field.write) {
         field.write(object, value);
     } else {

@@ -47,17 +47,23 @@ namespace Pulse::Editor::GUI{
 
         private:
 
-            QWidget* containerWidget;
-            QVBoxLayout* mainLayout;
-            QScrollArea* scrollArea;
+            QWidget* containerWidget = nullptr;
+            QVBoxLayout* mainLayout = nullptr;
+            QScrollArea* scrollArea = nullptr;
+
+            QWidget* actorInfoWidget = nullptr;
+            QLineEdit* actorNameEdit = nullptr;
+            QLabel* actorIdLabel = nullptr;
+            QLabel* actorComponentCountLabel = nullptr;
 
             void Clear();
             QWidget *CreatePropertyRow(const QString &name, QWidget *field);
             ComponentHeader CreateComponentHeader(const QString &name, bool active);
             QWidget *CreateComponentBody();
             void AddSeparator();
-            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1, const Container* container = nullptr, void* elementPtr = nullptr);
-
+            void CreateActorInfoHeader();
+            void UpdateActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
+            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1, const Container *container = nullptr, void *elementPtr = nullptr);
             void AddComponent(const std::string &name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data);
 
             std::vector<PropertyBinding> properties;

@@ -399,12 +399,86 @@ namespace Pulse::Editor::GUI{
         AddSeparator();
     }
 
+    void PropertiesPanel::CreateActorInfoHeader()
+    {
+        actorInfoWidget = new QWidget(containerWidget);
+        actorInfoWidget->setObjectName("ActorInfoHeader");
+
+        QVBoxLayout* layout = new QVBoxLayout(actorInfoWidget);
+        layout->setContentsMargins(6, 6, 6, 6);
+        layout->setSpacing(4);
+
+        // --- Actor Name ---
+        QHBoxLayout* nameLayout = new QHBoxLayout();
+        QLabel* nameLabel = new QLabel("Name:");
+        actorNameEdit = new QLineEdit();
+
+        nameLayout->addWidget(nameLabel);
+        nameLayout->addWidget(actorNameEdit);
+
+        // --- Actor ID ---
+        QHBoxLayout* idLayout = new QHBoxLayout();
+        QLabel* idTextLabel = new QLabel("ID:");
+        actorIdLabel = new QLabel();
+        actorIdLabel->setObjectName("ActorIDLabel");
+
+        idLayout->addWidget(idTextLabel);
+        idLayout->addWidget(actorIdLabel);
+        idLayout->addStretch();
+
+        // --- Component Count ---
+        QHBoxLayout* compLayout = new QHBoxLayout();
+        QLabel* compTextLabel = new QLabel("Components:");
+        actorComponentCountLabel = new QLabel();
+
+        compLayout->addWidget(compTextLabel);
+        compLayout->addWidget(actorComponentCountLabel);
+        compLayout->addStretch();
+
+        layout->addLayout(nameLayout);
+        layout->addLayout(idLayout);
+        layout->addLayout(compLayout);
+
+        mainLayout->addWidget(actorInfoWidget);
+        AddSeparator();
+    }
+
+    void PropertiesPanel::UpdateActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor)
+    {
+        if (!actor)
+            return;
+
+        // Name
+        actorNameEdit->blockSignals(true);
+        actorNameEdit->setText(QString::fromStdString(actor->GetName()));
+        actorNameEdit->blockSignals(false);
+
+        // ID
+        actorIdLabel->setText(QString::number(actor->GetID().GetAsInt()));
+
+        // Component count
+        actorComponentCountLabel->setText(
+            QString::number(actor->GetComponents().size())
+        );
+
+        // Name editing → actor rename
+        QObject::connect(actorNameEdit, &QLineEdit::editingFinished,
+            this, [actor, this]()
+            {
+                actor->SetName(actorNameEdit->text().toStdString());
+            }
+        );
+    }
+
     void PropertiesPanel::Update(std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor)
     {
         Clear();
 
         if (!selectedActor)
             return;
+
+        CreateActorInfoHeader();
+        UpdateActorInfo(selectedActor);
 
         auto components = selectedActor->GetComponents();
         for (auto& comp : components)

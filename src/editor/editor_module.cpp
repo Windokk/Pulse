@@ -30,7 +30,7 @@ extern "C" API_EXPORT void InitializeSingletons(Core::EngineInstance* engine) {
 }
 
 extern "C" API_EXPORT void EditorStart(){
-    CommandStack::GetInstance();
+    CommandStack::Get();
 }
 
 extern "C" API_EXPORT void EditorTick(){

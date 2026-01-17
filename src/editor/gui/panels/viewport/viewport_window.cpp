@@ -245,31 +245,30 @@ namespace Pulse::Editor::GUI {
                 glm::value_ptr(tr)
             );
 
-            if (ImGuizmo::IsUsing() && !gizmoActive)
-            {
+            if (ImGuizmo::IsUsing() && !gizmoActive) {
                 gizmoActive = true;
-                gizmoCommand = std::make_unique<Commands::CompositeCommand>();
 
-                // Capture BEFORE values
-                for (FieldInfo* field : selected->transform->GetDescriptor()->fields) {
-                    auto cmd = std::make_unique<Commands::ModifyFieldCommand>(&selected->transform, field);
-                    gizmoCommand->Add(std::move(cmd));
+                auto& stack = Commands::CommandStack::Get();
+                stack.Begin("Move Object");
+
+                for (FieldInfo* field :
+                    selected->transform->GetDescriptor()->fields)
+                {
+                    stack.Add(
+                        std::make_unique<Commands::ModifyFieldCommand>(
+                            selected->transform.get(), field
+                        )
+                    );
                 }
             }
-            if (ImGuizmo::IsUsing())
-            {
-                selected->transform->SetFromTransformMatrix(tr); // writes position/rotation/scale as a mtrix
+
+            if (ImGuizmo::IsUsing()) {
+                selected->transform->SetFromTransformMatrix(tr);
             }
-            if (!ImGuizmo::IsUsing() && gizmoActive)
-            {
+
+            if (!ImGuizmo::IsUsing() && gizmoActive) {
                 gizmoActive = false;
-
-                // Capture AFTER values
-                for (auto& cmd : gizmoCommand->commands)
-                    static_cast<Commands::ModifyFieldCommand*>(cmd.get())->CaptureAfter();
-
-                if (!gizmoCommand->Empty())
-                    Commands::CommandStack::GetInstance().Execute(std::move(gizmoCommand));
+                Commands::CommandStack::Get().End();
             }
 
 
@@ -417,13 +416,6 @@ namespace Pulse::Editor::GUI {
         Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
 
         Engine::Time::TimeManager* time = Engine::Core::GetEngine().GetTimeManager();
-
-        if(input->WasKeyPressed(Engine::Input::Key::F3)){
-            Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
-                Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
-            );
-            DEBUG_LOG("Serialized level");
-        }
 
         if(input->IsKeyDown(Engine::Input::Key::W)){
             cameraActor->transform->Translate(cameraActor->transform->GetForward() * speed * time->GetDeltaTime());

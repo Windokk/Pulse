@@ -162,6 +162,30 @@ namespace Pulse::Editor::GUI
         return ret;
     }
 
+    void EditorMainWindow::ProcessInputs() const
+    {
+        if(glViewportWindow)
+            glViewportWindow->ProcessInputs();
+
+        Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
+
+        if(input->WasKeyPressed(Engine::Input::Key::F3)){
+            Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
+                Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
+            );
+            DEBUG_LOG("Serialized level");
+        }
+
+        if(input->IsKeyDown(Engine::Input::Key::LeftControl)){
+            if(input->WasKeyPressed(Engine::Input::Key::Z)){
+                Commands::CommandStack::Get().Undo();
+            }
+            else if(input->WasKeyPressed(Engine::Input::Key::Y)){
+                Commands::CommandStack::Get().Redo();
+            }
+        }
+    }
+
     void EditorMainWindow::closeEvent(QCloseEvent *event)
     {
         shouldClose = true;

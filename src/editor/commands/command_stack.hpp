@@ -6,20 +6,33 @@ namespace Pulse::Editor::Commands{
 
     class CommandStack {
         public:
-
-            CommandStack(const CommandStack&) = delete;
-            CommandStack& operator=(const CommandStack&) = delete;
-
-            // Provide access to the singleton instance
-            static CommandStack& GetInstance() {
+            static CommandStack& Get() {
                 static CommandStack instance;
                 return instance;
             }
 
-            void Execute(std::unique_ptr<Command> cmd) {
-                cmd->Redo();
-                undoStack.push_back(std::move(cmd));
-                redoStack.clear();
+            void Begin(const char* name) {
+                assert(!active);
+                active = std::make_unique<CompositeCommand>(name);
+            }
+
+            void Add(std::unique_ptr<Command> cmd) {
+                assert(active);
+                active->Add(std::move(cmd));
+            }
+
+            void End() {
+                assert(active);
+
+                active->Finalize();
+
+                if (active->IsValid()) {
+                    active->Execute();
+                    undoStack.push_back(std::move(active));
+                    redoStack.clear();
+                } else {
+                    active.reset();
+                }
             }
 
             void Undo() {
@@ -39,11 +52,8 @@ namespace Pulse::Editor::Commands{
             }
 
         private:
-            CommandStack() = default;
-
+            std::unique_ptr<CompositeCommand> active;
             std::vector<std::unique_ptr<Command>> undoStack;
             std::vector<std::unique_ptr<Command>> redoStack;
     };
-
-
 }
