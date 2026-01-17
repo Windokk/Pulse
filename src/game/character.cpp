@@ -9,6 +9,8 @@
 #include <thread>
 #include <iostream>
 
+#include "engine/ecs/components/misc/script.reflection.hpp"
+
 using namespace Pulse::Engine;
 
 Character::Character(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> parent, uint32_t local_id)

@@ -7,8 +7,6 @@ file(GLOB_RECURSE EDITOR_SOURCES
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 
-set(CMAKE_PREFIX_PATH "/home/windokk/Qt/6.10.1/gcc_64")
-set(Qt6_DIR "/home/windokk/Qt/6.10.1/gcc_64/lib/cmake/Qt6")
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGL Svg)
 
 add_library(EditorModule SHARED ${EDITOR_SOURCES})

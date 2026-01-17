@@ -8,13 +8,6 @@ add_library(Engine STATIC ${ENGINE_SOURCES})
 
 set(FMOD_API_DIR "" CACHE PATH "Path to fmod api")
 
-set(CPP_INCLUDE_DIRS
-    ${CMAKE_SOURCE_DIR}/src/engine/ecs/components/misc/
-    ${CMAKE_SOURCE_DIR}/src/engine/ecs/components/rendering/
-    ${CMAKE_SOURCE_DIR}/src/engine/ecs/components/physics/
-    ${CMAKE_SOURCE_DIR}/src/engine/ecs/components/audio/
-)
-
 set(COMMON_INCLUDE_DIRS 
     "${CMAKE_SOURCE_DIR}/src/"
     "${CMAKE_SOURCE_DIR}/submodules/"
@@ -23,47 +16,6 @@ set(COMMON_INCLUDE_DIRS
     "${CMAKE_SOURCE_DIR}/submodules/glm/"
     "${CMAKE_SOURCE_DIR}/submodules/freetype/include/"
 )
-
-set(DIR_FLAGS "")
-foreach(DIR ${CPP_INCLUDE_DIRS})
-    list(APPEND DIR_FLAGS "--dir" ${DIR})
-endforeach()
-
-set(INCLUDE_FLAGS "")
-foreach(DIR ${COMMON_INCLUDE_DIRS})
-    list(APPEND INCLUDE_FLAGS "-I" ${DIR})
-endforeach()
-
-list(APPEND INCLUDE_FLAGS "-I" ${FMOD_API_DIR}/inc)
-
-set(CLANG_DIR "" CACHE PATH "Path to clang lib")
-set(CPP_INC_DIR "" CACHE PATH "Path of cpp include dir")
-
-if(UNIX)
-  add_custom_command(
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      TARGET Engine
-      PRE_LINK
-      USES_TERMINAL
-      COMMAND ./PulseReflect
-              --clang ${CLANG_DIR}
-              --cpp ${CPP_INC_DIR}
-              ${DIR_FLAGS}
-              ${INCLUDE_FLAGS}
-  )
-elseif(WIN32)
-  add_custom_command(
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tools/
-      TARGET Engine
-      PRE_LINK
-      USES_TERMINAL
-      COMMAND ./PulseReflect
-              --clang ${CLANG_DIR}
-              --cpp ${CPP_INC_DIR}
-              ${DIR_FLAGS}
-              ${INCLUDE_FLAGS}
-  )
-endif()
 
 # Set the include directories
 target_include_directories(Engine PUBLIC

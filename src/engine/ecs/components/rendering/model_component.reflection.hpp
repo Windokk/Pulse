@@ -5,7 +5,7 @@
 
 inline FieldInfo Model_mesh_info = {
     "mesh",
-    TypeID::String,
+    TypeID::Asset,
     32,
     ReadMeshAssetFromModel,
     WriteMeshAssetToModel,
@@ -17,7 +17,7 @@ inline FieldInfo Model_mesh_info = {
     nullptr
 };
 
-static Container materials_container = MakeVectorContainer<std::shared_ptr<Pulse::Engine::Rendering::Material>,std::string>(ReadMaterialAssetFromModel,WriteMaterialAssetToModel);
+static Container materials_container = MakeVectorContainer<std::shared_ptr<Pulse::Engine::Rendering::Material>,Pulse::Engine::Filesystem::AssetID>(ReadMaterialAssetFromModel,WriteMaterialAssetToModel);
 inline FieldInfo Model_materials_info = {
     "materials",
     TypeID::Vector,

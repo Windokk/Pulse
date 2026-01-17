@@ -29,7 +29,7 @@ struct Container{
 
     // element conversion
     void (*elementRead)(const void* element, void* outEditorValue);
-    void (*elementWrite)(void* element, const void* editorValue);
+    void (*elementWrite)(void* component, void* element, const void* editorValue);
 
     // SEQUENTIAL containers (vectors)
     void* (*getByIndex)(void* container, size_t index);
@@ -90,7 +90,7 @@ inline std::string demangle(const char* name) {
 template<typename StorageT, typename EditorT = StorageT>
 Container MakeVectorContainer(
     void (*elementRead)(const void*, void*) = nullptr,
-    void (*elementWrite)(void*, const void*) = nullptr
+    void (*elementWrite)(void*, void*, const void*) = nullptr
     ) {
     Container c{};
 
@@ -145,7 +145,7 @@ Container MakeVectorContainer(
 template<typename K, typename V, typename EditorV = V>
 Container MakeMapContainer(
     void (*elementRead)(const void*, void*) = nullptr,
-    void (*elementWrite)(void*, const void*) = nullptr
+    void (*elementWrite)(void*, void*, const void*) = nullptr
 ) {
     Container c{};
 
@@ -206,16 +206,27 @@ Container MakeMapContainer(
     return c;
 }
 
-inline void FieldRead(const FieldInfo& field, void* object, void* out) {
-    if (field.read) {
-        field.read(object, out);
-    } else {
-        std::memcpy(
-            out,
-            static_cast<uint8_t*>(object) + field.offset,
-            GetTypeSize(field.type)
-        );
+inline void* FieldRead(const FieldInfo& field, void* object, void* scratchBuffer)
+{
+    uint8_t* base = static_cast<uint8_t*>(object) + field.offset;
+
+    if (field.container)
+    {
+        // Value lives inside the object
+        return base;
     }
+
+    // Non-container: copy into scratch buffer
+    if (field.read)
+    {
+        field.read(object, scratchBuffer);
+    }
+    else
+    {
+        std::memcpy(scratchBuffer, base, GetTypeSize(field.type));
+    }
+
+    return scratchBuffer;
 }
 
 inline void FieldWrite(const FieldInfo& field, void* object, const void* value) {

@@ -7,6 +7,8 @@
 
 #include "engine/core/reflection_fields.hpp"
 
+#include "engine/core/engine.hpp"
+
 namespace Pulse::Editor::GUI{
 
     PropertiesPanel::PropertiesPanel(QWidget* parent) : QWidget(parent)
@@ -67,20 +69,57 @@ namespace Pulse::Editor::GUI{
         mainLayout->addWidget(line);
     }
 
-    QWidget* PropertiesPanel::AddPropertyWidget(QVBoxLayout* targetLayout, const QString& name, const FieldInfo* field, void* value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex)
+    template<typename T>
+    inline void WriteValue(const FieldInfo* field, void* object, const Container* container, void* elementPtr, const T& value)
+    {
+        if (container && elementPtr)
+        {
+            container->elementWrite(object, elementPtr, &value);
+        }
+        else
+        {
+            FieldWrite(*field, object, &value);
+        }
+    }
+
+    QWidget* PropertiesPanel::AddPropertyWidget(QVBoxLayout* targetLayout, const QString& name, const FieldInfo* field, void* value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex, const Container* container, void* elementPtr)
     {
         QWidget* wField = nullptr;
         
         switch(field->type){
+            case TypeID::Asset:
+            {
+                auto* editorVal = static_cast<Engine::Filesystem::AssetID*>(value);
+
+                std::string strVal = Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(*editorVal)->baseInfos.nameInProject;
+
+                auto* edit = new QLineEdit(QString::fromStdString(strVal));
+
+                QObject::connect(edit, &QLineEdit::editingFinished,
+                    this,[this, field, comp, edit, container, elementPtr]()
+                    {
+                        std::string newValue = edit->text().toStdString();
+                        auto newID = Engine::Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(newValue);
+
+                        if (newID.GetAsInt() == 0)
+                            return;
+
+                        WriteValue(field, comp.get(), container, elementPtr, newID);
+                    }
+                );
+
+                wField = edit;
+                break;
+            }
             case TypeID::String:{
                 std::string& strVal = *static_cast<std::string*>(value);
                 auto* edit = new QLineEdit(QString::fromStdString(strVal));
                 edit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-                /*QObject::connect(edit, &QLineEdit::editingFinished,
-                    this, [this, field, comp, edit]() {
+                QObject::connect(edit, &QLineEdit::editingFinished,
+                    this, [this, field, comp, container, elementPtr, edit]() {
                         std::string newValue = edit->text().toStdString();
-                        FieldWrite(*field, comp.get(), &newValue);
-                });*/
+                        WriteValue(field, comp.get(), container, elementPtr, newValue);
+                });
                 wField = edit;
                 break;
             }
@@ -88,25 +127,29 @@ namespace Pulse::Editor::GUI{
                 float& floatVal = *static_cast<float*>(value);
                 auto* edit = new QLineEdit(QString::number(floatVal));
                 wField = edit;
-                QObject::connect(edit, &QLineEdit::editingFinished, [this, field, comp, edit]() {
-                    if (edit->text().isEmpty()) {
-                        edit->setText("0.0");
+                QObject::connect(edit, &QLineEdit::editingFinished, 
+                    this, [this, field, comp, container, elementPtr, edit]()
+                    {
+                        if (edit->text().isEmpty())
+                            edit->setText("0.0");
+
+                        float newValue = edit->text().toFloat();
+                        WriteValue(field, comp.get(), container, elementPtr, newValue);
                     }
-                    float newValue = edit->text().toFloat();
-                    FieldWrite(*field, comp.get(), &newValue);
-                });
+                );
                 break;
             }
             case TypeID::Int32:{
                 int& intVal = *static_cast<int*>(value);
                 auto* edit = new QLineEdit(QString::number(intVal));
                 wField = edit;
-                QObject::connect(edit, &QLineEdit::editingFinished, [this, field, comp, edit]() {
+                QObject::connect(edit, &QLineEdit::editingFinished, 
+                    [this, field, comp, container, elementPtr, edit]() {
                     if (edit->text().isEmpty()) {
                         edit->setText("0");
                     }
                     float newValue = edit->text().toInt();
-                    FieldWrite(*field, comp.get(), &newValue);
+                    WriteValue(field, comp.get(), container, elementPtr, newValue);
                 });
                 break;
             }
@@ -116,9 +159,9 @@ namespace Pulse::Editor::GUI{
                 box->setCheckState(boolVal ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
                 wField = box;
                 QObject::connect(box, &QCheckBox::toggled,
-                this, [this, field, comp](bool checked) {
-
-                    FieldWrite(*field, comp.get(), &checked);
+                this, [this, field, comp, container, elementPtr](bool checked)
+                {
+                    WriteValue(field, comp.get(), container, elementPtr, checked);
                 });
                 break;
             }
@@ -158,18 +201,19 @@ namespace Pulse::Editor::GUI{
                 vectorLayout->addWidget(yEdit);
                 vectorLayout->addWidget(zEdit);
 
-                auto updateVec3 = [this, field, comp, xEdit, yEdit, zEdit]() {
+                auto updateVec3 = [this, field, comp, container, elementPtr, xEdit, yEdit, zEdit]()
+                {
                     glm::vec3 v{
                         xEdit->text().toFloat(),
                         yEdit->text().toFloat(),
                         zEdit->text().toFloat()
                     };
-                    FieldWrite(*field, comp.get(), &v);
+                    WriteValue(field, comp.get(), container, elementPtr, v);
                 };
 
-                QObject::connect(xEdit, &QLineEdit::editingFinished, this, updateVec3);
-                QObject::connect(yEdit, &QLineEdit::editingFinished, this, updateVec3);
-                QObject::connect(zEdit, &QLineEdit::editingFinished, this, updateVec3);
+                QObject::connect(xEdit, &QLineEdit::editingFinished, updateVec3);
+                QObject::connect(yEdit, &QLineEdit::editingFinished, updateVec3);
+                QObject::connect(zEdit, &QLineEdit::editingFinished, updateVec3);
 
                 wField = vectorRow;
                 break;
@@ -209,17 +253,15 @@ namespace Pulse::Editor::GUI{
                 };
 
                 for (size_t i = 0; i < field->container->size(value); i++, index++) {
-                    const void* vectorValue = field->container->getByIndex(value, i);
+                    void* element = field->container->getByIndex(value, i);
 
                     // Ensure buffer is resized to the correct size for the type
                     std::vector<uint8_t> buffer(GetTypeSize(vecType));
 
                     void* valuePtr = nullptr;
 
-                    buffer.resize(GetTypeSize(vecType));
-
                     // Read the element into the buffer
-                    field->container->elementRead(vectorValue, buffer.data());
+                    field->container->elementRead(element, buffer.data());
 
                     valuePtr = buffer.data();
 
@@ -229,9 +271,17 @@ namespace Pulse::Editor::GUI{
                         QWidget* childRow = AddPropertyWidget(arrayContentLayout,
                                                             QString("[%1]").arg(QString::number((int)i)),
                                                             containedField,
-                                                            valuePtr, comp, index);
+                                                            valuePtr, comp, index, field->container, element);
 
                         // Set background color for alternating rows
+                        auto* layout = qobject_cast<QHBoxLayout*>(childRow->layout());
+                        if (layout){
+                            auto* label = qobject_cast<QLabel*>(layout->itemAt(0)->widget());
+                            if (label){
+                                label->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+                            }
+                        }
+
                         if (childRow) {
                             if (index % 2 == 0)
                                 childRow->setStyleSheet("background-color: rgba(50,50,50,255);");
@@ -239,7 +289,7 @@ namespace Pulse::Editor::GUI{
                                 childRow->setStyleSheet("");  // keep default
                         }
                     } else {
-                        // Debugging: Output if valuePtr is null
+                        // if valuePtr is null
                         std::cerr << "Error: valuePtr is null at index " << i << std::endl;
                     }
                 }
@@ -333,19 +383,7 @@ namespace Pulse::Editor::GUI{
         {
             std::vector<uint8_t> buffer(GetTypeSize(field->type));
 
-            void* valuePtr = nullptr;
-
-            if (field->container)
-            {
-                valuePtr = reinterpret_cast<uint8_t*>(comp.get()) + field->offset;
-            }
-            else
-            {
-                // non-container → copy value
-                buffer.resize(GetTypeSize(field->type));
-                FieldRead(*field, comp.get(), buffer.data());
-                valuePtr = buffer.data();
-            }
+            void* valuePtr = FieldRead(*field, comp.get(), buffer.data());
 
             QWidget* w = AddPropertyWidget(
                 bodyLayout,
@@ -384,7 +422,7 @@ namespace Pulse::Editor::GUI{
         layout->setSpacing(4);
         layout->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
-        QLabel* label = new QLabel(name, row);
+        QLabel* label = new QLabel(name);
         label->setMinimumWidth(80);
         label->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
@@ -405,11 +443,12 @@ namespace Pulse::Editor::GUI{
         layout->setSpacing(6);
         layout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-        // Foldout arrow (left)
+        // Foldout arrow
         header.foldout = new QToolButton(header.root);
         header.foldout->setCheckable(true);
         header.foldout->setChecked(true);
-        header.foldout->setArrowType(Qt::DownArrow);
+        header.foldout->setIcon(QIcon(":/pulse/default/icons/down-arrow.svg"));
+        header.foldout->setIconSize(QSize(16, 16));
         header.foldout->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
         // Component label
@@ -417,11 +456,10 @@ namespace Pulse::Editor::GUI{
         label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         label->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
 
-        // Active checkbox (right)
+        // Active checkbox
         header.activeToggle = new QCheckBox(header.root);
         header.activeToggle->setChecked(active);
 
-        // Layout: foldout | label | spacer | checkbox
         layout->addWidget(header.foldout);
         layout->addWidget(label);
         layout->addStretch(1);
@@ -431,7 +469,10 @@ namespace Pulse::Editor::GUI{
         connect(header.foldout, &QToolButton::toggled, header.foldout,
             [btn = header.foldout](bool open)
             {
-                btn->setArrowType(open ? Qt::DownArrow : Qt::RightArrow);
+                btn->setIcon(QIcon(
+                    open ? ":/pulse/default/icons/down-arrow.svg"
+                            : ":/pulse/default/icons/right-arrow.svg"
+                ));
             });
 
         return header;

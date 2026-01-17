@@ -11,11 +11,34 @@ QTreeView {
 
 /* --- Tree Branches --- */
 QTreeView::branch {
-    background: transparent;
-    border-image: none;
+    background-color: transparent;
+    color: transparent;
 }
 
-/* Lines connecting tree branches */
+QTreeView::branch:has-siblings:!adjoins-item {
+    border-image: none;
+    image: none;
+    border: none;
+    color: transparent;
+    background-color: transparent;
+}
+
+QTreeView::branch:has-siblings:adjoins-item {
+    border-image: none;
+    image: none;
+    border: none;
+    color: transparent;
+    background-color: transparent;
+}
+
+QTreeView::branch:!has-children:!has-siblings:adjoins-item {
+    border-image: none;
+    image: none;
+    border: none;
+    color: transparent;
+    background-color: transparent;
+}
+
 QTreeView::branch:has-children:!has-siblings:closed,
 QTreeView::branch:closed:has-children:has-siblings {
     border-image: none;
@@ -23,19 +46,20 @@ QTreeView::branch:closed:has-children:has-siblings {
 }
 
 QTreeView::branch:open:has-children:!has-siblings,
-QTreeView::branch:open:has-children:has-siblings {
+QTreeView::branch:open:has-children:has-siblings  {
     border-image: none;
     image: url(:/pulse/default/icons/chevron_down.svg);
 }
 
 QTreeView::branch:hover {
-    background-color: #2a2a2a;
+    background: transparent;
 }
 
 /* --- Items --- */
 QTreeView::item {
     padding: 3px 6px;
     border: none;
+    background: transparent;
 }
 
 QTreeView::item:hover {
@@ -45,6 +69,7 @@ QTreeView::item:hover {
 QTreeView::item:selected {
     background-color: #3a3a3a;
     color: #ffffff;
+    border: none;
 }
 
 QTreeView::item:selected:active {

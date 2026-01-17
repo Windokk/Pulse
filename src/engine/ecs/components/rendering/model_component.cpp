@@ -13,7 +13,7 @@
 namespace Pulse::Engine::ECS::Components{
     
 
-    Model::Model(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
+    Model::Model(std::shared_ptr<Objects::Actor> parent, uint32_t localID) : Component(parent, localID)
     {
     }
 
@@ -80,16 +80,32 @@ namespace Pulse::Engine::ECS::Components{
         return comp;
     }
 
-    void Model::SetMesh(std::string mesh_path)
+    void Model::SetMesh(std::string meshPath)
     {
         if(!activated)
             return;
         
-        this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(mesh_path);
+        this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(meshPath);
         this->Update();
         UpdateReferenceInLevel();
     }
-    
+
+    void Model::SetMesh(Filesystem::AssetID meshID)
+    {
+        if(!activated)
+            return;
+
+        std::shared_ptr<Filesystem::AssetInfos> asset = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(meshID);
+        
+        if(asset){
+            std::string name = asset->baseInfos.nameInProject;
+
+            this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(name);
+            this->Update();
+            UpdateReferenceInLevel();
+        }        
+    }
+
     void Model::UpdateReferenceInLevel()
     {
         if (!parent || !parent->level || !mesh || !activated)
@@ -154,26 +170,36 @@ namespace Pulse::Engine::ECS::Components{
 
 inline void WriteMeshAssetToModel(void* object, const void* value) {
     Pulse::Engine::ECS::Components::Model* comp = static_cast<Pulse::Engine::ECS::Components::Model*>(object);
-    const std::string* mesh_path = static_cast<const std::string*>(value);
-    comp->SetMesh(*mesh_path);
+    const Pulse::Engine::Filesystem::AssetID* meshID = static_cast<const Pulse::Engine::Filesystem::AssetID*>(value);
+    comp->SetMesh(*meshID);
 }
 
 inline void ReadMeshAssetFromModel(void* object, void* outValue) {
     Pulse::Engine::ECS::Components::Model* comp = static_cast<Pulse::Engine::ECS::Components::Model*>(object);
-    *static_cast<std::string*>(outValue) = Pulse::Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(comp->GetMesh()->GetAssetID())->baseInfos.nameInProject;
+    *static_cast<Pulse::Engine::Filesystem::AssetID*>(outValue) = comp->GetMesh()->GetAssetID();
 }
 
-inline void WriteMaterialAssetToModel(void* element, const void* editorValue)
+inline void WriteMaterialAssetToModel(void* component, void* element, const void* editorValue)
 {
-    const std::string* matNameInProject = static_cast<const std::string*>(editorValue);
+    const Pulse::Engine::Filesystem::AssetID* matAsset = static_cast<const Pulse::Engine::Filesystem::AssetID*>(editorValue);
 
+    auto assetInfo = Pulse::Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(*matAsset);
+    if(!assetInfo) return;
+
+    const std::string matNameInProj = assetInfo->baseInfos.nameInProject;
+    
     auto* matPtr = static_cast<std::shared_ptr<Pulse::Engine::Rendering::Material>*>(element);
 
-    std::shared_ptr<Pulse::Engine::Rendering::Material> newMat = Pulse::Engine::Core::GetEngine().GetResourcesManager()->GetMaterial(*matNameInProject);
+    std::shared_ptr<Pulse::Engine::Rendering::Material> newMat = Pulse::Engine::Core::GetEngine().GetResourcesManager()->GetMaterial(matNameInProj);
 
     if(newMat){
         *matPtr = std::move(newMat);
     }
+
+    Pulse::Engine::ECS::Components::Model* comp = static_cast<Pulse::Engine::ECS::Components::Model*>(component);
+
+    if(comp)
+        comp->Update();
 }
 
 inline void ReadMaterialAssetFromModel(const void* element, void* outEditorValue)
@@ -186,13 +212,5 @@ inline void ReadMaterialAssetFromModel(const void* element, void* outEditorValue
         return;
     }
 
-    auto asset = Pulse::Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID((*matPtr)->GetAssetID());
-
-    if (!asset)
-    {
-        *static_cast<std::string*>(outEditorValue) = "<missing>";
-        return;
-    }
-
-    *static_cast<std::string*>(outEditorValue) = asset->baseInfos.nameInProject;
+    *static_cast<Pulse::Engine::Filesystem::AssetID*>(outEditorValue) = (*matPtr)->GetAssetID();
 }

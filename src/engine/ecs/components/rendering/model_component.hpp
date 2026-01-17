@@ -13,7 +13,7 @@ namespace Pulse::Engine::ECS::Components
 {
     class Model : public Component{
         public:
-            Model(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
+            Model(std::shared_ptr<Objects::Actor> parent, uint32_t localID);
 
             public:
 
@@ -21,7 +21,8 @@ namespace Pulse::Engine::ECS::Components
 
             ordered_json Serialize() override;
             
-            void SetMesh(std::string mesh_path);
+            void SetMesh(std::string meshPath);
+            void SetMesh(Filesystem::AssetID meshID);
             void UpdateReferenceInLevel();
             void SetMaterials(std::vector<std::shared_ptr<Rendering::Material>> &&materials);
 
@@ -41,8 +42,11 @@ namespace Pulse::Engine::ECS::Components
 
             bool alreadySubmitted = false;
 
-            ATTRIBUTE(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=std::string) std::shared_ptr<Rendering::Mesh> mesh;
-            ATTRIBUTE(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=std::string) std::vector<std::shared_ptr<Rendering::Material>> materials;
+            ATTRIBUTE(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
+            std::shared_ptr<Rendering::Mesh> mesh;
+            
+            ATTRIBUTE(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
+            std::vector<std::shared_ptr<Rendering::Material>> materials;
 
             DECLARE_DESCRIPTOR(Model)
 
@@ -53,6 +57,6 @@ inline void WriteMeshAssetToModel(void* object, const void* value);
 
 inline void ReadMeshAssetFromModel(void* object, void* outValue);
 
-inline void WriteMaterialAssetToModel(void* element, const void* editorValue);
+inline void WriteMaterialAssetToModel(void* component, void* element, const void* editorValue);
 
 inline void ReadMaterialAssetFromModel(const void* element, void* outEditorValue);

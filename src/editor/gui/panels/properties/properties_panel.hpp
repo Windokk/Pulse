@@ -56,7 +56,7 @@ namespace Pulse::Editor::GUI{
             ComponentHeader CreateComponentHeader(const QString &name, bool active);
             QWidget *CreateComponentBody();
             void AddSeparator();
-            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1);
+            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1, const Container* container = nullptr, void* elementPtr = nullptr);
 
             void AddComponent(const std::string &name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data);
 

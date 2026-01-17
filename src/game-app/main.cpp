@@ -158,6 +158,8 @@ int main(int argc, char* argv[]) {
     //Cleaning
     Core::GetEngine().Destroy();
 
+    loader.UnloadModule("game");
+
     std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();

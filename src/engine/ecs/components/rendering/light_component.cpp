@@ -8,6 +8,8 @@
 
 #include "light_component.reflection.hpp"
 
+#include "glm/ext.hpp"
+
 using namespace Pulse::Engine::Core;
 
 namespace Pulse::Engine::ECS::Components{
@@ -63,7 +65,7 @@ namespace Pulse::Engine::ECS::Components{
     }
 
     /// @brief Set the light's direction (Only for spot and directionnal lights)
-    /// @param direction The new direction (normalized)
+    /// @param direction The new direction
     void Light::SetDirection(glm::vec3 direction)
     {
         if(!activated)
@@ -170,7 +172,7 @@ namespace Pulse::Engine::ECS::Components{
         }
         
         SetPosition(parent->transform ? parent->transform->GetPosition() : glm::vec3(0.0f));
-        SetDirection(parent->transform ? parent->transform->GetRotation() : glm::vec3(0.0f, -1.0f, 0.0f));
+        SetDirection(parent->transform ? parent->transform->GetForward() : glm::vec3(0.0f, -1.0f, 0.0f));
         SetIntensity(componentData["intensity"]);
         SetRadius(componentData["radius"]);
         SetColor(COL_RGB(componentData["color"]["r"], componentData["color"]["g"], componentData["color"]["b"]));

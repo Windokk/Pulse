@@ -28,5 +28,8 @@
     <file>stylesheets/default_asset_browser.qss</file>
     <file>icons/down-arrow.svg</file>
     <file>icons/right-arrow.svg</file>
+    <file>icons/branch_end.svg</file>
+    <file>icons/branch_more.svg</file>
+    <file>icons/vline.svg</file>
   </qresource>
 </RCC>
