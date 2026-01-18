@@ -185,6 +185,40 @@ namespace Pulse::Editor::GUI {
         ImGuiIO& io = ImGui::GetIO();
         ImGuiStyle& style = ImGui::GetStyle();
 
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+        ImGui::Begin("##SpaceSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+        
+        const char* items[2] = { ICON_LC_LOCATE " Local", ICON_LC_EARTH " World"};
+        static int item_selected_idx = 0; // Here we store our selection data as an index
+
+        const char* combo_preview_value = items[item_selected_idx];
+
+        ImGui::PushItemWidth(100);
+        if (ImGui::BeginCombo("##GizmoSpace", combo_preview_value, 0))
+        {
+            for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+            {
+                const bool is_selected = (item_selected_idx == n);
+                if (ImGui::Selectable(items[n], is_selected))
+                    item_selected_idx = n;
+
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::End();
+
+        if(item_selected_idx == 0){
+            currentGizmoMode = ImGuizmo::LOCAL;
+        }
+        else{
+            currentGizmoMode = ImGuizmo::WORLD;
+        }
+
+
         ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 115.0f, 0.0f));
         ImGui::Begin("##GizmoSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         auto DrawGizmoButton = [&](const char* icon, ImGuizmo::OPERATION op)
