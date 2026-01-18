@@ -8,9 +8,6 @@
 
 #include "glfw_input.hpp"
 
-#include <GLFW/glfw3.h>
-#include <glad/glad.h>
-
 namespace Pulse::Game::Core::Platform {
 
     class GLFWWindow : public Engine::Core::Platform::IWindow {

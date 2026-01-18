@@ -22,9 +22,6 @@ using namespace Pulse::Engine::Core;
 
 namespace Pulse::Game {
 
-
-    using CreatePlatformFn = Platform::IPlatform* (*)(int, char**);
-
     //GAME
     using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*);
     using GameRegisterComponentsFn = void(*)();

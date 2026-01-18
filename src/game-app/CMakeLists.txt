@@ -1,14 +1,25 @@
+file(GLOB GLFW_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/glfw/*.cpp
+)
+
 add_executable(PulseGame
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${GLFW_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib/glad.c
 )
 
-target_compile_definitions(PulseGame PRIVATE BUILD_ENGINE)
+set(GLFW_LIB_DIR ${CMAKE_BINARY_DIR})
 
-target_link_libraries(PulseGame PRIVATE Engine)
+target_compile_definitions(PulseGame PRIVATE BUILD_ENGINE GLFW_STATIC GLFW_INCLUDE_NONE)
 
 target_include_directories(PulseGame PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/include/
   ${CMAKE_SOURCE_DIR}/src/
+  ${CMAKE_SOURCE_DIR}/submodules/glfw/include/
 )
+
+target_link_directories(PulseGame PUBLIC ${GLFW_LIB_DIR})
+target_link_libraries(PulseGame PRIVATE Engine glfw3)
 
 set_target_properties(PulseGame PROPERTIES
     WIN32_EXECUTABLE TRUE

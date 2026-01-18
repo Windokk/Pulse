@@ -1,8 +1,5 @@
-#include "engine/ecs/components/core/registry/component_registry.hpp"
 #include "engine/ecs/components/core/registry/component_registration.hpp"
 #include "engine/core/engine.hpp"
-#include "game/core/platform/glfw/glfw_platform.hpp"
-#include "engine/rendering/opengl/opengl.hpp"
 
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
@@ -24,8 +21,4 @@ extern "C" API_EXPORT void RegisterGameComponents() {
     for (auto& cb : GetComponentRegistrars()) {
         cb(GetComponentRegistry());
     }
-}
-
-extern "C" API_EXPORT Platform::IPlatform* CreatePlatform(int argc, char** argv) {
-    return new Pulse::Game::Core::Platform::GLFWPlatform();
 }

@@ -1,7 +1,9 @@
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "game_module_loader.hpp"
+#include "game-app/glfw/glfw_platform.hpp"
 
+using namespace Pulse;
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
 using namespace Pulse::Engine::Rendering;
@@ -16,7 +18,7 @@ Debugging::Level minDebugLevel = Debugging::Level::Log;
 std::string mainModuleLib = "";
 
 EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
-    Core::EngineCreationSettings settings;
+    Engine::Core::EngineCreationSettings settings;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--width") == 0 && i + 1 < argc) {
@@ -84,7 +86,7 @@ int main(int argc, char* argv[]) {
     
     EngineInstance* engine = &EngineInstance::GetInstance();
 
-    Core::SetEngine(engine);
+    Engine::Core::SetEngine(engine);
 
     //Module loader init
     auto& loader = ModuleLoader::GetInstance();
@@ -104,7 +106,7 @@ int main(int argc, char* argv[]) {
             early_crash();
         }
 
-        initGame(&Core::GetEngine(),
+        initGame(&Engine::Core::GetEngine(),
                  &ECS::Components::GetComponentRegistry());
 
         auto registerGameComponents = loader.GetSymbol<GameRegisterComponentsFn>("game", "RegisterGameComponents");
@@ -116,32 +118,27 @@ int main(int argc, char* argv[]) {
     }
 
     // Platform creation
-    auto createPlatform = loader.GetSymbol<CreatePlatformFn>("game", "CreatePlatform");
-    if (!createPlatform) {
-        std::cerr << "Failed to find symbol: CreatePlatform" << std::endl;
-        early_crash();
-    }
-    engineSettings.platform = createPlatform(argc, argv);
+    engineSettings.platform = new Pulse::Game::Core::Platform::GLFWPlatform();
 
     // Engine startup
-    Core::GetEngine().Init(engineSettings);
+    Engine::Core::GetEngine().Init(engineSettings);
 
     {
         // Scene framebuffer
-        auto fbShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
+        auto fbShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
         Rendering::FrameBuffer sceneFB(
-            Core::GetEngine().GetWindow()->GetFramebufferWidth(),
-            Core::GetEngine().GetWindow()->GetFramebufferHeight(),
+            Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth(),
+            Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight(),
             fbShader,
             true
         );
 
         // Main renderpasss
         auto drawFunc = []() {
-            Core::GetEngine().GetRenderer()->DrawScene();
+            Engine::Core::GetEngine().GetRenderer()->DrawScene();
         };
 
-        Core::GetEngine().GetRenderer()->AddRenderPass(
+        Engine::Core::GetEngine().GetRenderer()->AddRenderPass(
             Rendering::RenderStage::Scene,
             drawFunc,
             std::make_shared<Rendering::FrameBuffer>(sceneFB),
@@ -151,12 +148,12 @@ int main(int argc, char* argv[]) {
     }
 
     //Main Loop
-    while (!Core::GetEngine().shouldEnd()) {
-        if (!Core::GetEngine().Run()) break;
+    while (!Engine::Core::GetEngine().shouldEnd()) {
+        if (!Engine::Core::GetEngine().Run()) break;
     }
 
     //Cleaning
-    Core::GetEngine().Destroy();
+    Engine::Core::GetEngine().Destroy();
 
     loader.UnloadModule("game");
 

@@ -7,6 +7,9 @@
 #include "engine/debugging/logger.hpp"
 #include "engine/core/platform/iplatform.hpp"
 
+
+#include <glad/glad.h>
+
 #include <GLFW/glfw3.h>
 
 namespace Pulse::Game::Core::Platform

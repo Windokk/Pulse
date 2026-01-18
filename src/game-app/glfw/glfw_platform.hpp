@@ -6,6 +6,10 @@
 
 #include "glfw_window.hpp"
 
+#ifdef CreateWindow
+#undef CreateWindow
+#endif
+
 namespace Pulse::Game::Core::Platform {
 
     class GLFWPlatform : public Engine::Core::Platform::IPlatform {
