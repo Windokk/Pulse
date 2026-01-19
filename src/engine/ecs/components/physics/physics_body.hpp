@@ -11,7 +11,7 @@
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/Body.h>
 
-#include "engine/physics/physics_system.hpp"
+#include "engine/physics/physics_manager.hpp"
 
 #include "engine/ecs/components/core/component.hpp"
 
@@ -43,14 +43,14 @@ namespace Pulse::Engine::ECS::Components
             {
                 Component::Activate();
 
-                Physics::PhysicsSystem::GetBodyInterface().ActivateBody(mBodyID);
+                Core::GetEngine().GetPhysicsManager()->GetBodyInterface().ActivateBody(mBodyID);
             }
 
             void DeActivate() override
             {
                 Component::DeActivate();
 
-                Physics::PhysicsSystem::GetBodyInterface().DeactivateBody(mBodyID);
+                Core::GetEngine().GetPhysicsManager()->GetBodyInterface().DeactivateBody(mBodyID);
             }
 
             void Destroy() override
@@ -58,12 +58,7 @@ namespace Pulse::Engine::ECS::Components
                 RemoveBody();
             }
 
-            void RemoveBody() {
-                if (!mBodyID.IsInvalid()) {
-                    Physics::PhysicsSystem::RemoveBody(mBodyID);
-                    mBodyID = JPH::BodyID();
-                }
-            }
+            void RemoveBody();
 
             void Deserialize(json componentData, json levelData) override;
             

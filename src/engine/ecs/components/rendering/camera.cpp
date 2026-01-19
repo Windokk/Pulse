@@ -100,6 +100,21 @@ namespace Pulse::Engine::ECS::Components {
 			isOnOrForwardPlane(center, extents, camFrustum.farFace));
     }
 
+    glm::vec3 Camera::GetWorldPointFromScreenPoint(glm::vec2 screenPoint)
+    {
+        float x = (2.0f * screenPoint.x) / width - 1.0f;
+        float y = 1.0f - (2.0f * screenPoint.y) / height;
+        float z = 1.0f;
+        glm::vec3 ray_nds = glm::vec3(x, y, z);
+        glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+        glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+        ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+        glm::vec3 ray_wor = glm::inverse(view) * ray_eye;
+        return glm::normalize(ray_wor);
+    }
+
     void Camera::Deserialize(json componentData, json levelData)
     {
         int width = Core::GetEngine().GetWindow()->GetFramebufferWidth();

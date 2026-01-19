@@ -1,6 +1,7 @@
 #include "physics_body.hpp"
 
 #include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/core/engine.hpp"
 
 #include "physics_body.reflection.hpp"
 
@@ -14,7 +15,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void PhysicsBody::Update(Physics::PhysicsShape shape, glm::vec3 scale, EMotionType motionType)
     {
-        Physics::PhysicsSystem::RemoveBody(mBodyID);
+        Core::GetEngine().GetPhysicsManager()->RemoveBody(mBodyID);
         CreateBody(shape, scale, motionType);
     }
 
@@ -93,7 +94,7 @@ namespace Pulse::Engine::ECS::Components{
             1
         );
 
-        mBodyID = Physics::PhysicsSystem::CreateBody(settings, this);
+        mBodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
     }
 
     void PhysicsBody::Tick(){
@@ -101,11 +102,19 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
 
-        JPH::RVec3 pos = Physics::PhysicsSystem::GetBodyInterface().GetCenterOfMassPosition(mBodyID);
-        JPH::Vec3 rot = Physics::PhysicsSystem::GetBodyInterface().GetRotation(mBodyID).GetEulerAngles();
+        JPH::RVec3 pos = Core::GetEngine().GetPhysicsManager()->GetBodyInterface().GetCenterOfMassPosition(mBodyID);
+        JPH::Vec3 rot = Core::GetEngine().GetPhysicsManager()->GetBodyInterface().GetRotation(mBodyID).GetEulerAngles();
         
         this->parent->transform->SetPosition(glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ()));
         this->parent->transform->SetRotation(glm::vec3(glm::degrees(rot.GetX()), glm::degrees(rot.GetY()), glm::degrees(rot.GetZ())));
+    }
+
+    void PhysicsBody::RemoveBody()
+    {
+        if (!mBodyID.IsInvalid()) {
+            Core::GetEngine().GetPhysicsManager()->RemoveBody(mBodyID);
+            mBodyID = JPH::BodyID();
+        }
     }
 
     void PhysicsBody::Deserialize(json componentData, json levelData)

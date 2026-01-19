@@ -12,6 +12,8 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 
 #include <iostream>
 #include <cstdarg>
@@ -80,7 +82,7 @@ namespace Pulse::Engine::Physics
     class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter
     {
     public:
-        virtual bool					ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override
+        virtual bool ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override
         {
             switch (inObject1)
             {
@@ -112,19 +114,19 @@ namespace Pulse::Engine::Physics
     class BPLayerInterfaceImpl final : public BroadPhaseLayerInterface
     {
     public:
-                                        BPLayerInterfaceImpl()
+        BPLayerInterfaceImpl()
         {
             // Create a mapping table from object to broad phase layer
             mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
             mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
         }
 
-        virtual uint					GetNumBroadPhaseLayers() const override
+        virtual uint GetNumBroadPhaseLayers() const override
         {
             return BroadPhaseLayers::NUM_LAYERS;
         }
 
-        virtual BroadPhaseLayer			GetBroadPhaseLayer(ObjectLayer inLayer) const override
+        virtual BroadPhaseLayer GetBroadPhaseLayer(ObjectLayer inLayer) const override
         {
             JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
             return mObjectToBroadPhase[inLayer];
@@ -181,44 +183,50 @@ namespace Pulse::Engine::Physics
 
     class PhysicsContactListener;
     
-    class PhysicsSystem {
+    class PhysicsManager {
     public:
 
-        static void Init(glm::vec3 gravity);
-        static void Shutdown();
+        void Init(glm::vec3 gravity);
+        void Shutdown();
 
-        static void OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
-        static void OnContactPersisted(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
-        static void OnContactRemoved(const SubShapeIDPair &pair);
+        void OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
+        void OnContactPersisted(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
+        void OnContactRemoved(const SubShapeIDPair &pair);
 
-        static void StepSimulation(float deltaTime);
+        void StepSimulation(float deltaTime);
 
-        static JPH::BodyID CreateBody(const JPH::BodyCreationSettings& settings, ECS::Components::PhysicsBody* component, JPH::EActivation activation = JPH::EActivation::Activate);
-        static void RemoveBody(JPH::BodyID id);
+        JPH::BodyID CreateBody(const JPH::BodyCreationSettings& settings, ECS::Components::PhysicsBody* component, JPH::EActivation activation = JPH::EActivation::Activate);
+        void RemoveBody(JPH::BodyID id);
 
-        static JPH::BodyInterface& GetBodyInterface() {
+        JPH::BodyInterface& GetBodyInterface() {
             if(!initialized)
                 DEBUG_FATAL("Physics system is not yet initialized");
             return m_physicsSystem.GetBodyInterface();
         }
 
-        static std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
+        JPH::PhysicsSystem& GetPhysicsSystem() {
+            if(!initialized)
+                DEBUG_FATAL("Physics system is not yet initialized");
+            
+        }
+
+        std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
 
     private:
 
-        static JPH::TempAllocatorImpl* m_tempAllocator;
-        static JPH::JobSystem* m_jobSystem;
+        JPH::TempAllocatorImpl* m_tempAllocator;
+        JPH::JobSystem* m_jobSystem;
 
-        static JPH::PhysicsSystem m_physicsSystem;
+        JPH::PhysicsSystem m_physicsSystem;
 
-        static ObjectLayerPairFilterImpl m_objectLayerFilter;
-        static ObjectVsBroadPhaseLayerFilterImpl m_objectVsBroadphase;
-        static BPLayerInterfaceImpl m_broadPhaseLayer;
+        ObjectLayerPairFilterImpl m_objectLayerFilter;
+        ObjectVsBroadPhaseLayerFilterImpl m_objectVsBroadphase;
+        BPLayerInterfaceImpl m_broadPhaseLayer;
 
-        static PhysicsContactListener m_contactListener;
-        static PhysicsBodyActivationListener m_activationListener;
+        PhysicsContactListener m_contactListener;
+        PhysicsBodyActivationListener m_activationListener;
 
-        static bool initialized;
+        bool initialized;
     };
 
 
@@ -232,17 +240,17 @@ namespace Pulse::Engine::Physics
 
         virtual void OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
         {
-            Physics::PhysicsSystem::OnContactAdded(inBody1, inBody2, inManifold, ioSettings);
+            Core::GetEngine().GetPhysicsManager()->OnContactAdded(inBody1, inBody2, inManifold, ioSettings);
         }
 
         virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
         {
-            Physics::PhysicsSystem::OnContactPersisted(inBody1, inBody2, inManifold, ioSettings);
+            Core::GetEngine().GetPhysicsManager()->OnContactPersisted(inBody1, inBody2, inManifold, ioSettings);
         }
 
         virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override
         {
-            Physics::PhysicsSystem::OnContactRemoved(inSubShapePair);
+            Core::GetEngine().GetPhysicsManager()->OnContactRemoved(inSubShapePair);
         }
     };
 

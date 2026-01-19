@@ -63,7 +63,7 @@ namespace Pulse::Engine{
 
             Audio::AudioIDManager* audioIDManager = nullptr;
 
-            Physics::PhysicsSystem* physicsSystem = nullptr;
+            Physics::PhysicsManager* physicsManager = nullptr;
 
             Time::TimeManager* timeManager = nullptr;
 
@@ -117,7 +117,7 @@ namespace Pulse::Engine{
 
                 ECS::ObjectIDManager* GetObjectIDManager() const { return context.objIDManager; }
 
-                Physics::PhysicsSystem* GetPhysicsSystem() const { return context.physicsSystem; }
+                Physics::PhysicsManager* GetPhysicsManager() const { return context.physicsManager; }
 
                 Levels::LevelManager* GetLevelManager() const { return context.levelManager; }
 

@@ -108,7 +108,7 @@ namespace Pulse::Engine{
             context.audioManager = new Audio::AudioManager();
             context.audioIDManager = new Audio::AudioIDManager();
 
-            context.physicsSystem = new Physics::PhysicsSystem();
+            context.physicsSystem = new Physics::PhysicsManager();
 
             context.timeManager = new Time::TimeManager();
 

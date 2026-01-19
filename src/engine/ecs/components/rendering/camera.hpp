@@ -66,6 +66,8 @@ namespace Pulse::Engine::ECS::Components {
 
             bool IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax);
 
+            glm::vec3 GetWorldPointFromScreenPoint(glm::vec2 screenPoint);
+
             glm::mat4 GetMatrix()
             {
                 return cameraMatrix;

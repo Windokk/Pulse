@@ -505,5 +505,24 @@ namespace Pulse::Editor::GUI {
             firstClick = true;
             input->SetCursorVisibility(true);
         }
+    
+        if(input->WasMousePressed(Engine::Input::MouseButton::Left)){
+            JPH::RRayCast ray;
+            glm::dvec2 screenPos;
+
+            input->GetCursorPos(&screenPos.x, &screenPos.y);
+
+            glm::vec3 origin = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->GetComponent<Engine::ECS::Components::Transform>()->GetPosition();
+            glm::vec3 dir = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(screenPos);
+
+            ray.mOrigin = JPH::Vec3(origin.x, origin.y, origin.z);
+            ray.mDirection = JPH::Vec3(dir.x, dir.y, dir.z);
+
+            JPH::RayCastResult ioHit;
+
+            if(Engine::Core::GetEngine().GetPhysicsManager()->GetPhysicsSystem().GetNarrowPhaseQuery().CastRay(ray, ioHit)){
+                ioHit.mBodyID;
+            }
+        }
     }
 }

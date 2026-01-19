@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/physics/physics_system.hpp"
+#include "engine/physics/physics_manager.hpp"
 
 #include "engine/ecs/objects/objectID.hpp"
 
