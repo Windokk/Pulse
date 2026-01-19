@@ -26,6 +26,12 @@ namespace Pulse::Editor::GUI{
 
             void SetParentWindow(EditorMainWindow *parent);
 
+            void ClearSelection(){
+                if(treeView){
+                    treeView->clearSelection();
+                }
+            }
+
         private:
             CustomTreeView *treeView;
             QStandardItemModel *model;

@@ -49,6 +49,7 @@ namespace Pulse::Engine::Physics {
             m_objectVsBroadphase,
             m_objectLayerFilter
         );
+        
 
         m_physicsSystem.SetBodyActivationListener(&m_activationListener);
         m_physicsSystem.SetContactListener(&m_contactListener);
@@ -176,5 +177,25 @@ namespace Pulse::Engine::Physics {
         JPH::BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
         bodyInterface.RemoveBody(id);
         bodyInterface.DestroyBody(id);
+    }
+
+    ValidateResult PhysicsContactListener::OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult)
+    {
+        return ValidateResult::AcceptAllContactsForThisBodyPair;
+    }
+
+    void PhysicsContactListener::OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings)
+    {
+        Core::GetEngine().GetPhysicsManager()->OnContactAdded(inBody1, inBody2, inManifold, ioSettings);
+    }
+
+    void PhysicsContactListener::OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings)
+    {
+        Core::GetEngine().GetPhysicsManager()->OnContactPersisted(inBody1, inBody2, inManifold, ioSettings);
+    }
+
+    void PhysicsContactListener::OnContactRemoved(const SubShapeIDPair &inSubShapePair)
+    {
+        Core::GetEngine().GetPhysicsManager()->OnContactRemoved(inSubShapePair);
     }
 }

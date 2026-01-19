@@ -6,9 +6,11 @@
 #include "engine/ecs/components/misc/transform.reflection.hpp"
 
 #include "editor/gui/main_win.hpp"
-
 #include "editor/gui/IconsLucide.h"
 
+#include <glm/gtx/string_cast.hpp>
+
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 
 namespace Pulse::Editor::GUI {
 
@@ -507,21 +509,33 @@ namespace Pulse::Editor::GUI {
         }
     
         if(input->WasMousePressed(Engine::Input::MouseButton::Left)){
-            JPH::RRayCast ray;
-            glm::dvec2 screenPos;
 
+            Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
+
+            glm::dvec2 screenPos;
             input->GetCursorPos(&screenPos.x, &screenPos.y);
 
-            glm::vec3 origin = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->GetComponent<Engine::ECS::Components::Transform>()->GetPosition();
-            glm::vec3 dir = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(screenPos);
+            QPoint localPos = mapFromGlobal(QPoint(screenPos.x, screenPos.y));
 
-            ray.mOrigin = JPH::Vec3(origin.x, origin.y, origin.z);
-            ray.mDirection = JPH::Vec3(dir.x, dir.y, dir.z);
+            glm::vec3 origin = cameraActor->transform->GetPosition();
+
+            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localPos.x(), localPos.y()));
+
+            JPH::RVec3 joltOrigin(origin.x, origin.y, origin.z);
+            JPH::RVec3 joltDirection(dir.x, dir.y, dir.z);
+
+            JPH::RRayCast ray(joltOrigin, joltDirection * engine->GetCameraManager()->GetActiveCamera()->farPlane);
 
             JPH::RayCastResult ioHit;
 
-            if(Engine::Core::GetEngine().GetPhysicsManager()->GetPhysicsSystem().GetNarrowPhaseQuery().CastRay(ray, ioHit)){
-                ioHit.mBodyID;
+            if (engine->GetPhysicsManager()->GetPhysicsSystem().GetNarrowPhaseQuery().CastRay(ray, ioHit))
+            {
+                parent->SetSelectedActor(engine->GetPhysicsManager()->bodyIDToComponentMap.at(ioHit.mBodyID)->parent);
+            }
+            else{
+                parent->SetSelectedActor(nullptr);
+                parent->treeWidget->ClearSelection();
+                parent->propertiesPanel->Clear();
             }
         }
     }

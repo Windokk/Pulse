@@ -39,19 +39,9 @@ namespace Pulse::Engine::ECS::Components
 
             void Tick();
 
-            void Activate() override
-            {
-                Component::Activate();
+            void Activate() override;
 
-                Core::GetEngine().GetPhysicsManager()->GetBodyInterface().ActivateBody(mBodyID);
-            }
-
-            void DeActivate() override
-            {
-                Component::DeActivate();
-
-                Core::GetEngine().GetPhysicsManager()->GetBodyInterface().DeactivateBody(mBodyID);
-            }
+            void DeActivate() override;
 
             void Destroy() override
             {

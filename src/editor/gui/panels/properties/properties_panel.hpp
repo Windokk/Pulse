@@ -45,6 +45,8 @@ namespace Pulse::Editor::GUI{
 
             void Update(std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor);
 
+            void Clear();
+            
         private:
 
             QWidget* containerWidget = nullptr;
@@ -56,7 +58,6 @@ namespace Pulse::Editor::GUI{
             QLabel* actorIdLabel = nullptr;
             QLabel* actorComponentCountLabel = nullptr;
 
-            void Clear();
             QWidget *CreatePropertyRow(const QString &name, QWidget *field);
             ComponentHeader CreateComponentHeader(const QString &name, bool active);
             QWidget *CreateComponentBody();

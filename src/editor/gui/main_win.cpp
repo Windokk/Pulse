@@ -11,7 +11,6 @@
 #include <DockAreaWidget.h>
 #include <DockAreaTabBar.h>
 
-#include "editor/gui/panels/level_tree/level_tree.hpp"
 #include "editor/gui/panels/asset_browser/asset_browser.hpp"
 
 namespace Pulse::Editor::GUI
@@ -59,7 +58,7 @@ namespace Pulse::Editor::GUI
         viewportDock->setWidget(container);
         viewportDock->setFeature(ads::CDockWidget::DockWidgetFeature::DockWidgetFloatable, false);
         
-        auto* treeWidget = new LevelTree();
+        treeWidget = new LevelTree();
         treeWidget->SetParentWindow(this);
 
         auto* levelTreeDock = dockManager->createDockWidget("Level Tree");

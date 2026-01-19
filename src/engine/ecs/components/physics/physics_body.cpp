@@ -35,7 +35,6 @@ namespace Pulse::Engine::ECS::Components{
                     std::cerr << "Failed to create sphere shape: " << shapeResult.GetError() << "\n";
                     return;
                 }
-
                 shapeRef = shapeResult.Get();
                 debugShape = new Rendering::DebugSphere((scale.x == 0 ? (scale.y == 0 ? scale.z : scale.y) : scale.x), COL_RGBA(0, 1, 1, 1));
                 break;
@@ -91,7 +90,7 @@ namespace Pulse::Engine::ECS::Components{
             JPH::RVec3(pos.x, pos.y, pos.z),        // position
             JPH::Quat(rot.x, rot.y, rot.z, rot.w),  // rotation
             motionType,                             // motion type
-            1
+            motionType == EMotionType::Static ? Physics::Layers::NON_MOVING : Physics::Layers::MOVING
         );
 
         mBodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
@@ -107,6 +106,20 @@ namespace Pulse::Engine::ECS::Components{
         
         this->parent->transform->SetPosition(glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ()));
         this->parent->transform->SetRotation(glm::vec3(glm::degrees(rot.GetX()), glm::degrees(rot.GetY()), glm::degrees(rot.GetZ())));
+    }
+
+    void PhysicsBody::Activate()
+    {
+        Component::Activate();
+
+        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().ActivateBody(mBodyID);
+    }
+
+    void PhysicsBody::DeActivate()
+    {
+        Component::DeActivate();
+
+        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().DeactivateBody(mBodyID);
     }
 
     void PhysicsBody::RemoveBody()
@@ -152,7 +165,7 @@ namespace Pulse::Engine::ECS::Components{
             DEBUG_ERROR("Physics motion type not recognized : " + (std::string)componentData["shape"]);
         }
 
-        CreateBody(shape, glm::vec3(componentData["size"]["x"], componentData["size"]["y"], componentData["size"]["z"]), motion);
+        CreateBody(shape, glm::vec3(componentData["size"]["x"], componentData["size"]["y"], componentData["size"]["z"]) * parent->transform->GetScale(), motion);
 
         if(componentData.contains("active") && componentData["active"].get<bool>())
             Activate();

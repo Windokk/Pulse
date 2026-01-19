@@ -21,7 +21,7 @@ namespace Pulse::Engine{
         class Renderer;
 
         struct RendererSettings{
-            bool showDebugShapes = false;
+            bool showDebugShapes = true;
             //TODO : bool enableStatsOverlay = false;
             bool enableShadows = true;
             bool enablePostProcessing = true;

@@ -51,7 +51,7 @@ namespace Pulse::Engine{
 
             context.platform->CreateWindow("Pulse", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync);
             
-            context.physicsSystem->Init(settings.gravity);
+            context.physicsManager->Init(settings.gravity);
             context.audioManager->Init(100.0f);
             context.renderer->Init();
             context.renderer->InitFramebuffers();
@@ -108,7 +108,7 @@ namespace Pulse::Engine{
             context.audioManager = new Audio::AudioManager();
             context.audioIDManager = new Audio::AudioIDManager();
 
-            context.physicsSystem = new Physics::PhysicsManager();
+            context.physicsManager = new Physics::PhysicsManager();
 
             context.timeManager = new Time::TimeManager();
 
@@ -121,7 +121,7 @@ namespace Pulse::Engine{
             context.profiler->Shutdown();
             context.platform->GetInput()->Shutdown();
             context.audioManager->Shutdown();
-            context.physicsSystem->Shutdown();
+            context.physicsManager->Shutdown();
             context.levelManager->UnloadAllLevels();
             context.renderer->Shutdown();
             context.platform->GetWindow()->Destroy();
@@ -131,7 +131,7 @@ namespace Pulse::Engine{
 
             context.timeManager->Tick();
 
-            //PhysicsSystem::StepSimulation(time.GetFixedDeltaTime());
+            context.physicsManager->StepSimulation(context.timeManager->GetFixedDeltaTime());
 
             context.renderer->Render();
             context.audioManager->Tick();

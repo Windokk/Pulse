@@ -14,6 +14,7 @@
 
 #include "panels/viewport/viewport_window.hpp"
 #include "panels/properties/properties_panel.hpp"
+#include "panels/level_tree/level_tree.hpp"
 
 #include "engine/debugging/logger.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
@@ -111,6 +112,8 @@ namespace Pulse::Editor::GUI{
             };
 
             PropertiesPanel* propertiesPanel = nullptr;
+
+            LevelTree* treeWidget = nullptr;
 
         private:
                 

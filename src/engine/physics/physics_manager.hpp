@@ -181,7 +181,20 @@ namespace Pulse::Engine::Physics
         }
     };
 
-    class PhysicsContactListener;
+    
+
+
+    class PhysicsContactListener : public ContactListener
+    {
+    public:
+        virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override;
+
+        virtual void OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override;
+
+        virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override;
+
+        virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override;
+    };
     
     class PhysicsManager {
     public:
@@ -207,7 +220,7 @@ namespace Pulse::Engine::Physics
         JPH::PhysicsSystem& GetPhysicsSystem() {
             if(!initialized)
                 DEBUG_FATAL("Physics system is not yet initialized");
-            
+            return m_physicsSystem;
         }
 
         std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
@@ -227,31 +240,6 @@ namespace Pulse::Engine::Physics
         PhysicsBodyActivationListener m_activationListener;
 
         bool initialized;
-    };
-
-
-    class PhysicsContactListener : public ContactListener
-    {
-    public:
-        virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
-        {
-            return ValidateResult::AcceptAllContactsForThisBodyPair;
-        }
-
-        virtual void OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
-        {
-            Core::GetEngine().GetPhysicsManager()->OnContactAdded(inBody1, inBody2, inManifold, ioSettings);
-        }
-
-        virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
-        {
-            Core::GetEngine().GetPhysicsManager()->OnContactPersisted(inBody1, inBody2, inManifold, ioSettings);
-        }
-
-        virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override
-        {
-            Core::GetEngine().GetPhysicsManager()->OnContactRemoved(inSubShapePair);
-        }
     };
 
 }
