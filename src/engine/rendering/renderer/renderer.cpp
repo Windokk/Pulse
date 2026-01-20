@@ -328,11 +328,12 @@ namespace Pulse::Engine::Rendering{
             for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
                 glm::vec3 pos = physicBody->parent->transform->GetPosition();
-                glm::quat rot = physicBody->parent->transform->GetRotation();
+                glm::quat rot = glm::quat(glm::radians(physicBody->parent->transform->GetRotation()));
+                glm::vec3 sca = physicBody->parent->transform->GetScale();
+                glm::vec3 localScale = physicBody->GetScale();
 
-                glm::mat4 model;
-
-                model = glm::translate(model, pos);
+                glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
+                model = glm::scale(model, localScale);
 
                 defaultShader->setMat4("model", model);
 

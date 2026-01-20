@@ -83,7 +83,12 @@ namespace Pulse::Engine::ECS::Components{
 
         glm::vec3 pos = parent->transform->GetPosition();
         glm::quat rot = parent->transform->GetRotation();
+        glm::vec3 sca = parent->transform->GetScale();
         
+        JPH::Vec3 joltScale = {sca.x, sca.y, sca.z};
+
+        shapeRef->MakeScaleValid(joltScale);
+
         // Body settings
         JPH::BodyCreationSettings settings(
             shapeRef,
@@ -165,7 +170,7 @@ namespace Pulse::Engine::ECS::Components{
             DEBUG_ERROR("Physics motion type not recognized : " + (std::string)componentData["shape"]);
         }
 
-        CreateBody(shape, glm::vec3(componentData["size"]["x"], componentData["size"]["y"], componentData["size"]["z"]) * parent->transform->GetScale(), motion);
+        CreateBody(shape, glm::vec3(componentData["size"]["x"], componentData["size"]["y"], componentData["size"]["z"]), motion);
 
         if(componentData.contains("active") && componentData["active"].get<bool>())
             Activate();
