@@ -508,6 +508,7 @@ namespace Pulse::Editor::GUI {
             input->SetCursorVisibility(true);
         }
     
+        // Picking
         if(input->WasMousePressed(Engine::Input::MouseButton::Left)){
 
             Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
@@ -520,17 +521,14 @@ namespace Pulse::Editor::GUI {
             glm::vec3 origin = cameraActor->transform->GetPosition();
 
             glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localPos.x() * devicePixelRatio(), localPos.y() * devicePixelRatio()));
+            dir = glm::normalize(dir);
+            dir *= engine->GetCameraManager()->GetActiveCamera()->farPlane;
 
-            JPH::RVec3 joltOrigin(origin.x, origin.y, origin.z);
-            JPH::RVec3 joltDirection(dir.x, dir.y, dir.z);
+            Engine::Physics::RaycastResult result = Engine::Core::GetEngine().GetPhysicsManager()->RayCast({origin, dir, engine->GetCameraManager()->GetActiveCamera()->farPlane});
 
-            JPH::RRayCast ray(joltOrigin, joltDirection * engine->GetCameraManager()->GetActiveCamera()->farPlane);
-
-            JPH::RayCastResult ioHit;
-
-            if (engine->GetPhysicsManager()->GetPhysicsSystem().GetNarrowPhaseQuery().CastRay(ray, ioHit))
+            if (result.hit)
             {
-                parent->SetSelectedActor(engine->GetPhysicsManager()->bodyIDToComponentMap.at(ioHit.mBodyID)->parent);
+                parent->SetSelectedActor(result.hitBody->parent);
             }
             else{
                 parent->SetSelectedActor(nullptr);

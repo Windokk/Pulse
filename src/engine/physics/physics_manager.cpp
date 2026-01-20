@@ -71,6 +71,37 @@ namespace Pulse::Engine::Physics {
         JPH::Factory::sInstance = nullptr;
     }
 
+    RaycastResult PhysicsManager::RayCast(RaycastRequest request)
+    {
+        if (!initialized)
+            DEBUG_FATAL("Physics system is not yet initialized");
+
+        RaycastResult result = {};
+
+        JPH::RVec3 origin(request.origin.x, request.origin.y, request.origin.z);
+        JPH::RVec3 direction(request.direction.x, request.direction.y, request.direction.z);
+
+        JPH::RRayCast ray(origin, direction);
+
+        RaycastBroadPhaseFilter broadPhaseFilter(request.broadPhaseMask);
+        RaycastObjectLayerFilter objectLayerFilter(request.objectMask);
+
+        RayCastResult ioHit;
+
+        BodyFilter defaultBodyFilter;
+
+        const BodyFilter& bodyFilter =
+            request.bodyFilter ? *request.bodyFilter : defaultBodyFilter;
+
+        if(m_physicsSystem.GetNarrowPhaseQuery().CastRay(ray, ioHit, broadPhaseFilter, objectLayerFilter, bodyFilter)){
+            result.hit = true;
+            result.hitBody = bodyIDToComponentMap.at(ioHit.mBodyID);
+            result.hitDistance = ioHit.mFraction * request.maxDistance;
+        }
+
+        return result;
+    }
+
     void PhysicsManager::OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings)
     {   
         ECS::Components::PhysicsBody* comp1 = bodyIDToComponentMap[body1.GetID()];

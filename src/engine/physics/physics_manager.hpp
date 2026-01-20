@@ -104,11 +104,15 @@ namespace Pulse::Engine::Physics
     // your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
     namespace BroadPhaseLayers
     {
-        static constexpr BroadPhaseLayer NON_MOVING(0);
-        static constexpr BroadPhaseLayer MOVING(1);
-        static constexpr uint NUM_LAYERS(2);
-    };
+        static constexpr uint NON_MOVING_IDX = 0;
+        static constexpr uint MOVING_IDX     = 1;
 
+        static constexpr BroadPhaseLayer NON_MOVING(NON_MOVING_IDX);
+        static constexpr BroadPhaseLayer MOVING(MOVING_IDX);
+
+        static constexpr uint NUM_LAYERS = 2;
+    }
+    
     // BroadPhaseLayerInterface implementation
     // This defines a mapping between object and broadphase layers.
     class BPLayerInterfaceImpl final : public BroadPhaseLayerInterface
@@ -181,9 +185,6 @@ namespace Pulse::Engine::Physics
         }
     };
 
-    
-
-
     class PhysicsContactListener : public ContactListener
     {
     public:
@@ -196,15 +197,75 @@ namespace Pulse::Engine::Physics
         virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override;
     };
     
+    using ObjectLayerMask = uint32_t;
+    using BroadPhaseLayerMask = uint32_t;
+
+    constexpr ObjectLayerMask ObjectLayer_NonMoving = 1 << Layers::NON_MOVING;
+    constexpr ObjectLayerMask ObjectLayer_Moving    = 1 << Layers::MOVING;
+
+    constexpr BroadPhaseLayerMask BroadPhase_NonMoving =
+        1u << BroadPhaseLayers::NON_MOVING_IDX;
+
+    constexpr BroadPhaseLayerMask BroadPhase_Moving =
+        1u << BroadPhaseLayers::MOVING_IDX;
+
+    class RaycastBroadPhaseFilter final : public BroadPhaseLayerFilter
+    {
+    public:
+        explicit RaycastBroadPhaseFilter(BroadPhaseLayerMask mask)
+            : mMask(mask) {}
+
+        bool ShouldCollide(BroadPhaseLayer inLayer) const override
+        {
+            return (mMask & (1u << inLayer.GetValue())) != 0;
+        }
+
+    private:
+        BroadPhaseLayerMask mMask;
+    };
+
+    class RaycastObjectLayerFilter final : public ObjectLayerFilter
+    {
+    public:
+        explicit RaycastObjectLayerFilter(ObjectLayerMask mask)
+            : mMask(mask) {}
+
+        bool ShouldCollide(ObjectLayer inLayer) const override
+        {
+            return (mMask & (1u << inLayer)) != 0;
+        }
+
+    private:
+        ObjectLayerMask mMask;
+    };
+
+    struct RaycastRequest
+    {
+        glm::vec3 origin;
+        glm::vec3 direction;
+        float maxDistance;
+
+        ObjectLayerMask objectMask = ObjectLayer_Moving | ObjectLayer_NonMoving;
+        BroadPhaseLayerMask broadPhaseMask = BroadPhase_Moving | BroadPhase_NonMoving;
+
+        const BodyFilter* bodyFilter = nullptr;
+        const ShapeFilter* shapeFilter = nullptr;
+    };
+
+    struct RaycastResult
+    {
+        bool hit = false;
+        ECS::Components::PhysicsBody* hitBody = nullptr;
+        float hitDistance = -1.0f;
+    };
+
     class PhysicsManager {
     public:
 
         void Init(glm::vec3 gravity);
         void Shutdown();
 
-        void OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
-        void OnContactPersisted(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
-        void OnContactRemoved(const SubShapeIDPair &pair);
+        RaycastResult RayCast(RaycastRequest request);
 
         void StepSimulation(float deltaTime);
 
@@ -223,9 +284,13 @@ namespace Pulse::Engine::Physics
             return m_physicsSystem;
         }
 
-        std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
-
     private:
+
+        void OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
+        void OnContactPersisted(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
+        void OnContactRemoved(const SubShapeIDPair &pair);
+
+        std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
 
         JPH::TempAllocatorImpl* m_tempAllocator;
         JPH::JobSystem* m_jobSystem;
@@ -240,6 +305,8 @@ namespace Pulse::Engine::Physics
         PhysicsBodyActivationListener m_activationListener;
 
         bool initialized;
+
+        friend class PhysicsContactListener;
     };
 
 }
