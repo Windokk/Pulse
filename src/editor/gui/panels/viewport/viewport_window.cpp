@@ -221,7 +221,7 @@ namespace Pulse::Editor::GUI {
         }
 
 
-        ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 115.0f, 0.0f));
+        ImGui::SetNextWindowPos(ImVec2(width() - 115.0f, 0.0f));
         ImGui::Begin("##GizmoSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         auto DrawGizmoButton = [&](const char* icon, ImGuizmo::OPERATION op)
         {
@@ -246,7 +246,7 @@ namespace Pulse::Editor::GUI {
         DrawGizmoButton(ICON_LC_SCALING, ImGuizmo::SCALE);
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 35.0f, 0.0f));
+        ImGui::SetNextWindowPos(ImVec2(width() - 35.0f, 0.0f));
         ImGui::Begin("##ToggleStats", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         if(showFrameStats)
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
@@ -355,7 +355,7 @@ namespace Pulse::Editor::GUI {
 
     void QtGLViewportWindow::ShowFrameStats(){
 
-        ImGui::SetNextWindowPos(ImVec2(width() * devicePixelRatio() - 185.0f, 34.0f));
+        ImGui::SetNextWindowPos(ImVec2(width() - 185.0f, 34.0f));
         ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Statistics");
         ImGui::Separator();
@@ -519,7 +519,7 @@ namespace Pulse::Editor::GUI {
 
             glm::vec3 origin = cameraActor->transform->GetPosition();
 
-            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localPos.x(), localPos.y()));
+            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localPos.x() * devicePixelRatio(), localPos.y() * devicePixelRatio()));
 
             JPH::RVec3 joltOrigin(origin.x, origin.y, origin.z);
             JPH::RVec3 joltDirection(dir.x, dir.y, dir.z);
@@ -534,8 +534,6 @@ namespace Pulse::Editor::GUI {
             }
             else{
                 parent->SetSelectedActor(nullptr);
-                parent->treeWidget->ClearSelection();
-                parent->propertiesPanel->Clear();
             }
         }
     }

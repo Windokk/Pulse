@@ -45,19 +45,38 @@ namespace Pulse::Editor::GUI{
 
     void PropertiesPanel::Clear()
     {
-        QLayoutItem* item;
-        while ((item = mainLayout->takeAt(0)) != nullptr)
+        for (auto &pb : properties)
         {
-            if (item->widget())
-                item->widget()->deleteLater();
-
-            if (item->layout())
-                delete item->layout();
-
-            delete item;
+            if (pb.widget)
+            {
+                delete pb.widget;
+                pb.widget = nullptr;
+            }
         }
 
         properties.clear();
+
+        if (mainLayout)
+        {
+            QLayoutItem* item;
+            while ((item = mainLayout->takeAt(0)) != nullptr)
+            {
+                if (item->widget())
+                    delete item->widget();
+
+                delete item;
+            }
+        }
+
+        actorInfoWidget = nullptr;
+        actorNameEdit = nullptr;
+        actorIdLabel = nullptr;
+        actorComponentCountLabel = nullptr;
+
+        // Force layout refresh
+        mainLayout->invalidate();
+        mainLayout->activate();
+        update();
     }
 
     void PropertiesPanel::AddSeparator()

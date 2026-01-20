@@ -136,7 +136,7 @@
                     "active": true,
                     "position": {
                         "x": -1.949196696281433,
-                        "y": -4.642937183380127,
+                        "y": 0.642937183380127,
                         "z": -0.7177756428718567
                     },
                     "rotation": {
@@ -168,6 +168,49 @@
                         "z": 1
                     },
                     "motion_type": "dynamic"
+                }
+            ]
+        },
+        {
+            "name": "default_cube",
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": -1.949196696281433,
+                        "y": -4.642937183380127,
+                        "z": -0.7177756428718567
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "scale": {
+                        "x": 2,
+                        "y": 1.1323999166488647,
+                        "z": 2
+                    }
+                },
+                {
+                    "type": "model",
+                    "active": true,
+                    "mesh": "models/cube.fbx",
+                    "materials": { 
+                        "0": "materials/fabric_g.mat"
+                    }
+                },
+                {
+                    "type": "physics_body",
+                    "active": true,
+                    "shape": "box",
+                    "size": {
+                        "x": 1,
+                        "y": 1,
+                        "z": 1
+                    },
+                    "motion_type": "static"
                 }
             ]
         }

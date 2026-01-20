@@ -32,6 +32,13 @@ namespace Pulse::Editor::GUI{
                 }
             }
 
+            void SetSelection(std::shared_ptr<Engine::ECS::Objects::Actor> newSelection){
+                if(treeView){
+                    QModelIndex item = GetItemFromObjectID(newSelection->GetID())->index();
+                    treeView->selectionModel()->select(item, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                }
+            }
+
         private:
             CustomTreeView *treeView;
             QStandardItemModel *model;

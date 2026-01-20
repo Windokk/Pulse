@@ -212,7 +212,6 @@ namespace Pulse::Editor::GUI{
     void LevelTree::ClickOutsideItems(Qt::MouseButton button){
         if (button == Qt::LeftButton){
             parent->SetSelectedActor(nullptr);
-            treeView->clearSelection();
         }
     }
 

@@ -8,7 +8,6 @@
 #include <QScreen>
 #include <QtGui>
 
-#include <vector>
 
 #include <DockManager.h>
 
@@ -19,7 +18,10 @@
 #include "engine/debugging/logger.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 
+#include <vector>
 #include <memory>
+#include <iostream>
+#include <thread>
 
 namespace Pulse::Editor::GUI{
 
@@ -90,9 +92,14 @@ namespace Pulse::Editor::GUI{
 
             void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
                 this->selectedActor = newPtr;
-                
+
                 if(propertiesPanel)
                     propertiesPanel->Update(selectedActor);
+
+                if(!newPtr)
+                    treeWidget->ClearSelection();
+                else
+                    treeWidget->SetSelection(newPtr);
             }
 
             std::shared_ptr<Engine::ECS::Objects::Actor> GetSelectedActor(){

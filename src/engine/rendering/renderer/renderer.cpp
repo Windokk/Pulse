@@ -330,7 +330,9 @@ namespace Pulse::Engine::Rendering{
                 glm::vec3 pos = physicBody->parent->transform->GetPosition();
                 glm::quat rot = physicBody->parent->transform->GetRotation();
 
-                glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
+                glm::mat4 model;
+
+                model = glm::translate(model, pos);
 
                 defaultShader->setMat4("model", model);
 
@@ -480,28 +482,20 @@ namespace Pulse::Engine::Rendering{
                         break;
                     }
 
-                    //
-                    // 1. Render scene into pass.target (maybe MSAA)
-                    //
+                    // Render scene into pass.target (maybe MSAA)
                     pass.target->Bind();
                     gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                     pass.callback();
                     pass.target->Unbind();
 
-                    //
-                    // 2. Resolve MSAA scene FBO if needed
-                    //
+                    // Resolve MSAA scene FBO if needed
                     if (pass.target->isMultisampled)
                         pass.target->Resolve();
 
-                    //
-                    // 3. Draw scene result to screen/UI target
-                    //
+                    // Draw scene result to screen/UI target
                     pass.target->Draw(rectVAO);
 
-                    //
-                    // 4. Append to viewport?
-                    //
+                    // Append to viewport?
                     if (pass.appendToViewport)
                     {
                         // Resolve viewport before sampling it
@@ -511,7 +505,7 @@ namespace Pulse::Engine::Rendering{
                         GLuint viewportTex = viewportBuffer->GetFrameTexture();
                         GLuint sceneTex = pass.target->GetFrameTexture();
 
-                        // ---- A) Blend to temp ----
+                        // ---- Blend to temp ----
                         tempBuffer->Bind();
                         gl->Clear(GL_COLOR_BUFFER_BIT);
 
