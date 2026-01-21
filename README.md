@@ -45,57 +45,6 @@ Run build.bat or build.sh (depending on your OS)
 
 This will compile everything from root : submodules, the engine, the editor app, the editor module, and the game module (loaded with the game app)
 
-
-## ROADMAP EDITOR
-
-- [x] Docking
-- [x] Scene Tree panel
-  - [ ] Keyboard shortcuts
-  - [ ] Multi selection
-  - [ ] Template actors creation
-- [ ] Properties panel
-- [ ] Material editor panel
-- [ ] Viewport panel
-- [ ] Asset Browser
-- [ ] Console
-- [ ] Stats overlay
-  - [x] Audio source count
-  - [x] Minimal frame profiler (FPS, Draw Calls, Lights counts, etc...)
-  - [ ] Hardware infos (CPU, GPU, RAM) (Name, Vendor, Usage...)
-
-
-## ROADMAP ENGINE
-
-### Rendering
-
-- [x] Skyboxes
-  - [x] IBL
-- [x] Wireframe rendering
-- [ ] Forward+ rendering
-- [ ] Lightmaps
-- [ ] FBX importer (multiple meshes)
-- [ ] Post processing effects shaders (SSAO, Bloom, Vignette, Tone Mapping, Film Grain, Chromatic Abberration)
-
-#### Serialization
-
-- [x] Component serialization
-- [x] Level exporter
-- [x] Project exporter (project file + asset database)
-- [ ] Material file exporter
-
-#### Debugging
-
-- [ ] Commands (in game/editor)
-- [ ] Frame-Debugger (see stats overlay)
-
-#### Animation system
-
-- [ ] Animation data structure importing (from FBX)
-- [ ] Animation data manager
-- [ ] Skeletal animations
-- [ ] Animation Blending
-- [ ] Animation State Machine
-
 ## Credits/Dependencies
 
 - Libraries/Projects :
