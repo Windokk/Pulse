@@ -16,7 +16,7 @@ namespace Pulse::Engine::Rendering{
 
     class Mesh {
         public:
-            Mesh(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse = COL_RGBA(0.99f,0.06f,0.75f,1.0f));
+            Mesh(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA diffuse = COL_RGBA(0.99f,0.06f,0.75f,1.0f));
             ~Mesh();
 
             void DrawWithoutMaterial() const;
@@ -46,7 +46,7 @@ namespace Pulse::Engine::Rendering{
             glm::vec3 boundsMin = glm::vec3( std::numeric_limits<float>::max() );
             glm::vec3 boundsMax = glm::vec3( std::numeric_limits<float>::lowest() );
 
-            bool LoadMesh(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse);
+            bool LoadMesh(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA diffuse);
             
 
     };

@@ -8,9 +8,9 @@
 
 namespace Pulse::Engine::Rendering{
     
-    Mesh::Mesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse)
+    Mesh::Mesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA diffuse)
     {
-        LoadMesh(ufbx_mesh, scene_unit_meters, ufbx_mats, diffuse);
+        LoadMesh(ufbx_mesh, scene_unit_meters, ufbx_mats, mesh_node, diffuse);
     }
 
     Mesh::~Mesh()
@@ -65,7 +65,7 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    bool Mesh::LoadMesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, COL_RGBA diffuse)
+    bool Mesh::LoadMesh(const ufbx_mesh* ufbx_mesh, double scene_unit_meters, ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA diffuse)
     {
         double scene_scale = scene_unit_meters;
 
@@ -118,7 +118,8 @@ namespace Pulse::Engine::Rendering{
 
                     // Position
                     ufbx_vec3 pos = ufbx_get_vertex_vec3(&ufbx_mesh->vertex_position, vertex_index);
-                    v.position = { pos.x * scene_scale, pos.y * scene_scale, pos.z * scene_scale };
+                    ufbx_vec3 wpos = ufbx_transform_position(&mesh_node->geometry_to_world, pos);
+                    v.position = { wpos.x * scene_scale, wpos.y * scene_scale, wpos.z * scene_scale };
 
                     boundsMin = glm::min(boundsMin, v.position);
                     boundsMax = glm::max(boundsMax, v.position);
@@ -126,7 +127,9 @@ namespace Pulse::Engine::Rendering{
                     // Normal
                     if (ufbx_mesh->vertex_normal.exists) {
                         ufbx_vec3 normal = ufbx_get_vertex_vec3(&ufbx_mesh->vertex_normal, vertex_index);
-                        v.normal = { normal.x, normal.y, normal.z };
+                        ufbx_matrix normal_mtx = ufbx_matrix_for_normals(&mesh_node->geometry_to_world);
+                        ufbx_vec3 wn = ufbx_transform_direction(&normal_mtx, normal);
+                        v.normal = { wn.x, wn.y, wn.z };
                     }
 
                     // UV

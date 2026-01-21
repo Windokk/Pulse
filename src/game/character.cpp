@@ -18,7 +18,7 @@ Character::Character(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> parent,
     // Init
 }
 
-void Character::Deserialize(json componentData, json levelData) {
+void Character::Deserialize(json componentData) {
     // Deserialize fields
 }
 

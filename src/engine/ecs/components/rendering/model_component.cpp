@@ -17,7 +17,7 @@ namespace Pulse::Engine::ECS::Components{
     {
     }
 
-    void Model::Deserialize(json componentData, json /*levelData*/)
+    void Model::Deserialize(json componentData)
     {
         if (!parent)
             return;

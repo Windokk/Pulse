@@ -26,20 +26,6 @@ inline FieldInfo PhysicsBody_shape_info = {
     &PhysicsShape_descriptor
 };
 
-inline FieldInfo PhysicsBody_scale_info = {
-    "scale",
-    TypeID::Vec3,
-    40,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    Editable,
-    0,0,
-    nullptr,
-    nullptr
-};
-
 static EnumDescriptor EMotionType_descriptor = {
     "EMotionType",
     {
@@ -51,7 +37,7 @@ static EnumDescriptor EMotionType_descriptor = {
 inline FieldInfo PhysicsBody_motionType_info = {
     "motionType",
     TypeID::Unknown,
-    64,
+    56,
     nullptr,
     nullptr,
     nullptr,
@@ -66,7 +52,6 @@ inline ComponentDescriptor Pulse::Engine::ECS::Components::PhysicsBody::descript
     "PhysicsBody",
     {
         &PhysicsBody_shape_info,
-        &PhysicsBody_scale_info,
         &PhysicsBody_motionType_info,
     }
 };

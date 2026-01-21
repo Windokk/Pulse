@@ -17,7 +17,7 @@ namespace Pulse::Engine::Levels{
         this->path = path;
     }
 
-    void DeserializeComponents(std::shared_ptr<ECS::Objects::Actor> a, json levelData, json actorData){
+    void DeserializeComponents(std::shared_ptr<ECS::Objects::Actor> a, json actorData){
         if(!actorData["components"].is_array()){
             DEBUG_ERROR("Couldn't deserialize actor's components as actor[components] is not an array");
             return; 
@@ -30,27 +30,27 @@ namespace Pulse::Engine::Levels{
             const std::string& type = component["type"];
 
             if(type == "transform"){
-                a->GetComponent<ECS::Components::Transform>()->Deserialize(component, levelData);
+                a->GetComponent<ECS::Components::Transform>()->Deserialize(component);
             }
             else if(type == "model"){
                 std::shared_ptr<ECS::Components::Model> model = a->AddComponent<ECS::Components::Model>();
-                model->Deserialize(component, levelData);
+                model->Deserialize(component);
             }
             else if(type == "light"){
                 std::shared_ptr<ECS::Components::Light> light = a->AddComponent<ECS::Components::Light>();
-                light->Deserialize(component, levelData);
+                light->Deserialize(component);
             }
             else if(type == "physics_body"){
                 std::shared_ptr<ECS::Components::PhysicsBody> body = a->AddComponent<ECS::Components::PhysicsBody>();
-                body->Deserialize(component, levelData);
+                body->Deserialize(component);
             }
             else if(type == "camera"){
                 std::shared_ptr<ECS::Components::Camera> cam = a->AddComponent<ECS::Components::Camera>();
-                cam->Deserialize(component, levelData);
+                cam->Deserialize(component);
             }
             else if(type == "audio"){
                 std::shared_ptr<ECS::Components::AudioSource> audio = a->AddComponent<ECS::Components::AudioSource>();
-                audio->Deserialize(component, levelData);
+                audio->Deserialize(component);
             }
             else{
                 //Custom component/Inherited component case
@@ -62,7 +62,7 @@ namespace Pulse::Engine::Levels{
                 }
 
                 a->AddComponentRaw(rawComponent);
-                rawComponent->Deserialize(component, levelData);
+                rawComponent->Deserialize(component);
             }
         }
     }
@@ -77,7 +77,7 @@ namespace Pulse::Engine::Levels{
             }
         }
 
-        DeserializeComponents(a, data, actor);
+        DeserializeComponents(a, actor);
     }
 
     void Level::Deserialize(Filesystem::Path filePath)

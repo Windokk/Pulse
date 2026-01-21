@@ -26,7 +26,7 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
-    void AudioSource::Deserialize(json componentData, json levelData)
+    void AudioSource::Deserialize(json componentData)
     {
         float volume = componentData["volume"];
         std::string path = componentData["path"];

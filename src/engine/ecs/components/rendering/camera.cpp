@@ -115,7 +115,7 @@ namespace Pulse::Engine::ECS::Components {
         return glm::normalize(ray_wor);
     }
 
-    void Camera::Deserialize(json componentData, json levelData)
+    void Camera::Deserialize(json componentData)
     {
         int width = Core::GetEngine().GetWindow()->GetFramebufferWidth();
         int height = Core::GetEngine().GetWindow()->GetFramebufferHeight();

@@ -32,7 +32,7 @@ namespace Pulse::Engine::ECS{
                 virtual void Activate() { activated = true; }
                 virtual void DeActivate() { activated = false; }
 
-                virtual void Deserialize(json componentData, json levelData) {};
+                virtual void Deserialize(json componentData) {};
                 virtual ordered_json Serialize() { ordered_json dummy; return dummy; };
 
                 template<typename T>

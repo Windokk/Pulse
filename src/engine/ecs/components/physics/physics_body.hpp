@@ -22,20 +22,40 @@
 namespace Pulse::Engine::ECS::Components
 {
 
-    class PhysicsBody : public Component {
-        private:
-        JPH::BodyID mBodyID = JPH::BodyID();
-        ATTRIBUTE(Editable) Physics::PhysicsShape shape;
-        ATTRIBUTE(Editable) glm::vec3 scale;
-        Rendering::DebugShape* debugShape = nullptr;
-        ATTRIBUTE(Editable) EMotionType motionType = EMotionType::Static;
+    struct ShapeParams {
+        virtual ~ShapeParams() = default; // <- very important!
+    };
 
+    struct SphereParams : public ShapeParams {
+        float radius;
+        SphereParams(float r) : radius(r) {}
+    };
+
+    struct CapsuleParams : public ShapeParams {
+        float radius;
+        float halfHeight;
+        CapsuleParams(float r, float h) : radius(r), halfHeight(h) {}
+    };
+
+    struct BoxParams : public ShapeParams{
+        glm::vec3 halfExtent;
+        BoxParams(glm::vec3 e) : halfExtent(e) {}
+    };
+
+    struct CylinderParams : public ShapeParams{
+        float radius;
+        float halfHeight;
+        CylinderParams(float r, float h) : radius(r), halfHeight(h) {}
+    };
+
+    class PhysicsBody : public Component {
+        
         public:
             PhysicsBody(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
-            void CreateBody(Physics::PhysicsShape shape, glm::vec3 scale, EMotionType motionType);
+            void CreateBody(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType);
 
-            void Update(Physics::PhysicsShape shape, glm::vec3 scale, EMotionType motionType);
+            void Update(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType);
 
             void Tick();
 
@@ -50,7 +70,7 @@ namespace Pulse::Engine::ECS::Components
 
             void RemoveBody();
 
-            void Deserialize(json componentData, json levelData) override;
+            void Deserialize(json componentData) override;
             
             ordered_json Serialize() override;
             
@@ -59,9 +79,17 @@ namespace Pulse::Engine::ECS::Components
             Physics::PhysicsShape GetShapeType() { return shape; }
             Rendering::DebugShape* GetDebugShape()  { return debugShape; }
             JPH::BodyID GetBodyID() const { return mBodyID; }
-            glm::vec3 GetScale() { return scale; }
+            std::shared_ptr<ShapeParams> GetShapeParams() { return params; }
             EMotionType GetMotionType() { return motionType; } 
 
             DECLARE_DESCRIPTOR(PhysicsBody)
+
+        private:
+            JPH::BodyID mBodyID = JPH::BodyID();
+            ATTRIBUTE(Editable) Physics::PhysicsShape shape;
+            std::shared_ptr<ShapeParams> params;
+            Rendering::DebugShape* debugShape = nullptr;
+            ATTRIBUTE(Editable) EMotionType motionType = EMotionType::Static;
+
     };
 }

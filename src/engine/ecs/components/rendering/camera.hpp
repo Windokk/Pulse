@@ -58,7 +58,7 @@ namespace Pulse::Engine::ECS::Components {
 
             void ToggleFrustumCulling() { frustumCulling = !frustumCulling; }
 
-            void Deserialize(json componentData, json levelData) override;
+            void Deserialize(json componentData) override;
             
             ordered_json Serialize() override;
             

@@ -13,34 +13,42 @@ namespace Pulse::Engine::ECS::Components{
         
     }
 
-    void PhysicsBody::Update(Physics::PhysicsShape shape, glm::vec3 scale, EMotionType motionType)
+    void PhysicsBody::Update(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType)
     {
         Core::GetEngine().GetPhysicsManager()->RemoveBody(mBodyID);
-        CreateBody(shape, scale, motionType);
+        CreateBody(shape, params, motionType);
     }
 
-    void PhysicsBody::CreateBody(Physics::PhysicsShape shape, glm::vec3 scale, EMotionType motionType)
+    void PhysicsBody::CreateBody(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType)
     {
         JPH::ShapeRefC shapeRef;
 
-        this->scale = scale;
+        this->params = params;
         this->shape = shape;
         this->motionType = motionType;
 
         switch (shape) {
             case Physics::PhysicsShape::SPHERE: {
-                JPH::SphereShapeSettings sphereSettings(scale.x == 0 ? (scale.y == 0 ? scale.z : scale.y) : scale.x);
+
+                auto sphereParams = std::dynamic_pointer_cast<SphereParams>(params);
+                if (!sphereParams) return;
+
+                JPH::SphereShapeSettings sphereSettings(sphereParams->radius);
                 auto shapeResult = sphereSettings.Create();
                 if (shapeResult.HasError()) {
                     std::cerr << "Failed to create sphere shape: " << shapeResult.GetError() << "\n";
                     return;
                 }
                 shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugSphere((scale.x == 0 ? (scale.y == 0 ? scale.z : scale.y) : scale.x), COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugSphere(0.5f, COL_RGBA(0, 1, 1, 1));
                 break;
             }
             case Physics::PhysicsShape::BOX:{
-                JPH::BoxShapeSettings boxSettings(JPH::Vec3(scale.x, scale.y, scale.z));
+
+                auto boxParams = std::dynamic_pointer_cast<BoxParams>(params);
+                if (!boxParams) return;
+
+                JPH::BoxShapeSettings boxSettings(JPH::Vec3(boxParams->halfExtent.x, boxParams->halfExtent.y, boxParams->halfExtent.z));
                 auto shapeResult = boxSettings.Create();
                 if (shapeResult.HasError()) { 
                     std::cerr << "Failed to create cube shape: " << shapeResult.GetError() << "\n";
@@ -48,11 +56,15 @@ namespace Pulse::Engine::ECS::Components{
                 }
 
                 shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugBox(glm::vec3(scale.x, scale.y, scale.z), COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugBox(glm::vec3(0.5f), COL_RGBA(0, 1, 1, 1));
                 break;
             }
             case Physics::PhysicsShape::CAPSULE: {
-                JPH::CapsuleShapeSettings capsuleSettings(scale.y, scale.x == 0 ? scale.z : scale.x);
+
+                auto capsuleParams = std::dynamic_pointer_cast<CapsuleParams>(params);
+                if (!capsuleParams) return;
+
+                JPH::CapsuleShapeSettings capsuleSettings(capsuleParams->halfHeight, capsuleParams->radius);
                 auto shapeResult = capsuleSettings.Create();
                 if (shapeResult.HasError()) { 
                     std::cerr << "Failed to create capsule shape: " << shapeResult.GetError() << "\n";
@@ -60,11 +72,15 @@ namespace Pulse::Engine::ECS::Components{
                 }
 
                 shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugCapsule(scale.y, scale.x == 0 ? scale.z : scale.x, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugCapsule(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
                 break;
             }
             case Physics::PhysicsShape::CYLINDER:{
-                JPH::CylinderShapeSettings cylinderSettings(scale.y, scale.x == 0 ? scale.z : scale.x);
+                
+                auto cylinderParams = std::dynamic_pointer_cast<CylinderParams>(params);
+                if (!cylinderParams) return;
+
+                JPH::CylinderShapeSettings cylinderSettings(cylinderParams->halfHeight, cylinderParams->radius);
                 auto shapeResult = cylinderSettings.Create();
                 if (shapeResult.HasError()) { 
                     std::cerr << "Failed to create cylinder shape: " << shapeResult.GetError() << "\n";
@@ -72,7 +88,7 @@ namespace Pulse::Engine::ECS::Components{
                 }
 
                 shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugCylinder(scale.y, scale.x == 0 ? scale.z : scale.x, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugCylinder(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
                 break;
             }
 
@@ -83,11 +99,6 @@ namespace Pulse::Engine::ECS::Components{
 
         glm::vec3 pos = parent->transform->GetPosition();
         glm::quat rot = parent->transform->GetRotation();
-        glm::vec3 sca = parent->transform->GetScale();
-        
-        JPH::Vec3 joltScale = {sca.x, sca.y, sca.z};
-
-        shapeRef->MakeScaleValid(joltScale);
 
         // Body settings
         JPH::BodyCreationSettings settings(
@@ -135,42 +146,110 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
-    void PhysicsBody::Deserialize(json componentData, json levelData)
+    void PhysicsBody::Deserialize(json componentData)
     {
         Physics::PhysicsShape shape;
 
-        if(componentData["shape"] == "box"){
-            shape = Physics::PhysicsShape::BOX;
-        }
-        else if(componentData["shape"] == "sphere"){
-            shape = Physics::PhysicsShape::SPHERE;
-        }
-        else if(componentData["shape"] == "capsule"){
-            shape = Physics::PhysicsShape::CAPSULE;
-        }
-        else if(componentData["shape"] == "cylinder"){
-            shape = Physics::PhysicsShape::CYLINDER;
+        if(componentData.contains("shape")){
+            if(componentData["shape"] == "box"){
+                shape = Physics::PhysicsShape::BOX;
+            }
+            else if(componentData["shape"] == "sphere"){
+                shape = Physics::PhysicsShape::SPHERE;
+            }
+            else if(componentData["shape"] == "capsule"){
+                shape = Physics::PhysicsShape::CAPSULE;
+            }
+            else if(componentData["shape"] == "cylinder"){
+                shape = Physics::PhysicsShape::CYLINDER;
+            }
+            else{
+                DEBUG_ERROR("Physics shape not recognized : " + (std::string)componentData["shape"]);
+                return;
+            }
         }
         else{
-            DEBUG_ERROR("Physics shape not recognized : " + (std::string)componentData["shape"]);
+            DEBUG_ERROR("Physics shape type not specified for physics body on actor : " + (std::string)parent->GetName());
+            return;
         }
         
         JPH::EMotionType motion;
-
-        if(componentData["motion_type"] == "dynamic"){
-            motion = JPH::EMotionType::Dynamic;
-        }
-        else if(componentData["motion_type"] == "kinematic"){
-            motion = JPH::EMotionType::Kinematic;
-        }
-        else if(componentData["motion_type"] == "static"){
-            motion = JPH::EMotionType::Static;
+        if(componentData.contains("motion_type")){
+            if(componentData["motion_type"] == "dynamic"){
+                motion = JPH::EMotionType::Dynamic;
+            }
+            else if(componentData["motion_type"] == "kinematic"){
+                motion = JPH::EMotionType::Kinematic;
+            }
+            else if(componentData["motion_type"] == "static"){
+                motion = JPH::EMotionType::Static;
+            }
+            else{
+                DEBUG_ERROR("Physics motion type not recognized : " + (std::string)componentData["motion_type"]);
+                return;
+            }
         }
         else{
-            DEBUG_ERROR("Physics motion type not recognized : " + (std::string)componentData["shape"]);
+            DEBUG_ERROR("Physics motion type not specified for physics body on actor : " + (std::string)parent->GetName());
+            return;
+        }
+        
+
+        std::shared_ptr<ShapeParams> params;
+        if(componentData.contains("params")){
+            switch(shape){
+                case(Physics::PhysicsShape::BOX):{
+                    if(componentData["params"].contains("x") && componentData["params"]["x"].is_number_float() && componentData["params"].contains("y") && componentData["params"]["y"].is_number_float() && componentData["params"].contains("z") && componentData["params"]["z"].is_number_float())
+                    {
+                        params = std::make_shared<BoxParams>(glm::vec3(componentData["params"]["x"].get<float>(), componentData["params"]["y"].get<float>(), componentData["params"]["z"].get<float>()));
+                    }
+                    else{
+                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
+                        return;
+                    }
+                    break;
+                }
+                case(Physics::PhysicsShape::SPHERE):{
+                    if(componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float())
+                    {
+                        params = std::make_shared<SphereParams>(componentData["params"]["radius"].get<float>());
+                    }
+                    else{
+                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
+                        return;
+                    }
+                    break;
+                }
+                case(Physics::PhysicsShape::CAPSULE):{
+                    if(componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() && componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float())
+                    {
+                        params = std::make_shared<CapsuleParams>(componentData["params"]["radius"].get<float>(), componentData["params"]["halfHeight"].get<float>());
+                    }
+                    else{
+                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
+                        return;
+                    }
+                    break;
+                }
+                case(Physics::PhysicsShape::CYLINDER):{
+                    if(componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() && componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float())
+                    {
+                        params = std::make_shared<CylinderParams>(componentData["params"]["radius"].get<float>(), componentData["params"]["halfHeight"].get<float>());
+                    }
+                    else{
+                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
+                        return;
+                    }
+                    break;
+                }
+            }
+        }
+        else{
+            DEBUG_ERROR("Physics shape parameters not specified for physics body on actor : " + (std::string)parent->GetName());
+            return;
         }
 
-        CreateBody(shape, glm::vec3(componentData["size"]["x"], componentData["size"]["y"], componentData["size"]["z"]), motion);
+        CreateBody(shape, params, motion);
 
         if(componentData.contains("active") && componentData["active"].get<bool>())
             Activate();
@@ -188,26 +267,34 @@ namespace Pulse::Engine::ECS::Components{
 
         switch(shape){
             case Physics::BOX:{
+                auto boxParams = std::dynamic_pointer_cast<BoxParams>(params);
                 comp["shape"] = "box";
+                comp["params"]["x"] = boxParams->halfExtent.x;
+                comp["params"]["y"] = boxParams->halfExtent.y;
+                comp["params"]["z"] = boxParams->halfExtent.z;
                 break;
             }
             case Physics::CAPSULE:{
+                auto capsuleParams = std::dynamic_pointer_cast<CapsuleParams>(params);
                 comp["shape"] = "capsule";
+                comp["params"]["radius"] = capsuleParams->radius;
+                comp["params"]["halfHeight"] = capsuleParams->halfHeight;
                 break;
             }
             case Physics::CYLINDER:{
+                auto cylinderParams = std::dynamic_pointer_cast<CylinderParams>(params);
                 comp["shape"] = "cylinder";
+                comp["params"]["radius"] = cylinderParams->radius;
+                comp["params"]["halfHeight"] = cylinderParams->halfHeight;
                 break;
             }
             case Physics::SPHERE:{
+                auto sphereParams = std::dynamic_pointer_cast<SphereParams>(params);
                 comp["shape"] = "sphere";
+                comp["params"]["radius"] = sphereParams->radius;
                 break;
             }
         }
-
-        comp["size"]["x"] = scale.x;
-        comp["size"]["y"] = scale.y;
-        comp["size"]["z"] = scale.z;
 
         switch(motionType){
             case JPH::EMotionType::Dynamic:{

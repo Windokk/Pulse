@@ -42,7 +42,17 @@ namespace Pulse::Engine::Core::Resources{
 
         ufbx_mesh* ufbx_mesh = scene->meshes.data[0];
 
-        std::shared_ptr<Rendering::Mesh> mesh = std::make_shared<Rendering::Mesh>(ufbx_mesh, scene->settings.unit_meters, scene->materials);
+        ufbx_node* mesh_node = nullptr;
+
+        for (size_t i = 0; i < scene->nodes.count; i++) {
+            ufbx_node* node = scene->nodes.data[i];
+            if (node->mesh == ufbx_mesh) {
+                mesh_node = node;
+                break;
+            }
+        }
+
+        std::shared_ptr<Rendering::Mesh> mesh = std::make_shared<Rendering::Mesh>(ufbx_mesh, scene->settings.unit_meters, scene->materials, mesh_node);
         meshes.emplace(pathInProject, mesh);
         mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
 

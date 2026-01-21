@@ -156,7 +156,7 @@ namespace Pulse::Engine::ECS::Components{
             Core::GetEngine().GetRenderer()->lightMan->Update(lightIndex);
     }
 
-    void Light::Deserialize(json componentData, json levelData)
+    void Light::Deserialize(json componentData)
     {
         if(componentData["light_type"] == "directional"){
             SetType(Rendering::LightType::Directional);
