@@ -35,7 +35,7 @@
 
 Note : Doesn't work on Wayland, since QtAds isn't fully working on Wayland
 
-<h3><i style="color:green"># Still WIP</i></h3>
+<h3><i># Still WIP</i></h3>
 
 ## How to build :
 
