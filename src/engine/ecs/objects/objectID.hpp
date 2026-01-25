@@ -53,7 +53,7 @@ namespace Pulse::Engine::ECS
             
             ObjectID GenerateNewID() {
                 if (!availableIDs.empty()) {
-                    DEBUG_WARNING("Available ID's not empty");
+                    DEBUG_LOG("Available ID's not empty");
                     int id = *availableIDs.begin();
                     availableIDs.erase(availableIDs.begin());
                     return ObjectID(id);

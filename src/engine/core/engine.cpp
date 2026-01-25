@@ -138,6 +138,19 @@ namespace Pulse::Engine{
             if(activateAllPhysics)
                 activateAllPhysics = false;
 
+            if(reloadCurrentLevel)
+            {
+                std::string levelNameInProject = GetAssetIDManager()->GetAssetFromID(GetLevelManager()->GetLevelAt(0)->GetAssetID())->baseInfos.nameInProject;
+                GetLevelManager()->UnloadLevel(0);
+                GetResourcesManager()->UnloadLevel(levelNameInProject);
+                auto level = GetResourcesManager()->GetLevel(levelNameInProject);
+                if(level)
+                    GetLevelManager()->LoadLevel(level);
+                else
+                    DEBUG_ERROR("Error re-loading level !");
+                reloadCurrentLevel = false;
+            }
+
             context.physicsManager->TickBodies(context.timeManager->GetFixedDeltaTime());
             context.timeManager->Tick();
             context.renderer->Render();

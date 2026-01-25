@@ -216,10 +216,10 @@ namespace Pulse::Engine::Levels{
         for(auto& script : scripts){
             script->OnLevelUnloaded();
         }
-
-        loaded = false;
         
         Clear();
+
+        loaded = false;
     }
 
     void Level::Tick()

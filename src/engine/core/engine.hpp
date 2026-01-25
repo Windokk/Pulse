@@ -145,6 +145,9 @@ namespace Pulse::Engine{
                     if(on){
                         activateAllPhysics = true;
                     }
+                    else{
+                        reloadCurrentLevel = true;
+                    }
                 }
 
             private:
@@ -156,6 +159,7 @@ namespace Pulse::Engine{
 
                 bool playMode = false;
                 bool activateAllPhysics = false;
+                bool reloadCurrentLevel = false;
         };
 
         #if defined(BUILD_ENGINE)

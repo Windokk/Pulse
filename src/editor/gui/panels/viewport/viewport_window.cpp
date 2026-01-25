@@ -223,6 +223,7 @@ namespace Pulse::Editor::GUI {
         ImGui::SetNextWindowPos(ImVec2(width() / 2.f, 0.0f));
         ImGui::Begin("##PlayPauseStop", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
 
+
         if(Engine::Core::GetEngine().IsInPlayMode()){
             if(ImGui::Button(ICON_LC_SQUARE)){
                 Engine::Core::GetEngine().SetPlayMode(false);
@@ -230,6 +231,8 @@ namespace Pulse::Editor::GUI {
         }
         else{
             if(ImGui::Button(ICON_LC_PLAY)){
+                Engine::Levels::LevelManager* levelManager = Engine::Core::GetEngine().GetLevelManager();
+                levelManager->GetLevelAt(0)->Serialize(levelManager->GetLevelAt(0)->GetPath());
                 Engine::Core::GetEngine().SetPlayMode(true);
             }
         }
