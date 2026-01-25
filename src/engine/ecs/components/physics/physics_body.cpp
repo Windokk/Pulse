@@ -155,8 +155,6 @@ namespace Pulse::Engine::ECS::Components{
         );
 
         mBodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
-
-        DEBUG_INFO(Core::GetEngine().GetPhysicsManager()->GetBodyInterface().GetPosition(mBodyID));
     }
 
     void PhysicsBody::ApplyTransformToPhysics(float dt)

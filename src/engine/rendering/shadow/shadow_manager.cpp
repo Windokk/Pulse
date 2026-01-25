@@ -111,7 +111,7 @@ namespace Pulse::Engine::Rendering{
 
                 gl->GenTextures(1, &sm.depthMap[c]);
                 gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
-                gl->TexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                gl->TexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F,
                         dirShadowsResolution, dirShadowsResolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
                 gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -119,7 +119,8 @@ namespace Pulse::Engine::Rendering{
                 gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
                 gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
                 gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
+                float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                gl->TexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
                 gl->BindFramebuffer(GL_FRAMEBUFFER, sm.fbo[c]);
                 gl->FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sm.depthMap[c], 0);
                 gl->DrawBuffer(GL_NONE);
@@ -267,8 +268,8 @@ namespace Pulse::Engine::Rendering{
 
         gl->Enable(GL_DEPTH_TEST);
         gl->Enable(GL_CULL_FACE);
-        gl->CullFace(GL_FRONT);
-        gl->FrontFace(GL_CW);
+        gl->CullFace(GL_BACK);
+        gl->FrontFace(GL_CCW);
 
         for (auto& sm : shadowMaps)
         {
