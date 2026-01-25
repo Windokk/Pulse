@@ -129,16 +129,19 @@ namespace Pulse::Engine{
 
         bool EngineInstance::Run() {
 
+            if(playMode){
+                context.physicsManager->StepSimulation(context.timeManager->GetFixedDeltaTime(), activateAllPhysics);
+                context.audioManager->Tick();
+                context.levelManager->Tick();
+            }
+
+            if(activateAllPhysics)
+                activateAllPhysics = false;
+
+            context.physicsManager->TickBodies(context.timeManager->GetFixedDeltaTime());
             context.timeManager->Tick();
-
-            context.physicsManager->StepSimulation(context.timeManager->GetFixedDeltaTime());
-
             context.renderer->Render();
-            context.audioManager->Tick();
             context.platform->GetInput()->Tick();
-
-            context.levelManager->Tick();
-
             context.platform->GetWindow()->PollEvents();
             context.platform->GetWindow()->SwapBuffers();
 

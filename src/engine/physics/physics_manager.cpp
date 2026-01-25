@@ -172,14 +172,24 @@ namespace Pulse::Engine::Physics {
 
     }
 
-    void PhysicsManager::StepSimulation(float deltaTime)
+    void PhysicsManager::StepSimulation(float deltaTime, bool activateAll)
     {
-        m_physicsSystem.Update(deltaTime, 1, m_tempAllocator, m_jobSystem);
+        if(activateAll){
+            JPH::BodyIDVector bodies;
+            m_physicsSystem.GetBodies(bodies);
+            m_physicsSystem.GetBodyInterface().ActivateBodies(bodies.data(), m_physicsSystem.GetNumBodies());
+        }
 
+        m_physicsSystem.Update(deltaTime, 1, m_tempAllocator, m_jobSystem);
+    }
+ 
+    void PhysicsManager::TickBodies(float deltaTime){
+        
         if(int levelCount = Core::GetEngine().GetLevelManager()->GetLoadedLevelCount() > 0){
-                    for(int i = 0; i < levelCount; i++){
+            for(int i = 0; i < levelCount; i++){
                 for (auto& physicsBody : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->physicsBodies){
-                    physicsBody->Tick();
+                    if(physicsBody->Active())
+                        physicsBody->Tick(deltaTime);
                 }
             }
         }

@@ -12,6 +12,19 @@
 
 namespace Pulse::Engine::ECS::Components{
 
+	bool Transform::IsDirty(DirtyFlags flag) const
+	{
+		return dirtyFlags & flag;
+	}
+
+	void Transform::ClearDirty(DirtyFlags flag)
+	{
+		dirtyFlags = static_cast<DirtyFlags>(
+			static_cast<uint8_t>(dirtyFlags) &
+			~static_cast<uint8_t>(flag)
+		);
+	}
+
     Transform::Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
         this->position = glm::vec3(0,0,0);
@@ -49,7 +62,7 @@ namespace Pulse::Engine::ECS::Components{
 		return comp;
     }
 
-    void Transform::SetPosition(glm::vec3 position)
+    void Transform::SetPosition(glm::vec3 position, bool updateDirty)
     {
         if(!activated)
             return;
@@ -66,10 +79,14 @@ namespace Pulse::Engine::ECS::Components{
 		if(oldpos != position){
 			Core::GetEngine().GetRenderer()->ReorderDrawList();
 		}
+
 		UpdateMeshReferencesInLevel();
+
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Position;
     }
 
-    void Transform::SetRotation(glm::vec3 rotation)
+    void Transform::SetRotation(glm::vec3 rotation, bool updateDirty)
     {
         if(!activated)
             return;
@@ -82,9 +99,12 @@ namespace Pulse::Engine::ECS::Components{
 			}
 		}
 		UpdateMeshReferencesInLevel();
+
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Rotation;
     }
 
-    void Transform::SetRotation(glm::quat rotation)
+    void Transform::SetRotation(glm::quat rotation, bool updateDirty)
     {
 		if(!activated)
             return;
@@ -97,18 +117,24 @@ namespace Pulse::Engine::ECS::Components{
 			}
 		}
 		UpdateMeshReferencesInLevel();
+
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Rotation;
     }
 
-    void Transform::SetScale(glm::vec3 scale)
+    void Transform::SetScale(glm::vec3 scale, bool updateDirty)
     {
         if(!activated)
             return;
 
         this->scale = scale;
 		UpdateMeshReferencesInLevel();
+
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Scale;
     }
 
-    void Transform::Translate(glm::vec3 deltaPosition)
+    void Transform::Translate(glm::vec3 deltaPosition, bool updateDirty)
     {
         if(!activated)
             return;
@@ -123,11 +149,15 @@ namespace Pulse::Engine::ECS::Components{
 		
 		if(deltaPosition.z != 0){
 			Core::GetEngine().GetRenderer()->ReorderDrawList();
-		} 
+		}
+
 		UpdateMeshReferencesInLevel();
+
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Position;
     }
 
-    void Transform::Rotate(glm::vec3 angle)
+    void Transform::Rotate(glm::vec3 angle, bool updateDirty)
     {
         if(!activated)
             return;
@@ -146,15 +176,22 @@ namespace Pulse::Engine::ECS::Components{
 			}
 		}
 		UpdateMeshReferencesInLevel();
+
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Rotation;
     }
 
-    void Transform::Scale(glm::vec3 deltaScale)
+    void Transform::Scale(glm::vec3 deltaScale, bool updateDirty)
     {
         if(!activated)
             return;
 
         this->scale += deltaScale;
+		
 		UpdateMeshReferencesInLevel();
+		
+		if(updateDirty)
+			dirtyFlags |= DirtyFlags::Scale;
     }
 
 	void Transform::UpdateMeshReferencesInLevel()
@@ -199,18 +236,9 @@ namespace Pulse::Engine::ECS::Components{
 		}
 
 		if(glm::vec3(localMatrix[3]) != this->position){
-			position = glm::vec3(localMatrix[3]);
-
-			if(parent->HasComponent<Light>()){
-				for(auto& light : parent->GetComponents<Light>()){
-					light->SetPosition(glm::vec3(this->position.x, this->position.y, this->position.z));
-					
-					Core::GetEngine().GetRenderer()->ReorderDrawList();
-				}
-			}
+			this->SetPosition(glm::vec3(localMatrix[3]));
 		}
 		
-
 		localMatrix[3] = glm::vec4(0, 0, 0, localMatrix[3].w);
 
 		glm::vec3 Row[3], Pdum3;
@@ -219,12 +247,16 @@ namespace Pulse::Engine::ECS::Components{
 			for (glm::length_t j = 0; j < 3; ++j)
 				Row[i][j] = localMatrix[i][j];
 
-		scale.x = length(Row[0]);
+		glm::vec3 sca;
+
+		sca.x = length(Row[0]);
 		Row[0] = glm::detail::scale(Row[0], static_cast<T>(1));
-		scale.y = length(Row[1]);
+		sca.y = length(Row[1]);
 		Row[1] = glm::detail::scale(Row[1], static_cast<T>(1));
-		scale.z = length(Row[2]);
+		sca.z = length(Row[2]);
 		Row[2] = glm::detail::scale(Row[2], static_cast<T>(1));
+
+		SetScale(sca);
 
 #if 0
 		Pdum3 = cross(Row[1], Row[2]); // v3Cross(row[1], row[2], Pdum3);

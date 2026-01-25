@@ -168,11 +168,11 @@ namespace Pulse::Editor::GUI
 
         Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
 
-        if(input->WasKeyPressed(Engine::Input::Key::F3)){
+        if(input->IsKeyDown(Engine::Input::Key::LeftControl) && input->WasKeyPressed(Engine::Input::Key::S)){
             Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
                 Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
             );
-            DEBUG_LOG("Serialized level");
+            DEBUG_LOG("Successfully saved level");
         }
 
         if(input->IsKeyDown(Engine::Input::Key::LeftControl)){

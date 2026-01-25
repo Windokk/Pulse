@@ -18,6 +18,9 @@
 #include <iostream>
 #include <cstdarg>
 #include <unordered_map>
+#include <queue>
+#include <mutex>
+#include <functional>
 
 #include "engine/rendering/utils.hpp"
 
@@ -31,6 +34,36 @@ using namespace std;
 
 namespace Pulse::Engine::ECS::Components{
     class PhysicsBody;
+}
+
+static JPH::Quat ToJolt(const glm::quat& q)
+{
+    glm::quat n = glm::normalize(q);
+    return JPH::Quat(n.x, n.y, n.z, n.w);
+}
+
+static JPH::RVec3 ToJolt(const glm::vec3& v)
+{
+    return JPH::RVec3(v.x, v.y, v.z);
+}
+
+static glm::quat ToGLM(const JPH::Quat& q)
+{
+    return glm::quat(
+        q.GetW(),
+        q.GetX(),
+        q.GetY(),
+        q.GetZ()
+    );
+}
+
+static glm::vec3 ToGLM(const JPH::RVec3& v)
+{
+    return glm::vec3(
+        static_cast<float>(v.GetX()),
+        static_cast<float>(v.GetY()),
+        static_cast<float>(v.GetZ())
+    );
 }
 
 namespace Pulse::Engine::Physics
@@ -267,7 +300,9 @@ namespace Pulse::Engine::Physics
 
         RaycastResult RayCast(RaycastRequest request);
 
-        void StepSimulation(float deltaTime);
+        void StepSimulation(float deltaTime, bool activateAll);
+
+        void TickBodies(float deltaTime);
 
         JPH::BodyID CreateBody(const JPH::BodyCreationSettings& settings, ECS::Components::PhysicsBody* component, JPH::EActivation activation = JPH::EActivation::Activate);
         void RemoveBody(JPH::BodyID id);
@@ -283,7 +318,7 @@ namespace Pulse::Engine::Physics
                 DEBUG_FATAL("Physics system is not yet initialized");
             return m_physicsSystem;
         }
-
+        
     private:
 
         void OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
@@ -303,6 +338,9 @@ namespace Pulse::Engine::Physics
 
         PhysicsContactListener m_contactListener;
         PhysicsBodyActivationListener m_activationListener;
+
+        std::queue<std::function<void()>> mBodyUpdateQueue;
+        std::mutex mQueueMutex;
 
         bool initialized;
 

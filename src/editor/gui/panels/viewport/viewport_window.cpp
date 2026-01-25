@@ -220,6 +220,23 @@ namespace Pulse::Editor::GUI {
             currentGizmoMode = ImGuizmo::WORLD;
         }
 
+        ImGui::SetNextWindowPos(ImVec2(width() / 2.f, 0.0f));
+        ImGui::Begin("##PlayPauseStop", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+
+        if(Engine::Core::GetEngine().IsInPlayMode()){
+            if(ImGui::Button(ICON_LC_SQUARE)){
+                Engine::Core::GetEngine().SetPlayMode(false);
+            }
+        }
+        else{
+            if(ImGui::Button(ICON_LC_PLAY)){
+                Engine::Core::GetEngine().SetPlayMode(true);
+            }
+        }
+        
+        
+
+        ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(width() - 115.0f, 0.0f));
         ImGui::Begin("##GizmoSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);

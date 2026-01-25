@@ -331,8 +331,15 @@ namespace Pulse::Engine::Rendering{
 
                 defaultShader->setMat4("model", model);
 
-                Core::GetEngine().GetGL()->BindVertexArray(physicBody->GetDebugShape()->GetVAO());
-                Core::GetEngine().GetGL()->DrawElements(GL_LINES, physicBody->GetDebugShape()->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+                DebugShape* shape = physicBody->GetDebugShape();
+
+                if(shape){
+                    Core::GetEngine().GetGL()->BindVertexArray(shape->GetVAO());
+                    Core::GetEngine().GetGL()->DrawElements(GL_LINES, shape->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+                }
+                else{
+                    DEBUG_ERROR("Debug shape wasn't initialized for physics body of actor : "+physicBody->parent->GetName());
+                }
             }
         }
         

@@ -39,6 +39,9 @@ namespace Pulse::Engine{
 
             //PHYSICS (project settings : physics)
             glm::vec3 gravity = glm::vec3(0, -9.81f, 0);
+
+            //PLAY MODE
+            bool startInPlayMode = false;
         };
 
         struct EngineContext {
@@ -135,12 +138,24 @@ namespace Pulse::Engine{
 
                 Debugging::Profiler* GetProfiler() const { return context.profiler; }
 
+                bool IsInPlayMode() const { return playMode; }
+
+                void SetPlayMode(bool on) { 
+                    playMode = on;
+                    if(on){
+                        activateAllPhysics = true;
+                    }
+                }
+
             private:
                 EngineInstance() = default;
 
                 EngineContext context;
 
                 EngineCreationSettings settings;
+
+                bool playMode = false;
+                bool activateAllPhysics = false;
         };
 
         #if defined(BUILD_ENGINE)

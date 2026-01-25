@@ -7,121 +7,294 @@
 
 #include <iostream>
 
+#include <thread>
+
 namespace Pulse::Engine::ECS::Components{
     PhysicsBody::PhysicsBody(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
         
     }
 
-    void PhysicsBody::Update(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType)
+    void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const std::shared_ptr<ShapeParams>& newParams, EMotionType newMotionType, bool forceRecreation)
     {
-        Core::GetEngine().GetPhysicsManager()->RemoveBody(mBodyID);
-        CreateBody(shape, params, motionType);
+        auto physics = Core::GetEngine().GetPhysicsManager();
+        if (!physics || mBodyID.IsInvalid())
+            return;
+
+        auto& bi = physics->GetBodyInterface();
+
+        // --- Shape update ---
+        if (newShape != shape || newParams != params || forceRecreation)
+        {
+            JPH::ShapeRefC newShapeRef = CreateJoltShape(newShape, newParams);
+            if (!newShapeRef)
+                return;
+
+            bi.SetShape(
+                mBodyID,
+                newShapeRef,
+                /*updateMassProperties=*/newMotionType == EMotionType::Dynamic,
+                JPH::EActivation::Activate
+            );
+
+            mShape = newShapeRef;
+            shape = newShape;
+            params = newParams;
+        }
+
+        // --- Motion type update ---
+        if (newMotionType != motionType)
+        {
+            bi.SetMotionType(
+                mBodyID,
+                newMotionType,
+                JPH::EActivation::Activate
+            );
+
+            motionType = newMotionType;
+        }
+    }
+
+    JPH::ShapeRefC PhysicsBody::CreateJoltShape(Physics::PhysicsShape shape, const std::shared_ptr<ShapeParams>& params)
+    {
+        glm::vec3 scale = parent->transform->GetScale();
+
+        if(debugShape) {
+            delete debugShape;
+            debugShape = nullptr;
+        }
+
+        switch (shape)
+        {
+            case Physics::PhysicsShape::SPHERE:
+            {
+                auto p = std::dynamic_pointer_cast<SphereParams>(params);
+                if (!p) return nullptr;
+
+                float size = std::max({ scale.x, scale.y, scale.z });
+
+                JPH::SphereShapeSettings s(p->radius * size);
+
+                debugShape = new Rendering::DebugSphere(0.5f, COL_RGBA(0, 1, 1, 1));
+
+                auto r = s.Create();
+                return r.HasError() ? nullptr : r.Get();
+            }
+
+            case Physics::PhysicsShape::BOX:
+            {
+                auto p = std::dynamic_pointer_cast<BoxParams>(params);
+                if (!p) return nullptr;
+
+                JPH::BoxShapeSettings s(
+                    JPH::Vec3(p->halfExtent.x * scale.x, p->halfExtent.y * scale.y, p->halfExtent.z * scale.z)
+                );
+
+                debugShape = new Rendering::DebugBox(glm::vec3(0.5f), COL_RGBA(0, 1, 1, 1));
+
+                auto r = s.Create();
+                return r.HasError() ? nullptr : r.Get();
+            }
+
+            case Physics::PhysicsShape::CAPSULE:
+            {
+                auto p = std::dynamic_pointer_cast<CapsuleParams>(params);
+                if (!p) return nullptr;
+
+                JPH::CapsuleShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
+
+                debugShape = new Rendering::DebugCapsule(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
+
+                auto r = s.Create();
+                return r.HasError() ? nullptr : r.Get();
+            }
+
+            case Physics::PhysicsShape::CYLINDER:
+            {
+                auto p = std::dynamic_pointer_cast<CylinderParams>(params);
+                if (!p) return nullptr;
+
+                JPH::CylinderShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
+
+                debugShape = new Rendering::DebugCylinder(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
+
+                auto r = s.Create();
+                return r.HasError() ? nullptr : r.Get();
+            }
+
+            default:
+                return nullptr;
+        }
     }
 
     void PhysicsBody::CreateBody(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType)
     {
-        JPH::ShapeRefC shapeRef;
+        RemoveBody();
 
-        this->params = params;
+        mShape = nullptr;
+
+        mShape = CreateJoltShape(shape, params);
+        if (!mShape)
+            return;
+
         this->shape = shape;
+        this->params = params;
         this->motionType = motionType;
-
-        switch (shape) {
-            case Physics::PhysicsShape::SPHERE: {
-
-                auto sphereParams = std::dynamic_pointer_cast<SphereParams>(params);
-                if (!sphereParams) return;
-
-                JPH::SphereShapeSettings sphereSettings(sphereParams->radius);
-                auto shapeResult = sphereSettings.Create();
-                if (shapeResult.HasError()) {
-                    std::cerr << "Failed to create sphere shape: " << shapeResult.GetError() << "\n";
-                    return;
-                }
-                shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugSphere(0.5f, COL_RGBA(0, 1, 1, 1));
-                break;
-            }
-            case Physics::PhysicsShape::BOX:{
-
-                auto boxParams = std::dynamic_pointer_cast<BoxParams>(params);
-                if (!boxParams) return;
-
-                JPH::BoxShapeSettings boxSettings(JPH::Vec3(boxParams->halfExtent.x, boxParams->halfExtent.y, boxParams->halfExtent.z));
-                auto shapeResult = boxSettings.Create();
-                if (shapeResult.HasError()) { 
-                    std::cerr << "Failed to create cube shape: " << shapeResult.GetError() << "\n";
-                    return;
-                }
-
-                shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugBox(glm::vec3(0.5f), COL_RGBA(0, 1, 1, 1));
-                break;
-            }
-            case Physics::PhysicsShape::CAPSULE: {
-
-                auto capsuleParams = std::dynamic_pointer_cast<CapsuleParams>(params);
-                if (!capsuleParams) return;
-
-                JPH::CapsuleShapeSettings capsuleSettings(capsuleParams->halfHeight, capsuleParams->radius);
-                auto shapeResult = capsuleSettings.Create();
-                if (shapeResult.HasError()) { 
-                    std::cerr << "Failed to create capsule shape: " << shapeResult.GetError() << "\n";
-                    return;
-                }
-
-                shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugCapsule(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
-                break;
-            }
-            case Physics::PhysicsShape::CYLINDER:{
-                
-                auto cylinderParams = std::dynamic_pointer_cast<CylinderParams>(params);
-                if (!cylinderParams) return;
-
-                JPH::CylinderShapeSettings cylinderSettings(cylinderParams->halfHeight, cylinderParams->radius);
-                auto shapeResult = cylinderSettings.Create();
-                if (shapeResult.HasError()) { 
-                    std::cerr << "Failed to create cylinder shape: " << shapeResult.GetError() << "\n";
-                    return;
-                }
-
-                shapeRef = shapeResult.Get();
-                debugShape = new Rendering::DebugCylinder(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
-                break;
-            }
-
-            default:
-                DEBUG_ERROR("Unsupported physics shape type !");
-                return;
-        }
 
         glm::vec3 pos = parent->transform->GetPosition();
         glm::quat rot = parent->transform->GetRotation();
 
-        // Body settings
         JPH::BodyCreationSettings settings(
-            shapeRef,
-            JPH::RVec3(pos.x, pos.y, pos.z),        // position
-            JPH::Quat(rot.x, rot.y, rot.z, rot.w),  // rotation
-            motionType,                             // motion type
-            motionType == EMotionType::Static ? Physics::Layers::NON_MOVING : Physics::Layers::MOVING
+            mShape,
+            JPH::RVec3(pos.x, pos.y, pos.z),
+            JPH::Quat(rot.x, rot.y, rot.z, rot.w),
+            motionType,
+            motionType == EMotionType::Static
+                ? Physics::Layers::NON_MOVING
+                : Physics::Layers::MOVING
         );
 
         mBodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
+
+        DEBUG_INFO(Core::GetEngine().GetPhysicsManager()->GetBodyInterface().GetPosition(mBodyID));
     }
 
-    void PhysicsBody::Tick(){
+    void PhysicsBody::ApplyTransformToPhysics(float dt)
+    {
+        auto& bi = Core::GetEngine().GetPhysicsManager()->GetBodyInterface();
+
+        if (motionType == EMotionType::Static)
+        {
+            // Editor-only: recreate
+            RemoveBody();
+            CreateBody(shape, params, EMotionType::Static);
+        }
+        else if (motionType == EMotionType::Kinematic)
+        {
+            bi.MoveKinematic(
+                mBodyID,
+                ToJolt(parent->transform->GetPosition()),
+                ToJolt(parent->transform->GetRotationQuat()),
+                dt
+            );
+        }
+        else // Dynamic (editor only)
+        {
+            bi.SetPositionAndRotation(
+                mBodyID,
+                ToJolt(parent->transform->GetPosition()),
+                ToJolt(parent->transform->GetRotationQuat()),
+                JPH::EActivation::Activate
+            );
+        }
+    }
+
+    void PhysicsBody::SyncTransformFromPhysics()
+    {
+        auto& bi = Core::GetEngine().GetPhysicsManager()->GetBodyInterface();
+
+        auto pos = bi.GetCenterOfMassPosition(mBodyID);
+        auto rot = bi.GetRotation(mBodyID);
+
+        parent->transform->SetPosition(ToGLM(pos), false);
+        parent->transform->SetRotation(ToGLM(rot), false);
+    }
+
+    void PhysicsBody::Tick(float dt){
 
         if(!activated)
             return;
 
-        JPH::RVec3 pos = Core::GetEngine().GetPhysicsManager()->GetBodyInterface().GetCenterOfMassPosition(mBodyID);
-        JPH::Vec3 rot = Core::GetEngine().GetPhysicsManager()->GetBodyInterface().GetRotation(mBodyID).GetEulerAngles();
+        const bool playing = Core::GetEngine().IsInPlayMode();
+        const bool posDirty   = parent->transform->IsDirty(DirtyFlags::Position);
+        const bool rotDirty   = parent->transform->IsDirty(DirtyFlags::Rotation);
+        const bool scaleDirty = parent->transform->IsDirty(DirtyFlags::Scale);
+
+        if (!playing)
+        {
+            //EDITOR
+
+            if (scaleDirty)
+            {
+                Update(shape, params, motionType, /*forceRecreation=*/true);
+            }
+
+            if (posDirty || rotDirty)
+            {
+                ApplyTransformToPhysics(dt);
+            }
+        }
+        else
+        {
+            // GAME
+            if (motionType == EMotionType::Dynamic)
+            {
+                SyncTransformFromPhysics();
+            }
+            else if (motionType == EMotionType::Kinematic && (posDirty || rotDirty))
+            {
+                ApplyTransformToPhysics(dt);
+            }
+        }
+
+        parent->transform->ClearDirty(DirtyFlags::All);
+    }
+
+    void PhysicsBody::SetPosition(glm::vec3 newPos)
+    {
+        if (mBodyID.IsInvalid() || !activated)
+            return;
+
+        auto physics = Core::GetEngine().GetPhysicsManager();
+        if (!physics)
+            return;
+
+        auto& bi = physics->GetPhysicsSystem().GetBodyInterface();
+
+        JPH::RVec3 newPosition = ToJolt(newPos);
+
         
-        this->parent->transform->SetPosition(glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ()));
-        this->parent->transform->SetRotation(glm::vec3(glm::degrees(rot.GetX()), glm::degrees(rot.GetY()), glm::degrees(rot.GetZ())));
+        if(motionType == EMotionType::Dynamic || motionType == EMotionType::Kinematic){
+            // Teleport dynamic/kinematic body
+            bi.SetPosition(
+                mBodyID,
+                newPosition,
+                JPH::EActivation::Activate
+            );
+        }
+        else{
+            // Recreate the static body at a new pos
+            CreateBody(shape, params, motionType);
+        }
+    }
+
+    void PhysicsBody::SetRotation(glm::vec3 newRot)
+    {
+        if(!activated)
+            return;
+        
+        SetRotation(glm::quat(newRot));
+    }
+
+    void PhysicsBody::SetRotation(glm::quat newRot)
+    {
+        
+        if (mBodyID.IsInvalid() || !activated)
+            return;
+
+        auto physics = Core::GetEngine().GetPhysicsManager();
+        if (!physics)
+            return;
+
+        auto& bi = physics->GetPhysicsSystem().GetBodyInterface();
+
+        JPH::Quat joltRot = ToJolt(newRot);
+
+        bi.SetRotation(
+            mBodyID,
+            joltRot,
+            JPH::EActivation::Activate
+        );
     }
 
     void PhysicsBody::Activate()

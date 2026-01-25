@@ -14,6 +14,33 @@
 
 namespace Pulse::Engine::ECS::Components
 {
+    enum class DirtyFlags : uint8_t
+    {
+        None     = 0,
+        Position = 1 << 0,
+        Rotation = 1 << 1,
+        Scale    = 1 << 2,
+        All      = Position | Rotation | Scale
+    };
+
+    inline DirtyFlags operator|(DirtyFlags a, DirtyFlags b)
+    {
+        return static_cast<DirtyFlags>(
+            static_cast<uint8_t>(a) | static_cast<uint8_t>(b)
+        );
+    }
+
+    inline DirtyFlags& operator|=(DirtyFlags& a, DirtyFlags b)
+    {
+        a = a | b;
+        return a;
+    }
+
+    inline bool operator&(DirtyFlags a, DirtyFlags b)
+    {
+        return (static_cast<uint8_t>(a) & static_cast<uint8_t>(b)) != 0;
+    }
+
     class Transform : public Component{
 
         public:
@@ -23,18 +50,19 @@ namespace Pulse::Engine::ECS::Components
 
         ordered_json Serialize() override;
 
-        const glm::vec3& GetPosition() const { return position; };
-        const glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); };
-        const glm::vec3& GetScale() const { return scale; };
+        const glm::vec3& GetPosition() const { return position; }
+        const glm::vec3 GetRotation() const { return glm::degrees(glm::eulerAngles(rotation)); }
+        const glm::quat GetRotationQuat() const { return rotation; }
+        const glm::vec3& GetScale() const { return scale; }
 
-        void SetPosition(glm::vec3 position);
-        void SetRotation(glm::vec3 rotation);
-        void SetRotation(glm::quat rotation);
-        void SetScale(glm::vec3 scale);
+        void SetPosition(glm::vec3 position, bool updateDirty = true);
+        void SetRotation(glm::vec3 rotation, bool updateDirty = true);
+        void SetRotation(glm::quat rotation, bool updateDirty = true);
+        void SetScale(glm::vec3 scale, bool updateDirty = true);
 
-        void Translate(glm::vec3 deltaPosition);
-        void Rotate(glm::vec3 angle);
-        void Scale(glm::vec3 deltaScale);
+        void Translate(glm::vec3 deltaPosition, bool updateDirty = true);
+        void Rotate(glm::vec3 angle, bool updateDirty = true);
+        void Scale(glm::vec3 deltaScale, bool updateDirty = true);
 
         void UpdateMeshReferencesInLevel();
 
@@ -60,7 +88,12 @@ namespace Pulse::Engine::ECS::Components
 
         std::shared_ptr<Component> Clone() const override;
 
+        bool IsDirty(DirtyFlags flag) const;
+        void ClearDirty(DirtyFlags flag);
+
         private:
+
+            DirtyFlags dirtyFlags = DirtyFlags::None;
 
             ATTRIBUTE(Editable, write=WritePositionToTransform)
             glm::vec3 position = glm::vec3(0);

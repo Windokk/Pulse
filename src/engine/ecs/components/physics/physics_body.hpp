@@ -55,9 +55,19 @@ namespace Pulse::Engine::ECS::Components
 
             void CreateBody(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType);
 
-            void Update(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType);
+            void ApplyTransformToPhysics(float dt);
 
-            void Tick();
+            void SyncTransformFromPhysics();
+
+            void Update(const Physics::PhysicsShape& shape, const std::shared_ptr<ShapeParams>& params, EMotionType motionType, bool forceRecreation = false);
+
+            void Tick(float dt);
+
+            void SetPosition(glm::vec3 newPos);
+
+            void SetRotation(glm::vec3 newRot);
+
+            void SetRotation(glm::quat newRot);
 
             void Activate() override;
 
@@ -77,19 +87,23 @@ namespace Pulse::Engine::ECS::Components
             std::shared_ptr<Component> Clone() const override;
             
             Physics::PhysicsShape GetShapeType() { return shape; }
-            Rendering::DebugShape* GetDebugShape()  { return debugShape; }
-            JPH::BodyID GetBodyID() const { return mBodyID; }
             std::shared_ptr<ShapeParams> GetShapeParams() { return params; }
+            Rendering::DebugShape* GetDebugShape() { return debugShape; }
+            JPH::BodyID GetBodyID() const { return mBodyID; }
             EMotionType GetMotionType() { return motionType; } 
 
             DECLARE_DESCRIPTOR(PhysicsBody)
 
         private:
+
+            JPH::ShapeRefC CreateJoltShape(Physics::PhysicsShape shape, const std::shared_ptr<ShapeParams> &params);
+
             JPH::BodyID mBodyID = JPH::BodyID();
             ATTRIBUTE(Editable) Physics::PhysicsShape shape;
             std::shared_ptr<ShapeParams> params;
             Rendering::DebugShape* debugShape = nullptr;
             ATTRIBUTE(Editable) EMotionType motionType = EMotionType::Static;
+            JPH::ShapeRefC mShape;
 
     };
 }
