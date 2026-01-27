@@ -161,31 +161,33 @@ namespace Pulse::Engine::ECS::Objects{
             if constexpr (IsSubclassOf<Light, T>()) {
                 component->SetLightIndex(level->lights.size());
                 level->lights.push_back(component);
+                level->lightComps.emplace(GetComponentIDInScene(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<Model, T>()) {
-                level->models.push_back(component);
+                level->models.emplace(GetComponentIDInScene(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<Transform, T>()) {
-                level->transforms.push_back(component);
+                level->transforms.emplace(GetComponentIDInScene(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<PhysicsBody, T>()) {
-                level->physicsBodies.push_back(component);
+                level->physicsBodies.emplace(GetComponentIDInScene(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<AudioSource, T>()) {
-                level->audioSources.push_back(component);
+                level->audioSources.emplace(GetComponentIDInScene(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<Script, T>()) {
-                level->scripts.push_back(component);
+                level->scripts.emplace(GetComponentIDInScene(component->GetLocalId()), component);
                 RegisterComponentEvents(component);
+                component->OnCreate();
             }
 
             if constexpr (IsSubclassOf<Camera, T>()) {
-                level->cameras.push_back(component);
+                level->cameras.emplace(GetComponentIDInScene(component->GetLocalId()), component);
             }
         }
 

@@ -448,15 +448,18 @@ namespace Pulse::Editor::GUI {
 
     void QtGLViewportWindow::OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event){
 
-        switch(event.changeType){
+        switch(event.changeType){   
             case Engine::Events::LOADED:{
+                
+                Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
+
                 cameraActor = Engine::ECS::Objects::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
                 cameraActor->AddComponent<Engine::ECS::Components::Camera>();
-                int width = Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth();
-                int height = Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight();
+                int width = engine->GetWindow()->GetFramebufferWidth();
+                int height = engine->GetWindow()->GetFramebufferHeight();
                 cameraActor->GetComponent<Engine::ECS::Components::Camera>()->Init(width, height, near, far);
-                Engine::Core::GetEngine().GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
-                Engine::Core::GetEngine().GetCameraManager()->SetActiveCamera(cameraActor->GetID());
+                engine->GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
+                engine->GetCameraManager()->SetActiveCamera(cameraActor->GetID());
                 break;
             }
             default:

@@ -34,7 +34,7 @@ namespace Pulse::Engine::Levels{
 
     class Level{
 
-        std::vector<std::shared_ptr<ECS::Objects::Actor>> rootActors;
+        std::unordered_map<ECS::ObjectID, std::shared_ptr<ECS::Objects::Actor>> rootActors;
         std::string name;
         
         Filesystem::Path path;
@@ -53,10 +53,12 @@ namespace Pulse::Engine::Levels{
 
             void SetBuildIndex(int buildIndex);
 
+            void RemoveActorRecursive(ECS::ObjectID actorID);
+
             void Clear();
 
             void Tick();
-            void Begin();
+            void Play();
             void OnLoad();
             void Unload();
 
@@ -66,11 +68,12 @@ namespace Pulse::Engine::Levels{
             void RemoveActor(ECS::ObjectID id);
             std::shared_ptr<ECS::Objects::Actor> GetActor(ECS::ObjectID id, bool recursive = false);
             std::vector<ECS::ObjectID> GetActorsID(bool recursive = false);
-            std::vector<std::shared_ptr<ECS::Objects::Actor>> GetRootActors() { return rootActors; };
+            std::unordered_map<ECS::ObjectID, std::shared_ptr<ECS::Objects::Actor>> GetRootActors() { return rootActors; };
 
             const std::string& GetName() const;
             void SetName(const std::string& name);
             
+            void RemoveComponent(const int idInLevel, const std::shared_ptr<ECS::Components::Component> compPtr);
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
@@ -89,13 +92,16 @@ namespace Pulse::Engine::Levels{
             float ambientIntensity = 0.2f;
             std::shared_ptr<ECS::Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture> ibl_texture;
+
+            // These are maps for fast lookup (key: id in level, value: ptr to the comp)
             std::vector<std::shared_ptr<ECS::Components::Light>> lights;
-            std::vector<std::shared_ptr<ECS::Components::Transform>> transforms;
-            std::vector<std::shared_ptr<ECS::Components::Model>> models;
-            std::vector<std::shared_ptr<ECS::Components::PhysicsBody>> physicsBodies;
-            std::vector<std::shared_ptr<ECS::Components::AudioSource>> audioSources;
-            std::vector<std::shared_ptr<ECS::Components::Camera>> cameras;
-            std::vector<std::shared_ptr<ECS::Components::Script>> scripts;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::Light>> lightComps;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::Transform>> transforms;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::Model>> models;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::PhysicsBody>> physicsBodies;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::AudioSource>> audioSources;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::Camera>> cameras;
+            std::unordered_map<int, std::shared_ptr<ECS::Components::Script>> scripts;
             std::unordered_map<int, std::pair<glm::mat4, Rendering::Mesh*>> meshes;
             
     };

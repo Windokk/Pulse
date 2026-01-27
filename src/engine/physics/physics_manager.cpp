@@ -187,7 +187,7 @@ namespace Pulse::Engine::Physics {
         
         if(int levelCount = Core::GetEngine().GetLevelManager()->GetLoadedLevelCount() > 0){
             for(int i = 0; i < levelCount; i++){
-                for (auto& physicsBody : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->physicsBodies){
+                for (auto& [id,physicsBody] : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->physicsBodies){
                     if(physicsBody->Active())
                         physicsBody->Tick(deltaTime);
                 }

@@ -250,7 +250,7 @@ namespace Pulse::Editor::GUI{
     {
         model->clear();
 
-        for (const auto& rootActor : level->GetRootActors()) {
+        for (const auto& [id, rootActor] : level->GetRootActors()) {
             if (!rootActor)
                 continue;
 

@@ -325,7 +325,7 @@ namespace Pulse::Engine::Rendering{
             defaultShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
             defaultShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
 
-            for (auto& physicBody : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
+            for (auto& [id,physicBody] : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
                 glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
 

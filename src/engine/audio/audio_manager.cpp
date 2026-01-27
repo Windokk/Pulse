@@ -160,7 +160,7 @@ namespace Pulse::Engine::Audio
     {
         if(int levelCount = Core::GetEngine().GetLevelManager()->GetLoadedLevelCount() > 0){
             for(int i = 0; i < levelCount; i++){
-                for(auto& source : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->audioSources){
+                for(auto& [id,source] : Core::GetEngine().GetLevelManager()->GetLevelAt(i)->audioSources){
                     source->Update();
                 }
 

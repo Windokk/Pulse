@@ -44,6 +44,7 @@ namespace Pulse::Engine::Rendering{
         void UnregisterLight(int lightIndex);
         void RenderShadowMaps(const std::vector<std::pair<glm::mat4, Rendering::Mesh *>> &meshes, std::shared_ptr<ECS::Components::Camera> cam);
         void BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material);
+        void ClearAll();
 
         int DIR_SHADOW_BASE_UNIT   = 11; // NUM_CASCADES units
         int SPOT_SHADOW_BASE_UNIT  = 20; // MAX_SPOT_LIGHTS units

@@ -31,14 +31,12 @@ namespace Pulse::Engine::Levels{
             /// @brief Destroys a level
             void DestroyLevel(std::shared_ptr<Level> level){
                 level->Unload();
-                level->Clear();
             }
         
             /// @brief Destroys all levels
             void DestroyAllLevels() {
                 for(int i = 0; i < levelBuffer.size(); i++){
                     levelBuffer[i]->Unload();
-                    levelBuffer[i]->Clear();
                 }
                 levelBuffer.clear();
             }

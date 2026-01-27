@@ -1,5 +1,7 @@
 #include "level.hpp"
+
 #include <iostream>
+#include <algorithm>
 
 #include "engine/ecs/objects/objectID.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
@@ -150,8 +152,15 @@ namespace Pulse::Engine::Levels{
 
         full["name"] = name;
 
-        for(auto& actor : rootActors){
-            SerializeActor(actor, &actorsArray);
+        std::vector<std::pair<ECS::ObjectID, std::shared_ptr<ECS::Objects::Actor>>> sortedActors(
+            rootActors.begin(), rootActors.end()
+        );
+
+        std::sort(sortedActors.begin(), sortedActors.end(),
+                [](const auto& a, const auto& b) { return a.first < b.first; });
+
+        for(auto& [id, actorPtr] : sortedActors){
+            SerializeActor(actorPtr, &actorsArray);
         }
 
         full["actors"] = actorsArray;
@@ -170,31 +179,45 @@ namespace Pulse::Engine::Levels{
         this->buildIndex = buildIndex;
     }
 
+    void Level::RemoveActorRecursive(ECS::ObjectID actorID)
+    {
+        auto objPtr = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(actorID);
+        if (!objPtr)
+            return;
+
+        // Copy children IDs FIRST
+        std::vector<ECS::ObjectID> children;
+        children.reserve(objPtr->GetChildrenCount());
+
+        for (int i = 0; i < objPtr->GetChildrenCount(); ++i)
+            children.push_back(objPtr->GetChild(i)->GetID());
+
+        // Now safely recurse
+        for (ECS::ObjectID childID : children)
+            RemoveActorRecursive(childID);
+
+        // Finally remove this actor
+        auto actorPtr = std::dynamic_pointer_cast<ECS::Objects::Actor>(objPtr);
+        if (!actorPtr)
+            return;
+
+        actorPtr->Destroy();
+    }
+
     void Level::Clear()
     {
-        for(auto& script : scripts){
-            if(script->Active()){
-                script->OnDestroyed();
-            }
-        }
-        
-        for(auto& actor : rootActors){
-            RemoveActor(actor->GetID());
-        }
+        // Make a copy of keys because RemoveActorRecursive modifies rootActors
+        std::vector<ECS::ObjectID> rootIDs;
+        for (auto& [id, actorPtr] : rootActors)
+            rootIDs.push_back(id);
 
-        lights.clear();
-        transforms.clear();
-        models.clear();
-        physicsBodies.clear();
-        audioSources.clear();
-        cameras.clear();
-        scripts.clear();
-        meshes.clear();
+        for (ECS::ObjectID id : rootIDs)
+            RemoveActorRecursive(id);
     }
 
     void Level::OnLoad()
     {
-        for(auto& cam : cameras){
+        for(auto& [id,cam] : cameras){
             Core::GetEngine().GetCameraManager()->AddCamera(cam->parent->GetID(), cam);
         }
 
@@ -202,18 +225,18 @@ namespace Pulse::Engine::Levels{
             lights[i]->SetLightIndex(i);
         }
 
-        for(auto& model : models){
+        for(auto& [id,model] : models){
             model->Update();
         }
 
-        for(auto& script : scripts){
+        for(auto& [id,script] : scripts){
             script->OnLevelLoaded(); 
         }
     }
 
     void Level::Unload()
     {
-        for(auto& script : scripts){
+        for(auto& [id,script] : scripts){
             script->OnLevelUnloaded();
         }
         
@@ -224,36 +247,37 @@ namespace Pulse::Engine::Levels{
 
     void Level::Tick()
     {
-        for(auto& script : scripts){
+        for(auto& [id,script] : scripts){
             if(script->Active()){
-                if(script->beginCalled)
-                    script->Tick();
-                else
-                    script->Begin();
-                    script->beginCalled = true;
+                script->OnTick();
             }
         }
     }
 
-    void Level::Begin()
+    void Level::Play()
     {
-        //TODO
+        for(auto& [id,script] : scripts){
+            if(script->Active()){
+                script->OnPlay();
+            }
+        }
     }
 
     void Level::AddActor(std::shared_ptr<ECS::Objects::Actor> a)
     {
-        rootActors.push_back(a);
+        rootActors.emplace(a->GetID(), a);
         a->SetLevel(this);
     }
 
     void Level::RemoveActor(ECS::ObjectID id)
     {
-        GetActor(id, false)->Destroy();
+        if(rootActors.find(id) != rootActors.end())
+            rootActors.erase(id);
     }
 
     std::shared_ptr<ECS::Objects::Actor> Level::GetActor(ECS::ObjectID id, bool recursive)
     {
-        for (auto& actorPtr : rootActors)
+        for (auto& [id, actorPtr] : rootActors)
         {
             if (actorPtr->GetID() == id)
                 return actorPtr;
@@ -277,7 +301,7 @@ namespace Pulse::Engine::Levels{
     {
         std::vector<ECS::ObjectID> actorIDs;
 
-        for (auto& actorPtr : rootActors)
+        for (auto& [id, actorPtr] : rootActors)
         {
             actorIDs.push_back(actorPtr->GetID());
 
@@ -298,5 +322,37 @@ namespace Pulse::Engine::Levels{
     void Level::SetName(const std::string &name)
     {
         this->name = name;
+    }
+
+    void Level::RemoveComponent(const int idInLevel, const std::shared_ptr<ECS::Components::Component> compPtr)
+    {
+        compPtr->Destroy();
+        if(compPtr->IsInstanceOf<ECS::Components::AudioSource>()){
+            audioSources.erase(idInLevel);
+        }
+        else if(compPtr->IsInstanceOf<ECS::Components::Transform>()){
+            transforms.erase(idInLevel);
+        }
+        else if(compPtr->IsInstanceOf<ECS::Components::PhysicsBody>()){
+            physicsBodies.erase(idInLevel);
+        }
+        else if(compPtr->IsInstanceOf<ECS::Components::Camera>()){
+            cameras.erase(idInLevel);
+        }
+        else if(compPtr->IsInstanceOf<ECS::Components::Script>()){
+            scripts.erase(idInLevel);
+        }
+        else if(compPtr->IsInstanceOf<ECS::Components::Light>()){
+            int index = lightComps.at(idInLevel)->GetLightIndex();
+            std::rotate(lights.begin() + index, lights.begin() + index + 1, lights.end());
+            lights.pop_back();
+            lightComps.erase(idInLevel);
+        }
+        else if(compPtr->IsInstanceOf<ECS::Components::Model>()){
+            meshes.erase(idInLevel);
+        }
+        else{
+            DEBUG_ERROR("Tried removing a component of unknown type from actor : ", compPtr->parent->GetName(), " in level : ", GetName());
+        }
     }
 }

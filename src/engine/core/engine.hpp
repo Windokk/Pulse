@@ -142,6 +142,27 @@ namespace Pulse::Engine{
 
                 void SetPlayMode(bool on) { 
                     playMode = on;
+
+                    if(playMode){
+                        for(int i = 0; i < context.levelManager->GetLoadedLevelCount(); i++){
+                            context.levelManager->GetLevelAt(i)->Play();
+                        }
+
+                        auto* level = context.levelManager->GetLevelAt(0);
+                        if (level && !level->cameras.empty()){
+
+                            auto cameraEntry = level->cameras.begin();
+                            auto camera = cameraEntry->second;
+                            if (!camera || !camera->parent) return;
+
+                            auto parent = camera->parent->GetParent();
+                            if (!parent) return;
+
+                            context.cameraManager->SetActiveCamera(parent->GetID());
+
+                        }
+                    }
+
                     if(on){
                         activateAllPhysics = true;
                     }

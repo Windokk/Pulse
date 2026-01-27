@@ -29,7 +29,10 @@ namespace Pulse::Engine::ECS{
                 virtual void Destroy();
                 std::shared_ptr<Objects::Actor> parent = nullptr;
 
+                /// @brief Activates this component
                 virtual void Activate() { activated = true; }
+
+                /// @brief Deactivates this component
                 virtual void DeActivate() { activated = false; }
 
                 virtual void Deserialize(json componentData) {};
@@ -52,6 +55,11 @@ namespace Pulse::Engine::ECS{
                     return local_id;
                 }
 
+                /// @brief Custom logic for duplication of the component (copy fields)
+                /// @return A "copy" of this component
+                /// @todo
+                /// Should be replaced with automatic cloning using reflection
+                /// @endinternal
                 virtual std::shared_ptr<Component> Clone() const = 0;
 
                 void SetParent(std::shared_ptr<Objects::Actor> newParent){

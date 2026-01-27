@@ -26,10 +26,10 @@ ordered_json Character::Serialize() {
     return ordered_json();
 }
 
-void Character::Begin() {
+void Character::OnPlay() {
 }
 
-void Character::Tick() {
+void Character::OnTick() {
     Core::Platform::IInput* input = Core::GetEngine().GetInputManager();
 
     if(input->IsKeyDown(Input::Key::W)){

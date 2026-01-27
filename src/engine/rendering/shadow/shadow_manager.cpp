@@ -498,4 +498,8 @@ namespace Pulse::Engine::Rendering{
         material->shader->setInt("shadow_pointShadowMapArray", POINT_SHADOW_UNIT);
     }
 
+    void ShadowManager::ClearAll()
+    {
+        shadowMaps.clear();
+    }
 }

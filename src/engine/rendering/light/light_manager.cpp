@@ -74,21 +74,26 @@ namespace Pulse::Engine::Rendering{
     /// @param lightIndex The global (scene-relative) light index to remove
     void LightManager::RemoveLight(int lightIndex)
     {
-        if (lightIndex < 0 || lightIndex >= lights.size())
+        if (lightIndex < 0 || lightIndex >= static_cast<int>(lights.size()))
             return;
+
+        auto* renderer = Core::GetEngine().GetRenderer();
+        auto* shadowMan = renderer->shadowMan;
 
         if (lights[lightIndex] && lights[lightIndex]->castShadow)
         {
-            Core::GetEngine().GetRenderer()->shadowMan->UnregisterLight(lightIndex);
+            shadowMan->UnregisterLight(lightIndex);
         }
 
         lights.erase(lights.begin() + lightIndex);
 
-        for (int i = 0; i < lights.size(); ++i)
+        shadowMan->ClearAll();
+
+        for (size_t i = 0; i < lights.size(); ++i)
         {
             if (lights[i] && lights[i]->castShadow)
             {
-                Core::GetEngine().GetRenderer()->shadowMan->RegisterLight(i, lights[i]);
+                shadowMan->RegisterLight(static_cast<int>(i), lights[i]);
             }
         }
     }

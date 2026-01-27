@@ -8,6 +8,11 @@ namespace Pulse::Engine::ECS::Components
     {    
     }
 
+    void Script::Destroy()
+    {
+        this->OnDestroyed();
+    }
+
     void Script::OnLevelLoaded()
     {
     }
@@ -16,11 +21,15 @@ namespace Pulse::Engine::ECS::Components
     {
     }
 
-    void Script::Begin()
+    void Script::OnCreate()
     {
     }
 
-    void Script::Tick()
+    void Script::OnPlay()
+    {
+    }
+
+    void Script::OnTick()
     {
     }
 
@@ -48,7 +57,7 @@ namespace Pulse::Engine::ECS::Components
     {
 
     }
-
+    
     std::shared_ptr<Component> Script::Clone() const
     {
         auto cloned = std::make_shared<Script>(*this);

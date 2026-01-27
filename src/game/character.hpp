@@ -8,8 +8,8 @@ BEGIN_COMPONENT(Character, Pulse::Engine::ECS::Components::Script)
     void Deserialize(json componentData) override;
     ordered_json Serialize() override;
 
-    void Begin() override;
-    void Tick() override;
+    void OnPlay() override;
+    void OnTick() override;
 
     float speed = 1.0f;
     double lockedMouseX, lockedMouseY = 0;
