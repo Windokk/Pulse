@@ -1,7 +1,7 @@
 #include "script.hpp"
 #include "engine/core/reflection_fields.hpp"
 
-//Reflection for class script
+//Reflection for class : Script
 
 inline ClassDescriptor Pulse::Engine::ECS::Components::Script::descriptor = {
     "Script",

@@ -23,7 +23,7 @@ static Container Model_materials_container = MakeVectorContainer<std::shared_ptr
 
 inline FieldInfo Model_materials_info = {
     "materials",
-    TypeID::Asset,
+    TypeID::Vector,
     48,
     nullptr,
     nullptr,

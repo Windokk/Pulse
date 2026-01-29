@@ -208,6 +208,12 @@ namespace Pulse::Engine::ECS::Components{
         const bool rotDirty   = parent->transform->IsDirty(DirtyFlags::Rotation);
         const bool scaleDirty = parent->transform->IsDirty(DirtyFlags::Scale);
 
+        if(shouldUpdateShape)
+        {
+            Update(shape, params, motionType, true);
+            shouldUpdateShape = false;
+        }
+
         if (!playing)
         {
             //EDITOR
@@ -491,4 +497,15 @@ namespace Pulse::Engine::ECS::Components{
 
         return cloned;
     }
+
+    
+    void PhysicsBody::ForceShapeUpdate(const Physics::PhysicsShape &shape, const std::shared_ptr<ShapeParams> &params, EMotionType motionType)
+    {
+        this->shape = shape;
+        this->params = params;
+        this->motionType = motionType;
+
+        this->shouldUpdateShape = true;
+    }
+
 }

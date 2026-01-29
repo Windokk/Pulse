@@ -60,8 +60,6 @@ namespace Pulse::Engine::ECS::Components
 
             void SyncTransformFromPhysics();
 
-            void Update(const Physics::PhysicsShape& shape, const std::shared_ptr<ShapeParams>& params, EMotionType motionType, bool forceRecreation = false);
-
             void Tick(float dt);
 
             void SetPosition(glm::vec3 newPos);
@@ -93,18 +91,36 @@ namespace Pulse::Engine::ECS::Components
             JPH::BodyID GetBodyID() const { return mBodyID; }
             EMotionType GetMotionType() { return motionType; } 
 
+            void ForceShapeUpdate(const Physics::PhysicsShape& shape, const std::shared_ptr<ShapeParams>& params, EMotionType motionType);
+
             DECLARE_DESCRIPTOR(PhysicsBody)
 
         private:
+        
+            bool shouldUpdateShape = false;
+
+            void Update(const Physics::PhysicsShape& shape, const std::shared_ptr<ShapeParams>& params, EMotionType motionType, bool forceRecreation = false);
 
             JPH::ShapeRefC CreateJoltShape(Physics::PhysicsShape shape, const std::shared_ptr<ShapeParams> &params);
 
             JPH::BodyID mBodyID = JPH::BodyID();
-            FIELD(Editable) Physics::PhysicsShape shape;
+            FIELD(Editable, read=ReadPhysicsShape, write=WritePhysicsShape) Physics::PhysicsShape shape;
             std::shared_ptr<ShapeParams> params;
             Rendering::DebugShape* debugShape = nullptr;
             FIELD(Editable) EMotionType motionType = EMotionType::Static;
             JPH::ShapeRefC mShape;
 
     };
+}
+
+
+inline void ReadPhysicsShape(void* object, void* outValue) {
+    Pulse::Engine::ECS::Components::PhysicsBody* comp = static_cast<Pulse::Engine::ECS::Components::PhysicsBody*>(object);
+    *static_cast<int*>(outValue) = static_cast<int>(comp->GetShapeType());
+}
+
+inline void WritePhysicsShape(void* object, const void* value) {
+    Pulse::Engine::ECS::Components::PhysicsBody* comp = static_cast<Pulse::Engine::ECS::Components::PhysicsBody*>(object);
+    const int* shape = static_cast<const int*>(value);
+    comp->ForceShapeUpdate(static_cast<Pulse::Engine::Physics::PhysicsShape>(*shape), comp->GetShapeParams(), comp->GetMotionType());
 }

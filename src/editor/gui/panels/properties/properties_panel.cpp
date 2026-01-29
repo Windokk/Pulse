@@ -106,6 +106,29 @@ namespace Pulse::Editor::GUI{
         QWidget* wField = nullptr;
         
         switch(field->type){
+            case TypeID::Enum:{
+                int editorVal = *static_cast<int*>(value);
+
+                std::string strVal = field->enumDesc->values.at(editorVal).name;
+
+                QComboBox* comboBox = new QComboBox();
+                for(auto& enumVal : field->enumDesc->values){
+                    comboBox->addItem(enumVal.name);
+                }
+
+                QObject::connect(comboBox, &QComboBox::currentIndexChanged,
+                    this,[this, field, comp, comboBox, container, elementPtr]()
+                    {
+                        int newValue = comboBox->currentIndex();
+                        
+                        WriteValue(field, comp.get(), container, elementPtr, newValue);
+                    }
+                );
+
+                wField = comboBox;
+
+                break;
+            }
             case TypeID::Asset:
             {
                 auto* editorVal = static_cast<Engine::Filesystem::AssetID*>(value);

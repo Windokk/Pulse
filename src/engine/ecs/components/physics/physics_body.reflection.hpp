@@ -130,10 +130,10 @@ inline StructDescriptor CylinderParams_descriptor = {
 static EnumDescriptor PhysicsShape_descriptor = {
     "PhysicsShape",
     {
-        { "SPHERE", 0 },
-        { "BOX", 1 },
-        { "CAPSULE", 2 },
-        { "CYLINDER", 3 },
+        { 0, "SPHERE" },
+        { 1, "BOX" },
+        { 2, "CAPSULE" },
+        { 3, "CYLINDER" },
     }
 };
 
@@ -141,8 +141,8 @@ inline FieldInfo PhysicsBody_shape_info = {
     "shape",
     TypeID::Enum,
     36,
-    nullptr,
-    nullptr,
+    ReadPhysicsShape,
+    WritePhysicsShape,
     nullptr,
     nullptr,
     Editable,
@@ -154,9 +154,9 @@ inline FieldInfo PhysicsBody_shape_info = {
 static EnumDescriptor EMotionType_descriptor = {
     "EMotionType",
     {
-        { "Static", 0 },
-        { "Kinematic", 1 },
-        { "Dynamic", 2 },
+        { 0, "Static" },
+        { 1, "Kinematic" },
+        { 2, "Dynamic" },
     }
 };
 

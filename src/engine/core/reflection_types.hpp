@@ -71,8 +71,8 @@ enum class TypeID : uint16_t {
 };
 
 struct EnumValueInfo {
+    int value;
     const char* name;
-    int value; // underlying integer value
 };
 
 struct EnumDescriptor {
