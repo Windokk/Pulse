@@ -1,7 +1,9 @@
+#pragma once
+
 #include "transform.hpp"
 #include "engine/core/reflection_fields.hpp"
 
-//Reflection for component : Transform
+// Reflection for class Transform
 
 inline FieldInfo Transform_position_info = {
     "position",
@@ -12,7 +14,7 @@ inline FieldInfo Transform_position_info = {
     nullptr,
     nullptr,
     Editable,
-    0,0,
+    0, 0,
     nullptr,
     nullptr
 };
@@ -26,7 +28,7 @@ inline FieldInfo Transform_rotation_info = {
     nullptr,
     nullptr,
     Editable,
-    0,0,
+    0, 0,
     nullptr,
     nullptr
 };
@@ -40,12 +42,12 @@ inline FieldInfo Transform_scale_info = {
     nullptr,
     nullptr,
     Editable,
-    0,0,
+    0, 0,
     nullptr,
     nullptr
 };
 
-inline ComponentDescriptor Pulse::Engine::ECS::Components::Transform::descriptor = {
+inline ClassDescriptor Pulse::Engine::ECS::Components::Transform::descriptor = {
     "Transform",
     {
         &Transform_position_info,
@@ -53,3 +55,4 @@ inline ComponentDescriptor Pulse::Engine::ECS::Components::Transform::descriptor
         &Transform_scale_info,
     }
 };
+

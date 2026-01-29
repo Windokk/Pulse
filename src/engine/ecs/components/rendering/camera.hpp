@@ -36,7 +36,7 @@ namespace Pulse::Engine::ECS::Components {
         Plane nearFace;
     };
 
-    class Camera : public Component
+    class CLASS() Camera : public Component
     {
         public :
             

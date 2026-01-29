@@ -8,8 +8,7 @@
 
 namespace Pulse::Engine::ECS::Components
 {
-
-    class AudioSource : public Component {
+    class CLASS() AudioSource : public Component {
         private:
             Filesystem::Path path;
             Audio::AudioID audioID;

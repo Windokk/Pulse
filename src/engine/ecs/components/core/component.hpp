@@ -7,7 +7,7 @@
 using namespace nlohmann;
 using ordered_json = nlohmann::ordered_json;
 
-struct ComponentDescriptor;
+struct ClassDescriptor;
 
 namespace Pulse::Engine::ECS{
     namespace Objects{
@@ -67,7 +67,7 @@ namespace Pulse::Engine::ECS{
                 }
 
 
-                virtual const ComponentDescriptor* GetDescriptor() const = 0;
+                virtual const ClassDescriptor* GetDescriptor() const = 0;
 
             private:
 

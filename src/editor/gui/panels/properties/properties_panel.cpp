@@ -502,7 +502,7 @@ namespace Pulse::Editor::GUI{
         auto components = selectedActor->GetComponents();
         for (auto& comp : components)
         {
-            const ComponentDescriptor* desc = comp->GetDescriptor();
+            const ClassDescriptor* desc = comp->GetDescriptor();
             AddComponent(desc->name, comp, desc->fields);
         }
     }

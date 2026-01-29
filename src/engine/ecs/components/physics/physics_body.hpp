@@ -26,29 +26,30 @@ namespace Pulse::Engine::ECS::Components
         virtual ~ShapeParams() = default; // <- very important!
     };
 
-    struct SphereParams : public ShapeParams {
-        float radius;
+    struct STRUCT() SphereParams : public ShapeParams {
+        FIELD(Editable) float radius;
         SphereParams(float r) : radius(r) {}
     };
 
-    struct CapsuleParams : public ShapeParams {
-        float radius;
-        float halfHeight;
+    
+    struct STRUCT() CapsuleParams : public ShapeParams {
+        FIELD(Editable) float radius;
+        FIELD(Editable) float halfHeight;
         CapsuleParams(float r, float h) : radius(r), halfHeight(h) {}
     };
 
-    struct BoxParams : public ShapeParams{
-        glm::vec3 halfExtent;
+    struct STRUCT() BoxParams : public ShapeParams{
+        FIELD(Editable) glm::vec3 halfExtent;
         BoxParams(glm::vec3 e) : halfExtent(e) {}
     };
 
-    struct CylinderParams : public ShapeParams{
-        float radius;
-        float halfHeight;
+    struct STRUCT() CylinderParams : public ShapeParams{
+        FIELD(Editable) float radius;
+        FIELD(Editable) float halfHeight;
         CylinderParams(float r, float h) : radius(r), halfHeight(h) {}
     };
 
-    class PhysicsBody : public Component {
+    class CLASS() PhysicsBody : public Component {
         
         public:
             PhysicsBody(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
@@ -99,10 +100,10 @@ namespace Pulse::Engine::ECS::Components
             JPH::ShapeRefC CreateJoltShape(Physics::PhysicsShape shape, const std::shared_ptr<ShapeParams> &params);
 
             JPH::BodyID mBodyID = JPH::BodyID();
-            ATTRIBUTE(Editable) Physics::PhysicsShape shape;
+            FIELD(Editable) Physics::PhysicsShape shape;
             std::shared_ptr<ShapeParams> params;
             Rendering::DebugShape* debugShape = nullptr;
-            ATTRIBUTE(Editable) EMotionType motionType = EMotionType::Static;
+            FIELD(Editable) EMotionType motionType = EMotionType::Static;
             JPH::ShapeRefC mShape;
 
     };

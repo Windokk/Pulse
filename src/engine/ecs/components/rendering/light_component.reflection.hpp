@@ -1,10 +1,13 @@
+#pragma once
+
 #include "light_component.hpp"
 #include "engine/core/reflection_fields.hpp"
 
-//Reflection for component : Light
+// Reflection for class Light
 
-inline ComponentDescriptor Pulse::Engine::ECS::Components::Light::descriptor = {
+inline ClassDescriptor Pulse::Engine::ECS::Components::Light::descriptor = {
     "Light",
     {
     }
 };
+

@@ -1,10 +1,13 @@
+#pragma once
+
 #include "camera.hpp"
 #include "engine/core/reflection_fields.hpp"
 
-//Reflection for component : Camera
+// Reflection for class Camera
 
-inline ComponentDescriptor Pulse::Engine::ECS::Components::Camera::descriptor = {
+inline ClassDescriptor Pulse::Engine::ECS::Components::Camera::descriptor = {
     "Camera",
     {
     }
 };
+

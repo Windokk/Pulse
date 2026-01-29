@@ -6,7 +6,7 @@
 
 namespace Pulse::Engine::ECS::Components
 {
-    class Light : public Component{
+    class CLASS() Light : public Component{
         public:
             Light(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 

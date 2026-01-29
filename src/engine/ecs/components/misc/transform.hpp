@@ -41,7 +41,7 @@ namespace Pulse::Engine::ECS::Components
         return (static_cast<uint8_t>(a) & static_cast<uint8_t>(b)) != 0;
     }
 
-    class Transform : public Component{
+    class CLASS() Transform : public Component{
 
         public:
         Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
@@ -95,13 +95,13 @@ namespace Pulse::Engine::ECS::Components
 
             DirtyFlags dirtyFlags = DirtyFlags::None;
 
-            ATTRIBUTE(Editable, write=WritePositionToTransform)
+            FIELD(Editable, write=WritePositionToTransform)
             glm::vec3 position = glm::vec3(0);
 
-            ATTRIBUTE(Editable, read=ReadRotationFromTransform, write=WriteRotationToTransform, type=glm::vec3) 
+            FIELD(Editable, read=ReadRotationFromTransform, write=WriteRotationToTransform, type=glm::vec3) 
             glm::quat rotation = glm::quat(glm::vec3(0, 0, 0));
 
-            ATTRIBUTE(Editable, write=WriteScaleToTransform) 
+            FIELD(Editable, write=WriteScaleToTransform) 
             glm::vec3 scale = glm::vec3(1);
 
             DECLARE_DESCRIPTOR(Transform)

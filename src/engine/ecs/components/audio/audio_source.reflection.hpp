@@ -1,10 +1,13 @@
+#pragma once
+
 #include "audio_source.hpp"
 #include "engine/core/reflection_fields.hpp"
 
-//Reflection for component : AudioSource
+// Reflection for class AudioSource
 
-inline ComponentDescriptor Pulse::Engine::ECS::Components::AudioSource::descriptor = {
+inline ClassDescriptor Pulse::Engine::ECS::Components::AudioSource::descriptor = {
     "AudioSource",
     {
     }
 };
+

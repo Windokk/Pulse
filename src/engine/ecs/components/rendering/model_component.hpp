@@ -11,7 +11,7 @@ namespace Pulse::Engine::Rendering{
 
 namespace Pulse::Engine::ECS::Components
 {
-    class Model : public Component{
+    class CLASS() Model : public Component{
         public:
             Model(std::shared_ptr<Objects::Actor> parent, uint32_t localID);
 
@@ -42,10 +42,10 @@ namespace Pulse::Engine::ECS::Components
 
             bool alreadySubmitted = false;
 
-            ATTRIBUTE(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
+            FIELD(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
             std::shared_ptr<Rendering::Mesh> mesh;
             
-            ATTRIBUTE(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
+            FIELD(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
             std::vector<std::shared_ptr<Rendering::Material>> materials;
 
             DECLARE_DESCRIPTOR(Model)

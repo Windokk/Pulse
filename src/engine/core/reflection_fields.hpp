@@ -73,7 +73,12 @@ struct FieldInfo {
     const EnumDescriptor* enumDesc = nullptr;
 };
 
-struct ComponentDescriptor{
+struct ClassDescriptor{
+    std::string name;
+    std::vector<FieldInfo*> fields;
+};
+
+struct StructDescriptor{
     std::string name;
     std::vector<FieldInfo*> fields;
 };
