@@ -124,3 +124,20 @@
     background-color: #6fa6f0;
     border: 1px solid #6fa6f0;
 }
+
+#PropertiesPanel QComboBox {
+    background-color: #2b2b2b;
+}
+
+#PropertiesPanel QComboBox::drop-down {
+    border: none;
+}
+
+#PropertiesPanel QComboBox::down-arrow {
+    image: url(:/pulse/default/icons/chevron_down.svg);
+}
+
+#PropertiesPanel QComboBox QAbstractItemView {
+    background-color: #2b2b2b;
+    selection-background-color: #3d3d3d;
+}

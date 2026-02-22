@@ -10,12 +10,10 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::ECS
+namespace Pulse::Engine::Core
 {
-    namespace Objects{
-        class Object;
-    }
-
+    class Object;
+    
     class ObjectID {
         public:
             
@@ -61,11 +59,11 @@ namespace Pulse::Engine::ECS
                 return GenerateNextID();
             }
 
-            void AssignID(ObjectID id, std::shared_ptr<Objects::Object> obj){
+            void AssignID(ObjectID id, std::shared_ptr<Object> obj){
                 ObjectIDMap[id] = obj;
             }
         
-            std::shared_ptr<Objects::Object> GetObjectFromID(ObjectID id){
+            std::shared_ptr<Object> GetObjectFromID(ObjectID id){
                 auto it = ObjectIDMap.find(id);
                 if (it != ObjectIDMap.end()) {
                     return it->second;
@@ -79,15 +77,15 @@ namespace Pulse::Engine::ECS
                 return ObjectID(nextId.fetch_add(1));
             }
     
-            std::map<ObjectID, std::shared_ptr<Objects::Object>> ObjectIDMap;
+            std::map<ObjectID, std::shared_ptr<Object>> ObjectIDMap;
             std::unordered_set<int> availableIDs;
     };
 }
 
 namespace std {
     template<>
-    struct hash<Pulse::Engine::ECS::ObjectID> {
-        std::size_t operator()(const Pulse::Engine::ECS::ObjectID& id) const noexcept {
+    struct hash<Pulse::Engine::Core::ObjectID> {
+        std::size_t operator()(const Pulse::Engine::Core::ObjectID& id) const noexcept {
             return std::hash<int>{}(id.GetAsInt());
         }
     };

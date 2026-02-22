@@ -232,7 +232,7 @@ namespace Pulse::Engine::ECS::Objects{
             }
             else if(std::shared_ptr<Components::PhysicsBody> physicsBody = std::dynamic_pointer_cast<Components::PhysicsBody>(cloneComp)){
                 level->physicsBodies.emplace(GetComponentIDInScene(physicsBody->GetLocalId()), physicsBody);
-                physicsBody->CreateBody(physicsBody->GetShapeType(), physicsBody->GetShapeParams(), physicsBody->GetMotionType());
+                physicsBody->CreateBody(physicsBody->GetShapeType(), physicsBody->params, physicsBody->GetMotionType());
             }
         }
 

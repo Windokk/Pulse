@@ -37,18 +37,18 @@ namespace Pulse::Engine::ECS::Components
             void Destroy() override;
 
             std::shared_ptr<Component> Clone() const override;
-            
-        private:
-
-            bool alreadySubmitted = false;
 
             FIELD(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
             std::shared_ptr<Rendering::Mesh> mesh;
             
             FIELD(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
             std::vector<std::shared_ptr<Rendering::Material>> materials;
-
+            
             DECLARE_DESCRIPTOR(Model)
+        
+        private:
+
+            bool alreadySubmitted = false;
 
     };
 }

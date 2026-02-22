@@ -64,7 +64,7 @@ namespace Pulse::Editor::GUI{
             void AddSeparator();
             void CreateActorInfoHeader();
             void UpdateActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
-            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1, const Container *container = nullptr, void *elementPtr = nullptr);
+            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, void* base, int rowIndex = -1, const Container *container = nullptr, void *elementPtr = nullptr);
             void AddComponent(const std::string &name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data);
 
             std::vector<PropertyBinding> properties;

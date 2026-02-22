@@ -45,6 +45,21 @@ struct Container{
     void (*clear)(void* container);
 };
 
+struct FieldInfo;
+
+struct StructDescriptor
+{
+    std::string name;
+    std::vector<FieldInfo*> fields;
+
+    size_t size;
+
+    void (*construct)(void* data) = nullptr;
+    void (*destruct)(void* data) = nullptr;
+    void (*copy)(void* dst, const void* src) = nullptr;
+    bool (*equals)(const void* a, const void* b);
+};
+
 struct FieldInfo {
     // Identity
     const char* name;         // Field name
@@ -78,9 +93,130 @@ struct ClassDescriptor{
     std::vector<FieldInfo*> fields;
 };
 
-struct StructDescriptor{
-    std::string name;
-    std::vector<FieldInfo*> fields;
+struct InstancedStruct
+{
+    const StructDescriptor* descriptor = nullptr;
+    void* data = nullptr;
+
+    InstancedStruct(const InstancedStruct& other)
+    {
+        if (other.descriptor)
+        {
+            descriptor = other.descriptor;
+            data = operator new(descriptor->size);
+            descriptor->copy(data, other.data);
+        }
+    }
+
+    InstancedStruct& operator=(const InstancedStruct& other)
+    {
+        if (this == &other)
+            return *this;
+
+        Reset();
+
+        if (other.descriptor)
+        {
+            descriptor = other.descriptor;
+            data = operator new(descriptor->size);
+            descriptor->copy(data, other.data);
+        }
+
+        return *this;
+    }
+
+    InstancedStruct(InstancedStruct&& other) noexcept
+    {
+        descriptor = other.descriptor;
+        data = other.data;
+
+        other.descriptor = nullptr;
+        other.data = nullptr;
+    }
+
+    InstancedStruct& operator=(InstancedStruct&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        Reset();
+
+        descriptor = other.descriptor;
+        data = other.data;
+
+        other.descriptor = nullptr;
+        other.data = nullptr;
+
+        return *this;
+    }
+
+    inline bool operator!=(const InstancedStruct& other)
+    {
+        if (descriptor != other.descriptor)
+            return true;
+
+        if (!descriptor)
+            return false;
+
+        if (descriptor->equals)
+            return !descriptor->equals(data, other.data);
+
+        return std::memcmp(
+            data,
+            other.data,
+            descriptor->size) != 0;
+    }
+
+    inline bool operator!=(const InstancedStruct& other) const
+    {
+        if (descriptor != other.descriptor)
+            return true;
+
+        if (!descriptor)
+            return false;
+
+        if (descriptor->equals)
+            return !descriptor->equals(data, other.data);
+
+        return std::memcmp(
+            data,
+            other.data,
+            descriptor->size) != 0;
+    }
+
+    InstancedStruct() = default;
+
+    ~InstancedStruct()
+    {
+        Reset();
+    }
+
+    void Reset()
+    {
+        if (descriptor && data)
+        {
+            if (descriptor->destruct)
+                descriptor->destruct(data);
+
+            operator delete(data);
+        }
+
+        descriptor = nullptr;
+        data = nullptr;
+    }
+
+    void Initialize(const StructDescriptor* desc)
+    {
+        Reset();
+
+        descriptor = desc;
+        data = operator new(desc->size);
+
+        if (desc->construct)
+            desc->construct(data);
+        else
+            std::memset(data, 0, desc->size);
+    }
 };
 
 inline std::string demangle(const char* name) {
@@ -217,7 +353,6 @@ inline void* FieldRead(const FieldInfo& field, void* object, void* scratchBuffer
 
     if (field.container)
     {
-        // Value lives inside the object
         return base;
     }
 

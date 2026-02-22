@@ -15,7 +15,7 @@ namespace Pulse::Engine::ECS::Components{
         
     }
 
-    void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const std::shared_ptr<ShapeParams>& newParams, EMotionType newMotionType, bool forceRecreation)
+    void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const InstancedStruct& newParams, EMotionType newMotionType, bool forceRecreation)
     {
         auto physics = Core::GetEngine().GetPhysicsManager();
         if (!physics || mBodyID.IsInvalid())
@@ -55,7 +55,7 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
-    JPH::ShapeRefC PhysicsBody::CreateJoltShape(Physics::PhysicsShape shape, const std::shared_ptr<ShapeParams>& params)
+    JPH::ShapeRefC PhysicsBody::CreateJoltShape(Physics::PhysicsShape shape, const InstancedStruct& params)
     {
         glm::vec3 scale = parent->transform->GetScale();
 
@@ -68,7 +68,7 @@ namespace Pulse::Engine::ECS::Components{
         {
             case Physics::PhysicsShape::SPHERE:
             {
-                auto p = std::dynamic_pointer_cast<SphereParams>(params);
+                auto p = reinterpret_cast<const SphereParams*>(params.data);
                 if (!p) return nullptr;
 
                 float size = std::max({ scale.x, scale.y, scale.z });
@@ -83,7 +83,7 @@ namespace Pulse::Engine::ECS::Components{
 
             case Physics::PhysicsShape::BOX:
             {
-                auto p = std::dynamic_pointer_cast<BoxParams>(params);
+                auto p = reinterpret_cast<const BoxParams*>(params.data);
                 if (!p) return nullptr;
 
                 JPH::BoxShapeSettings s(
@@ -98,7 +98,7 @@ namespace Pulse::Engine::ECS::Components{
 
             case Physics::PhysicsShape::CAPSULE:
             {
-                auto p = std::dynamic_pointer_cast<CapsuleParams>(params);
+                auto p = reinterpret_cast<const CapsuleParams*>(params.data);
                 if (!p) return nullptr;
 
                 JPH::CapsuleShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
@@ -111,7 +111,7 @@ namespace Pulse::Engine::ECS::Components{
 
             case Physics::PhysicsShape::CYLINDER:
             {
-                auto p = std::dynamic_pointer_cast<CylinderParams>(params);
+                auto p = reinterpret_cast<const CylinderParams*>(params.data);
                 if (!p) return nullptr;
 
                 JPH::CylinderShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
@@ -127,7 +127,7 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
-    void PhysicsBody::CreateBody(Physics::PhysicsShape shape, std::shared_ptr<ShapeParams> params, EMotionType motionType)
+    void PhysicsBody::CreateBody(Physics::PhysicsShape shape, const InstancedStruct& params, EMotionType motionType)
     {
         RemoveBody();
 
@@ -141,13 +141,10 @@ namespace Pulse::Engine::ECS::Components{
         this->params = params;
         this->motionType = motionType;
 
-        glm::vec3 pos = parent->transform->GetPosition();
-        glm::quat rot = parent->transform->GetRotation();
-
         JPH::BodyCreationSettings settings(
             mShape,
-            JPH::RVec3(pos.x, pos.y, pos.z),
-            JPH::Quat(rot.x, rot.y, rot.z, rot.w),
+            ToJolt(parent->transform->GetPosition()),
+            ToJolt(parent->transform->GetRotationQuat()),
             motionType,
             motionType == EMotionType::Static
                 ? Physics::Layers::NON_MOVING
@@ -164,7 +161,6 @@ namespace Pulse::Engine::ECS::Components{
         if (motionType == EMotionType::Static)
         {
             // Editor-only: recreate
-            RemoveBody();
             CreateBody(shape, params, EMotionType::Static);
         }
         else if (motionType == EMotionType::Kinematic)
@@ -372,61 +368,80 @@ namespace Pulse::Engine::ECS::Components{
         }
         
 
-        std::shared_ptr<ShapeParams> params;
-        if(componentData.contains("params")){
-            switch(shape){
-                case(Physics::PhysicsShape::BOX):{
-                    if(componentData["params"].contains("x") && componentData["params"]["x"].is_number_float() && componentData["params"].contains("y") && componentData["params"]["y"].is_number_float() && componentData["params"].contains("z") && componentData["params"]["z"].is_number_float())
-                    {
-                        params = std::make_shared<BoxParams>(glm::vec3(componentData["params"]["x"].get<float>(), componentData["params"]["y"].get<float>(), componentData["params"]["z"].get<float>()));
-                    }
-                    else{
+        InstancedStruct params;
+
+        if (componentData.contains("params")) {
+            switch (shape) {
+                case Physics::PhysicsShape::BOX: {
+                    if (componentData["params"].contains("x") && componentData["params"]["x"].is_number_float() &&
+                        componentData["params"].contains("y") && componentData["params"]["y"].is_number_float() &&
+                        componentData["params"].contains("z") && componentData["params"]["z"].is_number_float()) {
+
+                        params.Initialize(&BoxParams_descriptor);
+                        auto& vec = *reinterpret_cast<glm::vec3*>(params.data);
+                        vec.x = componentData["params"]["x"].get<float>();
+                        vec.y = componentData["params"]["y"].get<float>();
+                        vec.z = componentData["params"]["z"].get<float>();
+                    } else {
                         DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
                         return;
                     }
                     break;
                 }
-                case(Physics::PhysicsShape::SPHERE):{
-                    if(componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float())
-                    {
-                        params = std::make_shared<SphereParams>(componentData["params"]["radius"].get<float>());
-                    }
-                    else{
+
+                case Physics::PhysicsShape::SPHERE: {
+                    if (componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float()) {
+                        params.Initialize(&SphereParams_descriptor);
+                        *reinterpret_cast<float*>(params.data) = componentData["params"]["radius"].get<float>();
+                    } else {
                         DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
                         return;
                     }
                     break;
                 }
-                case(Physics::PhysicsShape::CAPSULE):{
-                    if(componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() && componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float())
-                    {
-                        params = std::make_shared<CapsuleParams>(componentData["params"]["radius"].get<float>(), componentData["params"]["halfHeight"].get<float>());
-                    }
-                    else{
+
+                case Physics::PhysicsShape::CAPSULE: {
+                    if (componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() &&
+                        componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float()) {
+
+                        params.Initialize(&CapsuleParams_descriptor);
+                        auto* dataPtr = reinterpret_cast<CapsuleParams*>(params.data);
+                        dataPtr->radius = componentData["params"]["radius"].get<float>();
+                        dataPtr->halfHeight = componentData["params"]["halfHeight"].get<float>();
+                    } else {
                         DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
                         return;
                     }
                     break;
                 }
-                case(Physics::PhysicsShape::CYLINDER):{
-                    if(componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() && componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float())
-                    {
-                        params = std::make_shared<CylinderParams>(componentData["params"]["radius"].get<float>(), componentData["params"]["halfHeight"].get<float>());
-                    }
-                    else{
+
+                case Physics::PhysicsShape::CYLINDER: {
+                    if (componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() &&
+                        componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float()) {
+
+                        params.Initialize(&CylinderParams_descriptor);
+                        auto* dataPtr = reinterpret_cast<CylinderParams*>(params.data);
+                        dataPtr->radius = componentData["params"]["radius"].get<float>();
+                        dataPtr->halfHeight = componentData["params"]["halfHeight"].get<float>();
+                    } else {
                         DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
                         return;
                     }
                     break;
                 }
+
+                default:
+                    DEBUG_ERROR("Unknown physics shape for actor: " + (std::string)parent->GetName());
+                    return;
             }
-        }
-        else{
+        } else {
             DEBUG_ERROR("Physics shape parameters not specified for physics body on actor : " + (std::string)parent->GetName());
             return;
         }
 
+        // Now pass InstancedStruct to CreateBody
         CreateBody(shape, params, motion);
+
 
         if(componentData.contains("active") && componentData["active"].get<bool>())
             Activate();
@@ -442,35 +457,43 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["active"] = activated;
 
-        switch(shape){
-            case Physics::BOX:{
-                auto boxParams = std::dynamic_pointer_cast<BoxParams>(params);
+        switch (shape)
+        {
+            case Physics::BOX: {
                 comp["shape"] = "box";
+                auto boxParams = reinterpret_cast<const BoxParams*>(params.data);
                 comp["params"]["x"] = boxParams->halfExtent.x;
                 comp["params"]["y"] = boxParams->halfExtent.y;
                 comp["params"]["z"] = boxParams->halfExtent.z;
                 break;
             }
-            case Physics::CAPSULE:{
-                auto capsuleParams = std::dynamic_pointer_cast<CapsuleParams>(params);
+
+            case Physics::SPHERE: {
+                comp["shape"] = "sphere";
+                auto sphereParams = reinterpret_cast<const SphereParams*>(params.data);
+                comp["params"]["radius"] = sphereParams->radius;
+                break;
+            }
+
+            case Physics::CAPSULE: {
                 comp["shape"] = "capsule";
+                auto capsuleParams = reinterpret_cast<const CapsuleParams*>(params.data);
                 comp["params"]["radius"] = capsuleParams->radius;
                 comp["params"]["halfHeight"] = capsuleParams->halfHeight;
                 break;
             }
-            case Physics::CYLINDER:{
-                auto cylinderParams = std::dynamic_pointer_cast<CylinderParams>(params);
+
+            case Physics::CYLINDER: {
                 comp["shape"] = "cylinder";
+                auto cylinderParams = reinterpret_cast<const CylinderParams*>(params.data);
                 comp["params"]["radius"] = cylinderParams->radius;
                 comp["params"]["halfHeight"] = cylinderParams->halfHeight;
                 break;
             }
-            case Physics::SPHERE:{
-                auto sphereParams = std::dynamic_pointer_cast<SphereParams>(params);
-                comp["shape"] = "sphere";
-                comp["params"]["radius"] = sphereParams->radius;
+
+            default:
+                DEBUG_ERROR("Unknown physics shape for actor: " + std::string(parent->GetName()));
                 break;
-            }
         }
 
         switch(motionType){
@@ -498,8 +521,7 @@ namespace Pulse::Engine::ECS::Components{
         return cloned;
     }
 
-    
-    void PhysicsBody::ForceShapeUpdate(const Physics::PhysicsShape &shape, const std::shared_ptr<ShapeParams> &params, EMotionType motionType)
+    void PhysicsBody::ForceShapeUpdate(const Physics::PhysicsShape &shape, const InstancedStruct& params, EMotionType motionType)
     {
         this->shape = shape;
         this->params = params;
@@ -508,4 +530,59 @@ namespace Pulse::Engine::ECS::Components{
         this->shouldUpdateShape = true;
     }
 
+}
+
+inline void WriteShapeParams(void* object, const void* value){
+    
+    auto* comp = static_cast<ECS::Components::PhysicsBody*>(object);
+    auto shape = static_cast<Physics::PhysicsShape>(*static_cast<const int*>(value));
+
+    const StructDescriptor* desc = nullptr;
+
+    switch (shape)
+    {
+        case Physics::SPHERE:   desc = &SphereParams_descriptor; break;
+        case Physics::BOX:      desc = &BoxParams_descriptor; break;
+        case Physics::CAPSULE:  desc = &CapsuleParams_descriptor; break;
+        case Physics::CYLINDER: desc = &CylinderParams_descriptor; break;
+    }
+
+    comp->params.Initialize(desc);
+    comp->ForceShapeUpdate(shape, comp->params, comp->GetMotionType());
+}
+
+inline void WritePhysicsShape(void *object, const void *value)
+{
+    using namespace ECS::Components;
+
+    PhysicsBody* comp = static_cast<PhysicsBody*>(object);
+    const int* shape = static_cast<const int*>(value);
+    Physics::PhysicsShape eshape =
+        static_cast<Physics::PhysicsShape>(*shape);
+
+    InstancedStruct params;
+
+    switch (eshape)
+    {
+        case Physics::BOX:
+            params.Initialize(&BoxParams_descriptor);
+            break;
+
+        case Physics::SPHERE:
+            params.Initialize(&SphereParams_descriptor);
+            break;
+
+        case Physics::CAPSULE:
+            params.Initialize(&CapsuleParams_descriptor);
+            break;
+
+        case Physics::CYLINDER:
+            params.Initialize(&CylinderParams_descriptor);
+            break;
+    }
+
+    comp->ForceShapeUpdate(
+        eshape,
+        params,
+        comp->GetMotionType());
 }

@@ -8,7 +8,7 @@
 inline FieldInfo Transform_position_info = {
     "position",
     TypeID::Vec3,
-    32,
+    offsetof(Pulse::Engine::ECS::Components::Transform, position),
     nullptr,
     WritePositionToTransform,
     nullptr,
@@ -22,7 +22,7 @@ inline FieldInfo Transform_position_info = {
 inline FieldInfo Transform_rotation_info = {
     "rotation",
     TypeID::Vec3,
-    44,
+    offsetof(Pulse::Engine::ECS::Components::Transform, rotation),
     ReadRotationFromTransform,
     WriteRotationToTransform,
     nullptr,
@@ -36,7 +36,7 @@ inline FieldInfo Transform_rotation_info = {
 inline FieldInfo Transform_scale_info = {
     "scale",
     TypeID::Vec3,
-    60,
+    offsetof(Pulse::Engine::ECS::Components::Transform, scale),
     nullptr,
     WriteScaleToTransform,
     nullptr,

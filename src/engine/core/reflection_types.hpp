@@ -78,6 +78,7 @@ struct EnumValueInfo {
 struct EnumDescriptor {
     std::string name;
     std::vector<EnumValueInfo> values;
+    int size;
 };
 
 static TypeID GetTypeIDFromString(std::string typeName) {

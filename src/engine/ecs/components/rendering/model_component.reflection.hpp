@@ -8,7 +8,7 @@
 inline FieldInfo Model_mesh_info = {
     "mesh",
     TypeID::Asset,
-    32,
+    offsetof(Pulse::Engine::ECS::Components::Model, mesh),
     ReadMeshAssetFromModel,
     WriteMeshAssetToModel,
     nullptr,
@@ -24,7 +24,7 @@ static Container Model_materials_container = MakeVectorContainer<std::shared_ptr
 inline FieldInfo Model_materials_info = {
     "materials",
     TypeID::Vector,
-    48,
+    offsetof(Pulse::Engine::ECS::Components::Model, materials),
     nullptr,
     nullptr,
     nullptr,

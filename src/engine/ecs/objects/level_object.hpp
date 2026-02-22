@@ -3,30 +3,19 @@
 #include <vector>
 #include <memory>
 
-#include "engine/ecs/objects/objectID.hpp"
+#include "engine/core/object.hpp"
 
 
 namespace Pulse::Engine::ECS::Objects{
     
-    class Object : public std::enable_shared_from_this<Object>{
+    class LevelObject : public std::enable_shared_from_this<LevelObject>{
         public:
-        
-            static void AssignObjectID(std::shared_ptr<Object> obj);
-            
-            template <typename T, typename... Args>
-            static std::shared_ptr<T> Create(Args&&... args){
-                static_assert(std::is_base_of<Object, T>::value, "T must derive from Object");
-                std::shared_ptr<T> obj = std::make_shared<T>(std::forward<Args>(args)...);
-                AssignObjectID(obj);
-                Object::CallInit(obj);
-                return obj;
-            }
 
-            virtual ~Object();
+            virtual ~LevelObject();
 
-            std::shared_ptr<Object> GetChild(int index);
+            std::shared_ptr<LevelObject> GetChild(int index);
 
-            std::shared_ptr<Object> GetChild(ObjectID id);
+            std::shared_ptr<LevelObject> GetChild(ObjectID id);
             std::vector<ObjectID> GetChildrenID(bool recursive = false){ 
                 std::vector<ObjectID> ids;
 
@@ -34,7 +23,7 @@ namespace Pulse::Engine::ECS::Objects{
                 
                 if (recursive) {
                     for (const auto& childID : children) {
-                        std::shared_ptr<Object> child = GetChild(childID);
+                        std::shared_ptr<LevelObject> child = GetChild(childID);
                         if (child) {
                             std::vector<ObjectID> subChildren = child->GetChildrenID(true);
                             ids.insert(ids.end(), subChildren.begin(), subChildren.end());
@@ -46,7 +35,7 @@ namespace Pulse::Engine::ECS::Objects{
             }
             int GetChildrenCount() { return children.size(); }
 
-            virtual void AddChild(std::shared_ptr<Object> o);
+            virtual void AddChild(std::shared_ptr<LevelObject> o);
 
             void DeleteChildRef(ObjectID child){
                 for(int i = 0; i < children.size(); i++){
@@ -56,7 +45,7 @@ namespace Pulse::Engine::ECS::Objects{
                 }
             }
 
-            std::shared_ptr<Object> GetParent();
+            std::shared_ptr<LevelObject> GetParent();
             void SetParent(ObjectID parentID) { this->parent = parentID; }
 
             ObjectID GetID() { return id; }
@@ -85,7 +74,7 @@ namespace Pulse::Engine::ECS::Objects{
                 // do nothing
             }
 
-            Object();
+            LevelObject();
             ObjectID id;
             std::vector<ObjectID> children;
             ObjectID parent = ObjectID(-1);
