@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/ecs/objects/object.hpp"
+#include "engine/ecs/objects/level_object.hpp"
 
 #include "engine/ecs/components/misc/transform.hpp"
 #include "engine/ecs/components/rendering/light_component.hpp"
@@ -19,7 +19,7 @@ namespace Pulse::Engine::ECS::Objects{
 
     using namespace Components;
 
-    class Actor : public Object{
+    class Actor : public LevelObject{
         
         std::vector<std::shared_ptr<Component>> components;        
         std::string name;
@@ -59,7 +59,7 @@ namespace Pulse::Engine::ECS::Objects{
             std::string GetName() { return name; }
             void SetName(std::string name) { this->name = name; }
 
-            void AddChild(std::shared_ptr<Object> o) override;
+            void AddChild(std::shared_ptr<LevelObject> o) override;
 
             void SetLevel(Levels::Level* lvl);
 
@@ -148,7 +148,7 @@ namespace Pulse::Engine::ECS::Objects{
             return nullptr;
         }
 
-        std::shared_ptr<T> component = std::make_shared<T>(std::static_pointer_cast<Actor>(shared_from_this()), components.size());
+        std::shared_ptr<T> component = std::make_shared<T>(AsShared<Actor>(), components.size());
         
         if (transform != nullptr && IsSubclassOf<Transform, T>()) {
             DEBUG_ERROR("An actor can only have one transform component.");

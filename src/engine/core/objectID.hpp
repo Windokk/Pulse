@@ -33,9 +33,6 @@ namespace Pulse::Engine::Core
             bool operator==(const ObjectID& other) const { return packed == other.packed; }
             bool operator!=(const ObjectID& other) const { return !(*this == other); }
             bool operator<(const ObjectID& other) const { return packed < other.packed; }
-
-            
-            friend class ObjectIDBuilder;
     
         private:
             int packed;
@@ -69,12 +66,13 @@ namespace Pulse::Engine::Core
                     return it->second;
                 }
                 return nullptr;
-            }
+            } 
 
         private:
-            std::atomic<int> nextId;
+            std::atomic<int> nextId{1};
             ObjectID GenerateNextID() {
-                return ObjectID(nextId.fetch_add(1));
+                int val = nextId.fetch_add(1);
+                return ObjectID(val);
             }
     
             std::map<ObjectID, std::shared_ptr<Object>> ObjectIDMap;

@@ -145,6 +145,8 @@ namespace Pulse::Engine::ECS::Components
             Rendering::DebugShape* debugShape = nullptr;
 
             JPH::ShapeRefC mShape;
+            
+            DECLARE_DESCRIPTOR(PhysicsBody)
     };
 
     template<typename T>

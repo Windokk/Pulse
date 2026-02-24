@@ -107,6 +107,7 @@ namespace Pulse::Editor::GUI{
         
         switch(field->type){
             case TypeID::Enum:{
+
                 int editorVal = *static_cast<int*>(value);
 
                 std::string strVal = field->enumDesc->values.at(editorVal).name;
@@ -415,7 +416,7 @@ namespace Pulse::Editor::GUI{
         connect(header.foldout, &QToolButton::toggled,
                 body, &QWidget::setVisible);
 
-        // Active toggle → component enabled state
+        // Active toggle => component enabled state
         connect(header.activeToggle, &QCheckBox::toggled,
             this, [this, &data, comp](bool enabled)
             {

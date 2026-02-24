@@ -6,13 +6,14 @@ namespace Pulse::Engine::Core{
 
     class FieldChangedEvent;
 
-    class Object {
+    /// @brief The base class for every type of object (asset instance, level, level object...)
+    class Object : public std::enable_shared_from_this<Object> {
         public:
             virtual ~Object() = default;
 
             ObjectID GetID() const { return id; }
 
-            static void AssignObjectID(std::shared_ptr<LevelObject> obj);
+            static void AssignObjectID(std::shared_ptr<Object> obj);
             
             template <typename T, typename... Args>
             static std::shared_ptr<T> Create(Args&&... args){
@@ -28,10 +29,54 @@ namespace Pulse::Engine::Core{
             virtual void OnBeginEdit() {}
             virtual void OnEndEdit() {}
 
+            template<typename T>
+            std::shared_ptr<T> Cast()
+            {
+                static_assert(std::is_base_of<Object, T>::value);
+                return std::dynamic_pointer_cast<T>(shared_from_this());
+            }
+
+            template<typename T>
+            bool Is() const
+            {
+                return dynamic_cast<const T*>(this) != nullptr;
+            }
+
+            template<typename T>
+            std::shared_ptr<T> AsShared()
+            {
+                static_assert(std::is_base_of<Object, T>::value);
+                return std::static_pointer_cast<T>(shared_from_this());
+            }
+
         protected:
-            Object();
+            Object() = default;
+            
+            ObjectID id;
 
         private:
-            ObjectID id;
+
+            // Init() detection system
+
+            template <typename, typename = std::void_t<>>
+            struct HasInit : std::false_type {};
+
+            template <typename T>
+            struct HasInit<T, std::void_t<decltype(std::declval<T>().Init())>>
+                : std::true_type {};
+
+            // If T has Init()
+            template <typename U>
+            static std::enable_if_t<HasInit<U>::value>
+            CallInit(std::shared_ptr<U> obj) {
+                obj->Init();
+            }
+
+            // If T does NOT have Init()
+            template <typename U>
+            static std::enable_if_t<!HasInit<U>::value>
+            CallInit(std::shared_ptr<U>) {
+                // nothing
+            }
     };
 }

@@ -4,6 +4,7 @@
 
 #include "engine/rendering/renderer/renderer.hpp"
 
+#include "engine/core/objectID.hpp"
 #include "engine/ecs/components/physics/physics_body.hpp"
 #include "engine/ecs/components/audio/audio_source.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
@@ -17,8 +18,6 @@ namespace Pulse::Engine::ECS{
     namespace Objects{
         class Actor;
     }
-
-    class ObjectID;
 
     namespace Components{
         class Light;
@@ -34,7 +33,7 @@ namespace Pulse::Engine::Levels{
 
     class Level{
 
-        std::unordered_map<ECS::ObjectID, std::shared_ptr<ECS::Objects::Actor>> rootActors;
+        std::unordered_map<Core::ObjectID, std::shared_ptr<ECS::Objects::Actor>> rootActors;
         std::string name;
         
         Filesystem::Path path;
@@ -53,7 +52,7 @@ namespace Pulse::Engine::Levels{
 
             void SetBuildIndex(int buildIndex);
 
-            void RemoveActorRecursive(ECS::ObjectID actorID);
+            void RemoveActorRecursive(Core::ObjectID actorID);
 
             void Clear();
 
@@ -65,10 +64,10 @@ namespace Pulse::Engine::Levels{
             Filesystem::Path GetPath() { return path; }
 
             void AddActor(std::shared_ptr<ECS::Objects::Actor> a);
-            void RemoveActor(ECS::ObjectID id);
-            std::shared_ptr<ECS::Objects::Actor> GetActor(ECS::ObjectID id, bool recursive = false);
-            std::vector<ECS::ObjectID> GetActorsID(bool recursive = false);
-            std::unordered_map<ECS::ObjectID, std::shared_ptr<ECS::Objects::Actor>> GetRootActors() { return rootActors; };
+            void RemoveActor(Core::ObjectID id);
+            std::shared_ptr<ECS::Objects::Actor> GetActor(Core::ObjectID id, bool recursive = false);
+            std::vector<Core::ObjectID> GetActorsID(bool recursive = false);
+            std::unordered_map<Core::ObjectID, std::shared_ptr<ECS::Objects::Actor>> GetRootActors() { return rootActors; };
 
             const std::string& GetName() const;
             void SetName(const std::string& name);
@@ -93,7 +92,7 @@ namespace Pulse::Engine::Levels{
             std::shared_ptr<ECS::Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture> ibl_texture;
 
-            // These are maps for fast lookup (key: id in level, value: ptr to the comp)
+            // These are maps for fast lookup (key: id IN LEVEL, value: ptr to the comp)
             std::vector<std::shared_ptr<ECS::Components::Light>> lights;
             std::unordered_map<int, std::shared_ptr<ECS::Components::Light>> lightComps;
             std::unordered_map<int, std::shared_ptr<ECS::Components::Transform>> transforms;

@@ -7,17 +7,17 @@
 
 
 namespace Pulse::Engine::ECS::Objects{
-    
-    class LevelObject : public std::enable_shared_from_this<LevelObject>{
+
+    class LevelObject : public Core::Object{
         public:
 
             virtual ~LevelObject();
 
             std::shared_ptr<LevelObject> GetChild(int index);
 
-            std::shared_ptr<LevelObject> GetChild(ObjectID id);
-            std::vector<ObjectID> GetChildrenID(bool recursive = false){ 
-                std::vector<ObjectID> ids;
+            std::shared_ptr<LevelObject> GetChild(Core::ObjectID id);
+            std::vector<Core::ObjectID> GetChildrenID(bool recursive = false){ 
+                std::vector<Core::ObjectID> ids;
 
                 ids.insert(ids.end(), children.begin(), children.end());
                 
@@ -25,7 +25,7 @@ namespace Pulse::Engine::ECS::Objects{
                     for (const auto& childID : children) {
                         std::shared_ptr<LevelObject> child = GetChild(childID);
                         if (child) {
-                            std::vector<ObjectID> subChildren = child->GetChildrenID(true);
+                            std::vector<Core::ObjectID> subChildren = child->GetChildrenID(true);
                             ids.insert(ids.end(), subChildren.begin(), subChildren.end());
                         }
                     }
@@ -37,7 +37,7 @@ namespace Pulse::Engine::ECS::Objects{
 
             virtual void AddChild(std::shared_ptr<LevelObject> o);
 
-            void DeleteChildRef(ObjectID child){
+            void DeleteChildRef(Core::ObjectID child){
                 for(int i = 0; i < children.size(); i++){
                     if(children[i].GetAsInt() == child.GetAsInt()){
                         children.erase(children.begin()+i);
@@ -46,38 +46,15 @@ namespace Pulse::Engine::ECS::Objects{
             }
 
             std::shared_ptr<LevelObject> GetParent();
-            void SetParent(ObjectID parentID) { this->parent = parentID; }
+            void SetParent(Core::ObjectID parentID) { this->parent = parentID; }
 
-            ObjectID GetID() { return id; }
+            Core::ObjectID GetID() { return id; }
 
             virtual void Destroy();
         
         private:
-
-            template <typename, typename = std::void_t<>>
-            struct HasInit : std::false_type {};
-
-            template <typename T>
-            struct HasInit<T, std::void_t<decltype(std::declval<T>().Init())>> : std::true_type {};
-
-            // Primary template: HasInit<T> == true
-            template <typename U>
-            static std::enable_if_t<HasInit<U>::value>
-            CallInit(std::shared_ptr<U> obj) {
-                obj->Init();
-            }
-
-            // Fallback: HasInit<T> == false
-            template <typename U>
-            static std::enable_if_t<!HasInit<U>::value>
-            CallInit(std::shared_ptr<U>) {
-                // do nothing
-            }
-
-            LevelObject();
-            ObjectID id;
-            std::vector<ObjectID> children;
-            ObjectID parent = ObjectID(-1);
+            std::vector<Core::ObjectID> children;
+            Core::ObjectID parent = Core::ObjectID(-1);
 
             friend class Actor;
             friend class Skybox;

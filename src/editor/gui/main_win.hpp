@@ -93,8 +93,11 @@ namespace Pulse::Editor::GUI{
             void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
                 this->selectedActor = newPtr;
 
-                if(propertiesPanel)
-                    propertiesPanel->Update(selectedActor);
+                /// Commented out because right now there's a bug making the whole editor crash in it : 
+                /// terminate called after throwing an instance of 'std::out_of_range'
+                /// what():  vector::_M_range_check: __n (which is 18446744072294738688) >= this->size() (which is 3)
+                //if(propertiesPanel)
+                    //propertiesPanel->Update(selectedActor);
 
                 if(!newPtr)
                     treeWidget->ClearSelection();

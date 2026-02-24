@@ -43,14 +43,14 @@ namespace Pulse::Editor::GUI{
             CustomTreeView *treeView;
             QStandardItemModel *model;
 
-            QStandardItem *GetItemFromObjectID(Engine::ECS::ObjectID objID);
+            QStandardItem *GetItemFromObjectID(Engine::Core::ObjectID objID);
 
             void SetupModel();
 
             /// @brief Clears the Level Tree then refills it with a level's hierarchy. Level has to be fully loaded
             /// @param level Shared pointer to the level object
             void LoadLevel(std::shared_ptr<Engine::Levels::Level> level);
-            void populateTree(std::shared_ptr<Engine::ECS::Objects::Object> object, QStandardItem *parentItem);
+            void populateTree(std::shared_ptr<Engine::ECS::Objects::LevelObject> object, QStandardItem *parentItem);
             void SetupStyle();
 
             EditorMainWindow* parent = nullptr;

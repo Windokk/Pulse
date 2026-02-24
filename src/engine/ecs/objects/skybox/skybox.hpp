@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine/ecs/objects/object.hpp"
+#include "engine/ecs/objects/level_object.hpp"
 
 #include "engine/rendering/texture/cubemap.hpp"
 
@@ -13,7 +13,7 @@ namespace Pulse::Engine::Rendering{
 
 namespace Pulse::Engine::ECS::Objects
 {
-    class Skybox : public Object{
+    class Skybox : public LevelObject{
 
             public:
 

@@ -453,7 +453,7 @@ namespace Pulse::Editor::GUI {
                 
                 Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
 
-                cameraActor = Engine::ECS::Objects::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
+                cameraActor = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
                 cameraActor->AddComponent<Engine::ECS::Components::Camera>();
                 int width = engine->GetWindow()->GetFramebufferWidth();
                 int height = engine->GetWindow()->GetFramebufferHeight();

@@ -74,7 +74,7 @@ namespace Pulse::Engine::ECS::Objects{
 
     void Skybox::Destroy()
     {
-        Object::Destroy();
+        LevelObject::Destroy();
     }
 
     unsigned int Skybox::GetIrradianceID()

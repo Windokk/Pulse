@@ -1,4 +1,4 @@
-#include "object.hpp"
+#include "engine/core/object.hpp"
 
 #include "engine/debugging/logger.hpp"
 
@@ -6,60 +6,62 @@
 
 namespace Pulse::Engine::ECS::Objects{
     
-    std::shared_ptr<Object> Object::GetParent()
+    std::shared_ptr<LevelObject> LevelObject::GetParent()
     {
-        return Core::GetEngine().GetObjectIDManager()->GetObjectFromID(parent);
+        auto obj = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(parent);
+        if(auto lvlObj = dynamic_pointer_cast<LevelObject>(obj))
+            return lvlObj;
+        else
+            return nullptr;
     }
 
-    void Object::Destroy()
+    void LevelObject::Destroy()
     {
         if(parent.GetAsInt() != -1){
-            Core::GetEngine().GetObjectIDManager()->GetObjectFromID(parent)->DeleteChildRef(id);
+            GetParent()->DeleteChildRef(id);
         }
         for(auto& child : children)
         { 
-            Core::GetEngine().GetObjectIDManager()->GetObjectFromID(child)->Destroy(); 
+            GetChild(child)->Destroy(); 
         }
         children.clear();
         Core::GetEngine().GetObjectIDManager()->DestroyID(id); 
     }
 
-    Object::Object()
+    LevelObject::~LevelObject()
     {
 
     }
 
-    void Object::AssignObjectID(std::shared_ptr<Object> obj)
+    std::shared_ptr<LevelObject> LevelObject::GetChild(int index)
     {
-        obj->id = Core::GetEngine().GetObjectIDManager()->GenerateNewID();
-        Core::GetEngine().GetObjectIDManager()->AssignID(obj->id, obj);
+        auto obj = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(children[index]);
+        if(auto lvlObj = dynamic_pointer_cast<LevelObject>(obj))
+            return lvlObj;
+        else
+            return nullptr;
     }
 
-    Object::~Object()
-    {
-
-    }
-
-    std::shared_ptr<Object> Object::GetChild(int index)
-    {
-        return Core::GetEngine().GetObjectIDManager()->GetObjectFromID(children[index]);
-    }
-
-    std::shared_ptr<Object> Object::GetChild(ObjectID ObjectID)
+    std::shared_ptr<LevelObject> LevelObject::GetChild(Core::ObjectID ObjectID)
     {
         if (GetID() == ObjectID)
-            return shared_from_this();
+            return AsShared<LevelObject>();
 
         for (auto& child : children)
         {
-            if (child == ObjectID)
-                return Core::GetEngine().GetObjectIDManager()->GetObjectFromID(child);
+            if (child == ObjectID) {
+                auto obj = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(child);
+                if(auto lvlObj = dynamic_pointer_cast<LevelObject>(obj))
+                    return lvlObj;
+                else
+                    return nullptr;
+            }
         }
 
         return nullptr;
     }
 
-    void Object::AddChild(std::shared_ptr<Object> o)
+    void LevelObject::AddChild(std::shared_ptr<LevelObject> o)
     {
         children.push_back(o->GetID());
         o->SetParent(id);

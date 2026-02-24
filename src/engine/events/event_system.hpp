@@ -2,7 +2,7 @@
 
 #include "engine/physics/physics_manager.hpp"
 
-#include "engine/ecs/objects/objectID.hpp"
+#include "engine/core/objectID.hpp"
 
 #include <unordered_map>
 #include <functional>
@@ -17,22 +17,22 @@ namespace Pulse::Engine::Events {
 
     struct Event {
         virtual ~Event() = default;
-        ECS::ObjectID sourceObjectID;
-        explicit Event(ECS::ObjectID source) : sourceObjectID(source) {}
+        Core::ObjectID sourceObjectID;
+        explicit Event(Core::ObjectID source) : sourceObjectID(source) {}
     };
 
     // Common Event Definitions
     struct KeyPressedEvent : public Event {
         int keyCode;
         bool repeated;
-        KeyPressedEvent(const int key, const bool rep, ECS::ObjectID source) : keyCode(key), repeated(rep), Event(source) {}
+        KeyPressedEvent(const int key, const bool rep, Core::ObjectID source) : keyCode(key), repeated(rep), Event(source) {}
     };
 
     struct ContactAddedEvent : public Event {
         const ECS::Components::PhysicsBody& otherBody;
         const ContactManifold &contactManifold;
         ContactSettings &contactSettings;
-        ContactAddedEvent(const ECS::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, ECS::ObjectID source)
+        ContactAddedEvent(const ECS::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, Core::ObjectID source)
              : otherBody(b2), contactManifold(manifold), contactSettings(settings), Event(source) {}
     };
 
@@ -40,14 +40,14 @@ namespace Pulse::Engine::Events {
         const ECS::Components::PhysicsBody& otherBody;
         const ContactManifold &contactManifold;
         ContactSettings &contactSettings;
-        ContactPersistedEvent(const ECS::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, ECS::ObjectID source)
+        ContactPersistedEvent(const ECS::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, Core::ObjectID source)
              : otherBody(b2), contactManifold(manifold), contactSettings(settings), Event(source) {}
     };
 
     struct ContactRemovedEvent : public Event {
         const ECS::Components::PhysicsBody& otherBody;
         ContactRemovedEvent(
-        const ECS::Components::PhysicsBody& b2, ECS::ObjectID source) : otherBody(b2), Event(source) {}
+        const ECS::Components::PhysicsBody& b2, Core::ObjectID source) : otherBody(b2), Event(source) {}
     };
 
     enum LevelChangeType{
@@ -65,7 +65,7 @@ namespace Pulse::Engine::Events {
         const LevelChangeType changeType;
         const std::string actorName;
         LevelStructureChangedEvent(
-        const int& levelAssetID, const LevelChangeType changeType, const std::string actorName, ECS::ObjectID source) : levelAssetID(levelAssetID), actorName(actorName), changeType(changeType), Event(source) {}
+        const int& levelAssetID, const LevelChangeType changeType, const std::string actorName, Core::ObjectID source) : levelAssetID(levelAssetID), actorName(actorName), changeType(changeType), Event(source) {}
     };
 
     // EventDispatcher
@@ -90,7 +90,7 @@ namespace Pulse::Engine::Events {
             }
 
             template<typename T>
-            void subscribeToActor(ECS::ObjectID actorID, std::function<void(const T&)> callback) {
+            void subscribeToActor(Core::ObjectID actorID, std::function<void(const T&)> callback) {
                 actorSubscribers[actorID][typeid(T)].emplace_back([cb = std::move(callback)](const Event& e) {
                     cb(static_cast<const T&>(e));
                 });
@@ -120,7 +120,7 @@ namespace Pulse::Engine::Events {
             }
 
             template<typename T>
-            void emitToActor(ECS::ObjectID actorID, const T& event) {
+            void emitToActor(Core::ObjectID actorID, const T& event) {
                 auto it = actorSubscribers.find(actorID);
                 if (it != actorSubscribers.end()) {
                     dispatchTo(it->second, event);
@@ -154,7 +154,7 @@ namespace Pulse::Engine::Events {
             // Subscriber storage
             SubscriberMap globalSubscribers;
             std::unordered_map<int, SubscriberMap> levelSubscribers;
-            std::unordered_map<ECS::ObjectID, SubscriberMap> actorSubscribers;
+            std::unordered_map<Core::ObjectID, SubscriberMap> actorSubscribers;
             std::unordered_map<ComponentID, SubscriberMap> componentSubscribers;
     };
 }

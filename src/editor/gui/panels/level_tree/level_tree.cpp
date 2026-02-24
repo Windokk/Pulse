@@ -31,7 +31,7 @@ namespace Pulse::Editor::GUI{
 
     }
 
-    QStandardItem* LevelTree::GetItemFromObjectID(Engine::ECS::ObjectID objID){
+    QStandardItem* LevelTree::GetItemFromObjectID(Engine::Core::ObjectID objID){
 
         QList<QStandardItem*> items;
 
@@ -42,10 +42,10 @@ namespace Pulse::Editor::GUI{
             if (topItem) {
 
                 QVariant var = topItem->data(Qt::UserRole);
-                Engine::ECS::ObjectID retrieved;
+                Engine::Core::ObjectID retrieved;
 
                 if (var.isValid()) {
-                    retrieved = var.value<Engine::ECS::ObjectID>();
+                    retrieved = var.value<Engine::Core::ObjectID>();
                 }
 
                 if(retrieved.GetAsInt() == objID.GetAsInt()) {
@@ -60,10 +60,10 @@ namespace Pulse::Editor::GUI{
                 if (child) {
 
                     QVariant var = child->data(Qt::UserRole);
-                    Engine::ECS::ObjectID retrieved;
+                    Engine::Core::ObjectID retrieved;
 
                     if (var.isValid()) {
-                        retrieved = var.value<Engine::ECS::ObjectID>();
+                        retrieved = var.value<Engine::Core::ObjectID>();
                     }
 
                     if(retrieved.GetAsInt() == objID.GetAsInt()) {
@@ -88,7 +88,7 @@ namespace Pulse::Editor::GUI{
         switch(event.changeType){
             case Engine::Events::CREATED:{
 
-                std::shared_ptr<Pulse::Engine::ECS::Objects::Object> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(event.sourceObjectID);
+                std::shared_ptr<Pulse::Engine::ECS::Objects::LevelObject> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(event.sourceObjectID)->Cast<Engine::ECS::Objects::LevelObject>();
 
                 QStandardItem *item = new QStandardItem(QString::fromStdString(event.actorName));
                 item->setData(QVariant::fromValue(event.sourceObjectID), Qt::UserRole);
@@ -146,13 +146,13 @@ namespace Pulse::Editor::GUI{
         QStandardItem *item = model->itemFromIndex(index);
         if (item) {
             QVariant var = item->data(Qt::UserRole);
-            Engine::ECS::ObjectID retrieved;
+            Engine::Core::ObjectID retrieved;
 
             if (var.isValid()) {
-                retrieved = var.value<Engine::ECS::ObjectID>();
+                retrieved = var.value<Engine::Core::ObjectID>();
             }
 
-            std::shared_ptr<Engine::ECS::Objects::Object> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(retrieved);
+            std::shared_ptr<Engine::ECS::Objects::LevelObject> obj = GetEngine().GetObjectIDManager()->GetObjectFromID(retrieved)->Cast<Engine::ECS::Objects::LevelObject>();
             std::shared_ptr<Engine::ECS::Objects::Actor> actor = std::dynamic_pointer_cast<Engine::ECS::Objects::Actor>(obj);
             
             if (button == Qt::RightButton) {
@@ -198,7 +198,7 @@ namespace Pulse::Editor::GUI{
                     actor->Clone();
                 }
                 else if (selectedAction == createAction) {
-                    std::shared_ptr<Engine::ECS::Objects::Actor> child = Engine::ECS::Objects::Object::Create<Engine::ECS::Objects::Actor>("New Actor");
+                    std::shared_ptr<Engine::ECS::Objects::Actor> child = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("New Actor");
                     actor->AddChild(child);
                 }
             }
@@ -235,7 +235,7 @@ namespace Pulse::Editor::GUI{
             QVariant var = changedItem->data(Qt::UserRole);
             if (!var.isValid()) return;
 
-            Engine::ECS::ObjectID id = var.value<Engine::ECS::ObjectID>();
+            Engine::Core::ObjectID id = var.value<Engine::Core::ObjectID>();
             auto obj = GetEngine().GetObjectIDManager()->GetObjectFromID(id);
             auto actor = std::dynamic_pointer_cast<Engine::ECS::Objects::Actor>(obj);
             if (actor) {
@@ -264,10 +264,10 @@ namespace Pulse::Editor::GUI{
         }
     }
 
-    void LevelTree::populateTree(std::shared_ptr<Engine::ECS::Objects::Object> object, QStandardItem *parentItem)
+    void LevelTree::populateTree(std::shared_ptr<Engine::ECS::Objects::LevelObject> object, QStandardItem *parentItem)
     {
-        for (Engine::ECS::ObjectID childID : object->GetChildrenID(false)) {
-            std::shared_ptr<Engine::ECS::Objects::Object> obj = object->GetChild(childID);
+        for (Engine::Core::ObjectID childID : object->GetChildrenID(false)) {
+            std::shared_ptr<Engine::ECS::Objects::LevelObject> obj = object->GetChild(childID);
             std::shared_ptr<Engine::ECS::Objects::Actor> child = std::dynamic_pointer_cast<Engine::ECS::Objects::Actor>(obj);
             if (!child)
                 continue;

@@ -99,7 +99,7 @@ namespace Pulse::Engine{
             context.fileManager = new Filesystem::FileManager();
             context.assetIDManager = new Filesystem::AssetIDManager();
 
-            context.objIDManager = new ECS::ObjectIDManager();
+            context.objIDManager = new ObjectIDManager();
 
             context.levelManager = new Levels::LevelManager();
 

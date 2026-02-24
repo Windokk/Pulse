@@ -56,7 +56,7 @@ namespace Pulse::Engine{
             Filesystem::FileManager* fileManager = nullptr;
             Filesystem::AssetIDManager* assetIDManager = nullptr;
 
-            ECS::ObjectIDManager* objIDManager = nullptr;
+            ObjectIDManager* objIDManager = nullptr;
 
             Levels::LevelManager* levelManager = nullptr;
 
@@ -118,7 +118,7 @@ namespace Pulse::Engine{
 
                 Filesystem::AssetIDManager* GetAssetIDManager() const { return context.assetIDManager; }
 
-                ECS::ObjectIDManager* GetObjectIDManager() const { return context.objIDManager; }
+                ObjectIDManager* GetObjectIDManager() const { return context.objIDManager; }
 
                 Physics::PhysicsManager* GetPhysicsManager() const { return context.physicsManager; }
 

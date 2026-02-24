@@ -3,7 +3,6 @@
 #include <iostream>
 #include <algorithm>
 
-#include "engine/ecs/objects/objectID.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/ecs/components/core/registry/component_registry.hpp"
 #include "engine/core/engine.hpp"
@@ -73,7 +72,7 @@ namespace Pulse::Engine::Levels{
 
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
             for (auto& child : actor["children"]) {
-                std::shared_ptr<ECS::Objects::Actor> b = ECS::Objects::Object::Create<ECS::Objects::Actor>(child["name"]);
+                std::shared_ptr<ECS::Objects::Actor> b = Core::Object::Create<ECS::Objects::Actor>(child["name"]);
                 a->AddChild(b);
                 DeserializeActor(b, data, child);
             }
@@ -93,7 +92,7 @@ namespace Pulse::Engine::Levels{
 
             for(auto& actor : data["actors"])
             {
-                std::shared_ptr<ECS::Objects::Actor> a = ECS::Objects::Object::Create<ECS::Objects::Actor>(actor["name"]);
+                std::shared_ptr<ECS::Objects::Actor> a = Core::Object::Create<ECS::Objects::Actor>(actor["name"]);
                 AddActor(a);
                 DeserializeActor(a, data, actor);
             }
@@ -106,7 +105,7 @@ namespace Pulse::Engine::Levels{
                     
                     if(shader != nullptr && envMap != nullptr)
                     {
-                        std::shared_ptr<ECS::Objects::Skybox> sb = ECS::Objects::Object::Create<ECS::Objects::Skybox>(envMap, shader);
+                        std::shared_ptr<ECS::Objects::Skybox> sb = Core::Object::Create<ECS::Objects::Skybox>(envMap, shader);
                         this->skybox = sb;
                     }
                     else{
@@ -152,7 +151,7 @@ namespace Pulse::Engine::Levels{
 
         full["name"] = name;
 
-        std::vector<std::pair<ECS::ObjectID, std::shared_ptr<ECS::Objects::Actor>>> sortedActors(
+        std::vector<std::pair<Core::ObjectID, std::shared_ptr<ECS::Objects::Actor>>> sortedActors(
             rootActors.begin(), rootActors.end()
         );
 
@@ -179,21 +178,23 @@ namespace Pulse::Engine::Levels{
         this->buildIndex = buildIndex;
     }
 
-    void Level::RemoveActorRecursive(ECS::ObjectID actorID)
+    void Level::RemoveActorRecursive(Core::ObjectID actorID)
     {
         auto objPtr = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(actorID);
-        if (!objPtr)
+        if (!objPtr && !dynamic_pointer_cast<ECS::Objects::LevelObject>(objPtr))
             return;
 
-        // Copy children IDs FIRST
-        std::vector<ECS::ObjectID> children;
-        children.reserve(objPtr->GetChildrenCount());
+        auto lvlObjPtr = dynamic_pointer_cast<ECS::Objects::LevelObject>(objPtr);
 
-        for (int i = 0; i < objPtr->GetChildrenCount(); ++i)
-            children.push_back(objPtr->GetChild(i)->GetID());
+        // Copy children IDs FIRST
+        std::vector<Core::ObjectID> children;
+        children.reserve(lvlObjPtr->GetChildrenCount());
+
+        for (int i = 0; i < lvlObjPtr->GetChildrenCount(); ++i)
+            children.push_back(lvlObjPtr->GetChild(i)->GetID());
 
         // Now safely recurse
-        for (ECS::ObjectID childID : children)
+        for (Core::ObjectID childID : children)
             RemoveActorRecursive(childID);
 
         // Finally remove this actor
@@ -207,11 +208,11 @@ namespace Pulse::Engine::Levels{
     void Level::Clear()
     {
         // Make a copy of keys because RemoveActorRecursive modifies rootActors
-        std::vector<ECS::ObjectID> rootIDs;
+        std::vector<Core::ObjectID> rootIDs;
         for (auto& [id, actorPtr] : rootActors)
             rootIDs.push_back(id);
 
-        for (ECS::ObjectID id : rootIDs)
+        for (Core::ObjectID id : rootIDs)
             RemoveActorRecursive(id);
     }
 
@@ -269,13 +270,13 @@ namespace Pulse::Engine::Levels{
         a->SetLevel(this);
     }
 
-    void Level::RemoveActor(ECS::ObjectID id)
+    void Level::RemoveActor(Core::ObjectID id)
     {
         if(rootActors.find(id) != rootActors.end())
             rootActors.erase(id);
     }
 
-    std::shared_ptr<ECS::Objects::Actor> Level::GetActor(ECS::ObjectID id, bool recursive)
+    std::shared_ptr<ECS::Objects::Actor> Level::GetActor(Core::ObjectID id, bool recursive)
     {
         for (auto& [id, actorPtr] : rootActors)
         {
@@ -283,7 +284,7 @@ namespace Pulse::Engine::Levels{
                 return actorPtr;
 
             if(recursive){
-                std::vector<ECS::ObjectID> children = actorPtr->GetChildrenID(true);
+                std::vector<Core::ObjectID> children = actorPtr->GetChildrenID(true);
 
                 for(auto& _id : children){
                     std::shared_ptr<ECS::Objects::Actor> child = std::dynamic_pointer_cast<ECS::Objects::Actor>(Core::GetEngine().GetObjectIDManager()->GetObjectFromID(_id));
@@ -297,16 +298,16 @@ namespace Pulse::Engine::Levels{
         return nullptr;
     }
 
-    std::vector<ECS::ObjectID> Level::GetActorsID(bool recursive)
+    std::vector<Core::ObjectID> Level::GetActorsID(bool recursive)
     {
-        std::vector<ECS::ObjectID> actorIDs;
+        std::vector<Core::ObjectID> actorIDs;
 
         for (auto& [id, actorPtr] : rootActors)
         {
             actorIDs.push_back(actorPtr->GetID());
 
             if(recursive){
-                std::vector<ECS::ObjectID> children = actorPtr->GetChildrenID(true);
+                std::vector<Core::ObjectID> children = actorPtr->GetChildrenID(true);
                 actorIDs.insert(actorIDs.end(), children.begin(), children.end());
             }
         }

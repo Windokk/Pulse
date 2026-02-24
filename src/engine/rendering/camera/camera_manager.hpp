@@ -2,7 +2,7 @@
 
 #include "engine/rendering/utils.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
-#include "engine/ecs/objects/objectID.hpp"
+#include "engine/core/objectID.hpp"
 
 #include <string>
 #include <vector>
@@ -16,7 +16,7 @@ namespace Pulse::Engine::Rendering{
         public:
             
             /// @brief Adds a new camera with a name
-            void AddCamera(const ECS::ObjectID parentID, std::shared_ptr<Camera> camera) {
+            void AddCamera(const Core::ObjectID parentID, std::shared_ptr<Camera> camera) {
                 cameras[parentID] = camera;
 
                 if (!activeCamera)
@@ -24,7 +24,7 @@ namespace Pulse::Engine::Rendering{
             }
 
             /// @brief Removes a camera by name
-            void RemoveCamera(const ECS::ObjectID parentID) {
+            void RemoveCamera(const Core::ObjectID parentID) {
                 if (cameras.count(parentID)) {
                     if (cameras[parentID] == activeCamera)
                         activeCamera = nullptr;
@@ -36,7 +36,7 @@ namespace Pulse::Engine::Rendering{
             /// @param width The new width (in px)
             /// @param height The new height (in px)
             void UpdateSize(int width, int height) {
-                for(std::pair<ECS::ObjectID, std::shared_ptr<Camera>> cam : cameras){
+                for(std::pair<Core::ObjectID, std::shared_ptr<Camera>> cam : cameras){
                     cam.second->UpdateSize(width, height);
                 }
             }
@@ -48,14 +48,14 @@ namespace Pulse::Engine::Rendering{
             }
 
             /// @brief Get a camera by name
-            std::shared_ptr<Camera> GetCamera(const ECS::ObjectID parentID) {
+            std::shared_ptr<Camera> GetCamera(const Core::ObjectID parentID) {
                 if (cameras.count(parentID))
                     return cameras[parentID];
                 return nullptr;
             }
 
             /// @brief Set the active camera
-            void SetActiveCamera(const ECS::ObjectID parentID) {
+            void SetActiveCamera(const Core::ObjectID parentID) {
                 if (cameras.count(parentID))
                     activeCamera = cameras[parentID];
             }
@@ -73,7 +73,7 @@ namespace Pulse::Engine::Rendering{
 
         private:
 
-            std::unordered_map<ECS::ObjectID, std::shared_ptr<Camera>> cameras;
+            std::unordered_map<Core::ObjectID, std::shared_ptr<Camera>> cameras;
             std::shared_ptr<Camera> activeCamera;
     };
 }

@@ -96,12 +96,12 @@ namespace Pulse::Engine::ECS::Objects{
             }
         }
         
-        Object::Destroy();
+        LevelObject::Destroy();
     }
 
-    void Actor::AddChild(std::shared_ptr<Object> o)
+    void Actor::AddChild(std::shared_ptr<LevelObject> o)
     {
-        Object::AddChild(o);
+        LevelObject::AddChild(o);
         if (std::shared_ptr<Actor> actorChild = std::dynamic_pointer_cast<Actor>(o)) {
             actorChild->SetLevel(this->level);
         }
@@ -167,7 +167,7 @@ namespace Pulse::Engine::ECS::Objects{
     
     std::shared_ptr<Actor> Actor::Clone()
     {
-        std::shared_ptr<Actor> copy = Object::Create<Actor>("Copy of "+name);
+        std::shared_ptr<Actor> copy = Core::Object::Create<Actor>("Copy of "+name);
 
         DEBUG_INFO("Cloning actor : "+name);
 
