@@ -37,26 +37,23 @@ namespace Pulse::Engine::ECS::Components
             void Destroy() override;
 
             std::shared_ptr<Component> Clone() const override;
-
-            FIELD(Editable, write=WriteMeshAssetToModel, read=ReadMeshAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
-            std::shared_ptr<Rendering::Mesh> mesh;
             
-            FIELD(Editable, cwrite=WriteMaterialAssetToModel, cread=ReadMaterialAssetFromModel, type=Pulse::Engine::Filesystem::AssetID) 
-            std::vector<std::shared_ptr<Rendering::Material>> materials;
+            FIELD(Editable)
+            Filesystem::AssetID meshID;
+
+            FIELD(Editable)
+            std::vector<Filesystem::AssetID> materialsID;
             
             DECLARE_DESCRIPTOR(Model)
+
+            void OnFieldChanged(const FieldChangedEvent &event) override;
         
         private:
 
             bool alreadySubmitted = false;
 
+            std::shared_ptr<Rendering::Mesh> mesh;
+            std::vector<std::shared_ptr<Rendering::Material>> materials;
+
     };
 }
-
-inline void WriteMeshAssetToModel(void* object, const void* value);
-
-inline void ReadMeshAssetFromModel(void* object, void* outValue);
-
-inline void WriteMaterialAssetToModel(void* component, void* element, const void* editorValue);
-
-inline void ReadMaterialAssetFromModel(const void* element, void* outEditorValue);

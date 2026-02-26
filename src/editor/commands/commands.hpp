@@ -20,7 +20,7 @@ namespace Pulse::Editor::Commands{
             virtual void Undo() = 0;
             virtual void Redo() = 0;
 
-            // Optional hooks
+            // Hooks
             virtual void Finalize() {}
             virtual bool IsValid() const { return true; }
             virtual const char* GetName() const = 0;
@@ -80,57 +80,75 @@ namespace Pulse::Editor::Commands{
     };
 
     struct ValueBuffer {
-        TypeID type;
-        size_t size;
-        std::vector<uint8_t> data;
+        const FieldInfo* field;
+        std::unique_ptr<uint8_t[]> data;
 
-        ValueBuffer(TypeID t)
-            : type(t), size(GetTypeSize(t)), data(size) {}
+        ValueBuffer(const FieldInfo* f)
+            : field(f),
+            data(std::make_unique<uint8_t[]>(GetTypeSize(f->type))) {}
 
-        void* ptr() { return data.data(); }
-        const void* ptr() const { return data.data(); }
+        void* ptr() { return data.get(); }
+        const void* ptr() const { return data.get(); }
     };
 
     class ModifyFieldCommand final : public Command {
         public:
             ModifyFieldCommand(void* obj, const FieldInfo* f)
                 : object(obj), field(f),
-                before(f->type), after(f->type)
+                before(f), after(f)
             {
-                FieldRead(*field, object, before.ptr());
+                void* realPtr = GetFieldPointer();
+                field->CopyConstruct(before.ptr(), realPtr);
             }
 
-            void Finalize() override {
-                if (!finalized) {
-                    FieldRead(*field, object, after.ptr());
+            ~ModifyFieldCommand()
+            {
+                field->Destroy(before.ptr());
+                field->Destroy(after.ptr());
+            }
+
+            void Finalize() override
+            {
+                if (!finalized)
+                {
+                    void* realPtr = GetFieldPointer();
+                    field->CopyConstruct(after.ptr(), realPtr);
                     finalized = true;
                 }
             }
 
-            bool IsValid() const override {
-                return std::memcmp(
-                    before.ptr(), after.ptr(), before.size
-                ) != 0;
+            bool IsValid() const override
+            {
+                return !field->Equals(before.ptr(), after.ptr());
             }
 
             void Execute() override { Redo(); }
 
-            void Undo() override {
-                FieldWrite(*field, object, before.ptr());
+            void Undo() override
+            {
+                field->Assign(GetFieldPointer(), before.ptr());
             }
 
-            void Redo() override {
-                FieldWrite(*field, object, after.ptr());
+            void Redo() override
+            {
+                field->Assign(GetFieldPointer(), after.ptr());
             }
 
-            const char* GetName() const override {
+            const char* GetName() const override
+            {
                 return field->name;
             }
 
         private:
+            void* GetFieldPointer() const
+            {
+                return static_cast<uint8_t*>(object) + field->offset;
+            }
+
             void* object;
             const FieldInfo* field;
-            ValueBuffer before, after;
+            ValueBuffer before;
+            ValueBuffer after;
             bool finalized = false;
         };
 }

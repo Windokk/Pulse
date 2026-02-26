@@ -28,6 +28,28 @@ namespace Pulse::Engine::ECS::Components {
         Core::GetEngine().GetCameraManager()->RemoveCamera(parent->GetID());
     }
 
+    void Camera::OnFieldChanged(const FieldChangedEvent &event)
+    {
+        if(event.field->name == "width"){
+
+        }
+        else if(event.field->name == "height"){
+
+        }
+        else if(event.field->name == "near"){
+            
+        }
+        else if(event.field->name == "far"){
+
+        }
+        else if(event.field->name == "fov"){
+
+        }
+        else if(event.field->name == "frustumCulling"){
+
+        }
+    }
+
     void Camera::UpdateSize(int new_width, int new_height)
     {
         if(!activated)

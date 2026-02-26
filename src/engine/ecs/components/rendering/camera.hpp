@@ -51,6 +51,8 @@ namespace Pulse::Engine::ECS::Components {
             void UpdateMatrix();
 
             void SetFOV(float newFOV) { fov = newFOV; }
+ 
+            void OnFieldChanged(const FieldChangedEvent& event) override;
 
             void SetNearPlane(float newNear) { nearPlane = newNear; }
             void SetFarPlane(float newFar) { farPlane = newFar; }
@@ -101,13 +103,6 @@ namespace Pulse::Engine::ECS::Components {
             glm::mat4 view;
             glm::mat4 projection;
             glm::mat4 cameraMatrix = glm::mat4(1.0f);
-
-            // Mouse inputs
-            float mouseSensitivity = 0.1f;
-            bool firstClick = true;
-            double originalmouseX = 0.0, originalmouseY = 0.0;
-            double lockedMouseY = 0.0;
-            double lockedMouseX = 0.0;
 
             // Store the width and height of the window
             int width = 0;

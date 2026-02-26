@@ -38,6 +38,12 @@ namespace Pulse::Editor::GUI{
         QWidget* widget = nullptr;
     };
 
+    enum BaseAdressType{
+        Null,
+        SharedComponent,
+        InstancedStructData
+    };
+
     class PropertiesPanel : public QWidget{
 
         public:
@@ -64,9 +70,11 @@ namespace Pulse::Editor::GUI{
             void AddSeparator();
             void CreateActorInfoHeader();
             void UpdateActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
-            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, void* base, int rowIndex = -1, const Container *container = nullptr, void *elementPtr = nullptr);
+            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, void* base, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1, const Container *container = nullptr);
             void AddComponent(const std::string &name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data);
 
             std::vector<PropertyBinding> properties;
+
+            std::shared_ptr<Engine::ECS::Objects::Actor> cachedSelectedActor;
     };
 }

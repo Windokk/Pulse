@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QFile>
+#include <QTimer>
 
 #include "engine/core/reflection_fields.hpp"
 
@@ -88,28 +89,29 @@ namespace Pulse::Editor::GUI{
         mainLayout->addWidget(line);
     }
 
-    template<typename T>
-    inline void WriteValue(const FieldInfo* field, void* object, const Container* container, void* elementPtr, const T& value)
+    inline void WriteValue(const FieldInfo* field, void* valuePtr, void* value)
     {
-        if (container && elementPtr)
-        {
-            container->elementWrite(object, elementPtr, &value);
-        }
-        else
-        {
-            FieldWrite(*field, object, &value);
-        }
+        std::memcpy(
+            valuePtr,
+            value,
+            field->type == TypeID::Enum
+                ? field->enumDesc->size
+                : field->container ? field->container->elementSize : GetTypeSize(field->type)
+        );
     }
 
-    QWidget* PropertiesPanel::AddPropertyWidget(QVBoxLayout* targetLayout, const QString& name, const FieldInfo* field, void* value, void* base, int rowIndex, const Container* container, void* elementPtr)
+    QWidget* PropertiesPanel::AddPropertyWidget(
+        QVBoxLayout* targetLayout, const QString& name, const FieldInfo* field, void* value,
+        void* base, std::shared_ptr<Engine::ECS::Components::Component> comp, 
+        int rowIndex, const Container* container)
     {
         QWidget* wField = nullptr;
-        
-        switch(field->type){
+
+        switch(container ? field->container->elementType : field->type){
             case TypeID::Enum:{
 
-                int editorVal = *static_cast<int*>(value);
-
+                int editorVal = 0;
+                std::memcpy(&editorVal, value, field->enumDesc->size);
                 std::string strVal = field->enumDesc->values.at(editorVal).name;
 
                 QComboBox* comboBox = new QComboBox();
@@ -119,11 +121,21 @@ namespace Pulse::Editor::GUI{
                 comboBox->setCurrentIndex(editorVal);
 
                 QObject::connect(comboBox, &QComboBox::currentIndexChanged,
-                    this,[this, field, base, comboBox, container, elementPtr]()
+                    this,[this, field, comboBox, container, comp, value]()
                     {
                         int newValue = comboBox->currentIndex();
                         
-                        WriteValue(field, base, container, elementPtr, newValue);
+                        WriteValue(field, value, &newValue);
+
+                        FieldChangedEvent evt;
+                        evt.field = field;
+                        evt.newValue = newValue;
+
+                        comp->OnFieldChanged(evt);
+
+                        QTimer::singleShot(0, this, [this]() {
+                            Update(cachedSelectedActor);
+                        });
                     }
                 );
 
@@ -140,7 +152,7 @@ namespace Pulse::Editor::GUI{
                 auto* edit = new QLineEdit(QString::fromStdString(strVal));
 
                 QObject::connect(edit, &QLineEdit::editingFinished,
-                    this,[this, field, base, edit, container, elementPtr]()
+                    this,[this, field, edit, container, comp, value]()
                     {
                         std::string newValue = edit->text().toStdString();
                         auto newID = Engine::Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(newValue);
@@ -148,7 +160,17 @@ namespace Pulse::Editor::GUI{
                         if (newID.GetAsInt() == 0)
                             return;
 
-                        WriteValue(field, base, container, elementPtr, newID);
+                        WriteValue(field, value, &newID);
+
+                        FieldChangedEvent evt;
+                        evt.field = field;
+                        evt.newValue = newID;
+
+                        comp->OnFieldChanged(evt);
+
+                        QTimer::singleShot(0, this, [this]() {
+                            Update(cachedSelectedActor);
+                        });
                     }
                 );
 
@@ -160,9 +182,20 @@ namespace Pulse::Editor::GUI{
                 auto* edit = new QLineEdit(QString::fromStdString(strVal));
                 edit->setAlignment(Qt::AlignTop | Qt::AlignLeft);
                 QObject::connect(edit, &QLineEdit::editingFinished,
-                    this, [this, field, base, container, elementPtr, edit]() {
+                    this, [this, field, container, edit, comp, value]() {
                         std::string newValue = edit->text().toStdString();
-                        WriteValue(field, base, container, elementPtr, newValue);
+                        
+                        WriteValue(field, value, &newValue);
+
+                        FieldChangedEvent evt;
+                        evt.field = field;
+                        evt.newValue = newValue;
+
+                        comp->OnFieldChanged(evt);
+
+                        QTimer::singleShot(0, this, [this]() {
+                            Update(cachedSelectedActor);
+                        });
                 });
                 wField = edit;
                 break;
@@ -172,13 +205,24 @@ namespace Pulse::Editor::GUI{
                 auto* edit = new QLineEdit(QString::number(floatVal));
                 wField = edit;
                 QObject::connect(edit, &QLineEdit::editingFinished, 
-                    this, [this, field, base, container, elementPtr, edit]()
+                    this, [this, field, container, edit, comp, value]()
                     {
                         if (edit->text().isEmpty())
                             edit->setText("0.0");
 
                         float newValue = edit->text().toFloat();
-                        WriteValue(field, base, container, elementPtr, newValue);
+                
+                        WriteValue(field, value, &newValue);
+
+                        FieldChangedEvent evt;
+                        evt.field = field;
+                        evt.newValue = newValue;
+
+                        comp->OnFieldChanged(evt);
+
+                        QTimer::singleShot(0, this, [this]() {
+                            Update(cachedSelectedActor);
+                        });
                     }
                 );
                 break;
@@ -188,12 +232,23 @@ namespace Pulse::Editor::GUI{
                 auto* edit = new QLineEdit(QString::number(intVal));
                 wField = edit;
                 QObject::connect(edit, &QLineEdit::editingFinished, 
-                    [this, field, base, container, elementPtr, edit]() {
+                    [this, field, container, edit, comp, value]() {
                     if (edit->text().isEmpty()) {
                         edit->setText("0");
                     }
-                    float newValue = edit->text().toInt();
-                    WriteValue(field, base, container, elementPtr, newValue);
+                    int newValue = edit->text().toInt();
+                    
+                    WriteValue(field, value, &newValue);
+
+                    FieldChangedEvent evt;
+                    evt.field = field;
+                    evt.newValue = newValue;
+
+                    comp->OnFieldChanged(evt);
+
+                    QTimer::singleShot(0, this, [this]() {
+                        Update(cachedSelectedActor);
+                    });
                 });
                 break;
             }
@@ -203,9 +258,20 @@ namespace Pulse::Editor::GUI{
                 box->setCheckState(boolVal ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
                 wField = box;
                 QObject::connect(box, &QCheckBox::toggled,
-                this, [this, field, base, container, elementPtr](bool checked)
+                this, [this, field, container, comp, value](bool checked)
                 {
-                    WriteValue(field, base, container, elementPtr, checked);
+                    
+                    WriteValue(field, value, &checked);
+
+                    FieldChangedEvent evt;
+                    evt.field = field;
+                    evt.newValue = checked;
+
+                    comp->OnFieldChanged(evt);
+
+                    QTimer::singleShot(0, this, [this]() {
+                        Update(cachedSelectedActor);
+                    });
                 });
                 break;
             }
@@ -245,14 +311,25 @@ namespace Pulse::Editor::GUI{
                 vectorLayout->addWidget(yEdit);
                 vectorLayout->addWidget(zEdit);
 
-                auto updateVec3 = [this, field, base, container, elementPtr, xEdit, yEdit, zEdit]()
+                auto updateVec3 = [this, field, container, xEdit, yEdit, zEdit, comp, value]()
                 {
-                    glm::vec3 v{
+                    glm::vec3 newVec{
                         xEdit->text().toFloat(),
                         yEdit->text().toFloat(),
                         zEdit->text().toFloat()
                     };
-                    WriteValue(field, base, container, elementPtr, v);
+
+                    WriteValue(field, value, &newVec);
+
+                    FieldChangedEvent evt;
+                    evt.field = field;
+                    evt.newValue = newVec;
+
+                    comp->OnFieldChanged(evt);
+
+                    QTimer::singleShot(0, this, [this]() {
+                        Update(cachedSelectedActor);
+                    });
                 };
 
                 QObject::connect(xEdit, &QLineEdit::editingFinished, updateVec3);
@@ -279,43 +356,17 @@ namespace Pulse::Editor::GUI{
 
                 int index = 0;
 
-                TypeID vecType = field->container->editorElementType;
+                for (size_t i = 0; i < field->container->Size(value); i++, index++) {
+                    
+                    void* element = field->container->GetByIndex(value, i);
 
-                FieldInfo* containedField = new FieldInfo{
-                    "",
-                    vecType,
-                    0,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    field->flags,
-                    field->min,
-                    field->max,
-                    nullptr,
-                    nullptr
-                };
-
-                for (size_t i = 0; i < field->container->size(value); i++, index++) {
-                    void* element = field->container->getByIndex(value, i);
-
-                    // Ensure buffer is resized to the correct size for the type
-                    std::vector<uint8_t> buffer(GetTypeSize(vecType));
-
-                    void* valuePtr = nullptr;
-
-                    // Read the element into the buffer
-                    field->container->elementRead(element, buffer.data());
-
-                    valuePtr = buffer.data();
-
-                    if (valuePtr != nullptr) {
+                    if (element != nullptr) {
 
                         // Now, let's add the widget to the layout
                         QWidget* childRow = AddPropertyWidget(arrayContentLayout,
                                                             QString("[%1]").arg(QString::number((int)i)),
-                                                            containedField,
-                                                            valuePtr, base, index, field->container, element);
+                                                            field,
+                                                            element, value, comp, index, field->container);
 
                         // Set background color for alternating rows
                         auto* layout = qobject_cast<QHBoxLayout*>(childRow->layout());
@@ -429,36 +480,47 @@ namespace Pulse::Editor::GUI{
                 uint8_t* base = static_cast<uint8_t*>(static_cast<void*>(comp.get())) + field->offset;
                 InstancedStruct* structPtr = reinterpret_cast<InstancedStruct*>(base);
                 for(auto& subField : structPtr->descriptor->fields){
-                    size_t size = (subField->type == TypeID::Enum ? subField->enumDesc->size : GetTypeSize(subField->type));
-            
-                    std::vector<uint8_t> buffer(size);
+                
+                    void* valuePtr = FieldRead(*subField, structPtr->data);
 
-                    void* valuePtr = FieldRead(*subField, structPtr->data, buffer.data());
-
-                    QWidget* w = AddPropertyWidget( 
+                    QWidget* w = AddPropertyWidget(
                         bodyLayout,
                         QString::fromStdString(subField->name),
                         subField,
                         valuePtr,
-                        structPtr->data
+                        structPtr->data,
+                        comp
                     );
                 
                     properties.push_back({*subField, comp, w});
                 }
             }
-            else{
-                size_t size = (field->type == TypeID::Enum ? field->enumDesc->size : GetTypeSize(field->type));
-            
-                std::vector<uint8_t> buffer(size);
-
-                void* valuePtr = FieldRead(*field, comp.get(), buffer.data());
+            else if(field->type == TypeID::Vector)
+            {
+                void* valuePtr = FieldRead(*field, comp.get());
 
                 QWidget* w = AddPropertyWidget(
                     bodyLayout,
                     QString::fromStdString(field->name),
                     field,
                     valuePtr,
-                    comp.get()
+                    comp.get(),
+                    comp
+                );
+
+                properties.push_back({*field, comp, w});
+            }
+            else{
+
+                void* valuePtr = FieldRead(*field, comp.get());
+
+                QWidget* w = AddPropertyWidget(
+                    bodyLayout,
+                    QString::fromStdString(field->name),
+                    field,
+                    valuePtr,
+                    comp.get(),
+                    comp
                 );
             
                 properties.push_back({*field, comp, w});
@@ -556,6 +618,8 @@ namespace Pulse::Editor::GUI{
             const ClassDescriptor* desc = comp->GetDescriptor();
             AddComponent(desc->name, comp, desc->fields);
         }
+
+        cachedSelectedActor = selectedActor;
     }
 
     QWidget* PropertiesPanel::CreatePropertyRow(const QString& name, QWidget* field)

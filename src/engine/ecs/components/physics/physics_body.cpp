@@ -530,59 +530,49 @@ namespace Pulse::Engine::ECS::Components{
         this->shouldUpdateShape = true;
     }
 
-}
+    void PhysicsBody::OnFieldChanged(const FieldChangedEvent& event){
+        if(event.field->name == "params"){
+            const StructDescriptor* desc = nullptr;
 
-inline void WriteShapeParams(void* object, const void* value){
-    
-    auto* comp = static_cast<ECS::Components::PhysicsBody*>(object);
-    auto shape = static_cast<Physics::PhysicsShape>(*static_cast<const int*>(value));
+            switch (shape)
+            {
+                case Physics::SPHERE:   desc = &SphereParams_descriptor; break;
+                case Physics::BOX:      desc = &BoxParams_descriptor; break;
+                case Physics::CAPSULE:  desc = &CapsuleParams_descriptor; break;
+                case Physics::CYLINDER: desc = &CylinderParams_descriptor; break;
+            }
 
-    const StructDescriptor* desc = nullptr;
+            params.Initialize(desc);
+            ForceShapeUpdate(shape, params, motionType);
+        }
+        else if(event.field->name == "shape"){
 
-    switch (shape)
-    {
-        case Physics::SPHERE:   desc = &SphereParams_descriptor; break;
-        case Physics::BOX:      desc = &BoxParams_descriptor; break;
-        case Physics::CAPSULE:  desc = &CapsuleParams_descriptor; break;
-        case Physics::CYLINDER: desc = &CylinderParams_descriptor; break;
+            InstancedStruct params;
+
+            switch (shape)
+            {
+                case Physics::BOX:
+                    params.Initialize(&BoxParams_descriptor);
+                    break;
+
+                case Physics::SPHERE:
+                    params.Initialize(&SphereParams_descriptor);
+                    break;
+
+                case Physics::CAPSULE:
+                    params.Initialize(&CapsuleParams_descriptor);
+                    break;
+
+                case Physics::CYLINDER:
+                    params.Initialize(&CylinderParams_descriptor);
+                    break;
+            }
+
+            ForceShapeUpdate(shape, params, GetMotionType());
+        }
+        else if(event.field->name == "motionType"){
+            ForceShapeUpdate(GetShapeType(), params, motionType);
+        }
+        
     }
-
-    comp->params.Initialize(desc);
-    comp->ForceShapeUpdate(shape, comp->params, comp->GetMotionType());
-}
-
-inline void WritePhysicsShape(void *object, const void *value)
-{
-    using namespace ECS::Components;
-
-    PhysicsBody* comp = static_cast<PhysicsBody*>(object);
-    const int* shape = static_cast<const int*>(value);
-    Physics::PhysicsShape eshape =
-        static_cast<Physics::PhysicsShape>(*shape);
-
-    InstancedStruct params;
-
-    switch (eshape)
-    {
-        case Physics::BOX:
-            params.Initialize(&BoxParams_descriptor);
-            break;
-
-        case Physics::SPHERE:
-            params.Initialize(&SphereParams_descriptor);
-            break;
-
-        case Physics::CAPSULE:
-            params.Initialize(&CapsuleParams_descriptor);
-            break;
-
-        case Physics::CYLINDER:
-            params.Initialize(&CylinderParams_descriptor);
-            break;
-    }
-
-    comp->ForceShapeUpdate(
-        eshape,
-        params,
-        comp->GetMotionType());
 }

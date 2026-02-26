@@ -2,9 +2,9 @@
 
 #include "engine/core/objectID.hpp"
 
-namespace Pulse::Engine::Core{
+struct FieldChangedEvent;
 
-    class FieldChangedEvent;
+namespace Pulse::Engine::Core{
 
     /// @brief The base class for every type of object (asset instance, level, level object...)
     class Object : public std::enable_shared_from_this<Object> {
@@ -25,9 +25,7 @@ namespace Pulse::Engine::Core{
             }
 
             // Reflection / editor
-            virtual void OnFieldChanged(const FieldChangedEvent&) {}
-            virtual void OnBeginEdit() {}
-            virtual void OnEndEdit() {}
+            virtual void OnFieldChanged(const FieldChangedEvent& event) {}
 
             template<typename T>
             std::shared_ptr<T> Cast()

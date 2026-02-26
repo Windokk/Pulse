@@ -25,7 +25,7 @@ namespace Pulse::Engine::ECS::Components
 {
 
     struct STRUCT() SphereParams{
-        FIELD(Editable) float radius;
+        FIELD(Editable) float radius = 0.5f;
         SphereParams(float r) : radius(r) {}
         SphereParams() = default;
         ~SphereParams() = default;
@@ -38,8 +38,8 @@ namespace Pulse::Engine::ECS::Components
 
     
     struct STRUCT() CapsuleParams{
-        FIELD(Editable) float radius;
-        FIELD(Editable) float halfHeight;
+        FIELD(Editable) float radius = 0.5f;
+        FIELD(Editable) float halfHeight = 0.5f;
         CapsuleParams(float r, float h) : radius(r), halfHeight(h) {}
         CapsuleParams() = default;
         ~CapsuleParams() = default;
@@ -52,7 +52,7 @@ namespace Pulse::Engine::ECS::Components
     };
 
     struct STRUCT() BoxParams{
-        FIELD(Editable) glm::vec3 halfExtent;
+        FIELD(Editable) glm::vec3 halfExtent = glm::vec3(0.5f);
         BoxParams(glm::vec3 e) : halfExtent(e) {}
         BoxParams() = default;
         ~BoxParams() = default;
@@ -63,8 +63,8 @@ namespace Pulse::Engine::ECS::Components
     };
 
     struct STRUCT() CylinderParams{
-        FIELD(Editable) float radius;
-        FIELD(Editable) float halfHeight;
+        FIELD(Editable) float radius = 0.5f;
+        FIELD(Editable) float halfHeight = 0.5f;
         CylinderParams(float r, float h) : radius(r), halfHeight(h) {}
         CylinderParams() = default;
         ~CylinderParams() = default;
@@ -123,6 +123,8 @@ namespace Pulse::Engine::ECS::Components
 
             void ForceShapeUpdate(const Physics::PhysicsShape& shape, const InstancedStruct& params, EMotionType motionType);
 
+            void OnFieldChanged(const FieldChangedEvent& event) override;
+
             FIELD(Editable) 
             InstancedStruct params;
 
@@ -168,32 +170,5 @@ inline void ReadPhysicsShape(void* object, void* outValue) {
 }
 
 inline void WritePhysicsShape(void* object, const void* value);
-
-inline void ReadMotionType(void* object, void* outValue) {
-    ECS::Components::PhysicsBody* comp = static_cast<ECS::Components::PhysicsBody*>(object);
-    *static_cast<int*>(outValue) = static_cast<int>(comp->GetMotionType());
-}
-
-inline void WriteMotionType(void* object, const void* value) {
-    ECS::Components::PhysicsBody* comp = static_cast<ECS::Components::PhysicsBody*>(object);
-    const int* motionType = static_cast<const int*>(value);
-
-    switch(comp->GetShapeType()){
-        case Physics::BOX:{
-            comp->ForceShapeUpdate(comp->GetShapeType(), comp->params, static_cast<EMotionType>(*motionType));
-        }
-        case Physics::SPHERE:{
-            comp->ForceShapeUpdate(comp->GetShapeType(), comp->params, static_cast<EMotionType>(*motionType));
-        }
-        case Physics::CAPSULE:{
-            comp->ForceShapeUpdate(comp->GetShapeType(), comp->params, static_cast<EMotionType>(*motionType));
-        }
-        case Physics::CYLINDER:{
-            comp->ForceShapeUpdate(comp->GetShapeType(), comp->params, static_cast<EMotionType>(*motionType));
-        }
-    }
-
-    
-}
 
 inline void WriteShapeParams(void* object, const void* value);

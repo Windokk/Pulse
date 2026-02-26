@@ -9,42 +9,42 @@ inline FieldInfo Transform_position_info = {
     "position",
     TypeID::Vec3,
     offsetof(Pulse::Engine::ECS::Components::Transform, position),
-    nullptr,
-    WritePositionToTransform,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<glm::vec3>,
+    &Assign<glm::vec3>,
+    &Destroy<glm::vec3>,
+    &Equals<glm::vec3>
 };
 
 inline FieldInfo Transform_rotation_info = {
     "rotation",
-    TypeID::Vec3,
+    TypeID::Quat,
     offsetof(Pulse::Engine::ECS::Components::Transform, rotation),
-    ReadRotationFromTransform,
-    WriteRotationToTransform,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<glm::quat>,
+    &Assign<glm::quat>,
+    &Destroy<glm::quat>,
+    &Equals<glm::quat>
 };
 
 inline FieldInfo Transform_scale_info = {
     "scale",
     TypeID::Vec3,
     offsetof(Pulse::Engine::ECS::Components::Transform, scale),
-    nullptr,
-    WriteScaleToTransform,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<glm::vec3>,
+    &Assign<glm::vec3>,
+    &Destroy<glm::vec3>,
+    &Equals<glm::vec3>
 };
 
 inline ClassDescriptor Pulse::Engine::ECS::Components::Transform::descriptor = {

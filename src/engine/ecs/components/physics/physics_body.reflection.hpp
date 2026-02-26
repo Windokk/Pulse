@@ -9,14 +9,14 @@ inline FieldInfo SphereParams_radius_info = {
     "radius",
     TypeID::Float,
     offsetof(Pulse::Engine::ECS::Components::SphereParams, radius),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
 };
 
 inline StructDescriptor SphereParams_descriptor = {
@@ -43,28 +43,28 @@ inline FieldInfo CapsuleParams_radius_info = {
     "radius",
     TypeID::Float,
     offsetof(Pulse::Engine::ECS::Components::CapsuleParams, radius),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
 };
 
 inline FieldInfo CapsuleParams_halfHeight_info = {
     "halfHeight",
     TypeID::Float,
     offsetof(Pulse::Engine::ECS::Components::CapsuleParams, halfHeight),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
 };
 
 inline StructDescriptor CapsuleParams_descriptor = {
@@ -92,14 +92,14 @@ inline FieldInfo BoxParams_halfExtent_info = {
     "halfExtent",
     TypeID::Vec3,
     offsetof(Pulse::Engine::ECS::Components::BoxParams, halfExtent),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<glm::vec3>,
+    &Assign<glm::vec3>,
+    &Destroy<glm::vec3>,
+    &Equals<glm::vec3>
 };
 
 inline StructDescriptor BoxParams_descriptor = {
@@ -126,28 +126,28 @@ inline FieldInfo CylinderParams_radius_info = {
     "radius",
     TypeID::Float,
     offsetof(Pulse::Engine::ECS::Components::CylinderParams, radius),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
 };
 
 inline FieldInfo CylinderParams_halfHeight_info = {
     "halfHeight",
     TypeID::Float,
     offsetof(Pulse::Engine::ECS::Components::CylinderParams, halfHeight),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
 };
 
 inline StructDescriptor CylinderParams_descriptor = {
@@ -175,14 +175,14 @@ inline FieldInfo PhysicsBody_params_info = {
     "params",
     TypeID::Struct,
     offsetof(Pulse::Engine::ECS::Components::PhysicsBody, params),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    nullptr
+    nullptr,
+    &CopyConstruct<InstancedStruct>,
+    &Assign<InstancedStruct>,
+    &Destroy<InstancedStruct>,
+    &Equals<InstancedStruct>
 };
 
 static EnumDescriptor PhysicsShape_descriptor = {
@@ -200,14 +200,14 @@ inline FieldInfo PhysicsBody_shape_info = {
     "shape",
     TypeID::Enum,
     offsetof(Pulse::Engine::ECS::Components::PhysicsBody, shape),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    &PhysicsShape_descriptor
+    &PhysicsShape_descriptor,
+    &CopyConstruct<Physics::PhysicsShape>,
+    &Assign<Physics::PhysicsShape>,
+    &Destroy<Physics::PhysicsShape>,
+    &Equals<Physics::PhysicsShape>
 };
 
 static EnumDescriptor EMotionType_descriptor = {
@@ -224,14 +224,14 @@ inline FieldInfo PhysicsBody_motionType_info = {
     "motionType",
     TypeID::Enum,
     offsetof(Pulse::Engine::ECS::Components::PhysicsBody, motionType),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
     Editable,
     0, 0,
     nullptr,
-    &EMotionType_descriptor
+    &EMotionType_descriptor,
+    &CopyConstruct<EMotionType>,
+    &Assign<EMotionType>,
+    &Destroy<EMotionType>,
+    &Equals<EMotionType>
 };
 
 inline ClassDescriptor Pulse::Engine::ECS::Components::PhysicsBody::descriptor = {

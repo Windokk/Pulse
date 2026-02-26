@@ -4,6 +4,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "engine/core/object.hpp"
+
 using namespace nlohmann;
 using ordered_json = nlohmann::ordered_json;
 
@@ -21,7 +23,7 @@ namespace Pulse::Engine::ECS{
             return std::is_base_of<BaseType, DerivedType>::value;
         }
 
-        class Component{
+        class Component : public Core::Object{
 
             public:
                 Component(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);

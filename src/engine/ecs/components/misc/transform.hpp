@@ -85,7 +85,6 @@ namespace Pulse::Engine::ECS::Components
             void Destroy() override{
                 //TODO ?
             }
-
             std::shared_ptr<Component> Clone() const override;
 
             bool IsDirty(DirtyFlags flag) const;

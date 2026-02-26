@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "engine/filesystem/assetID.hpp"
+
 enum class TypeID : uint16_t {
     // Invalid / base
     Unknown = 0,
@@ -269,7 +271,7 @@ inline size_t GetTypeSize(TypeID type) {
         case TypeID::String: return sizeof(std::string);
         case TypeID::CString: return sizeof(char*);
 
-        case TypeID::Asset: return sizeof(int);
+        case TypeID::Asset: return sizeof(Pulse::Engine::Filesystem::AssetID);
 
         default:
             return 0; // containers / structs handled separately
