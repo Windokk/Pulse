@@ -1,9 +1,3 @@
-[submodule "submodules/qtimgui"]
-	path = submodules/qtimgui
-	url = https://github.com/Windokk/qtimgui.git
-[submodule "submodules/qtads"]
-	path = submodules/qtads
-	url = https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git
 [submodule "submodules/glfw"]
 	path = submodules/glfw
 	url = https://github.com/glfw/glfw.git
