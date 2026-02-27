@@ -1,10 +1,11 @@
-file(GLOB GLFW_SOURCES
+file(GLOB SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/glfw/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/platform/glfw/*.cpp
 )
 
 add_executable(PulseGame
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-    ${GLFW_SOURCES}
+    ${SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib/glad.c
 )
 

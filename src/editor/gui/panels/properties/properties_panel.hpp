@@ -1,15 +1,5 @@
 #pragma once
 
-#include <QWidget>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QFrame>
-#include <QScrollArea>
-#include <QToolButton>
-#include <QCheckBox>
-
 #include <nlohmann/json.hpp>
 
 #include "engine/levels/level.hpp"
@@ -24,57 +14,16 @@ namespace Pulse::Editor::GUI{
 
     class EditorMainWindow;
 
-    struct ComponentHeader
+    class PropertiesPanel
     {
-        QWidget* root;
-        QToolButton* foldout;
-        QCheckBox* activeToggle;
-    };
-
-    struct PropertyBinding
-    {
-        FieldInfo field;
-        std::shared_ptr<Engine::ECS::Components::Component> comp;
-        QWidget* widget = nullptr;
-    };
-
-    enum BaseAdressType{
-        Null,
-        SharedComponent,
-        InstancedStructData
-    };
-
-    class PropertiesPanel : public QWidget{
-
         public:
-            PropertiesPanel(QWidget *parent = nullptr);
+            void Draw(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
 
-            void Update(std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor);
-
-            void Clear();
-            
         private:
-
-            QWidget* containerWidget = nullptr;
-            QVBoxLayout* mainLayout = nullptr;
-            QScrollArea* scrollArea = nullptr;
-
-            QWidget* actorInfoWidget = nullptr;
-            QLineEdit* actorNameEdit = nullptr;
-            QLabel* actorIdLabel = nullptr;
-            QLabel* actorComponentCountLabel = nullptr;
-
-            QWidget *CreatePropertyRow(const QString &name, QWidget *field);
-            ComponentHeader CreateComponentHeader(const QString &name, bool active);
-            QWidget *CreateComponentBody();
-            void AddSeparator();
-            void CreateActorInfoHeader();
-            void UpdateActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
-            QWidget *AddPropertyWidget(QVBoxLayout *targetLayout, const QString &name, const FieldInfo *field, void *value, void* base, std::shared_ptr<Engine::ECS::Components::Component> comp, int rowIndex = -1, const Container *container = nullptr);
-            void AddComponent(const std::string &name, std::shared_ptr<Engine::ECS::Components::Component> comp, const std::vector<FieldInfo*> data);
-
-            std::vector<PropertyBinding> properties;
-
-            std::shared_ptr<Engine::ECS::Objects::Actor> cachedSelectedActor;
+            void DrawActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
+            void DrawComponent(std::shared_ptr<Engine::ECS::Components::Component> comp);
+            void DrawField(const FieldInfo* field, void* value,
+                        std::shared_ptr<Engine::ECS::Components::Component> comp,
+                        const Container* container = nullptr);
     };
 }

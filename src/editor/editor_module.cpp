@@ -1,13 +1,12 @@
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/rendering/ui/text.hpp"
-#include "editor/core/platform/qt/qt_platform.hpp"
 #include "engine/rendering/opengl/opengl.hpp"
 #include "editor/commands/command_stack.hpp"
 
-#include <QApplication>
+#include "editor/core/platform/glfw/glfw_platform.hpp"
 
-#include "editor/gui/main_win.hpp"
+#include "editor/gui/main_window.hpp"
 
 using namespace Pulse;
 using namespace Pulse::Engine;
@@ -16,8 +15,6 @@ using namespace Pulse::Engine::Rendering;
 using namespace Pulse::Engine::ECS::Components;
 using namespace Pulse::Engine::ECS::Objects;
 using namespace Pulse::Editor::Commands;
-
-static QApplication* s_app = nullptr;
 
 #if defined(__WIN32__) || defined(__WIN64__)
 #   define API_EXPORT __declspec(dllexport)
@@ -41,23 +38,6 @@ extern "C" API_EXPORT void EditorCleanup(){
 
 }
 
-static int qt_argc = 0;
-static char** qt_argv = nullptr;
-
 extern "C" API_EXPORT Platform::IPlatform* CreatePlatform(int argc, char** argv) {
-    if (!s_app){
-        qt_argc = argc;
-
-        // Deep copy argv
-        qt_argv = new char*[argc];
-        for(int i=0;i<argc;++i){
-            qt_argv[i] = strdup(argv[i]);
-        }
-
-        QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-        s_app = new QApplication(qt_argc, qt_argv);
-        s_app->setPalette(Editor::GUI::createDarkPalette());
-    }
-    
-    return new Editor::Core::Platform::QTPlatform();
+    return new Pulse::Editor::Core::GLFWPlatform();
 }

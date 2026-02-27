@@ -1,7 +1,7 @@
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "game_module_loader.hpp"
-#include "game-app/glfw/glfw_platform.hpp"
+#include "game-app/core/platform/glfw/glfw_platform.hpp"
 
 using namespace Pulse;
 using namespace Pulse::Engine;

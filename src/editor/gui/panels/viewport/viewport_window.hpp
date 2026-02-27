@@ -1,74 +1,67 @@
 #pragma once
 
-#include <QOpenGLWindow>
-#include <QOpenGLExtraFunctions>
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <QtImGui.h>
-#include <ImGuizmo.h>
-
-#include "editor/core/platform/qt/qt_input.hpp"
+#include "editor/core/platform/glfw/glfw_input.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/events/event_system.hpp"
 
 #include "editor/commands/command_stack.hpp"
 
+#include "imgui/imgui.h"
+#include "ImGuizmo.h"
+
+namespace Pulse::Editor::Core{
+    class EditorMainWindow;
+}
+
 namespace Pulse::Editor::GUI {
 
-    class EditorMainWindow;
+    class ViewportWindow
+    {
+        public:
+            void Draw();
+            void ProcessInputs();
 
-    class QtGLViewportWindow : public QOpenGLWindow, private QOpenGLExtraFunctions {
-    public:
-        QtGLViewportWindow();
+            glm::vec2 GetViewportSize() const { return viewportSize; }
+            bool IsHovered() const { return viewportHovered; }
 
-        void InitGL(bool vsync);
-        void MakeCurrent();
-        void SwapBuffers();
-        void ShowFrameStats();
-        QSize GetFramebufferSize() const;
+            void SetParentWindow(Core::EditorMainWindow* parent);
 
-        void SetParentWindow(EditorMainWindow* parent);
+        private:
+            void DrawToolbar();
+            void DrawGizmo();
+            void ShowFrameStats();
+            void ShowCamSettings();
 
-        void SetQTInputManager(Core::Platform::QTInput* input);
+            Core::EditorMainWindow* parent = nullptr;
 
-        void OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event);
+            glm::vec2 viewportSize = glm::vec2(50, 50);
+            ImVec2 viewportPos = ImVec2(0,0);
+            bool viewportHovered = false;
+            bool viewportFocused = false;
 
-        void ProcessInputs();
+            // Camera
+            std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor;
 
-        bool initialized = false;
+            float speed = 20.0f;
+            float pitch = 0.0f;
+            float yaw = 0.0f;
+            float mouseSensitivity = 0.1f;
 
-    protected:
-        void initializeGL() override;
-        void resizeGL(int w, int h) override;
-        void paintGL() override;
-        bool event(QEvent* e) override;
+            bool firstClick = true;
+            double lockedMouseX = 0.0;
+            double lockedMouseY = 0.0;
 
-    private:
-        Core::Platform::QTInput* inputManager = nullptr;
-        EditorMainWindow* parent = nullptr;
+            bool gizmoActive = false;
+            bool showFrameStats = false;
+            bool showCamSettings = false;
+            bool uiHovered = false;
 
-        //Gizmo
-        ImGuizmo::OPERATION currentGizmoOp = ImGuizmo::TRANSLATE;
-        ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
+            float firstClickTime = 0;
 
-        //Frame Stats
-        bool showFrameStats = false;
+            // Gizmo
+            ImGuizmo::OPERATION currentGizmoOp = ImGuizmo::TRANSLATE;
+            ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
 
-        //Camera
-        std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor = nullptr;
-        float speed = 20.0f;
-        double lockedMouseX, lockedMouseY = 0;
-        bool firstClick = true;
-        float pitch = 0.0f;
-        float yaw = 0.0f;
-        float mouseSensitivity = 0.1f;
-        float near = 0.1f;
-        float far = 100.0f;
-
-        bool uiHovered = false;
-
-        bool gizmoActive = false;
-        std::unique_ptr<Commands::CompositeCommand> gizmoCommand;
+            std::unique_ptr<Commands::CompositeCommand> gizmoCommand;
     };
 }

@@ -123,6 +123,7 @@ namespace Pulse::Engine::Filesystem{
             bool IsPathInside(const Path& parent, const Path& child);
             bool HasExtension(const Path& path, const std::vector<std::string>& validExtensions);
 
+            void RenameFile(const Path& oldPath, const Path& newPath);
 
             // Utility
             void SetEngineResRoot(const Path &path);

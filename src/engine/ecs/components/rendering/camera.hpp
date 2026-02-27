@@ -42,7 +42,7 @@ namespace Pulse::Engine::ECS::Components {
             
             Camera(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
-            void Init(int width, int height, float near, float far);
+            void Init(int width, int height, float near, float far, float fov, bool ortho, float orthoSize);
 
             void Destroy() override;
 
@@ -50,7 +50,17 @@ namespace Pulse::Engine::ECS::Components {
 
             void UpdateMatrix();
 
+            void SetOrthographic(bool ortho) { orthographic = ortho; }
+
+            bool IsOrthographic() { return orthographic; }
+
             void SetFOV(float newFOV) { fov = newFOV; }
+
+            float* GetFOV() { return &fov; }
+
+            void SetOrthoSize(float orthoSize) { this->orthoSize = orthoSize; }
+
+            float* GetOrthoSize() { return &orthoSize; }
  
             void OnFieldChanged(const FieldChangedEvent& event) override;
 
@@ -93,18 +103,22 @@ namespace Pulse::Engine::ECS::Components {
             float farPlane = 0;
             float nearPlane = 0;
 
-            float fov = 60.0f;
+            bool orthographic = false;
 
             bool frustumCulling = true;
 
         private:
+
+            float fov = 60.0f;
+
+            float orthoSize = 10.0f;
 
             // Matrices
             glm::mat4 view;
             glm::mat4 projection;
             glm::mat4 cameraMatrix = glm::mat4(1.0f);
 
-            // Store the width and height of the window
+            // Store the width and height of the cam
             int width = 0;
             int height = 0;
 

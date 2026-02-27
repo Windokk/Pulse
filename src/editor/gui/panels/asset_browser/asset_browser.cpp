@@ -1,179 +1,209 @@
 #include "asset_browser.hpp"
-#include <QPushButton>
+
+#include "editor/gui/main_window.hpp"
 
 namespace Pulse::Editor::GUI{
 
-    QPixmap AssetBrowser::IconForFile(const QString &path) const
+    void AssetBrowser::Refresh()
     {
-        QFileInfo info(path);
-        QString ext = info.suffix().toLower();
+        items.clear();
 
-        if (info.isDir())
-            return SvgToPixmap(":/pulse/default/icons/folder.svg", QSize(64, 64));
+        auto* fileManager = Engine::Core::GetEngine().GetFileManager();
 
-        if (iconMap.contains(ext))
-            return SvgToPixmap(iconMap[ext], QSize(64, 64));
+        auto files = fileManager->ListDirectory(
+            currentPath,
+            allowedTypes,
+            true,
+            false
+        );
 
-        return SvgToPixmap(":/pulse/default/icons/unknown.svg", QSize(64, 64));
+        items.reserve(files.size());
+
+        auto atlas = EditorResources::Instance().GetIconAtlas();
+
+        for (auto& file : files)
+        {
+            BrowserItem item;
+            item.path = file.path;
+            item.type = file.type;
+            item.isDirectory = file.isDirectory;
+
+            item.icon = &atlas->GetRegion(
+                file.isDirectory ?
+                Engine::Filesystem::Type::T_DIRECTORY :
+                file.type
+            );
+
+            items.push_back(std::move(item));
+        }
+
+        dirty = false;
     }
 
-    AssetBrowser::AssetBrowser(QWidget *parent) : QWidget(parent)
+    void AssetBrowser::Draw()
     {
-        scrollArea = new QScrollArea(this);
-        scrollArea->setWidgetResizable(true);
+        if (dirty)
+            Refresh();
 
-        contentWidget = new QWidget(scrollArea);
-        contentWidget->setContentsMargins(20, 20, 20, 20);
+        ImGui::Begin("Asset Browser");
 
-        flowLayout = new QFlowLayout(contentWidget, 4, 30, 30);
-        contentWidget->setLayout(flowLayout);
-        scrollArea->setWidget(contentWidget);
+        DrawBreadcrumb();
+        ImGui::Separator();
 
-        // ---- BREADCRUMB BAR ----
-        breadcrumbWidget = new QWidget(this);
-        breadcrumbLayout = new QHBoxLayout(breadcrumbWidget);
-        breadcrumbLayout->setContentsMargins(10, 10, 10, 10);
-        breadcrumbLayout->setSpacing(5);
-        QFile styleSheetFile(":/pulse/default/stylesheets/default_asset_browser.qss");
-	    if(styleSheetFile.open(QIODevice::ReadOnly)){
-            QTextStream styleSheetStream(&styleSheetFile);
-            QString result;
-            result = styleSheetStream.readAll();
-            styleSheetFile.close();
-            breadcrumbWidget->setStyleSheet(result);
-        }
+        DrawAssets();
 
-        // MAIN LAYOUT
-        QVBoxLayout* mainLayout = new QVBoxLayout(this);
-        mainLayout->addWidget(breadcrumbWidget);   // Add ribbon bar
-        mainLayout->addWidget(scrollArea);
-        setLayout(mainLayout);
-
-        NavigateTo(QString::fromStdString(Engine::Core::GetEngine().GetCurrentProject()->GetProjectResourcesPath().full));
+        ImGui::End();
     }
 
-    void AssetBrowser::UpdateBreadcrumb()
+    void AssetBrowser::DrawBreadcrumb()
     {
-        // Clear previous buttons
-        QLayoutItem* child;
-        while ((child = breadcrumbLayout->takeAt(0)) != nullptr) {
-            delete child->widget();
-            delete child;
-        }
+        auto& engine = Engine::Core::GetEngine();
 
-        QString projectRoot = QString::fromStdString(
-            Engine::Core::GetEngine().GetCurrentProject()->GetProjectResourcesPath().full
-        );
+        std::string projectRoot =
+            engine.GetCurrentProject()->GetProjectResourcesPath().full;
 
-        QString relative = QDir(projectRoot).relativeFilePath(
-            QString::fromStdString(currentPath.full)
-        );
+        std::string relative = Engine::Filesystem::Path(projectRoot).RelativeTo(currentPath).full;
 
-        // If we're at the root, don't show any segments
-        QStringList parts;
-        if (relative != ".") {
-            parts = relative.split("/", Qt::SkipEmptyParts);
-        }
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
 
-        QString accum = projectRoot;
-
-        // Root button
-        QPushButton* rootBtn = new QPushButton(
-            QString::fromStdString(Engine::Core::GetEngine().GetCurrentProject()->GetProjectResourcesPath().GetFilename())
-        );
-        rootBtn->setFlat(true);
-        connect(rootBtn, &QPushButton::clicked, this, [this, projectRoot]() {
+        if (ImGui::Button(engine.GetCurrentProject()
+                            ->GetProjectResourcesPath()
+                            .GetFilename()
+                            .c_str()))
+        {
             NavigateTo(projectRoot);
-        });
-        breadcrumbLayout->addWidget(rootBtn);
-
-        // Add folders only if not in root
-        for (const QString& part : parts) {
-            breadcrumbLayout->addWidget(new QLabel("/"));
-
-            accum += "/" + part;
-
-            QPushButton* btn = new QPushButton(part);
-            btn->setFlat(true);
-            QString pathCopy = accum;
-
-            connect(btn, &QPushButton::clicked, this, [this, pathCopy]() {
-                NavigateTo(pathCopy);
-            });
-
-            breadcrumbLayout->addWidget(btn);
         }
 
-        breadcrumbLayout->addStretch();
+        if (!relative.empty())
+        {
+            std::stringstream ss(relative);
+            std::string segment;
+            std::string accum = projectRoot;
+
+            while (std::getline(ss, segment, '/'))
+            {
+                ImGui::SameLine();
+                ImGui::Text("/");
+                ImGui::SameLine();
+
+                accum += "/" + segment;
+
+                if (ImGui::Button(segment.c_str()))
+                    NavigateTo(accum);
+            }
+        }
+
+        ImGui::PopStyleVar();
     }
 
-    void AssetBrowser::NavigateTo(const QString& path){
-        currentPath = path.toStdString();
-        UpdateBreadcrumb();
-        ReloadAssets();
-    }
-
-    void AssetBrowser::ReloadAssets()
+    void AssetBrowser::DrawAssets()
     {
-        while (flowLayout->count() > 0) {
-            QLayoutItem *item = flowLayout->takeAt(0);
-            if (item->widget())
-                item->widget()->deleteLater();
-            delete item;
+        float panelWidth = ImGui::GetContentRegionAvail().x;
+        int columnCount = std::max(1, (int)(panelWidth / (thumbnailSize + 20)));
+
+        if (ImGui::BeginTable("Assets", columnCount))
+        {
+            ImGuiListClipper clipper;
+            clipper.Begin(items.size());
+
+            while (clipper.Step())
+            {
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+                {
+                    ImGui::TableNextColumn();
+                    DrawItem(i);
+                }
+            }
+
+            ImGui::EndTable();
         }
-
-        for(Engine::Filesystem::FileInfos file_infos : Engine::Core::GetEngine().GetFileManager()->ListDirectory(currentPath,
-            {Engine::Filesystem::Type::T_IMAGE,
-            Engine::Filesystem::Type::T_SOUND,
-            Engine::Filesystem::Type::T_FONT,
-            Engine::Filesystem::Type::T_SHADER,
-            Engine::Filesystem::Type::T_TEXT,
-            Engine::Filesystem::Type::T_SCRIPT,
-            Engine::Filesystem::Type::T_LEVEL,
-            Engine::Filesystem::Type::T_MODEL,
-            Engine::Filesystem::Type::T_MATERIAL,
-            Engine::Filesystem::Type::T_CONFIG,
-            Engine::Filesystem::Type::T_DIRECTORY},
-            true, false)){
-
-            AssetItem item = AssetItem({ QString::fromStdString(file_infos.path.GetFilename()), QString::fromStdString(file_infos.path.full), IconForFile(QString::fromStdString(file_infos.path.full)), file_infos.ID, file_infos.path.IsDirectory() });
-
-            AssetItemWidget* widget = new AssetItemWidget(item, contentWidget);
-
-            connect(widget, &AssetItemWidget::navigateRequested, this, &AssetBrowser::NavigateTo);
-            connect(widget, &AssetItemWidget::renameRequested, this, &AssetBrowser::RenameAsset);
-
-            flowLayout->addWidget(widget);
-        }
-
-        contentWidget->adjustSize();
     }
 
-    void AssetBrowser::RenameAsset(const QString &oldPath, const QString &newName)
+    void AssetBrowser::DrawItem(int index)
     {
-        Engine::Filesystem::AssetIDManager* assetManager = Engine::Core::GetEngine().GetAssetIDManager();
-        Engine::Filesystem::FileManager* fileManager = Engine::Core::GetEngine().GetFileManager();
+        auto& item = items[index];
 
-        std::string nameInProject = fileManager->GetFileInfos(Engine::Filesystem::Path(oldPath.toStdString())).nameInProject;
+        ImGui::PushID(index);
 
-        if(nameInProject == ""){
-            DEBUG_ERROR("Tried renaming an asset outside of project !");
-            return;
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+        ImGui::ImageButton(
+            "##thumb",
+            (void*)(intptr_t)EditorResources::Instance()
+                .GetIconAtlas()
+                ->GetTexture()
+                ->GetID(),
+            ImVec2(thumbnailSize, thumbnailSize),
+            item.icon->uv0,
+            item.icon->uv1
+        );
+        ImGui::PopStyleColor();
+
+        if (ImGui::IsItemHovered() &&
+            ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        {
+            if (item.isDirectory)
+                NavigateTo(item.path.full);
         }
 
-        QFileInfo info(oldPath);
-        QString newPath = info.dir().filePath(newName);
+        ImGui::TextWrapped("%s", item.path.GetFilename().c_str());
 
-        if(QFile::exists(newPath)){
-            DEBUG_ERROR("Cannot rename, file already exists:", newPath.toStdString());
+        ImGui::PopID();
+    }
+
+    void AssetBrowser::RenameAsset(const std::string& oldPath, const std::string& newName)
+    {
+        if (newName.empty())
             return;
+
+        auto& engine = Engine::Core::GetEngine();
+        auto* fileManager = engine.GetFileManager();
+
+        Engine::Filesystem::Path oldFile(oldPath);
+
+        if (!oldFile.Exists())
+            return;
+
+        std::string cleanName = newName;
+        std::replace(cleanName.begin(), cleanName.end(), '\\', '_');
+        std::replace(cleanName.begin(), cleanName.end(), '/', '_');
+
+        std::string extension = "";
+        if (!oldFile.IsDirectory())
+            extension = oldFile.GetExtensionString();
+
+        std::string finalName = cleanName;
+
+        if (!extension.empty())
+        {
+            if (cleanName.find(extension) == std::string::npos)
+                finalName += "." + extension;
         }
 
-        if(!QFile::rename(oldPath, newPath)){
-            DEBUG_ERROR("Failed to rename file :", oldPath.toStdString());
-            return;
-        }
+        Engine::Filesystem::Path newPath =
+            Engine::Filesystem::Path(oldFile.GetParent()) / finalName;
 
-        Engine::Core::GetEngine().GetAssetIDManager()->GetAssetFromID(assetManager->GetIDFromNameInProject(nameInProject))->baseInfos = fileManager->GetFileInfos(Engine::Filesystem::Path(newPath.toStdString()));
+        if (newPath.Exists())
+            return;
+
+        fileManager->RenameFile(oldFile, newPath);
+
+        auto* assetManager = engine.GetAssetIDManager();
+        if (assetManager)
+            /// @todo recreate assets database, resources, etc...
+            //assetManager->OnAssetRenamed(oldFile, newPath);
+
+        renamingID = {};
+        renameBuffer[0] = '\0';
+    }
+
+    void AssetBrowser::NavigateTo(const std::string& path)
+    {
+        Engine::Filesystem::Path target(path);
+
+        if (!target.Exists() || !target.IsDirectory())
+            return;
+
+        currentPath = target;
+        dirty = true; // mark for refresh
     }
 }

@@ -342,7 +342,7 @@ namespace Pulse::Engine::Rendering{
 
                     float splitNear = c == 0 ? cam->nearPlane : sm.cascadeSplits[c - 1];
                     float splitFar  = sm.cascadeSplits[c];
-                    sm.lightMatrix[c] = light->GetLightMatrix(cam->GetView(), cam->fov, cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, dirShadowsResolution);
+                    sm.lightMatrix[c] = light->GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, dirShadowsResolution);
 
                     dirShader->setMat4("lightSpaceMatrix", sm.lightMatrix[c]);
 

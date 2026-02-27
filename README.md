@@ -18,28 +18,23 @@
 <img src=".github/ScreenShot1.png"/>
 
 ## Build Requirements (Windows)
+## Build Requirements (Linux)
 
-### Build tools :
+## Build tools :
 - CMake 3.28.2 or later
 - C++ 17 Compiler (GCC MinGW recommended)
 
-### Proprietary Dependencies :
-- Qt 6.10
+## Proprietary Dependencies :
 - FMOD API 2.03
 
-### Editor Fonts : (Place both in src/editor/gui/fonts/)
+## Editor Fonts : (Place both in src/editor/gui/fonts/)
 - [OpenSans-Regular.ttf](https://github.com/googlefonts/opensans)
 - [lucide.ttf](https://unpkg.com/lucide-static@latest/font/lucide.ttf)
 
-## Build Requirements (Linux) :
-
-Note : Doesn't work on Wayland, since QtAds isn't fully working on Wayland
-
-<h3><i># Still WIP</i></h3>
 
 ## How to build :
 
-Build jolt inside its submodule folder, build QtADS, place the fonts inside their folder
+Build jolt inside its submodule folder, place the fonts inside their folder
 
 Run build.bat or build.sh (depending on your OS)
 
@@ -48,9 +43,6 @@ This will compile everything from root : submodules, the engine, the editor app,
 ## Credits/Dependencies
 
 - Libraries/Projects :
-  - [Qt](https://www.qt.io/)
-  - [Qt imgui backend](https://github.com/seanchas116/qtimgui)
-  - [Qt ads](https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System)
   - [GLFW](https://github.com/glfw/glfw)
   - [GLM](https://github.com/g-truc/glm)
   - [Jolt](https://github.com/jrouwe/JoltPhysics)

@@ -15,12 +15,15 @@ namespace Pulse::Engine::ECS::Components {
 
     }
 
-    void Camera::Init(int width, int height, float near, float far)
+    void Camera::Init(int width, int height, float near, float far, float fov, bool ortho, float orthoSize)
     {
         this->width = width;
         this->height = height;
         this->nearPlane = near;
         this->farPlane = far;
+        this->fov = fov;
+        this->orthographic = ortho;
+        this->orthoSize = orthoSize;
     }
 
     void Camera::Destroy()
@@ -61,17 +64,47 @@ namespace Pulse::Engine::ECS::Components {
 
     void Camera::UpdateMatrix()
     {
-        if(!activated)
+        if (!activated || parent == nullptr || parent->transform == nullptr)
             return;
-            
+
+        // Reset matrices
         view = glm::mat4(1.0f);
         projection = glm::mat4(1.0f);
 
         std::shared_ptr<Transform> tr = parent->transform;
 
-        view = glm::lookAt(tr->GetPosition(), tr->GetPosition() + tr->GetForward(), tr->GetUp());
+        glm::vec3 position = tr->GetPosition();
+        glm::vec3 forward  = tr->GetForward();
+        glm::vec3 up       = tr->GetUp();
 
-        projection = glm::perspective(glm::radians(fov), float(width) / float(height), nearPlane, farPlane);
+        // View matrix
+        view = glm::lookAt(position, position + forward, up);
+
+        // Avoid division by zero
+        float aspect = (height != 0) ? float(width) / float(height) : 1.0f;
+
+        if (orthographic)
+        {
+            // Orthographic projection
+            float right = orthoSize * aspect;
+            float left  = -right;
+            float top   = orthoSize;
+            float bottom= -top;
+
+            projection = glm::ortho(left, right, bottom, top, nearPlane, farPlane);
+        }
+        else
+        {
+            // Perspective projection
+            projection = glm::perspective(
+                glm::radians(fov),
+                aspect,
+                nearPlane,
+                farPlane
+            );
+        }
+
+        // Final camera matrix
         cameraMatrix = projection * view;
     }
 
@@ -142,10 +175,7 @@ namespace Pulse::Engine::ECS::Components {
         int width = Core::GetEngine().GetWindow()->GetFramebufferWidth();
         int height = Core::GetEngine().GetWindow()->GetFramebufferHeight();
 
-        float near = componentData["near"];
-        float far = componentData["far"];
-
-        Init(width, height, near, far);
+        Init(width, height, componentData["near"], componentData["far"], componentData["fov"], componentData["orthographic"], componentData["orthoSize"]);
         
         if(componentData.contains("active") && componentData["active"].get<bool>())
             Activate();
@@ -159,11 +189,17 @@ namespace Pulse::Engine::ECS::Components {
 
         comp["type"] = "camera";
 
+        comp["orthographic"] = orthographic;
+
         comp["active"] = activated;
 
         comp["near"] = nearPlane;
 
         comp["far"] = farPlane;
+
+        comp["fov"] = fov;
+
+        comp["orthoSize"] = orthoSize;
 
         return comp;
     }

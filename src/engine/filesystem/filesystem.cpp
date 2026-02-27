@@ -222,6 +222,11 @@ namespace Pulse::Engine::Filesystem{
         return false;
     }
 
+    void FileManager::RenameFile(const Path &oldPath, const Path &newPath)
+    {
+        std::filesystem::rename(oldPath.full, newPath.full);
+    }
+
     void FileManager::SetEngineResRoot(const Path &path)
     {
         engineResPath = path;

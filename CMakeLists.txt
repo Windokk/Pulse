@@ -43,10 +43,6 @@ add_subdirectory(submodules/freetype)
 add_subdirectory(submodules/glfw)
 add_subdirectory(submodules/glm)
 add_subdirectory(submodules/jolt/Build)
-if(UNIX)
-    add_subdirectory(submodules/qtads) # For now it seems that on Windows that the cmake build is broken --> use Qmake instead
-endif()
-add_subdirectory(submodules/qtimgui)
 
 # Subdirs (Pulse)
 add_subdirectory(src/engine)

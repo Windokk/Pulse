@@ -5,8 +5,8 @@
 #include "engine/core/platform/iplatform.hpp"
 #include "engine/ecs/components/misc/transform.reflection.hpp"
 
-#include "editor/gui/main_win.hpp"
 #include "editor/gui/IconsLucide.h"
+#include "editor/gui/main_window.hpp"
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -14,187 +14,73 @@
 
 namespace Pulse::Editor::GUI {
 
-    ImFont* LoadFontFromQRC(const QString& resourcePath, float fontSize, bool icons)
+    void ViewportWindow::Draw()
+    {   
+        // Store previous size
+        static ImVec2 prev_size = ImGui::GetWindowSize();
+
+        ImGui::Begin("Viewport");
+
+        // Get current size
+        ImVec2 current_size = ImGui::GetWindowSize();
+
+        viewportHovered = ImGui::IsWindowHovered();
+        viewportFocused = ImGui::IsWindowFocused();
+
+        // Rendu texture framebuffer
+        uint32_t textureID = Engine::Core::GetEngine().GetRenderer()->GetViewportTextureID();
+
+        // Check if it changed
+        if (current_size.x != prev_size.x || current_size.y != prev_size.y) {
+            // Window was resized
+            Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+            viewportSize = glm::vec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+        }
+
+        // Save for next frame
+        prev_size = current_size;
+
+        ImGui::Image(
+            (void*)(intptr_t)textureID,
+            ImVec2(viewportSize.x, viewportSize.y),
+            ImVec2(0, 1),
+            ImVec2(1, 0)
+        );
+
+        DrawToolbar();
+        DrawGizmo();
+
+        viewportPos = ImGui::GetWindowPos();
+
+        uiHovered = ImGui::IsAnyItemHovered();
+
+        ImGui::End();
+    }
+
+    void ViewportWindow::SetParentWindow(Core::EditorMainWindow *parent)
     {
-        QFile fontFile(resourcePath);
-        if (!fontFile.open(QIODevice::ReadOnly))
-        {
-            DEBUG_FATAL("Failed to load editor font : "+resourcePath.toStdString());
-            return nullptr;
-        }
+        this->parent = parent;
 
-        QByteArray fontData = fontFile.readAll();
-        fontFile.close();
-
-        if (fontData.isEmpty())
-        {
-            DEBUG_FATAL("Failed to load editor font : "+resourcePath.toStdString());
-            return nullptr;
-        }
-
-        // Allocate memory ImGui can take ownership of
-        void* fontMemory = malloc(fontData.size());
-        memcpy(fontMemory, fontData.constData(), fontData.size());
-
-        ImGuiIO& io = ImGui::GetIO();
-
-        ImFontConfig cfg{};
-        cfg.MergeMode = icons;
-        cfg.FontDataOwnedByAtlas = true;
-        cfg.PixelSnapH = true;
-        cfg.GlyphOffset.y = icons ? 3.0f : 0.0f;
-
-        const ImWchar icons_ranges[] = { ICON_MIN_LC, ICON_MAX_16_LC, 0 };
-
-        ImFont* font;
-
-        if(icons){
-            font = io.Fonts->AddFontFromMemoryTTF(
-                fontMemory,
-                static_cast<int>(fontData.size()),
-                fontSize,
-                &cfg,
-                icons_ranges
-            );
-        }
-        else
-        {
-            font = io.Fonts->AddFontFromMemoryTTF(
-                fontMemory,
-                static_cast<int>(fontData.size()),
-                fontSize,
-                &cfg,
-                io.Fonts->GetGlyphRangesDefault()
-            );
-        }
-
-        if (!font)
-            DEBUG_FATAL("Failed to load editor font from ImGui memory : "+resourcePath.toStdString());
-
-        return font;
+        cameraActor = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
+        cameraActor->AddComponent<Engine::ECS::Components::Camera>();
+        int width = Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth();
+        int height = Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight();
+        cameraActor->GetComponent<Engine::ECS::Components::Camera>()->Init(width, height, 0.1f, 100.0f, 60, false, 10);
+        Engine::Core::GetEngine().GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
+        Engine::Core::GetEngine().GetCameraManager()->SetActiveCamera(cameraActor->GetID());
     }
 
-    void InitImGui(){
-
-        ImGuiStyle& style = ImGui::GetStyle();
-
-        style.WindowRounding = 5.0f;
-        style.FrameRounding  = 3.0f;
-        style.GrabRounding   = 3.0f;
-        style.ScrollbarRounding = 3.0f;
-
-        style.ItemSpacing = ImVec2(3.0f, 3.0f);
-
-        ImVec4* colors = style.Colors;
-        colors[ImGuiCol_Text]                  = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-        colors[ImGuiCol_TextDisabled]          = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
-        colors[ImGuiCol_WindowBg]              = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);
-        colors[ImGuiCol_ChildBg]               = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
-        colors[ImGuiCol_PopupBg]               = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);
-        colors[ImGuiCol_Border]                = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-        colors[ImGuiCol_BorderShadow]          = ImVec4(0, 0, 0, 0);
-        colors[ImGuiCol_FrameBg]               = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-        colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-        colors[ImGuiCol_FrameBgActive]         = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
-        colors[ImGuiCol_TitleBg]               = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
-        colors[ImGuiCol_TitleBgActive]         = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-        colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-        colors[ImGuiCol_MenuBarBg]             = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
-        colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-        colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-        colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
-        colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-        colors[ImGuiCol_CheckMark]             = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-        colors[ImGuiCol_SliderGrab]            = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
-        colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
-        colors[ImGuiCol_Button]                = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
-        colors[ImGuiCol_ButtonHovered]         = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
-        colors[ImGuiCol_ButtonActive]          = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
-        colors[ImGuiCol_Header]                = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
-        colors[ImGuiCol_HeaderHovered]         = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
-        colors[ImGuiCol_HeaderActive]          = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
-        colors[ImGuiCol_Separator]             = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-        colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
-        colors[ImGuiCol_SeparatorActive]       = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-        colors[ImGuiCol_ResizeGrip]            = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-        colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
-        colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
-        colors[ImGuiCol_PlotLines]             = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
-        colors[ImGuiCol_PlotLinesHovered]      = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-        colors[ImGuiCol_PlotHistogram]         = ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
-        colors[ImGuiCol_PlotHistogramHovered]  = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-        colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-
-        LoadFontFromQRC(":pulse/default/fonts/OpenSans-Regular.ttf", 15, false);
-        LoadFontFromQRC(":pulse/default/fonts/lucide.ttf", 15, true);
-    }
-
-    QtGLViewportWindow::QtGLViewportWindow()
-        : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, nullptr)
+    void ViewportWindow::DrawToolbar()
     {
-        setSurfaceType(QWindow::OpenGLSurface);
-        Engine::Core::GetEngine().GetEventDispatcher()->subscribeGlobal<Engine::Events::LevelStructureChangedEvent>([this](const Engine::Events::LevelStructureChangedEvent& event) {
-            this->OnLevelStructureChanged(event);
-        });
-    }
+        ImGui::SetCursorPos(ImVec2(10, 32));
 
-    void QtGLViewportWindow::InitGL(bool vsync) {
-        QSurfaceFormat fmt;
-        fmt.setVersion(4, 3);
-        fmt.setProfile(QSurfaceFormat::CoreProfile);
-        fmt.setDepthBufferSize(24);
-        fmt.setStencilBufferSize(8);
-        fmt.setSwapInterval(vsync ? 1 : 0);
-        fmt.setSamples(4);
-        setFormat(fmt);
-    }
+        float toolbarWidth = ImGui::GetContentRegionAvail().x;
 
-    void QtGLViewportWindow::initializeGL() {
-        OpenGL* gl = new OpenGL();
-        gl->InitFromQt();
-        Engine::Core::GetEngine().SetGL(gl);
-        initialized = true;
-
-        
-        initializeOpenGLFunctions();
-        QtImGui::Initialize(this);
-
-        InitImGui();
-    }
-
-    void QtGLViewportWindow::resizeGL(int w, int h) {
-        if (!initialized || !Engine::Core::GetEngine().GetRenderer()->initialized || Engine::Core::GetEngine().GetWindow()->ShouldClose()) return;
-
-        Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(w * devicePixelRatio(), h * devicePixelRatio());
-    }
-
-    void QtGLViewportWindow::paintGL() {
-    }
-
-    void QtGLViewportWindow::MakeCurrent() {
-        this->makeCurrent();
-    }
-
-    void QtGLViewportWindow::SwapBuffers() {
-        
-        if(parent && parent->ShouldClose())
-            return;
-
-        QtImGui::NewFrame();
-        
-        ImGuizmo::BeginFrame();
-
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuiStyle& style = ImGui::GetStyle();
-
-        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-        ImGui::Begin("##SpaceSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-        
-        const char* items[2] = { ICON_LC_LOCATE " Local", ICON_LC_EARTH " World"};
-        static int item_selected_idx = 0; // Here we store our selection data as an index
-
+        // ------------------ LEFT ------------------
+        // Gizmo Space
+        const char* items[2] = { ICON_LC_LOCATE " Local", ICON_LC_EARTH " World" };
+        static int item_selected_idx = 0;
         const char* combo_preview_value = items[item_selected_idx];
-
         ImGui::PushItemWidth(100);
         if (ImGui::BeginCombo("##GizmoSpace", combo_preview_value, 0))
         {
@@ -203,139 +89,165 @@ namespace Pulse::Editor::GUI {
                 const bool is_selected = (item_selected_idx == n);
                 if (ImGui::Selectable(items[n], is_selected))
                     item_selected_idx = n;
-
-                if (is_selected)
-                    ImGui::SetItemDefaultFocus();
+                if (is_selected) ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
         }
         ImGui::PopItemWidth();
 
-        ImGui::End();
+        currentGizmoMode = (item_selected_idx == 0) ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
 
-        if(item_selected_idx == 0){
-            currentGizmoMode = ImGuizmo::LOCAL;
-        }
-        else{
-            currentGizmoMode = ImGuizmo::WORLD;
-        }
+        ImGui::SameLine();
 
-        ImGui::SetNextWindowPos(ImVec2(width() / 2.f, 0.0f));
-        ImGui::Begin("##PlayPauseStop", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+        // Gizmo Operations (packed to the left)
+        auto DrawGizmoButton = [&](const char* icon, ImGuizmo::OPERATION op)
+        {
+            bool selected = (currentGizmoOp == op);
+            if (selected) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+            if (ImGui::Button(icon)) currentGizmoOp = op;
+            if (selected) ImGui::PopStyleColor();
+        };
 
+        DrawGizmoButton(ICON_LC_MOVE, ImGuizmo::TRANSLATE);
+        ImGui::SameLine();
+        DrawGizmoButton(ICON_LC_REFRESH_CW, ImGuizmo::ROTATE);
+        ImGui::SameLine();
+        DrawGizmoButton(ICON_LC_SCALING, ImGuizmo::SCALE);
 
-        if(Engine::Core::GetEngine().IsInPlayMode()){
-            if(ImGui::Button(ICON_LC_SQUARE)){
+        // ------------------ CENTER ------------------
+
+        ImGui::SameLine();
+
+        float playButtonWidth = ImGui::CalcTextSize(ICON_LC_PLAY).x + ImGui::GetStyle().FramePadding.x * 2;
+        float centerX = (toolbarWidth - playButtonWidth) / 2.0f;
+        ImGui::SetCursorPosX(centerX);
+
+        if (Engine::Core::GetEngine().IsInPlayMode())
+        {
+            if (ImGui::Button(ICON_LC_SQUARE))
                 Engine::Core::GetEngine().SetPlayMode(false);
-            }
         }
-        else{
-            if(ImGui::Button(ICON_LC_PLAY)){
-                Engine::Levels::LevelManager* levelManager = Engine::Core::GetEngine().GetLevelManager();
+        else
+        {
+            if (ImGui::Button(ICON_LC_PLAY))
+            {
+                auto levelManager = Engine::Core::GetEngine().GetLevelManager();
                 levelManager->GetLevelAt(0)->Serialize(levelManager->GetLevelAt(0)->GetPath());
                 Engine::Core::GetEngine().SetPlayMode(true);
             }
         }
-        
-        
 
-        ImGui::End();
+        // ------------------ RIGHT ------------------
+        
+        ImGui::SameLine();
+        
+        float frameStatsWidth = ImGui::CalcTextSize(ICON_LC_CHART_PIE).x + ImGui::GetStyle().FramePadding.x * 2;
+        float cameraWidth = ImGui::CalcTextSize(ICON_LC_CAMERA).x + ImGui::GetStyle().FramePadding.x * 2;
+        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + 10); // 10px spacing
+        ImGui::SetCursorPosX(rightX);
 
-        ImGui::SetNextWindowPos(ImVec2(width() - 115.0f, 0.0f));
-        ImGui::Begin("##GizmoSelection", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-        auto DrawGizmoButton = [&](const char* icon, ImGuizmo::OPERATION op)
+        // Frame Stats Button
         {
-            bool selected = (currentGizmoOp == op);
-            if (selected)
+            if(showFrameStats)
                 ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
             else
                 ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Button));
-
-            if (ImGui::Button(icon))
-                currentGizmoOp = op;
-
+            if(ImGui::Button(ICON_LC_CHART_PIE))
+                showFrameStats = !showFrameStats;
             ImGui::PopStyleColor();
+
+            if(showFrameStats)
+            {
+                ShowFrameStats();
+            }
+        }
+
+        ImGui::SameLine();
+
+        // Camera settings
+        {
+            if(showCamSettings)
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+            else
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+            if(ImGui::Button(ICON_LC_CAMERA))
+                showCamSettings = !showCamSettings;
+            ImGui::PopStyleColor();
+
+            if(showCamSettings)
+            {
+                ShowCamSettings();
+            }
+        }
+    }
+
+    void ViewportWindow::DrawGizmo()
+    {
+        auto selected = parent->GetSelectedActor();
+        if (!selected)
+            return;
+
+        ImGuizmo::BeginFrame();
+
+        auto cam = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera();
+
+        ImGuizmo::SetOrthographic(cam->IsOrthographic());
+        ImGuizmo::SetDrawlist();
+
+        ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
+        ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
+        ImVec2 windowPos   = ImGui::GetWindowPos();
+
+        ImVec2 rectMin = {
+            windowPos.x + viewportMin.x,
+            windowPos.y + viewportMin.y
         };
 
-        // Draw buttons
-        DrawGizmoButton(ICON_LC_MOVE, ImGuizmo::TRANSLATE);
-        ImGui::SameLine();
-        DrawGizmoButton(ICON_LC_REFRESH_CW, ImGuizmo::ROTATE);
+        ImVec2 rectSize = {
+            viewportMax.x - viewportMin.x,
+            viewportMax.y - viewportMin.y
+        };
 
-        ImGui::SameLine();
-        DrawGizmoButton(ICON_LC_SCALING, ImGuizmo::SCALE);
-        ImGui::End();
+        ImGuizmo::SetRect(rectMin.x, rectMin.y, rectSize.x, rectSize.y);
 
-        ImGui::SetNextWindowPos(ImVec2(width() - 35.0f, 0.0f));
-        ImGui::Begin("##ToggleStats", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-        if(showFrameStats)
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-        else
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Button));
-        if(ImGui::Button(ICON_LC_CHART_PIE))
-            showFrameStats = !showFrameStats;
-        ImGui::PopStyleColor();
-        ImGui::End();
+        const float* view = glm::value_ptr(cam->GetView());
+        const float* proj = glm::value_ptr(cam->GetProjection());
 
-        if(showFrameStats)
-        {
-            ShowFrameStats();
-        }
-        
-        std::shared_ptr<Engine::ECS::Objects::Actor> selected = parent->GetSelectedActor();
+        glm::mat4 transform = selected->transform->GetTransformMatrix();
 
-        if(selected != nullptr){
+        ImGuizmo::Manipulate(
+            view,
+            proj,
+            currentGizmoOp,
+            currentGizmoMode,
+            glm::value_ptr(transform)
+        );
 
-            ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+        if (ImGuizmo::IsUsing() && !gizmoActive) {
+            gizmoActive = true;
 
-            const float* cameraView = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
-            const float* cameraProjection = glm::value_ptr(Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            auto& stack = Commands::CommandStack::Get();
+            stack.Begin("Move Object");
 
-            glm::mat4 tr = selected->transform->GetTransformMatrix();
-
-            ImGuizmo::Manipulate(
-                cameraView,
-                cameraProjection,
-                currentGizmoOp,
-                currentGizmoMode,
-                glm::value_ptr(tr)
-            );
-
-            if (ImGuizmo::IsUsing() && !gizmoActive) {
-                gizmoActive = true;
-
-                auto& stack = Commands::CommandStack::Get();
-                stack.Begin("Move Object");
-
-                for (FieldInfo* field :
-                    selected->transform->GetDescriptor()->fields)
-                {
-                    stack.Add(
-                        std::make_unique<Commands::ModifyFieldCommand>(
-                            selected->transform.get(), field
-                        )
-                    );
-                }
+            for (FieldInfo* field :
+                selected->transform->GetDescriptor()->fields)
+            {
+                stack.Add(
+                    std::make_unique<Commands::ModifyFieldCommand>(
+                        selected->transform.get(), field
+                    )
+                );
             }
-
-            if (ImGuizmo::IsUsing()) {
-                selected->transform->SetFromTransformMatrix(tr);
-            }
-
-            if (!ImGuizmo::IsUsing() && gizmoActive) {
-                gizmoActive = false;
-                Commands::CommandStack::Get().End();
-            }
-
-
         }
 
-        uiHovered = ImGui::IsAnyItemActive();
+        if (ImGuizmo::IsUsing()) {
+            selected->transform->SetFromTransformMatrix(transform);
+        }
 
-        ImGui::Render();
-        QtImGui::Render();
-
-        context()->swapBuffers(this);
+        if (!ImGuizmo::IsUsing() && gizmoActive) {
+            gizmoActive = false;
+            Commands::CommandStack::Get().End();
+        }
     }
 
     void TextEllipsis(const char* text)
@@ -373,10 +285,9 @@ namespace Pulse::Editor::GUI {
         );
     }
 
-    void QtGLViewportWindow::ShowFrameStats(){
+    void ViewportWindow::ShowFrameStats(){
 
-        ImGui::SetNextWindowPos(ImVec2(width() - 185.0f, 34.0f));
-        ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
         ImGui::Text("Statistics");
         ImGui::Separator();
 
@@ -413,63 +324,43 @@ namespace Pulse::Editor::GUI {
         ImGui::End();
     }
 
-    QSize QtGLViewportWindow::GetFramebufferSize() const {
-        return QSize(width() * devicePixelRatio(), height() * devicePixelRatio());
-    }
+    void ViewportWindow::ShowCamSettings(){
+        
+        ImGui::Begin("##Cam", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Text("Scene Camera");
+        ImGui::Separator();
 
-    void QtGLViewportWindow::SetParentWindow(EditorMainWindow *parent)
-    {
-        this->parent = parent;
-    }
+        std::shared_ptr<Engine::ECS::Components::Camera> cam = cameraActor->GetComponent<Engine::ECS::Components::Camera>();
 
-    bool QtGLViewportWindow::event(QEvent* e) {
-        switch (e->type()) {
-            case QEvent::KeyPress:
-            case QEvent::KeyRelease: {
-                auto* key = static_cast<QKeyEvent*>(e);
-                if (inputManager)
-                    inputManager->KeyCallback(key->key(), key->type() == QEvent::KeyPress ? 1 : 0);
-                break;
-            }
-            case QEvent::MouseButtonPress:
-            case QEvent::MouseButtonRelease: {
-                auto* mouse = static_cast<QMouseEvent*>(e);
-                if (inputManager)
-                    inputManager->MouseCallback(mouse->button(), mouse->type() == QEvent::MouseButtonPress ? 1 : 0);
-                break;
-            }
+        // Rendering stats
+        ImGui::Text("Camera width : %f px", cam->GetSize().x);
+        ImGui::Text("Camera height : %f px", cam->GetSize().y);
+
+        ImGui::Separator();
+
+        ImGui::SliderFloat("Camera speed", &speed, 0, 1000);
+        ImGui::SliderFloat("Mouse sensitivity", &mouseSensitivity, 0, 1000);
+
+        ImGui::Separator();
+
+        ImGui::SliderFloat("Near plane", &cam->nearPlane, 0.01f, 1000);
+        ImGui::SliderFloat("Far plane", &cam->farPlane, cam->nearPlane + 1, 1000);
+
+        ImGui::Checkbox("Ortho ?", &cam->orthographic);
+
+        if(cam->IsOrthographic()){
+            ImGui::SliderFloat("Ortho size", cam->GetOrthoSize(), 1.0f, 100.0f);
         }
-        return QOpenGLWindow::event(e);
-    }
-
-    void QtGLViewportWindow::SetQTInputManager(Core::Platform::QTInput* input) {
-        inputManager = input;
-    }
-
-    void QtGLViewportWindow::OnLevelStructureChanged(Engine::Events::LevelStructureChangedEvent event){
-
-        switch(event.changeType){   
-            case Engine::Events::LOADED:{
-                
-                Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
-
-                cameraActor = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
-                cameraActor->AddComponent<Engine::ECS::Components::Camera>();
-                int width = engine->GetWindow()->GetFramebufferWidth();
-                int height = engine->GetWindow()->GetFramebufferHeight();
-                cameraActor->GetComponent<Engine::ECS::Components::Camera>()->Init(width, height, near, far);
-                engine->GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
-                engine->GetCameraManager()->SetActiveCamera(cameraActor->GetID());
-                break;
-            }
-            default:
-                break;
+        else{
+            ImGui::SliderFloat("FOV", cam->GetFOV(), 1.0f, 150.0f);
         }
+
+        ImGui::End();
     }
 
-    void QtGLViewportWindow::ProcessInputs()
+    void ViewportWindow::ProcessInputs()
     {
-        if(!cameraActor)
+        if(!cameraActor || !viewportHovered || uiHovered || ImGuizmo::IsUsing())
             return;
 
         Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
@@ -488,14 +379,10 @@ namespace Pulse::Editor::GUI {
         if(input->IsKeyDown(Engine::Input::Key::D)){
             cameraActor->transform->Translate(glm::normalize(glm::cross(cameraActor->transform->GetForward(), cameraActor->transform->GetUp())) * speed * time->GetDeltaTime());
         }
-
-        if(ImGuizmo::IsUsing() || uiHovered)
-            return;
         
         if (input->IsMouseDown(Engine::Input::MouseButton::Left))
         {
             input->SetCursorVisibility(false);
-
             double mouseX, mouseY;
             input->GetCursorPos(&mouseX, &mouseY);
 
@@ -503,6 +390,7 @@ namespace Pulse::Editor::GUI {
             {
                 lockedMouseX = mouseX;
                 lockedMouseY = mouseY;
+                firstClickTime = Engine::Core::GetEngine().GetTimeManager()->CurrentAppTime().seconds;
                 firstClick = false;
             }
 
@@ -527,23 +415,33 @@ namespace Pulse::Editor::GUI {
         }
         if(input->IsMouseUp(Engine::Input::MouseButton::Left))
         {
-            firstClick = true;
             input->SetCursorVisibility(true);
+            firstClick = true;
         }
     
         // Picking
-        if(input->WasMousePressed(Engine::Input::MouseButton::Left)){
+        if(input->WasMouseReleased(Engine::Input::MouseButton::Left)){
+            
+            if(Engine::Core::GetEngine().GetTimeManager()->CurrentAppTime().seconds - firstClickTime > 1){
+                return;
+            }
+
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
             Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
 
             glm::dvec2 screenPos;
             input->GetCursorPos(&screenPos.x, &screenPos.y);
 
-            QPoint localPos = mapFromGlobal(QPoint(screenPos.x, screenPos.y));
+            ImVec2 mouse = ImGui::GetMousePos();
+            ImVec2 winPos = viewportPos;
+
+            float localX = mouse.x - winPos.x;
+            float localY = mouse.y - winPos.y;
 
             glm::vec3 origin = cameraActor->transform->GetPosition();
 
-            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localPos.x() * devicePixelRatio(), localPos.y() * devicePixelRatio()));
+            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localX, localY));
             dir = glm::normalize(dir);
             dir *= engine->GetCameraManager()->GetActiveCamera()->farPlane;
 
@@ -557,5 +455,6 @@ namespace Pulse::Editor::GUI {
                 parent->SetSelectedActor(nullptr);
             }
         }
+
     }
 }
