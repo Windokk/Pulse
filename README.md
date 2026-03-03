@@ -54,6 +54,7 @@ This will compile everything from root : submodules, the engine, the editor app,
   - [ufbx](https://github.com/ufbx/ufbx)
   - [json for c++](https://github.com/nlohmann/json)
   - [fmod](https://www.fmod.com/)
+  - [ImViewGuizmo](https://github.com/Ka1serM/ImViewGuizmo)
 
 - Fonts :
   - [Lucide icons](https://lucide.dev/)

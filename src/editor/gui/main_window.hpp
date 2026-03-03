@@ -50,6 +50,9 @@ namespace Pulse::Editor::Core {
 
         void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
             this->selectedActor = newPtr;
+
+            if(levelTree)
+                levelTree->SetSelection(newPtr);
         }
 
         std::shared_ptr<Engine::ECS::Objects::Actor> GetSelectedActor(){

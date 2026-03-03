@@ -7,6 +7,7 @@
 #include "camera.reflection.hpp"
 
 #include "engine/core/engine.hpp"
+#include <glm/gtx/string_cast.hpp>
 
 namespace Pulse::Engine::ECS::Components {
     
@@ -78,7 +79,9 @@ namespace Pulse::Engine::ECS::Components {
         glm::vec3 up       = tr->GetUp();
 
         // View matrix
-        view = glm::lookAt(position, position + forward, up);
+        glm::mat4 rot = glm::mat4_cast(tr->GetRotationQuat());
+        glm::mat4 trans = glm::translate(glm::mat4(1.0f), position);
+        view = glm::inverse(trans * rot);
 
         // Avoid division by zero
         float aspect = (height != 0) ? float(width) / float(height) : 1.0f;
@@ -108,66 +111,21 @@ namespace Pulse::Engine::ECS::Components {
         cameraMatrix = projection * view;
     }
 
-    Frustum createFrustumFromCamera(const Camera& cam, float aspect, float fovY,
-                                                                float zNear, float zFar)
-    {
-        Frustum frustum;
-        const float halfVSide = zFar * tanf(fovY * .5f);
-        const float halfHSide = halfVSide * aspect;
-        const glm::vec3 frontMultFar = zFar * cam.parent->transform->GetForward();
-
-        frustum.nearFace = { cam.parent->transform->GetPosition() + zNear * cam.parent->transform->GetForward(), cam.parent->transform->GetForward()};
-        frustum.farFace = { cam.parent->transform->GetPosition() + frontMultFar, -cam.parent->transform->GetForward() };
-        frustum.rightFace = { cam.parent->transform->GetPosition(),
-                                glm::cross(frontMultFar - cam.parent->transform->GetRight() * halfHSide, cam.parent->transform->GetUp()) };
-        frustum.leftFace = { cam.parent->transform->GetPosition(),
-                                glm::cross(cam.parent->transform->GetUp(),frontMultFar + cam.parent->transform->GetRight() * halfHSide) };
-        frustum.topFace = { cam.parent->transform->GetPosition(),
-                                glm::cross(cam.parent->transform->GetRight(), frontMultFar - cam.parent->transform->GetUp() * halfVSide) };
-        frustum.bottomFace = { cam.parent->transform->GetPosition(),
-                                glm::cross(frontMultFar + cam.parent->transform->GetUp() * halfVSide, cam.parent->transform->GetRight()) };
-
-        return frustum;
-    }
-
-    bool isOnOrForwardPlane(glm::vec3 center, glm::vec3 extents, const Plane& plane)
-	{
-		// Compute the projection interval radius of b onto L(t) = b.c + t * p.n
-		const float r = extents.x * std::abs(plane.normal.x) +
-            extents.y * std::abs(plane.normal.y) + extents.z * std::abs(plane.normal.z);
-
-		return -r <= plane.getSignedDistanceToPlane(center);
-	}
-
-    bool Camera::IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax)
-    {
-        float aspect = float(width) / float(height);
-        Frustum camFrustum = createFrustumFromCamera(*this, aspect, fov, nearPlane, farPlane);
-
-        glm::vec3 center = (boundsMin + boundsMax) * 0.5f;
-        glm::vec3 extents = boundsMax - boundsMin;
-
-        return (isOnOrForwardPlane(center, extents, camFrustum.leftFace) &&
-			isOnOrForwardPlane(center, extents, camFrustum.rightFace) &&
-			isOnOrForwardPlane(center, extents, camFrustum.topFace) &&
-			isOnOrForwardPlane(center, extents, camFrustum.bottomFace) &&
-			isOnOrForwardPlane(center, extents, camFrustum.nearFace) &&
-			isOnOrForwardPlane(center, extents, camFrustum.farFace));
-    }
-
     glm::vec3 Camera::GetWorldPointFromScreenPoint(glm::vec2 screenPoint)
     {
         float x = (2.0f * screenPoint.x) / width - 1.0f;
         float y = 1.0f - (2.0f * screenPoint.y) / height;
-        float z = 1.0f;
-        glm::vec3 ray_nds = glm::vec3(x, y, z);
-        glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
 
-        glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
-        ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+        glm::vec4 rayClip(x, y, -1.0f, 1.0f); // near plane
 
-        glm::vec3 ray_wor = glm::inverse(view) * ray_eye;
-        return glm::normalize(ray_wor);
+        glm::vec4 rayEye = glm::inverse(projection) * rayClip;
+        rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+
+        glm::vec3 rayWorld = glm::normalize(
+            glm::vec3(glm::inverse(view) * rayEye)
+        );
+
+        return rayWorld;
     }
 
     void Camera::Deserialize(json componentData)
@@ -210,4 +168,91 @@ namespace Pulse::Engine::ECS::Components {
 
         return cloned;
     }
+
+    bool Camera::IsInFrustum(const glm::vec3 &boundsMin, const glm::vec3 &boundsMax)
+    {
+        if (!frustumCulling)
+            return true;
+
+        glm::mat4 m = cameraMatrix;
+
+        Frustum frustum;
+
+        // Right plane
+        frustum.rightFace.normal.x = m[0][3] - m[0][0];
+        frustum.rightFace.normal.y = m[1][3] - m[1][0];
+        frustum.rightFace.normal.z = m[2][3] - m[2][0];
+        frustum.rightFace.d        = m[3][3] - m[3][0];
+
+        // Left plane
+        frustum.leftFace.normal.x = m[0][3] + m[0][0];
+        frustum.leftFace.normal.y = m[1][3] + m[1][0];
+        frustum.leftFace.normal.z = m[2][3] + m[2][0];
+        frustum.leftFace.d        = m[3][3] + m[3][0];
+
+        // Bottom plane
+        frustum.bottomFace.normal.x = m[0][3] + m[0][1];
+        frustum.bottomFace.normal.y = m[1][3] + m[1][1];
+        frustum.bottomFace.normal.z = m[2][3] + m[2][1];
+        frustum.bottomFace.d        = m[3][3] + m[3][1];
+
+        // Top plane
+        frustum.topFace.normal.x = m[0][3] - m[0][1];
+        frustum.topFace.normal.y = m[1][3] - m[1][1];
+        frustum.topFace.normal.z = m[2][3] - m[2][1];
+        frustum.topFace.d        = m[3][3] - m[3][1];
+
+        // Far plane
+        frustum.farFace.normal.x = m[0][3] - m[0][2];
+        frustum.farFace.normal.y = m[1][3] - m[1][2];
+        frustum.farFace.normal.z = m[2][3] - m[2][2];
+        frustum.farFace.d        = m[3][3] - m[3][2];
+
+        // Near plane
+        frustum.nearFace.normal.x = m[0][3] + m[0][2];
+        frustum.nearFace.normal.y = m[1][3] + m[1][2];
+        frustum.nearFace.normal.z = m[2][3] + m[2][2];
+        frustum.nearFace.d        = m[3][3] + m[3][2];
+
+        // Normalize planes
+        auto normalizePlane = [](Plane &p) {
+            float len = glm::length(p.normal);
+            p.normal /= len;
+            p.d /= len;
+        };
+
+        normalizePlane(frustum.rightFace);
+        normalizePlane(frustum.leftFace);
+        normalizePlane(frustum.topFace);
+        normalizePlane(frustum.bottomFace);
+        normalizePlane(frustum.nearFace);
+        normalizePlane(frustum.farFace);
+
+        Plane planes[6] = {
+            frustum.rightFace, frustum.leftFace, frustum.topFace,
+            frustum.bottomFace, frustum.nearFace, frustum.farFace
+        };
+
+        for (int i = 0; i < 6; ++i)
+        {
+            Plane &plane = planes[i];
+
+            // Compute the positive vertex
+            glm::vec3 pVertex = boundsMin;
+
+            if (plane.normal.x >= 0) pVertex.x = boundsMax.x;
+            if (plane.normal.y >= 0) pVertex.y = boundsMax.y;
+            if (plane.normal.z >= 0) pVertex.z = boundsMax.z;
+
+            // If the positive vertex is outside the plane, the AABB is outside
+            if (glm::dot(plane.normal, pVertex) + plane.d < 0)
+            {
+                return false;
+            }
+        }
+
+        // Otherwise, it's at least partially inside
+        return true;
+    }
+
 }

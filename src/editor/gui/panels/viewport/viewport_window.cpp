@@ -7,20 +7,27 @@
 
 #include "editor/gui/IconsLucide.h"
 #include "editor/gui/main_window.hpp"
+#include "editor/gui/panels/common.hpp"
+#include "editor/gui/imoguizmo.hpp"
+
 
 #include <glm/gtx/string_cast.hpp>
 
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 
+
 namespace Pulse::Editor::GUI {
 
+    ImVec2 ViewportWindow::prev_size = ImVec2(0, 0);
+
     void ViewportWindow::Draw()
-    {   
-        // Store previous size
-        static ImVec2 prev_size = ImGui::GetWindowSize();
-
+    {
         ImGui::Begin("Viewport");
-
+        
+        ImGui::BeginChild("ToolbarArea", ImVec2(0, 26), false, ImGuiWindowFlags_NoScrollbar);
+        DrawToolbar();
+        ImGui::EndChild();
+        
         // Get current size
         ImVec2 current_size = ImGui::GetWindowSize();
 
@@ -30,31 +37,43 @@ namespace Pulse::Editor::GUI {
         // Rendu texture framebuffer
         uint32_t textureID = Engine::Core::GetEngine().GetRenderer()->GetViewportTextureID();
 
-        // Check if it changed
-        if (current_size.x != prev_size.x || current_size.y != prev_size.y) {
-            // Window was resized
-            Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
-            viewportSize = glm::vec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+        viewportSize = glm::vec2(avail.x, avail.y);
+
+        if ((current_size.x != prev_size.x || current_size.y != prev_size.y)
+            && avail.x > 0 && avail.y > 0)
+        {
+            Engine::Core::GetEngine().GetRenderer()->RescaleFramebuffers(avail.x, avail.y);
         }
 
         // Save for next frame
         prev_size = current_size;
 
-        ImGui::Image(
-            (void*)(intptr_t)textureID,
-            ImVec2(viewportSize.x, viewportSize.y),
-            ImVec2(0, 1),
-            ImVec2(1, 0)
-        );
+        if (textureID != 0)
+        {
+            ImGui::Image(
+                (void*)(intptr_t)textureID,
+                ImVec2(viewportSize.x, viewportSize.y),
+                ImVec2(0, 1),
+                ImVec2(1, 0)
+            );
+        }
+        
+        viewportImageMin = ImGui::GetItemRectMin();
+        viewportImageMax = ImGui::GetItemRectMax();
 
-        DrawToolbar();
-        DrawGizmo();
+        if(parent && parent->GetSelectedActor())
+            DrawObjectGizmo();
 
         viewportPos = ImGui::GetWindowPos();
 
-        uiHovered = ImGui::IsAnyItemHovered();
+        ImGui::SameLine();
+        DrawViewGizmo();
 
+        uiHovered = ImGui::IsAnyItemHovered();
+    
         ImGui::End();
+
     }
 
     void ViewportWindow::SetParentWindow(Core::EditorMainWindow *parent)
@@ -68,15 +87,20 @@ namespace Pulse::Editor::GUI {
         cameraActor->GetComponent<Engine::ECS::Components::Camera>()->Init(width, height, 0.1f, 100.0f, 60, false, 10);
         Engine::Core::GetEngine().GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
         Engine::Core::GetEngine().GetCameraManager()->SetActiveCamera(cameraActor->GetID());
+
+        DEBUG_LOG(glm::to_string(cameraActor->transform->GetForward()));
+
+        cameraActor->transform->SetPosition(glm::vec3(10, 0, 0));
+
+        camera = cameraActor->GetComponent<Engine::ECS::Components::Camera>();
     }
 
     void ViewportWindow::DrawToolbar()
     {
-        ImGui::SetCursorPos(ImVec2(10, 32));
+        ImGui::SetCursorPos(ImVec2(10, 0));
 
         float toolbarWidth = ImGui::GetContentRegionAvail().x;
 
-        // ------------------ LEFT ------------------
         // Gizmo Space
         const char* items[2] = { ICON_LC_LOCATE " Local", ICON_LC_EARTH " World" };
         static int item_selected_idx = 0;
@@ -114,18 +138,18 @@ namespace Pulse::Editor::GUI {
         ImGui::SameLine();
         DrawGizmoButton(ICON_LC_SCALING, ImGuizmo::SCALE);
 
-        // ------------------ CENTER ------------------
 
         ImGui::SameLine();
 
         float playButtonWidth = ImGui::CalcTextSize(ICON_LC_PLAY).x + ImGui::GetStyle().FramePadding.x * 2;
-        float centerX = (toolbarWidth - playButtonWidth) / 2.0f;
+        float centerX = std::max(0.0f, (toolbarWidth - playButtonWidth) / 2.0f);
         ImGui::SetCursorPosX(centerX);
 
         if (Engine::Core::GetEngine().IsInPlayMode())
         {
-            if (ImGui::Button(ICON_LC_SQUARE))
+            if (ImGui::Button(ICON_LC_SQUARE)){
                 Engine::Core::GetEngine().SetPlayMode(false);
+            }
         }
         else
         {
@@ -133,17 +157,17 @@ namespace Pulse::Editor::GUI {
             {
                 auto levelManager = Engine::Core::GetEngine().GetLevelManager();
                 levelManager->GetLevelAt(0)->Serialize(levelManager->GetLevelAt(0)->GetPath());
+                parent->SetSelectedActor(nullptr);
                 Engine::Core::GetEngine().SetPlayMode(true);
             }
         }
 
-        // ------------------ RIGHT ------------------
         
         ImGui::SameLine();
         
         float frameStatsWidth = ImGui::CalcTextSize(ICON_LC_CHART_PIE).x + ImGui::GetStyle().FramePadding.x * 2;
         float cameraWidth = ImGui::CalcTextSize(ICON_LC_CAMERA).x + ImGui::GetStyle().FramePadding.x * 2;
-        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + 10); // 10px spacing
+        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + 4); // 4px spacing
         ImGui::SetCursorPosX(rightX);
 
         // Frame Stats Button
@@ -181,43 +205,77 @@ namespace Pulse::Editor::GUI {
         }
     }
 
-    void ViewportWindow::DrawGizmo()
+    void ViewportWindow::DrawViewGizmo(){
+        ImVec2 gizmoPos = ImGui::GetCursorScreenPos();
+        gizmoPos.x -= 120;
+        gizmoPos.y += 25;
+
+        ImOGuizmo::SetRect(gizmoPos.x, gizmoPos.y, 120.0f);
+
+        static glm::mat4 gizmoProj = glm::perspective(glm::radians(90.0f), 4/3.0f, 0.01f, 1000.0f);
+
+        glm::mat4 view = camera->GetView();
+
+        int axis = ImOGuizmo::DrawGizmo(glm::value_ptr(view), glm::value_ptr(gizmoProj), 0.1f);
+        if(axis != -1 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        {
+            glm::vec3 euler;
+            switch(axis)
+            {
+                case 0: euler = glm::vec3(0, -90, 0); break;
+                case 1: euler = glm::vec3(90, 0, 0); break;
+                case 2: euler = glm::vec3(0, 0, 0); break;
+                case 3: euler = glm::vec3(0, 90, 0); break;
+                case 4: euler = glm::vec3(-90, 0, 0); break;
+                case 5: euler = glm::vec3(0, 180, 0); break;
+            }
+            cameraActor->transform->SetRotation(glm::quat(glm::radians(euler)));
+
+            pitch = euler.x;
+            yaw = euler.y;
+
+            isUsingViewGizmo = true;
+        }
+        else if(axis != -1 && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            isUsingViewGizmo = true;
+        }
+        else{
+            isUsingViewGizmo = false;
+        }
+    }
+
+    void ViewportWindow::DrawObjectGizmo()
     {
+        // Object gizmo
+
         auto selected = parent->GetSelectedActor();
         if (!selected)
             return;
+            
+        camera->UpdateMatrix();
 
-        ImGuizmo::BeginFrame();
+        ImGuizmo::SetOrthographic(camera->IsOrthographic());
 
-        auto cam = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera();
+        ImVec2 imageSize = ImVec2(
+            viewportImageMax.x - viewportImageMin.x,
+            viewportImageMax.y - viewportImageMin.y
+        );
 
-        ImGuizmo::SetOrthographic(cam->IsOrthographic());
-        ImGuizmo::SetDrawlist();
-
-        ImVec2 viewportMin = ImGui::GetWindowContentRegionMin();
-        ImVec2 viewportMax = ImGui::GetWindowContentRegionMax();
-        ImVec2 windowPos   = ImGui::GetWindowPos();
-
-        ImVec2 rectMin = {
-            windowPos.x + viewportMin.x,
-            windowPos.y + viewportMin.y
-        };
-
-        ImVec2 rectSize = {
-            viewportMax.x - viewportMin.x,
-            viewportMax.y - viewportMin.y
-        };
-
-        ImGuizmo::SetRect(rectMin.x, rectMin.y, rectSize.x, rectSize.y);
-
-        const float* view = glm::value_ptr(cam->GetView());
-        const float* proj = glm::value_ptr(cam->GetProjection());
+        ImGuizmo::SetRect(
+            viewportImageMin.x,
+            viewportImageMin.y,
+            imageSize.x,
+            imageSize.y
+        );
+        glm::mat4 view = camera->GetView();
+        glm::mat4 proj = camera->GetProjection();
 
         glm::mat4 transform = selected->transform->GetTransformMatrix();
 
         ImGuizmo::Manipulate(
-            view,
-            proj,
+            glm::value_ptr(view),
+            glm::value_ptr(proj),
             currentGizmoOp,
             currentGizmoMode,
             glm::value_ptr(transform)
@@ -248,41 +306,6 @@ namespace Pulse::Editor::GUI {
             gizmoActive = false;
             Commands::CommandStack::Get().End();
         }
-    }
-
-    void TextEllipsis(const char* text)
-    {
-        ImGuiWindow* window = ImGui::GetCurrentWindow();
-        if (window->SkipItems)
-            return;
-
-        ImGuiContext& g = *ImGui::GetCurrentContext();
-        const ImGuiStyle& style = g.Style;
-
-        ImVec2 pos = window->DC.CursorPos;
-        float width = ImGui::GetContentRegionAvail().x;
-        float height = ImGui::GetTextLineHeight();
-
-        ImGui::ItemSize(ImVec2(width, height));
-        ImGui::ItemAdd(
-            ImRect(
-                pos,
-                ImVec2(pos.x + width, pos.y + height)
-            ),
-            0
-        );
-
-        ImVec2 pos_max(pos.x + width, pos.y + height);
-
-        ImGui::RenderTextEllipsis(
-            window->DrawList,
-            pos,
-            pos_max,
-            pos.x + width, // ellipsis_max_x
-            text,
-            nullptr,
-            nullptr
-        );
     }
 
     void ViewportWindow::ShowFrameStats(){
@@ -338,8 +361,8 @@ namespace Pulse::Editor::GUI {
 
         ImGui::Separator();
 
-        ImGui::SliderFloat("Camera speed", &speed, 0, 1000);
-        ImGui::SliderFloat("Mouse sensitivity", &mouseSensitivity, 0, 1000);
+        ImGui::SliderFloat("Camera speed", &speed, 0, 100);
+        ImGui::SliderFloat("Mouse sensitivity", &mouseSensitivity, 0, 10);
 
         ImGui::Separator();
 
@@ -359,8 +382,13 @@ namespace Pulse::Editor::GUI {
     }
 
     void ViewportWindow::ProcessInputs()
-    {
-        if(!cameraActor || !viewportHovered || uiHovered || ImGuizmo::IsUsing())
+    {   
+        if (!viewportFocused && !firstClick) {
+            Engine::Core::GetEngine().GetInputManager()->SetCursorVisibility(true);
+            firstClick = true;
+        }
+
+        if(!cameraActor || !viewportHovered || uiHovered || ImGuizmo::IsUsing() || isUsingViewGizmo)
             return;
 
         Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
@@ -382,7 +410,7 @@ namespace Pulse::Editor::GUI {
         
         if (input->IsMouseDown(Engine::Input::MouseButton::Left))
         {
-            input->SetCursorVisibility(false);
+
             double mouseX, mouseY;
             input->GetCursorPos(&mouseX, &mouseY);
 
@@ -397,7 +425,7 @@ namespace Pulse::Editor::GUI {
             double deltaX = mouseX - lockedMouseX;
             double deltaY = lockedMouseY - mouseY; // reversed Y
 
-            pitch -= deltaY * mouseSensitivity;
+            pitch += deltaY * mouseSensitivity;
             yaw   -= deltaX * mouseSensitivity;
 
             // Clamp pitch to avoid flipping
@@ -415,7 +443,6 @@ namespace Pulse::Editor::GUI {
         }
         if(input->IsMouseUp(Engine::Input::MouseButton::Left))
         {
-            input->SetCursorVisibility(true);
             firstClick = true;
         }
     
@@ -425,8 +452,6 @@ namespace Pulse::Editor::GUI {
             if(Engine::Core::GetEngine().GetTimeManager()->CurrentAppTime().seconds - firstClickTime > 1){
                 return;
             }
-
-            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
             Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
 
@@ -441,9 +466,8 @@ namespace Pulse::Editor::GUI {
 
             glm::vec3 origin = cameraActor->transform->GetPosition();
 
-            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localX, localY));
+            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localX, localY)) - origin;
             dir = glm::normalize(dir);
-            dir *= engine->GetCameraManager()->GetActiveCamera()->farPlane;
 
             Engine::Physics::RaycastResult result = Engine::Core::GetEngine().GetPhysicsManager()->RayCast({origin, dir, engine->GetCameraManager()->GetActiveCamera()->farPlane});
 
@@ -457,4 +481,8 @@ namespace Pulse::Editor::GUI {
         }
 
     }
+    
+    ViewportWindow::ViewportWindow() {}
+
+    ViewportWindow::~ViewportWindow() = default;
 }

@@ -52,7 +52,14 @@ namespace Pulse::Editor::GUI{
 
     void LevelTree::SetSelection(std::shared_ptr<Engine::ECS::Objects::Actor> actor)
     {
-        
+        if (actor)
+        {
+            selectedID = actor->GetID();
+        }
+        else
+        {
+            selectedID = {};
+        }
     }
 
     void LevelTree::DrawActorNode(std::shared_ptr<Engine::ECS::Objects::Actor> actor)

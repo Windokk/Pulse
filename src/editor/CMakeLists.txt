@@ -7,8 +7,8 @@ file(GLOB_RECURSE EDITOR_SOURCES
   ${CMAKE_SOURCE_DIR}/submodules/imgui/imgui_widgets.cpp
   ${CMAKE_SOURCE_DIR}/submodules/imgui/imgui_tables.cpp
   ${CMAKE_SOURCE_DIR}/submodules/imgui/imgui_draw.cpp
-    ${CMAKE_SOURCE_DIR}/submodules/imgui/backends/imgui_impl_glfw.cpp
-    ${CMAKE_SOURCE_DIR}/submodules/imgui/backends/imgui_impl_opengl3.cpp
+  ${CMAKE_SOURCE_DIR}/submodules/imgui/backends/imgui_impl_glfw.cpp
+  ${CMAKE_SOURCE_DIR}/submodules/imgui/backends/imgui_impl_opengl3.cpp
 )
 
 add_library(EditorModule SHARED ${EDITOR_SOURCES})

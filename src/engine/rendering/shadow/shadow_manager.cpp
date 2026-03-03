@@ -267,9 +267,7 @@ namespace Pulse::Engine::Rendering{
         OpenGL* gl = Core::GetEngine().GetGL();
 
         gl->Enable(GL_DEPTH_TEST);
-        gl->Enable(GL_CULL_FACE);
-        gl->CullFace(GL_BACK);
-        gl->FrontFace(GL_CCW);
+        gl->Disable(GL_CULL_FACE);
 
         for (auto& sm : shadowMaps)
         {
@@ -359,7 +357,6 @@ namespace Pulse::Engine::Rendering{
             }
         }
 
-        gl->Disable(GL_CULL_FACE);
         gl->Disable(GL_DEPTH_TEST);
     }
 

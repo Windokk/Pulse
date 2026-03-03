@@ -1,1 +1,220 @@
-{"name":"sponza","actors":[{"name":"sponza","children":[{"name":"light","components":[{"type":"transform","active":true,"position":{"x":0.0,"y":11.0,"z":0.0},"rotation":{"x":-89.9999771118164,"y":1.0832252883119509e-05,"z":178.91539001464844},"scale":{"x":1.0,"y":1.0,"z":1.0}},{"type":"light","active":true,"light_type":"directional","intensity":3.0,"radius":100.0,"color":{"r":1.0,"g":1.0,"b":1.0},"innerCutoff":0.9998477697372437,"outerCutoff":0.9998477697372437,"castShadow":true}]}],"components":[{"type":"transform","active":true,"position":{"x":0.08522796630859375,"y":-9.959098815917969,"z":-0.4603153467178345},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":2.0,"y":2.0,"z":2.0}},{"type":"model","active":true,"mesh":"models/Sponza.fbx","materials":{"0":"materials/leaf.mat","1":"materials/Material_57.mat","2":"materials/vase_round.mat","3":"materials/Material_298.mat","4":"materials/bricks.mat","5":"materials/arch.mat","6":"materials/ceiling.mat","7":"materials/column_a.mat","8":"materials/floor.mat","9":"materials/column_c.mat","10":"materials/details.mat","11":"materials/column_b.mat","12":"materials/Material__47.mat","13":"materials/flagpole.mat","14":"materials/fabric_e.mat","15":"materials/fabric_d.mat","16":"materials/fabric_a.mat","17":"materials/fabric_g.mat","18":"materials/fabric_c.mat","19":"materials/fabric_f.mat","20":"materials/chain.mat","21":"materials/vase_hanging.mat","22":"materials/vase.mat","23":"materials/Material__25.mat","24":"materials/roof.mat"}}]},{"name":"Player","components":[{"type":"transform","active":true,"position":{"x":0.0,"y":0.0,"z":0.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0}},{"type":"camera","orthographic":false,"active":true,"near":0.10000000149011612,"far":100.0,"fov":60.0,"orthoSize":10.0}]},{"name":"default_cube","components":[{"type":"transform","active":true,"position":{"x":-0.5675501823425293,"y":0.8679425120353699,"z":-0.9867996573448181},"rotation":{"x":51.907447814941406,"y":-0.19044309854507446,"z":9.066309928894043},"scale":{"x":1.0,"y":1.0000004768371582,"z":0.9999998807907104}},{"type":"model","active":true,"mesh":"models/cube.fbx","materials":{"0":"materials/fabric_g.mat"}},{"type":"physics_body","active":true,"shape":"box","params":{"x":0.5,"y":0.5,"z":0.5},"motion_type":"dynamic"}]},{"name":"default_sphere","components":[{"type":"transform","active":true,"position":{"x":0.0647430419921875,"y":-0.7951843738555908,"z":-0.34521546959877014},"rotation":{"x":-44.96364974975586,"y":89.94405364990234,"z":-69.59477233886719},"scale":{"x":3.7974298000335693,"y":0.9999998807907104,"z":4.392458915710449}},{"type":"model","active":true,"mesh":"models/sphere.fbx","materials":{"0":"materials/fabric_f.mat"}},{"type":"physics_body","active":true,"shape":"box","params":{"x":0.5,"y":0.5,"z":0.5},"motion_type":"static"}]}],"skybox":"textures/qwantani_afternoon_puresky_4k.hdr"}
+{
+    "name": "sponza",
+    "actors": [
+        {
+            "name": "sponza",
+            "children": [
+                {
+                    "name": "light",
+                    "components": [
+                        {
+                            "type": "transform",
+                            "active": true,
+                            "position": {
+                                "x": 0.0,
+                                "y": 11.0,
+                                "z": 0.0
+                            },
+                            "rotation": {
+                                "x": 89.9999771118164,
+                                "y": 1.0832252883119509e-05,
+                                "z": 178.91539001464844
+                            },
+                            "scale": {
+                                "x": 1.0,
+                                "y": 1.0,
+                                "z": 1.0
+                            }
+                        },
+                        {
+                            "type": "light",
+                            "active": true,
+                            "light_type": "directional",
+                            "intensity": 3.0,
+                            "radius": 100.0,
+                            "color": {
+                                "r": 1.0,
+                                "g": 1.0,
+                                "b": 1.0
+                            },
+                            "innerCutoff": 0.9998477697372437,
+                            "outerCutoff": 0.9998477697372437,
+                            "castShadow": true
+                        }
+                    ]
+                }
+            ],
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": 0.08522796630859375,
+                        "y": -9.959098815917969,
+                        "z": -0.4603153467178345
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": -0.0,
+                        "z": 0.0
+                    },
+                    "scale": {
+                        "x": 2.0,
+                        "y": 2.0,
+                        "z": 2.0
+                    }
+                },
+                {
+                    "type": "model",
+                    "active": true,
+                    "mesh": "models/Sponza.fbx",
+                    "materials": {
+                        "0": "materials/leaf.mat",
+                        "1": "materials/Material_57.mat",
+                        "2": "materials/vase_round.mat",
+                        "3": "materials/Material_298.mat",
+                        "4": "materials/bricks.mat",
+                        "5": "materials/arch.mat",
+                        "6": "materials/ceiling.mat",
+                        "7": "materials/column_a.mat",
+                        "8": "materials/floor.mat",
+                        "9": "materials/column_c.mat",
+                        "10": "materials/details.mat",
+                        "11": "materials/column_b.mat",
+                        "12": "materials/Material__47.mat",
+                        "13": "materials/flagpole.mat",
+                        "14": "materials/fabric_e.mat",
+                        "15": "materials/fabric_d.mat",
+                        "16": "materials/fabric_a.mat",
+                        "17": "materials/fabric_g.mat",
+                        "18": "materials/fabric_c.mat",
+                        "19": "materials/fabric_f.mat",
+                        "20": "materials/chain.mat",
+                        "21": "materials/vase_hanging.mat",
+                        "22": "materials/vase.mat",
+                        "23": "materials/Material__25.mat",
+                        "24": "materials/roof.mat"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Player",
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": -0.0,
+                        "z": 0.0
+                    },
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    }
+                },
+                {
+                    "type": "camera",
+                    "orthographic": false,
+                    "active": true,
+                    "near": 0.10000000149011612,
+                    "far": 100.0,
+                    "fov": 60.0,
+                    "orthoSize": 10.0
+                }
+            ]
+        },
+        {
+            "name": "default_cube",
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": -0.642280101776123,
+                        "y": 0.7546536326408386,
+                        "z": -0.8848142623901367
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": -0.0,
+                        "z": 0.0
+                    },
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0000004768371582,
+                        "z": 0.9999998211860657
+                    }
+                },
+                {
+                    "type": "model",
+                    "active": true,
+                    "mesh": "models/cube.fbx",
+                    "materials": {
+                        "0": "materials/fabric_g.mat"
+                    }
+                },
+                {
+                    "type": "physics_body",
+                    "active": true,
+                    "shape": "box",
+                    "params": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "z": 0.5
+                    },
+                    "motion_type": "dynamic"
+                }
+            ]
+        },
+        {
+            "name": "default_sphere",
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": -0.8152868151664734,
+                        "y": -1.2048327922821045,
+                        "z": -1.0285841226577759
+                    },
+                    "rotation": {
+                        "x": 23.615482330322266,
+                        "y": 89.97203063964844,
+                        "z": -69.70125579833984
+                    },
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0000008344650269
+                    }
+                },
+                {
+                    "type": "model",
+                    "active": true,
+                    "mesh": "models/sphere.fbx",
+                    "materials": {
+                        "0": "materials/fabric_f.mat"
+                    }
+                },
+                {
+                    "type": "physics_body",
+                    "active": true,
+                    "shape": "sphere",
+                    "params": {
+                        "radius": 0.5
+                    },
+                    "motion_type": "static"
+                }
+            ]
+        }
+    ],
+    "skybox": "textures/qwantani_afternoon_puresky_4k.hdr"
+}

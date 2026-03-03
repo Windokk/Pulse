@@ -1,5 +1,6 @@
 #pragma once
 
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -66,15 +67,15 @@ namespace Pulse::Engine::ECS::Components
 
             void UpdateMeshReferencesInLevel();
 
-            glm::vec3 GetForward() {
-                return glm::normalize(rotation * glm::vec3(0, 0, 1));
+            glm::vec3 GetForward(){
+                return glm::normalize(rotation * glm::vec3(0, 0, -1));
             }
 
-            glm::vec3 GetUp() {
+            glm::vec3 GetUp(){
                 return glm::normalize(rotation * glm::vec3(0, 1, 0));
             }
 
-            glm::vec3 GetRight() {
+            glm::vec3 GetRight(){
                 return glm::normalize(rotation * glm::vec3(1, 0, 0));
             }
 
@@ -102,7 +103,6 @@ namespace Pulse::Engine::ECS::Components
         private:
 
             DirtyFlags dirtyFlags = DirtyFlags::None;
-
 
             DECLARE_DESCRIPTOR(Transform)
     };

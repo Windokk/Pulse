@@ -6,7 +6,11 @@
 
 namespace Pulse::Engine::Time{
 
+
+    using Clock = std::chrono::steady_clock;
+
     struct TimeStamp{
+        int nanoseconds;
         int milliseconds;
         int seconds;
         int minutes;
@@ -14,6 +18,11 @@ namespace Pulse::Engine::Time{
         int days;
         
         void Normalize() {
+            if (nanoseconds >= 1'000'000) {
+                milliseconds += nanoseconds / 1'000'000;
+                nanoseconds %= 1'000'000;
+            }
+
             if (milliseconds >= 1000) {
                 seconds += milliseconds / 1000;
                 milliseconds %= 1000;
@@ -34,32 +43,33 @@ namespace Pulse::Engine::Time{
                 hours %= 24;
             }
         }
-    
+        
         std::string AsString() const {
             std::ostringstream oss;
             oss << days << "d "
                 << std::setw(2) << std::setfill('0') << hours << "h:"
                 << std::setw(2) << std::setfill('0') << minutes << "m:"
                 << std::setw(2) << std::setfill('0') << seconds << "s:"
-                << std::setw(3) << std::setfill('0') << milliseconds << "ms";
+                << std::setw(3) << std::setfill('0') << milliseconds << "ms:"
+                << std::setw(6) << std::setfill('0') << nanoseconds << "ns";
             return oss.str();
         }
     };
-
+    
     class TimeManager {
         public:
 
             void Init(float fixedStep = 1.0f / 60.0f, float maxAccumulated = 4.0f / 60.0f){
                 fixedDeltaTime = fixedStep;
                 deltaTime = 0.0f;
-                lastTime = std::chrono::high_resolution_clock::now();
+                lastTime = Clock::now();
                 appStartTime = lastTime;
                 accumulator = 0;
                 maxAccumulatedTime = maxAccumulated;
             }
 
             void Tick() {
-                frameStartTime = std::chrono::high_resolution_clock::now();
+                frameStartTime = Clock::now();
                 auto delta = std::chrono::duration<float>(frameStartTime - lastTime);
                 deltaTime = delta.count();
                 lastTime = frameStartTime;
@@ -76,21 +86,25 @@ namespace Pulse::Engine::Time{
 
                 auto now = system_clock::now();
                 auto now_time_t = system_clock::to_time_t(now);
-                auto now_ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+
+                auto since_epoch = now.time_since_epoch();
+                auto ms = duration_cast<milliseconds>(since_epoch) % 1000;
+                auto ns = duration_cast<nanoseconds>(since_epoch) % 1'000'000;
 
                 std::tm local_tm;
-        #ifdef _WIN32
+            #ifdef _WIN32
                 localtime_s(&local_tm, &now_time_t);
-        #else
+            #else
                 localtime_r(&now_time_t, &local_tm);
-        #endif
+            #endif
 
                 TimeStamp ts;
                 ts.days = local_tm.tm_yday;
                 ts.hours = local_tm.tm_hour;
                 ts.minutes = local_tm.tm_min;
                 ts.seconds = local_tm.tm_sec;
-                ts.milliseconds = static_cast<int>(now_ms.count());
+                ts.milliseconds = static_cast<int>(ms.count());
+                ts.nanoseconds = static_cast<int>(ns.count());
 
                 return ts;
             }
@@ -98,23 +112,33 @@ namespace Pulse::Engine::Time{
             TimeStamp CurrentAppTime() {
                 using namespace std::chrono;
 
-                auto now = high_resolution_clock::now();
-                auto elapsed = duration_cast<milliseconds>(now - appStartTime);
+                auto now = Clock::now();
+                auto elapsed = duration_cast<nanoseconds>(now - appStartTime);
 
-                int64_t totalMilliseconds = elapsed.count();
+                int64_t totalNs = elapsed.count();
 
                 TimeStamp ts;
-                ts.days         = static_cast<int>(totalMilliseconds / (24LL * 60 * 60 * 1000));
-                totalMilliseconds %= (24LL * 60 * 60 * 1000);
 
-                ts.hours        = static_cast<int>(totalMilliseconds / (60LL * 60 * 1000));
-                totalMilliseconds %= (60LL * 60 * 1000);
+                const int64_t nsPerDay = 24LL * 60 * 60 * 1'000'000'000;
+                const int64_t nsPerHour = 60LL * 60 * 1'000'000'000;
+                const int64_t nsPerMinute = 60LL * 1'000'000'000;
+                const int64_t nsPerSecond = 1'000'000'000;
+                const int64_t nsPerMillisecond = 1'000'000;
 
-                ts.minutes      = static_cast<int>(totalMilliseconds / (60LL * 1000));
-                totalMilliseconds %= (60LL * 1000);
+                ts.days = static_cast<int>(totalNs / nsPerDay);
+                totalNs %= nsPerDay;
 
-                ts.seconds      = static_cast<int>(totalMilliseconds / 1000);
-                ts.milliseconds = static_cast<int>(totalMilliseconds % 1000);
+                ts.hours = static_cast<int>(totalNs / nsPerHour);
+                totalNs %= nsPerHour;
+
+                ts.minutes = static_cast<int>(totalNs / nsPerMinute);
+                totalNs %= nsPerMinute;
+
+                ts.seconds = static_cast<int>(totalNs / nsPerSecond);
+                totalNs %= nsPerSecond;
+
+                ts.milliseconds = static_cast<int>(totalNs / nsPerMillisecond);
+                ts.nanoseconds = static_cast<int>(totalNs % nsPerMillisecond);
 
                 return ts;
             }
@@ -127,10 +151,10 @@ namespace Pulse::Engine::Time{
             float accumulator;
             float maxAccumulatedTime;
 
-            std::chrono::high_resolution_clock::time_point lastTime;
-            std::chrono::high_resolution_clock::time_point frameStartTime;
+            Clock::time_point lastTime;
+            Clock::time_point frameStartTime;
 
-            std::chrono::high_resolution_clock::time_point appStartTime;
+            Clock::time_point appStartTime;
 
             float timeSpeed = 1.0f;
     };

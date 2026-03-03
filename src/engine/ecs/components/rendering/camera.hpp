@@ -9,18 +9,18 @@ namespace Pulse::Engine::ECS::Components {
     struct Plane
     {
         glm::vec3 normal = { 0.f, 1.f, 0.f }; // unit vector
-        float     distance = 0.f;        // Distance with origin
+        float     d = 0.f;        // Distance with origin
 
         Plane() = default;
 
         Plane(const glm::vec3& p1, const glm::vec3& norm)
             : normal(glm::normalize(norm)),
-            distance(glm::dot(normal, p1))
+            d(glm::dot(normal, p1))
         {}
 
         float getSignedDistanceToPlane(const glm::vec3& point) const
         {
-            return glm::dot(normal, point) - distance;
+            return glm::dot(normal, point) - d;
         }
     };
 
@@ -76,7 +76,7 @@ namespace Pulse::Engine::ECS::Components {
             
             std::shared_ptr<Component> Clone() const override;
 
-            bool IsInFrustum(glm::vec3 boundsMin, glm::vec3 boundsMax);
+            bool IsInFrustum(const glm::vec3& boundsMin, const glm::vec3& boundsMax);
 
             glm::vec3 GetWorldPointFromScreenPoint(glm::vec2 screenPoint);
 

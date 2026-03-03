@@ -47,7 +47,7 @@ namespace Pulse::Editor::Core{
         style.TabBorderSize = 0.0f;
         style.ColorButtonPosition = ImGuiDir_Right;
         style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
-        style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+        style.SelectableTextAlign = ImVec2(0.5f, 0.0f);
         
         ImVec4* colors = style.Colors;
         colors[ImGuiCol_Text]                   = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -108,8 +108,8 @@ namespace Pulse::Editor::Core{
         colors[ImGuiCol_DragDropTarget]         = ImVec4(0.33f, 0.49f, 0.60f, 1.00f);
         colors[ImGuiCol_DragDropTargetBg]       = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
         colors[ImGuiCol_UnsavedMarker]          = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-        colors[ImGuiCol_NavCursor]              = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
-        colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+        colors[ImGuiCol_NavCursor]              = ImVec4(0.39f, 0.61f, 0.78f, 1.00f);
+        colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.7f);
         colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
     }
@@ -280,12 +280,17 @@ namespace Pulse::Editor::Core{
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+
+        ImGuizmo::BeginFrame();
+        
         ImGui::DockSpaceOverViewport();
 
         assetBrowser->Draw();
         viewport->Draw();
         propertiesPanel->Draw(selectedActor);
         levelTree->Draw();
+
+        ImGui::ShowDemoWindow();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

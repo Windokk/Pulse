@@ -21,16 +21,25 @@ namespace Pulse::Editor::GUI {
             void Draw();
             void ProcessInputs();
 
+            ViewportWindow();
+
+            ~ViewportWindow();
+
             glm::vec2 GetViewportSize() const { return viewportSize; }
             bool IsHovered() const { return viewportHovered; }
 
             void SetParentWindow(Core::EditorMainWindow* parent);
 
+            // Store previous size
+            static ImVec2 prev_size;
+            
         private:
             void DrawToolbar();
-            void DrawGizmo();
+            void DrawViewGizmo();
+            void DrawObjectGizmo();
             void ShowFrameStats();
             void ShowCamSettings();
+
 
             Core::EditorMainWindow* parent = nullptr;
 
@@ -41,6 +50,8 @@ namespace Pulse::Editor::GUI {
 
             // Camera
             std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor;
+
+            std::shared_ptr<Engine::ECS::Components::Camera> camera;
 
             float speed = 20.0f;
             float pitch = 0.0f;
@@ -58,10 +69,15 @@ namespace Pulse::Editor::GUI {
 
             float firstClickTime = 0;
 
-            // Gizmo
+            // Gizmos
             ImGuizmo::OPERATION currentGizmoOp = ImGuizmo::TRANSLATE;
             ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
 
             std::unique_ptr<Commands::CompositeCommand> gizmoCommand;
+
+            bool isUsingViewGizmo = false;
+
+            ImVec2 viewportImageMin;
+            ImVec2 viewportImageMax;
     };
 }

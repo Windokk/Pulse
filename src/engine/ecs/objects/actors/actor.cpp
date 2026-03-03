@@ -113,6 +113,8 @@ namespace Pulse::Engine::ECS::Objects{
 
         this->level = lvl;
 
+        level->transforms.emplace(GetComponentIDInScene(transform->GetLocalId()), transform);
+
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
             int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
