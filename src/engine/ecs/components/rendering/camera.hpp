@@ -78,7 +78,7 @@ namespace Pulse::Engine::ECS::Components {
 
             bool IsInFrustum(const glm::vec3& boundsMin, const glm::vec3& boundsMax);
 
-            glm::vec3 GetWorldPointFromScreenPoint(glm::vec2 screenPoint);
+            glm::vec3 ScreenToWorld(float X, float Y, float depth);
 
             glm::mat4 GetMatrix()
             {

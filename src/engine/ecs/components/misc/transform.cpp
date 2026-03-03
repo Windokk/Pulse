@@ -294,4 +294,17 @@ namespace Pulse::Engine::ECS::Components{
 
         return cloned;
     }
+
+    void Transform::OnFieldChanged(const FieldChangedEvent &event)
+    {
+		if(event.field->name == "position"){
+			SetPosition(position);
+		}
+		else if(event.field->name == "rotation"){
+			SetRotation(rotation);
+		}
+		else if(event.field->name == "scale"){
+			SetScale(scale);
+		}
+    }
 }

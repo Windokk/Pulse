@@ -67,6 +67,8 @@ namespace Pulse::Engine::ECS::Components
 
             void UpdateMeshReferencesInLevel();
 
+            void OnFieldChanged(const FieldChangedEvent& event) override;
+
             glm::vec3 GetForward(){
                 return glm::normalize(rotation * glm::vec3(0, 0, -1));
             }
@@ -91,13 +93,13 @@ namespace Pulse::Engine::ECS::Components
             bool IsDirty(DirtyFlags flag) const;
             void ClearDirty(DirtyFlags flag);
 
-            FIELD(Editable, write=WritePositionToTransform)
+            FIELD(Editable)
             glm::vec3 position = glm::vec3(0);
 
-            FIELD(Editable, read=ReadRotationFromTransform, write=WriteRotationToTransform, type=glm::vec3) 
+            FIELD(Editable) 
             glm::quat rotation = glm::quat(glm::vec3(0, 0, 0));
 
-            FIELD(Editable, write=WriteScaleToTransform) 
+            FIELD(Editable) 
             glm::vec3 scale = glm::vec3(1);
 
         private:
@@ -106,27 +108,4 @@ namespace Pulse::Engine::ECS::Components
 
             DECLARE_DESCRIPTOR(Transform)
     };
-}
-
-inline void WritePositionToTransform(void* object, const void* value) {
-    Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
-    const glm::vec3* pos = static_cast<const glm::vec3*>(value);
-    comp->SetPosition(*pos);
-}
-
-inline void ReadRotationFromTransform(void* object, void* outValue) {
-    Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
-    *static_cast<glm::vec3*>(outValue) = comp->GetRotation();
-}
-
-inline void WriteRotationToTransform(void* object, const void* value) {
-    Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
-    const glm::vec3* rot = static_cast<const glm::vec3*>(value);
-    comp->SetRotation(*rot);
-}
-
-inline void WriteScaleToTransform(void* object, const void* value) {
-    Pulse::Engine::ECS::Components::Transform* comp = static_cast<Pulse::Engine::ECS::Components::Transform*>(object);
-    const glm::vec3* sca = static_cast<const glm::vec3*>(value);
-    comp->SetScale(*sca);
 }

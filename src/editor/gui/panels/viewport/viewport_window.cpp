@@ -31,9 +31,6 @@ namespace Pulse::Editor::GUI {
         // Get current size
         ImVec2 current_size = ImGui::GetWindowSize();
 
-        viewportHovered = ImGui::IsWindowHovered();
-        viewportFocused = ImGui::IsWindowFocused();
-
         // Rendu texture framebuffer
         uint32_t textureID = Engine::Core::GetEngine().GetRenderer()->GetViewportTextureID();
 
@@ -58,6 +55,9 @@ namespace Pulse::Editor::GUI {
                 ImVec2(1, 0)
             );
         }
+
+        viewportHovered = ImGui::IsItemHovered();
+        viewportFocused = ImGui::IsWindowFocused();
         
         viewportImageMin = ImGui::GetItemRectMin();
         viewportImageMax = ImGui::GetItemRectMax();
@@ -255,6 +255,7 @@ namespace Pulse::Editor::GUI {
             
         camera->UpdateMatrix();
 
+        ImGuizmo::SetDrawlist();
         ImGuizmo::SetOrthographic(camera->IsOrthographic());
 
         ImVec2 imageSize = ImVec2(
@@ -455,28 +456,31 @@ namespace Pulse::Editor::GUI {
 
             Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
 
-            glm::dvec2 screenPos;
-            input->GetCursorPos(&screenPos.x, &screenPos.y);
-
             ImVec2 mouse = ImGui::GetMousePos();
-            ImVec2 winPos = viewportPos;
 
-            float localX = mouse.x - winPos.x;
-            float localY = mouse.y - winPos.y;
+            glm::vec2 max = camera->GetSize();
 
-            glm::vec3 origin = cameraActor->transform->GetPosition();
-
-            glm::vec3 dir = engine->GetCameraManager()->GetActiveCamera()->GetWorldPointFromScreenPoint(glm::vec2(localX, localY)) - origin;
-            dir = glm::normalize(dir);
-
-            Engine::Physics::RaycastResult result = Engine::Core::GetEngine().GetPhysicsManager()->RayCast({origin, dir, engine->GetCameraManager()->GetActiveCamera()->farPlane});
-
-            if (result.hit)
+            if (mouse.x >= viewportImageMin.x && mouse.x <= max.x &&
+                mouse.y >= viewportImageMin.y && mouse.y <= max.y)
             {
-                parent->SetSelectedActor(result.hitBody->parent);
-            }
-            else{
-                parent->SetSelectedActor(nullptr);
+                float localX = mouse.x - viewportImageMin.x;
+                float localY = mouse.y - viewportImageMin.y;
+
+                glm::vec3 nearPoint = camera->ScreenToWorld(localX, localY, 0.0f);
+                glm::vec3 farPoint  = camera->ScreenToWorld(localX, localY, 1.0f);
+
+                glm::vec3 dir = glm::normalize(farPoint - nearPoint);
+                glm::vec3 origin = nearPoint;
+
+                Engine::Physics::RaycastResult result = Engine::Core::GetEngine().GetPhysicsManager()->RayCast({origin, dir, 10000.0f});
+
+                if (result.hit)
+                {
+                    parent->SetSelectedActor(result.hitBody->parent);
+                }
+                else{
+                    parent->SetSelectedActor(nullptr);
+                }
             }
         }
 

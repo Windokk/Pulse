@@ -111,21 +111,20 @@ namespace Pulse::Engine::ECS::Components {
         cameraMatrix = projection * view;
     }
 
-    glm::vec3 Camera::GetWorldPointFromScreenPoint(glm::vec2 screenPoint)
+    glm::vec3 Camera::ScreenToWorld(float X, float Y, float depth)
     {
-        float x = (2.0f * screenPoint.x) / width - 1.0f;
-        float y = 1.0f - (2.0f * screenPoint.y) / height;
+        float x = (2.0f * X) / width - 1.0f;
+        float y = 1.0f - (2.0f * Y) / height;
+        float z = 2.0f * depth - 1.0f;
 
-        glm::vec4 rayClip(x, y, -1.0f, 1.0f); // near plane
+        glm::vec4 clip(x, y, z, 1.0f);
 
-        glm::vec4 rayEye = glm::inverse(projection) * rayClip;
-        rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+        glm::mat4 invVP = glm::inverse(projection * view);
 
-        glm::vec3 rayWorld = glm::normalize(
-            glm::vec3(glm::inverse(view) * rayEye)
-        );
+        glm::vec4 world = invVP * clip;
+        world /= world.w;
 
-        return rayWorld;
+        return glm::vec3(world);
     }
 
     void Camera::Deserialize(json componentData)

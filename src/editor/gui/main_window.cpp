@@ -252,6 +252,8 @@ namespace Pulse::Editor::Core{
             ImGuiIO& io = ImGui::GetIO();
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
             io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+            io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+            io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
 
             // Setup Platform/Renderer backends
             ImGui_ImplGlfw_InitForOpenGL(window, true);

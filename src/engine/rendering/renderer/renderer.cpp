@@ -236,9 +236,6 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        Core::GetEngine().GetGL()->Enable(GL_CULL_FACE);
-        Core::GetEngine().GetGL()->CullFace(GL_BACK);
-        Core::GetEngine().GetGL()->FrontFace(GL_CCW);
     }
   
     void Renderer::DrawScene()
@@ -246,6 +243,10 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->Enable(GL_DEPTH_TEST);
         Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        Core::GetEngine().GetGL()->Enable(GL_CULL_FACE);
+        Core::GetEngine().GetGL()->CullFace(GL_BACK);
+        Core::GetEngine().GetGL()->FrontFace(GL_CCW);
 
         // --- Main Draw Calls ---
         for (auto& cmd : drawList) {
