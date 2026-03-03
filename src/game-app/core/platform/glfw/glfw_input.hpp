@@ -54,12 +54,26 @@ namespace Pulse::Game::Core::Platform
 
     static int ToGLFWKey(Engine::Input::Key key) {
         switch (key) {
-            case Engine::Input::Key::W: return GLFW_KEY_W;
             case Engine::Input::Key::A: return GLFW_KEY_A;
-            case Engine::Input::Key::S: return GLFW_KEY_S;
+            case Engine::Input::Key::B: return GLFW_KEY_B;
+            case Engine::Input::Key::C: return GLFW_KEY_C;
             case Engine::Input::Key::D: return GLFW_KEY_D;
+            case Engine::Input::Key::E: return GLFW_KEY_E;
+            case Engine::Input::Key::F: return GLFW_KEY_F;
+            case Engine::Input::Key::G: return GLFW_KEY_G;
+            case Engine::Input::Key::H: return GLFW_KEY_H;
+            case Engine::Input::Key::I: return GLFW_KEY_I;
+            case Engine::Input::Key::J: return GLFW_KEY_J;
+            case Engine::Input::Key::K: return GLFW_KEY_K;
+            case Engine::Input::Key::L: return GLFW_KEY_L;
+            case Engine::Input::Key::M: return GLFW_KEY_M;
+            case Engine::Input::Key::W: return GLFW_KEY_W;
+            case Engine::Input::Key::S: return GLFW_KEY_S;
+            case Engine::Input::Key::Y: return GLFW_KEY_Y;
+            case Engine::Input::Key::Z: return GLFW_KEY_Z;
             case Engine::Input::Key::Escape: return GLFW_KEY_ESCAPE;
             case Engine::Input::Key::Space: return GLFW_KEY_SPACE;
+            case Engine::Input::Key::LeftControl: return GLFW_KEY_LEFT_CONTROL;
             default: return GLFW_KEY_UNKNOWN;
         }
     }

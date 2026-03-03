@@ -88,8 +88,6 @@ namespace Pulse::Editor::GUI {
         Engine::Core::GetEngine().GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
         Engine::Core::GetEngine().GetCameraManager()->SetActiveCamera(cameraActor->GetID());
 
-        DEBUG_LOG(glm::to_string(cameraActor->transform->GetForward()));
-
         cameraActor->transform->SetPosition(glm::vec3(10, 0, 0));
 
         camera = cameraActor->GetComponent<Engine::ECS::Components::Camera>();

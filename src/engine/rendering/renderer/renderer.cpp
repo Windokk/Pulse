@@ -328,7 +328,34 @@ namespace Pulse::Engine::Rendering{
 
             for (auto& [id,physicBody] : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
-                glm::mat4 model = physicBody->parent->transform->GetTransformMatrix();
+                std::shared_ptr<ECS::Components::Transform> tr = physicBody->parent->transform;
+
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), tr->GetPosition()) * glm::toMat4(tr->GetRotationQuat());
+
+                glm::vec3 scale;
+
+                switch(physicBody->GetShapeType()){
+                    case Physics::BOX:{
+                        scale = tr->GetScale();
+                        break;
+                    }
+                    case Physics::SPHERE:{
+                        scale = glm::vec3(glm::max(tr->GetScale().x, tr->GetScale().y, tr->GetScale().z));
+                        break;
+                    }
+                    case Physics::CAPSULE:{
+                        scale = glm::vec3(glm::max(tr->GetScale().x, tr->GetScale().z));
+                        scale.y = tr->GetScale().y;
+                        break;
+                    }
+                    case Physics::CYLINDER:{
+                        scale = glm::vec3(glm::max(tr->GetScale().x, tr->GetScale().z));
+                        scale.y = tr->GetScale().y;
+                        break;
+                    }
+                }
+
+                model *= glm::scale(glm::mat4(1.0f), scale);
 
                 defaultShader->setMat4("model", model);
 

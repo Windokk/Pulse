@@ -75,7 +75,7 @@ namespace Pulse::Engine::ECS::Components{
 
                 JPH::SphereShapeSettings s(p->radius * size);
 
-                debugShape = new Rendering::DebugSphere(0.5f, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugSphere(p->radius, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -90,7 +90,7 @@ namespace Pulse::Engine::ECS::Components{
                     JPH::Vec3(p->halfExtent.x * scale.x, p->halfExtent.y * scale.y, p->halfExtent.z * scale.z)
                 );
 
-                debugShape = new Rendering::DebugBox(glm::vec3(0.5f), COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugBox(p->halfExtent, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -103,7 +103,7 @@ namespace Pulse::Engine::ECS::Components{
 
                 JPH::CapsuleShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
 
-                debugShape = new Rendering::DebugCapsule(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugCapsule(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -116,7 +116,7 @@ namespace Pulse::Engine::ECS::Components{
 
                 JPH::CylinderShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
 
-                debugShape = new Rendering::DebugCylinder(0.5f, 0.5f, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugCylinder(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -531,21 +531,7 @@ namespace Pulse::Engine::ECS::Components{
     }
 
     void PhysicsBody::OnFieldChanged(const FieldChangedEvent& event){
-        if(event.field->name == "params"){
-            const StructDescriptor* desc = nullptr;
-
-            switch (shape)
-            {
-                case Physics::SPHERE:   desc = &SphereParams_descriptor; break;
-                case Physics::BOX:      desc = &BoxParams_descriptor; break;
-                case Physics::CAPSULE:  desc = &CapsuleParams_descriptor; break;
-                case Physics::CYLINDER: desc = &CylinderParams_descriptor; break;
-            }
-
-            params.Initialize(desc);
-            ForceShapeUpdate(shape, params, motionType);
-        }
-        else if(event.field->name == "shape"){
+        if(event.field->name == "shape"){
 
             InstancedStruct params;
 
@@ -573,6 +559,8 @@ namespace Pulse::Engine::ECS::Components{
         else if(event.field->name == "motionType"){
             ForceShapeUpdate(GetShapeType(), params, motionType);
         }
-        
+        else{
+            ForceShapeUpdate(shape, params, motionType);
+        }
     }
 }

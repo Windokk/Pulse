@@ -51,10 +51,6 @@ namespace Pulse::Editor::GUI{
             ImGui::PopID();
         }
 
-        ImGui::SameLine();
-
-        ImGui::TextUnformatted(label);
-
         ImGui::PopID();
 
         return changed;
@@ -86,7 +82,11 @@ namespace Pulse::Editor::GUI{
         char buffer[256];
         strcpy(buffer, actor->GetName().c_str());
 
-        if (ImGui::InputText("Name", buffer, sizeof(buffer)))
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Name");
+        ImGui::SameLine();
+
+        if (ImGui::InputText("##ActorName", buffer, sizeof(buffer)))
         {
             actor->SetName(buffer);
         }
@@ -113,19 +113,43 @@ namespace Pulse::Editor::GUI{
 
             for (FieldInfo* field : desc->fields)
             {
-                void* valuePtr = FieldRead(*field, comp.get());
-                DrawField(field, valuePtr, comp);
+                if(field->type == TypeID::Struct){
+                    uint8_t* base = static_cast<uint8_t*>(static_cast<void*>(comp.get())) + field->offset;
+                    InstancedStruct* structPtr = reinterpret_cast<InstancedStruct*>(base);
+                    for(auto& subField : structPtr->descriptor->fields){
+                    
+                        void* valuePtr = FieldRead(*subField, structPtr->data);
+                    
+                        DrawField(subField, valuePtr, comp);
+                    }
+                }
+                else{
+
+                    void* valuePtr = FieldRead(*field, comp.get());
+                    DrawField(field, valuePtr, comp);
+                }
             }
         }
     }
 
-    void PropertiesPanel::DrawField(const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, const Container *container)
+    void PropertiesPanel::DrawField(const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, const Container *container, const int valueIndexInContainer)
     {
-        switch(container ? field->container->elementType : field->type){
+        const char * fieldName = field->name;
+
+        if(valueIndexInContainer != -1)
+            fieldName = std::to_string(valueIndexInContainer).c_str();
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text(fieldName);
+        ImGui::SameLine();
+
+        std::string id = "##" + std::string(fieldName);
+
+        switch(container ? container->elementType : field->type){
             case TypeID::Int32:
             {
                 int* v = static_cast<int*>(value);
-                if (ImGui::InputInt(field->name, v))
+                if (ImGui::InputInt(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field, *v };
                     comp->OnFieldChanged(evt);
@@ -135,7 +159,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Float:
             {
                 float* v = static_cast<float*>(value);
-                if (ImGui::InputFloat(field->name, v))
+                if (ImGui::InputFloat(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field, *v };
                     comp->OnFieldChanged(evt);
@@ -145,9 +169,44 @@ namespace Pulse::Editor::GUI{
             case TypeID::Bool:
             {
                 bool* v = static_cast<bool*>(value);
-                if (ImGui::Checkbox(field->name, v))
+                if (ImGui::Checkbox(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field, *v };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Asset:
+            {
+                Filesystem::AssetID* asset = static_cast<Filesystem::AssetID*>(value);
+
+                static char buffer[256] = "";
+
+                if (asset)
+                {
+                    auto* manager = Engine::Core::GetEngine().GetAssetIDManager();
+                    if (manager)
+                    {
+                        auto assetPtr = manager->GetAssetFromID(*asset);
+                        if (assetPtr)
+                        {
+                            const std::string& name = assetPtr->baseInfos.nameInProject;
+
+                            if (!name.empty())
+                            {
+                                strncpy(buffer, name.c_str(), sizeof(buffer) - 1);
+                                buffer[sizeof(buffer) - 1] = '\0'; // enforce null-termination
+                            }
+                        }
+                    }
+                }
+
+                if (asset && ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
+                {
+                    std::string str = buffer;
+                    *asset = Engine::Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(str);
+
+                    FieldChangedEvent evt{ field, *asset };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -155,10 +214,14 @@ namespace Pulse::Editor::GUI{
             case TypeID::String:
             {
                 std::string* str = static_cast<std::string*>(value);
-                char buffer[256];
-                strcpy(buffer, str->c_str());
+                static char buffer[256] = "";
 
-                if (ImGui::InputText(field->name, buffer, sizeof(buffer)))
+                if (!str->empty()) {
+                    strncpy(buffer, str->c_str(), sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
+                }
+
+                if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
                 {
                     *str = buffer;
 
@@ -173,7 +236,7 @@ namespace Pulse::Editor::GUI{
                 
                 glm::vec3 vec = glm::degrees(glm::eulerAngles(*quat));
                 
-                if (InputVector3(field->name, &vec.x))
+                if (InputVector3(fieldName, &vec.x))
                 {
                     *quat = glm::quat(glm::radians(vec));
                     FieldChangedEvent evt{ field, *quat };
@@ -190,7 +253,7 @@ namespace Pulse::Editor::GUI{
                 for (auto& e : field->enumDesc->values)
                     items.push_back(e.name);
 
-                if (ImGui::Combo(field->name, &current,
+                if (ImGui::Combo(id.c_str(), &current,
                                 items.data(), items.size()))
                 {
                     memcpy(value, &current, field->enumDesc->size);
@@ -205,7 +268,7 @@ namespace Pulse::Editor::GUI{
                 if (!field->container)
                     break;
 
-                if (ImGui::TreeNode(field->name))
+                if (ImGui::TreeNode(id.c_str()))
                 {
                     size_t count = field->container->Size(value);
 
@@ -214,7 +277,7 @@ namespace Pulse::Editor::GUI{
                         void* element = field->container->GetByIndex(value, i);
 
                         ImGui::PushID((int)i);
-                        DrawField(field, element, comp, field->container);
+                        DrawField(field, element, comp, field->container, i);
                         ImGui::PopID();
                     }
 
@@ -226,7 +289,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::vec3* vec = static_cast<glm::vec3*>(value);
 
-                if (InputVector3(field->name, &vec->x))
+                if (InputVector3(fieldName, &vec->x))
                 {
                     FieldChangedEvent evt{ field, *vec };
                     comp->OnFieldChanged(evt);

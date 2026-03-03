@@ -24,6 +24,6 @@ namespace Pulse::Editor::GUI{
             void DrawComponent(std::shared_ptr<Engine::ECS::Components::Component> comp);
             void DrawField(const FieldInfo* field, void* value,
                         std::shared_ptr<Engine::ECS::Components::Component> comp,
-                        const Container* container = nullptr);
+                        const Container* container = nullptr, const int valueIndexInContainer = -1);
     };
 }
