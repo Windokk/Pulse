@@ -187,7 +187,7 @@ namespace Pulse::Editor::GUI{
             bool            AllowSorting = true;
             bool            AllowDragUnselected = false;
             bool            AllowBoxSelect = true;
-            ImVec2 ItemSize        = ImVec2(100.0f, 120.0f);  // Full clickable/selectable area
+            ImVec2 ItemSize        = ImVec2(90.0f, 110.0f);  // Full clickable/selectable area
             ImVec2 ThumbnailSize   = ImVec2(80.0f, 80.0f);    // Actual image size
             ImVec2 Spacing         = ImVec2(20.0f, 20.0f);    // Horizontal / Vertical spacing
             float IconHitSpacing   = 6;

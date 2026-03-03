@@ -214,12 +214,36 @@ namespace Pulse::Editor::GUI{
                         }
 
                         // Render icon (a real app would likely display an image/thumbnail here)
-                        // Because we use ImGuiMultiSelectFlags_BoxSelect2d, clipping vertical may occasionally be larger, so we coarse-clip our rendering as well.
                         if (item_is_visible)
                         {
                             ImVec2 box_min(pos.x - 1, pos.y - 1);
                             ImVec2 box_max(box_min.x + LayoutItemSize.x + 2, box_min.y + LayoutItemSize.y + 2); // Dubious
                             draw_list->AddRectFilled(box_min, box_max, icon_bg_color); // Background color
+                            
+                            // Compute centered icon position inside LayoutItemSize
+                            ImVec2 icon_offset = ImVec2(
+                                (LayoutItemSize.x - ThumbnailSize.x) * 0.5f,
+                                (LayoutItemSize.y - ThumbnailSize.y) * 0.5f - 10
+                            );
+
+                            ImVec2 icon_min = ImVec2(
+                                box_min.x + icon_offset.x,
+                                box_min.y + icon_offset.y
+                            );
+
+                            ImVec2 icon_max = ImVec2(
+                                icon_min.x + ThumbnailSize.x,
+                                icon_min.y + ThumbnailSize.y
+                            );
+
+                            // Draw icon
+                            draw_list->AddImage(
+                                (void*)(intptr_t)EditorResources::Instance().GetIconAtlas()->GetTexture()->GetID(),
+                                icon_min,
+                                icon_max,
+                                item_data->icon->uv0,
+                                item_data->icon->uv1
+                            );
                             /*if (ShowTypeOverlay && item_data->Type != 0)
                             {
                                 ImU32 type_col = icon_type_overlay_colors[item_data->Type % IM_ARRAYSIZE(icon_type_overlay_colors)];
