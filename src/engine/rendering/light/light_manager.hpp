@@ -6,7 +6,7 @@
 
 namespace Pulse::Engine::Rendering{
 
-    enum class LightType{
+    enum LightType : uint32_t{
         Directional = 0,
         Point = 1,
         Spot = 2

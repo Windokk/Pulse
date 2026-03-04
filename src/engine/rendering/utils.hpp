@@ -122,6 +122,14 @@ struct COL_RGB{
         );
     }
 
+    bool operator==(const COL_RGB& other) const {
+        return components[0] == other.components[0] && components[1] == other.components[1] && components[2] == other.components[2];
+    }
+
+    bool operator!=(const COL_RGB& other) const {
+        return components[0] != other.components[0] || components[1] != other.components[1] || components[2] != other.components[2];
+    }
+
     COL_RGB& operator+=(const COL_RGB& other) {
         components[0] += other.components[0];
         components[1] += other.components[1];
@@ -190,6 +198,7 @@ struct COL_RGB{
 
         float components[3] = {0.0f, 0.0f ,0.0f};
 };
+
 struct COL_RGBA{    
     COL_RGBA() = default;
 
@@ -229,6 +238,14 @@ struct COL_RGBA{
     };
 
     COL_RGBA& operator=(const COL_RGBA& other) = default;
+
+    bool operator==(const COL_RGBA& other) const {
+        return components[0] == other.components[0] && components[1] == other.components[1] && components[2] == other.components[2] && components[3] == other.components[3];
+    }
+
+    bool operator!=(const COL_RGBA& other) const {
+        return components[0] != other.components[0] || components[1] != other.components[1] || components[2] != other.components[2] || components[3] != other.components[3];
+    }
 
     COL_RGBA operator+(const COL_RGBA& other) const {
         return COL_RGBA(

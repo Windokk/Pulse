@@ -17,8 +17,8 @@
                             },
                             "rotation": {
                                 "x": 90.0,
-                                "y": 0.0,
-                                "z": 180.0
+                                "y": -0.0,
+                                "z": -180.0
                             },
                             "scale": {
                                 "x": 1.0,
@@ -37,8 +37,8 @@
                                 "g": 1.0,
                                 "b": 1.0
                             },
-                            "innerCutoff": 1.0,
-                            "outerCutoff": 1.0,
+                            "innerCutoff": 0.9998477101325989,
+                            "outerCutoff": 0.9998477101325989,
                             "castShadow": true
                         }
                     ]
@@ -111,7 +111,7 @@
                     },
                     "rotation": {
                         "x": 0.0,
-                        "y": 0.0,
+                        "y": -0.0,
                         "z": 0.0
                     },
                     "scale": {
@@ -124,10 +124,14 @@
                     "type": "camera",
                     "orthographic": false,
                     "active": true,
-                    "near": 0.1,
+                    "near": 0.10000000149011612,
                     "far": 100.0,
                     "fov": 60.0,
                     "orthoSize": 10.0
+                },
+                {
+                    "type": "Character",
+                    "active": true
                 }
             ]
         },
@@ -143,9 +147,9 @@
                         "z": 0.0
                     },
                     "rotation": {
-                        "x": 22.8,
-                        "y": 8.6,
-                        "z": -19.7
+                        "x": 22.799997329711914,
+                        "y": 8.600000381469727,
+                        "z": -19.700000762939453
                     },
                     "scale": {
                         "x": 1.0,
@@ -170,7 +174,7 @@
                         "y": 0.5,
                         "z": 0.5
                     },
-                    "motion_type": "dynamic"
+                    "motion_type": "static"
                 }
             ]
         },
@@ -186,8 +190,8 @@
                         "z": -4.24023962020874
                     },
                     "rotation": {
-                        "x": 93.3,
-                        "y": 90.0,
+                        "x": 93.30000305175781,
+                        "y": 89.97203063964844,
                         "z": 0.0
                     },
                     "scale": {
@@ -211,7 +215,7 @@
                     "params": {
                         "radius": 0.5
                     },
-                    "motion_type": "static"
+                    "motion_type": "dynamic"
                 }
             ]
         }

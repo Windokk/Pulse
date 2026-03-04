@@ -147,8 +147,8 @@ static TypeID GetTypeIDFromString(std::string typeName) {
         {"glm::quat", TypeID::Quat},
 
         // Colors
-        {"ColorRGB", TypeID::ColorRGB},
-        {"ColorRGBA", TypeID::ColorRGBA},
+        {"COL_RGB", TypeID::ColorRGB},
+        {"COL_RGBA", TypeID::ColorRGBA},
 
         // Strings
         {"std::string", TypeID::String},

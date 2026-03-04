@@ -149,7 +149,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Int32:
             {
                 int* v = static_cast<int*>(value);
-                if (ImGui::InputInt(id.c_str(), v))
+                if (ImGui::DragInt(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -159,7 +159,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Float:
             {
                 float* v = static_cast<float*>(value);
-                if (ImGui::InputFloat(id.c_str(), v))
+                if (ImGui::DragFloat(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -172,6 +172,19 @@ namespace Pulse::Editor::GUI{
                 if (ImGui::Checkbox(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::ColorRGB:
+            {
+                COL_RGB* v = static_cast<COL_RGB*>(value);
+                static float value[3] = {v->r(), v->g(), v->b()};
+                if(ImGui::ColorEdit3(id.c_str(), value)){
+
+                    *v = COL_RGB(value[0], value[1], value[2]);
+
+                    FieldChangedEvent evt{field};
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -203,9 +216,6 @@ namespace Pulse::Editor::GUI{
 
                 if (asset && ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
                 {
-                    std::string str = buffer;
-                    *asset = Engine::Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(str);
-
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
@@ -223,8 +233,6 @@ namespace Pulse::Editor::GUI{
 
                 if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
                 {
-                    *str = buffer;
-
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }

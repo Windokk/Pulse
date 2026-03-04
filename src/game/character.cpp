@@ -27,7 +27,7 @@ ordered_json Character::Serialize() {
     
     ordered_json comp;
 
-    comp["type"] = "physics_body";
+    comp["type"] = "Character";
 
     comp["active"] = activated;
 
