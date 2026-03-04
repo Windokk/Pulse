@@ -20,10 +20,23 @@ Character::Character(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> parent,
 
 void Character::Deserialize(json componentData) {
     // Deserialize fields
+    if(componentData.contains("active") && componentData["active"].is_boolean() && componentData["active"]){
+        Activate();
+    }
+    else{
+        DeActivate();
+    }
 }
 
 ordered_json Character::Serialize() {
-    return ordered_json();
+    
+    ordered_json comp;
+
+    comp["type"] = "physics_body";
+
+    comp["active"] = activated;
+
+    return comp;
 }
 
 void Character::OnPlay() {

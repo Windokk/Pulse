@@ -7,7 +7,7 @@
 using namespace Pulse::Engine::ECS;
 
 #define BEGIN_COMPONENT(className, baseClass)                                                   \
-    class className : public baseClass {                                                        \
+    class CLASS() className : public baseClass {                                                        \
 public:                                                                                         \
         className(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 

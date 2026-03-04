@@ -33,6 +33,10 @@ namespace Pulse::Editor {
     using EditorTickFn = void(*)();
     using EditorCleanupFn = void (*)();
 
+    // GAME
+    using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*);
+    using GameRegisterComponentsFn = void(*)();
+
     class ModuleLoader {
     public:
         static ModuleLoader& GetInstance() {

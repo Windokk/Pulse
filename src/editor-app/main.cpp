@@ -14,6 +14,7 @@ using namespace Pulse::Editor;
 
 Debugging::Level minDebugLevel = Debugging::Level::Log;
 std::string mainModuleLib = "";
+std::string gameModuleLib = "";
 
 EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
     Core::EngineCreationSettings settings;
@@ -59,6 +60,9 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
         else if(strcmp(argv[i], "--editor") == 0 && i + 1 < argc){
             mainModuleLib = argv[++i];
         }
+        else if (strcmp(argv[i], "--game") == 0 && i + 1 < argc) {
+            gameModuleLib = argv[++i];
+        }
     }
 
     return settings;
@@ -85,10 +89,16 @@ int main(int argc, char* argv[]) {
     //Module loader init
     auto& loader = ModuleLoader::GetInstance();
     const std::string mainModuleName = "editor";
+    const std::string gameModuleName = "game";
 
     //Editor module loading
     if (!loader.LoadModule(mainModuleName, mainModuleLib)) {
         std::cerr << "Failed to load module: editor" << std::endl;
+        early_crash();
+    }
+
+    if (!loader.LoadModule(gameModuleName, gameModuleLib)) {
+        std::cerr << "Failed to load module: game" << std::endl;
         early_crash();
     }
 
@@ -105,6 +115,26 @@ int main(int argc, char* argv[]) {
         }
 
         initEditor(&Core::GetEngine());
+    }
+
+    
+    //Game module init
+    {
+        auto initGame = loader.GetSymbol<GameInitFn>("game", "InitializeSingletons");
+        if (!initGame){
+            std::cerr<<"Failed to find symbol: InitializeSingletons"<<std::endl;
+            early_crash();
+        }
+
+        initGame(&Core::GetEngine(),
+                 &ECS::Components::GetComponentRegistry());
+
+        auto registerGameComponents = loader.GetSymbol<GameRegisterComponentsFn>("game", "RegisterGameComponents");
+        if (!registerGameComponents){
+            std::cerr<<"Failed to find symbol: RegisterGameComponents"<<std::endl;
+            early_crash();
+        }
+        registerGameComponents();
     }
 
     {
