@@ -16,7 +16,7 @@ namespace Pulse::Engine::ECS::Components {
         std::cout<<"Registered custom component : " + name<<std::endl;
     }
 
-    Component* ComponentRegistry::CreateComponentByName(const std::string& name) {
+    std::shared_ptr<Component> ComponentRegistry::CreateComponentByName(const std::string& name) {
         auto it = registry.find(name);
         if (it == registry.end()) {
             DEBUG_WARNING("Component not registered: " + name);

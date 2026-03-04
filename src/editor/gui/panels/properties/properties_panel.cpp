@@ -151,7 +151,7 @@ namespace Pulse::Editor::GUI{
                 int* v = static_cast<int*>(value);
                 if (ImGui::InputInt(id.c_str(), v))
                 {
-                    FieldChangedEvent evt{ field, *v };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -161,7 +161,7 @@ namespace Pulse::Editor::GUI{
                 float* v = static_cast<float*>(value);
                 if (ImGui::InputFloat(id.c_str(), v))
                 {
-                    FieldChangedEvent evt{ field, *v };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -171,7 +171,7 @@ namespace Pulse::Editor::GUI{
                 bool* v = static_cast<bool*>(value);
                 if (ImGui::Checkbox(id.c_str(), v))
                 {
-                    FieldChangedEvent evt{ field, *v };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -206,7 +206,7 @@ namespace Pulse::Editor::GUI{
                     std::string str = buffer;
                     *asset = Engine::Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(str);
 
-                    FieldChangedEvent evt{ field, *asset };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -225,7 +225,7 @@ namespace Pulse::Editor::GUI{
                 {
                     *str = buffer;
 
-                    FieldChangedEvent evt{ field, *str };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -239,7 +239,7 @@ namespace Pulse::Editor::GUI{
                 if (InputVector3(fieldName, &vec.x))
                 {
                     *quat = glm::quat(glm::radians(vec));
-                    FieldChangedEvent evt{ field, *quat };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -258,7 +258,7 @@ namespace Pulse::Editor::GUI{
                 {
                     memcpy(value, &current, field->enumDesc->size);
 
-                    FieldChangedEvent evt{ field, current };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -291,7 +291,7 @@ namespace Pulse::Editor::GUI{
 
                 if (InputVector3(fieldName, &vec->x))
                 {
-                    FieldChangedEvent evt{ field, *vec };
+                    FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;

@@ -1,6 +1,8 @@
 #include "engine/ecs/components/core/registry/component_registration.hpp"
 #include "engine/core/engine.hpp"
 
+#include "character.reflection.hpp"
+
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
 using namespace Pulse::Engine::ECS::Components;

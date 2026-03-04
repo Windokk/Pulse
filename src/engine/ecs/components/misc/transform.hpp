@@ -83,6 +83,10 @@ namespace Pulse::Engine::ECS::Components
 
             glm::mat4 GetTransformMatrix();
 
+            bool operator !=(Transform const& b) const {
+                return position != b.position || rotation != b.rotation || scale != b.scale; 
+            }
+
             bool SetFromTransformMatrix(const glm::mat4 &m);
 
             void Destroy() override{

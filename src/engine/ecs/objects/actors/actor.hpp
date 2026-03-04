@@ -28,7 +28,7 @@ namespace Pulse::Engine::ECS::Objects{
 
             void Init();
 
-            std::shared_ptr<Component> AddComponentRaw(Component *rawComponent);
+            std::shared_ptr<Component> AddComponentRaw(std::shared_ptr<Component> component);
 
             template <typename T>
             bool HasComponent();
@@ -148,8 +148,8 @@ namespace Pulse::Engine::ECS::Objects{
             return nullptr;
         }
 
-        std::shared_ptr<T> component = std::make_shared<T>(AsShared<Actor>(), components.size());
-        
+        std::shared_ptr<T> component = Object::Create<T>(AsShared<Actor>(), components.size());
+
         if (transform != nullptr && IsSubclassOf<Transform, T>()) {
             DEBUG_ERROR("An actor can only have one transform component.");
             return nullptr;

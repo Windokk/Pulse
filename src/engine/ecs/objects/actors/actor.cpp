@@ -15,14 +15,10 @@ namespace Pulse::Engine::ECS::Objects{
         this->transform = AddComponent<Transform>();
     }
 
-    std::shared_ptr<Component> Actor::AddComponentRaw(Component* rawComponent) {
-        if (!rawComponent) {
+    std::shared_ptr<Component> Actor::AddComponentRaw(std::shared_ptr<Component> component) {
+        if (!component) {
             DEBUG_ERROR("Tried to add null component.");
         }
-
-        // Wrap in shared_ptr
-        std::shared_ptr<Component> component(rawComponent);
-
         // Set actor and component index
         component->SetParent(std::static_pointer_cast<Actor>(shared_from_this()));
         component->SetLocalId(components.size());

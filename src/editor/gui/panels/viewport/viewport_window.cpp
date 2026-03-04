@@ -280,21 +280,32 @@ namespace Pulse::Editor::GUI {
             glm::value_ptr(transform)
         );
 
-        if (ImGuizmo::IsUsing() && !gizmoActive) {
+        if (ImGuizmo::IsUsing() && !gizmoActive)
+        {
             gizmoActive = true;
 
             auto& stack = Commands::CommandStack::Get();
-            stack.Begin("Move Object");
+            stack.Begin("Transform Object");
 
-            for (FieldInfo* field :
-                selected->transform->GetDescriptor()->fields)
+            auto id = selected->transform->GetID().GetAsInt();
+
+            auto resolver = [](uint32_t id) -> void*
             {
-                stack.Add(
-                    std::make_unique<Commands::ModifyFieldCommand>(
-                        selected->transform.get(), field
-                    )
-                );
-            }
+                return Engine::Core::GetEngine().GetObjectIDManager()->GetObjectFromID(Engine::Core::ObjectID(id)).get();
+            };
+
+            FieldInfo* positionField = selected->transform->GetDescriptor()->fields[0];
+            FieldInfo* rotationField = selected->transform->GetDescriptor()->fields[1];
+            FieldInfo* scaleField    = selected->transform->GetDescriptor()->fields[2];
+
+            stack.Add(std::make_unique<Commands::ModifyFieldCommand>(
+                id, resolver, positionField, selected->transform));
+
+            stack.Add(std::make_unique<Commands::ModifyFieldCommand>(
+                id, resolver, rotationField, selected->transform));
+
+            stack.Add(std::make_unique<Commands::ModifyFieldCommand>(
+                id, resolver, scaleField, selected->transform));
         }
 
         if (ImGuizmo::IsUsing()) {
@@ -302,8 +313,8 @@ namespace Pulse::Editor::GUI {
         }
 
         if (!ImGuizmo::IsUsing() && gizmoActive) {
-            gizmoActive = false;
             Commands::CommandStack::Get().End();
+            gizmoActive = false;
         }
     }
 

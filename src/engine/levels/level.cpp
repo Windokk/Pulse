@@ -56,7 +56,7 @@ namespace Pulse::Engine::Levels{
             else{
                 //Custom component/Inherited component case
                 //Note : The custom component has to be already registered
-                ECS::Components::Component* rawComponent = Pulse::Engine::ECS::Components::GetComponentRegistry().CreateComponentByName(type);
+                std::shared_ptr<ECS::Components::Component> rawComponent = Pulse::Engine::ECS::Components::GetComponentRegistry().CreateComponentByName(type);
                 if (!rawComponent) {
                     DEBUG_WARNING("Unknown component type: " + type);
                     continue;

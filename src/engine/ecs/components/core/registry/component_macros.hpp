@@ -5,15 +5,10 @@
 #include "component_registration.hpp"
 
 using namespace Pulse::Engine::ECS;
+using namespace Pulse::Engine::Core;
 
-#define BEGIN_COMPONENT(className, baseClass)                                                   \
-    class CLASS() className : public baseClass {                                                        \
-public:                                                                                         \
-        className(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
-
-#define END_COMPONENT(className)                                                                \
-    };                                                                                          \
-    inline Components::Component* Create_##className() { return new className(nullptr, 0); }    
+#define DECLARE_COMPONENT(className)                                                                \
+    inline std::shared_ptr<Components::Component> Create_##className() { return Object::Create<className>(nullptr, 0); }    
 
 #define REGISTER_COMPONENT(className)                       \
 namespace {                                                 \

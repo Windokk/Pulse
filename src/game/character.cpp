@@ -13,11 +13,6 @@
 
 using namespace Pulse::Engine;
 
-Character::Character(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> parent, uint32_t local_id)
-    : Script(parent, local_id) {
-    // Init
-}
-
 void Character::Deserialize(json componentData) {
     // Deserialize fields
     if(componentData.contains("active") && componentData["active"].is_boolean() && componentData["active"]){

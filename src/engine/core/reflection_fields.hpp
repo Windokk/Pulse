@@ -301,8 +301,6 @@ inline void* FieldRead(const FieldInfo& field, void* object)
 struct FieldChangedEvent
 {
     const FieldInfo* field;
-    
-    std::any newValue = nullptr;
 };
 
 template<typename T>

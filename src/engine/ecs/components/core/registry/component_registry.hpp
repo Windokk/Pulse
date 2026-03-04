@@ -4,16 +4,17 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <iostream>
+#include <memory>
 
 namespace Pulse::Engine::ECS::Components {
 
     class Component;
-    using ComponentFactory = Component* (*)();
+    using ComponentFactory = std::shared_ptr<Component>(*)();
 
     class ComponentRegistry {
         public:
             void RegisterComponentType(const std::string& name, ComponentFactory factory);
-            Component* CreateComponentByName(const std::string& name);
+            std::shared_ptr<Component> CreateComponentByName(const std::string& name);
             const std::unordered_map<std::string, ComponentFactory>& GetAll() const;
 
             ComponentRegistry() = default;

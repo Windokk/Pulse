@@ -1,23 +1,32 @@
+#pragma once
+
 #include "engine/ecs/components/misc/script.hpp"
 #include "engine/ecs/components/core/registry/component_macros.hpp"
 
 using namespace nlohmann;
 
-BEGIN_COMPONENT(Character, Pulse::Engine::ECS::Components::Script)
+class CLASS() Character : public Pulse::Engine::ECS::Components::Script{
 
-    void Deserialize(json componentData) override;
-    ordered_json Serialize() override;
+    public:
+        Character(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Script(parent, local_id){};
 
-    void OnPlay() override;
-    void OnTick() override;
+        void Deserialize(json componentData) override;
+        ordered_json Serialize() override;
 
-    float speed = 1.0f;
-    double lockedMouseX, lockedMouseY = 0;
-    bool firstClick = true;
+        void OnPlay() override;
+        void OnTick() override;
 
-    float pitch = 0.0f;
-    float yaw = 0.0f;
+    private:
+        float speed = 1.0f;
+        double lockedMouseX, lockedMouseY = 0;
+        bool firstClick = true;
 
-    float mouseSensitivity = 0.1f;
+        float pitch = 0.0f;
+        float yaw = 0.0f;
 
-END_COMPONENT(Character)
+        float mouseSensitivity = 0.1f;
+
+        DECLARE_DESCRIPTOR(Character);
+};
+
+DECLARE_COMPONENT(Character)

@@ -4,8 +4,14 @@
 #include <stack>
 #include <memory>
 #include <cstring>
+#include <cassert>
 
 #include "engine/core/reflection_fields.hpp"
+
+#include "engine/ecs/components/misc/transform.hpp"
+#include <glm/gtx/string_cast.hpp>
+
+using namespace Pulse::Engine::ECS::Components;
 
 namespace Pulse::Editor::Commands{
 
@@ -13,23 +19,21 @@ namespace Pulse::Editor::Commands{
         public:
             virtual ~Command() = default;
 
-            // Called once when added to the stack
-            virtual void Execute() = 0;
+            // Called after creation but before push
+            virtual void Finalize() {}
 
-            // History operations
             virtual void Undo() = 0;
             virtual void Redo() = 0;
 
-            // Hooks
-            virtual void Finalize() {}
             virtual bool IsValid() const { return true; }
-            virtual const char* GetName() const = 0;
+
+            virtual const std::string& GetName() const = 0;
     };
 
     class CompositeCommand final : public Command {
         public:
-            explicit CompositeCommand(const char* label)
-                : name(label) {}
+            explicit CompositeCommand(std::string label)
+                : name(std::move(label)) {}
 
             void Add(std::unique_ptr<Command> cmd) {
                 commands.push_back(std::move(cmd));
@@ -39,29 +43,18 @@ namespace Pulse::Editor::Commands{
                 for (auto& cmd : commands)
                     cmd->Finalize();
 
-                // Remove no-op commands
                 commands.erase(
-                    std::remove_if(
-                        commands.begin(),
-                        commands.end(),
-                        [](auto& c) { return !c->IsValid(); }
-                    ),
-                    commands.end()
-                );
+                    std::remove_if(commands.begin(), commands.end(),
+                        [](auto& c) { return !c->IsValid(); }),
+                    commands.end());
             }
 
             bool IsValid() const override {
                 return !commands.empty();
             }
 
-            void Execute() override {
-                for (auto& cmd : commands)
-                    cmd->Execute();
-            }
-
             void Undo() override {
-                for (auto it = commands.rbegin();
-                    it != commands.rend(); ++it)
+                for (auto it = commands.rbegin(); it != commands.rend(); ++it)
                     (*it)->Undo();
             }
 
@@ -70,85 +63,123 @@ namespace Pulse::Editor::Commands{
                     cmd->Redo();
             }
 
-            const char* GetName() const override {
+            const std::string& GetName() const override {
                 return name;
             }
 
         private:
-            const char* name;
+            std::string name;
             std::vector<std::unique_ptr<Command>> commands;
     };
 
     struct ValueBuffer {
         const FieldInfo* field;
-        std::unique_ptr<uint8_t[]> data;
+        std::unique_ptr<uint8_t[]> storage;
+        bool constructed = false;
 
-        ValueBuffer(const FieldInfo* f)
+        explicit ValueBuffer(const FieldInfo* f)
             : field(f),
-            data(std::make_unique<uint8_t[]>(GetTypeSize(f->type))) {}
+            storage(std::make_unique<uint8_t[]>(GetTypeSize(f->type))) {}
 
-        void* ptr() { return data.get(); }
-        const void* ptr() const { return data.get(); }
+        void Capture(const void* source) {
+            Destroy();
+            field->CopyConstruct(storage.get(), source);
+            constructed = true;
+        }
+
+        void AssignTo(void* destination) const {
+            assert(constructed);
+            field->Assign(destination, storage.get());
+        }
+
+        bool Equals(const ValueBuffer& other) const {
+            return field->Equals(storage.get(), other.storage.get());
+        }
+
+        void Destroy() {
+            if (constructed) {
+                field->Destroy(storage.get());
+                constructed = false;
+            }
+        }
+
+        ~ValueBuffer() {
+            Destroy();
+        }
     };
+
+    using ObjectResolver = std::function<void*(uint32_t id)>;
 
     class ModifyFieldCommand final : public Command {
         public:
-            ModifyFieldCommand(void* obj, const FieldInfo* f)
-                : object(obj), field(f),
-                before(f), after(f)
+            ModifyFieldCommand(
+                uint32_t id,
+                ObjectResolver resolverFunc,
+                const FieldInfo* f, std::shared_ptr<Component> comp)
+                : objectID(id),
+                resolver(std::move(resolverFunc)),
+                field(f),
+                before(f),
+                after(f),
+                name(f->name),
+                component(comp)
             {
-                void* realPtr = GetFieldPointer();
-                field->CopyConstruct(before.ptr(), realPtr);
+                if (void* obj = Resolve())
+                    before.Capture(GetFieldPointer(obj));
             }
 
-            ~ModifyFieldCommand()
-            {
-                field->Destroy(before.ptr());
-                field->Destroy(after.ptr());
+            void Finalize() override {
+                if (finalized) return;
+
+                if (void* obj = Resolve()){
+                    after.Capture(GetFieldPointer(obj));
+                }
+                finalized = true;
             }
 
-            void Finalize() override
-            {
-                if (!finalized)
-                {
-                    void* realPtr = GetFieldPointer();
-                    field->CopyConstruct(after.ptr(), realPtr);
-                    finalized = true;
+            bool IsValid() const override {
+                bool valid = !before.Equals(after);
+                return valid;
+            }
+
+            void Undo() override {
+                if (void* obj = Resolve()){
+                    before.AssignTo(GetFieldPointer(obj));
+                    component->OnFieldChanged({field});
                 }
             }
 
-            bool IsValid() const override
-            {
-                return !field->Equals(before.ptr(), after.ptr());
+            void Redo() override {
+                if (void* obj = Resolve()){
+                    after.AssignTo(GetFieldPointer(obj));
+                    component->OnFieldChanged({field});
+                }
             }
 
-            void Execute() override { Redo(); }
-
-            void Undo() override
-            {
-                field->Assign(GetFieldPointer(), before.ptr());
-            }
-
-            void Redo() override
-            {
-                field->Assign(GetFieldPointer(), after.ptr());
-            }
-
-            const char* GetName() const override
-            {
-                return field->name;
+            const std::string& GetName() const override {
+                return name;
             }
 
         private:
-            void* GetFieldPointer() const
-            {
-                return static_cast<uint8_t*>(object) + field->offset;
+            void* Resolve() const {
+                return resolver ? resolver(objectID) : nullptr;
             }
 
-            void* object;
+            void* GetFieldPointer(void* obj) const {
+                return FieldRead(*field, obj);
+            }
+
+        private:
+            uint32_t objectID;
+            ObjectResolver resolver;
             const FieldInfo* field;
+            std::shared_ptr<Component> component;
+
             ValueBuffer before;
             ValueBuffer after;
+
             bool finalized = false;
+            std::string name;
         };
+
 }

@@ -357,21 +357,22 @@ namespace Pulse::Editor::Core{
     {
         Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
 
-        if(input->IsKeyDown(Engine::Input::Key::LeftControl) &&
-            input->WasKeyPressed(Engine::Input::Key::S)){
-            Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
-                Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
-            );
-            DEBUG_LOG("Successfully saved level");
-            return;
-        }
-
         if(input->IsKeyDown(Engine::Input::Key::LeftControl)){
-            if(input->WasKeyPressed(Engine::Input::Key::Z)){
+        
+            if(input->WasKeyPressed(Engine::Input::Key::S)){
+                Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
+                    Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
+                );
+                DEBUG_LOG("Successfully saved level");
+                return;
+            }
+            else if(input->WasKeyPressed(Engine::Input::Key::W)){
                 Editor::Commands::CommandStack::Get().Undo();
+                return;
             }
             else if(input->WasKeyPressed(Engine::Input::Key::Y)){
                 Editor::Commands::CommandStack::Get().Redo();
+                return;
             }
         }
 
