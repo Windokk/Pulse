@@ -72,6 +72,7 @@ namespace Pulse::Editor::Core
             case Engine::Input::Key::Z: return GLFW_KEY_Z;
             case Engine::Input::Key::Escape: return GLFW_KEY_ESCAPE;
             case Engine::Input::Key::Space: return GLFW_KEY_SPACE;
+            case Engine::Input::Key::Enter: return GLFW_KEY_ENTER;
             case Engine::Input::Key::LeftControl: return GLFW_KEY_LEFT_CONTROL;
             default: return GLFW_KEY_UNKNOWN;
         }

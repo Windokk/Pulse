@@ -140,6 +140,7 @@ namespace Pulse::Engine::ECS::Objects{
         return nullptr;
     }
 
+    
     template <typename T>
     std::shared_ptr<T> Actor::AddComponent()
     {
@@ -188,9 +189,11 @@ namespace Pulse::Engine::ECS::Objects{
 
             if constexpr (IsSubclassOf<Camera, T>()) {
                 level->cameras.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                static_pointer_cast<Camera>(component)->AddToCameraManager();
             }
         }
 
         return component;
     }
+
 }

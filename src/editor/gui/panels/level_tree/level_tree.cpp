@@ -80,7 +80,6 @@ namespace Pulse::Editor::GUI{
             actor->GetName().c_str()
         );
 
-        // Left click selection
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         {
             selectedID = actor->GetID();
@@ -88,16 +87,21 @@ namespace Pulse::Editor::GUI{
                 parent->SetSelectedActor(actor);
         }
 
-        // Right click menu
+        // Context Menu
         if (ImGui::BeginPopupContextItem())
         {
             if (ImGui::MenuItem("Rename"))
             {
-                
+                renamingActor = actor;
+                strcpy(renameBuffer, actor->GetName().c_str());
+                openRenamingPopup = true;
             }
 
             if (ImGui::MenuItem("Delete"))
             {
+                if (actor == parent->GetSelectedActor())
+                    parent->SetSelectedActor(nullptr);
+
                 actor->Destroy();
             }
 
@@ -112,6 +116,38 @@ namespace Pulse::Editor::GUI{
             {
                 auto child = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("New Actor");
                 actor->AddChild(child);
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if(openRenamingPopup){
+            ImGui::OpenPopup("RenameActorPopup");
+            openRenamingPopup = false;
+        }
+
+        // Rename Popup
+        if (ImGui::BeginPopup("RenameActorPopup"))
+        {
+            ImGui::InputText("##ActorName", renameBuffer, sizeof(renameBuffer));
+
+            if (ImGui::Button("OK") || Engine::Core::GetEngine().GetInputManager()->WasKeyReleased(Engine::Input::Key::Enter))
+            {
+                if (renamingActor)
+                    renamingActor->SetName(renameBuffer);
+
+                renamingActor = nullptr;
+                openRenamingPopup = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Cancel"))
+            {
+                renamingActor = nullptr;
+                openRenamingPopup = false;
+                ImGui::CloseCurrentPopup();
             }
 
             ImGui::EndPopup();

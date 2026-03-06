@@ -179,7 +179,7 @@ namespace Pulse::Engine::Physics {
         if(activateAll){
             JPH::BodyIDVector bodies;
             m_physicsSystem.GetBodies(bodies);
-            m_physicsSystem.GetBodyInterface().ActivateBodies(bodies.data(), m_physicsSystem.GetNumBodies());
+            m_physicsSystem.GetBodyInterface().ActivateBodies(bodies.data(), bodies.size());
         }
 
         m_physicsSystem.Update(deltaTime, 1, m_tempAllocator, m_jobSystem);

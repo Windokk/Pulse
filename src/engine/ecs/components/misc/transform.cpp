@@ -290,7 +290,7 @@ namespace Pulse::Engine::ECS::Components{
 
     std::shared_ptr<Component> Transform::Clone() const
     {
-        auto cloned = std::make_shared<Transform>(*this);
+        auto cloned = Object::Create<Transform>(*this);
 
         return cloned;
     }

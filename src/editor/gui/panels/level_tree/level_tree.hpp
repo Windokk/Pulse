@@ -26,9 +26,9 @@ namespace Pulse::Editor::GUI{
 
             Core::EditorMainWindow* parent = nullptr;
             Engine::Core::ObjectID selectedID;
-
-            Engine::Core::ObjectID renamingID;
             char renameBuffer[256];
+            std::shared_ptr<Engine::ECS::Objects::Actor> renamingActor = nullptr;
+            bool openRenamingPopup = false;
     };
 
 

@@ -60,7 +60,7 @@ namespace Pulse::Engine::ECS::Components
     
     std::shared_ptr<Component> Script::Clone() const
     {
-        auto cloned = std::make_shared<Script>(*this);
+        auto cloned = Object::Create<Script>(*this);
 
         return cloned;
     }

@@ -64,6 +64,7 @@ namespace Pulse::Engine::ECS::Objects{
 
         if (auto cam = std::dynamic_pointer_cast<Camera>(component)) {
             level->cameras.emplace(GetComponentIDInScene(cam->GetLocalId()), cam);
+            Core::GetEngine().GetCameraManager()->AddCamera(GetID(), cam);
         }
 
         return component;
@@ -167,6 +168,13 @@ namespace Pulse::Engine::ECS::Objects{
     {
         std::shared_ptr<Actor> copy = Core::Object::Create<Actor>("Copy of "+name);
 
+        if(level)
+            level->transforms.erase(GetComponentIDInScene(copy->transform->GetLocalId()));
+        
+        copy->transform->Destroy();
+
+        copy->components.clear();
+
         DEBUG_INFO("Cloning actor : "+name);
 
         if(GetParent() && std::dynamic_pointer_cast<Actor>(GetParent())){
@@ -199,38 +207,39 @@ namespace Pulse::Engine::ECS::Objects{
                 tr->SetScale(transform->GetScale());
 
                 if(copy->level && copy->level->IsLoaded())
-                    level->transforms.emplace(GetComponentIDInScene(tr->GetLocalId()), tr);
+                    level->transforms.emplace(copy->GetComponentIDInScene(tr->GetLocalId()), tr);
+
+                copy->transform = tr;
             }
             
             if(!copy->level || !copy->level->IsLoaded())
                 continue;
 
             if(std::shared_ptr<Components::AudioSource> audioSource = std::dynamic_pointer_cast<Components::AudioSource>(cloneComp)){
-                level->audioSources.emplace(GetComponentIDInScene(audioSource->GetLocalId()), audioSource);
+                level->audioSources.emplace(copy->GetComponentIDInScene(audioSource->GetLocalId()), audioSource);
                 audioSource->Update();
             }
             else if(std::shared_ptr<Components::Script> script = std::dynamic_pointer_cast<Components::Script>(cloneComp)){    
-                level->scripts.emplace(GetComponentIDInScene(script->GetLocalId()), script);
+                level->scripts.emplace(copy->GetComponentIDInScene(script->GetLocalId()), script);
                 RegisterComponentEvents(script);
                 script->OnCreate();
             }
             else if(std::shared_ptr<Components::Camera> camera = std::dynamic_pointer_cast<Components::Camera>(cloneComp)){
-                level->cameras.emplace(GetComponentIDInScene(camera->GetLocalId()), camera);
+                level->cameras.emplace(copy->GetComponentIDInScene(camera->GetLocalId()), camera);
                 Core::GetEngine().GetCameraManager()->AddCamera(copy->GetID(), camera);
             }
             else if(std::shared_ptr<Components::Light> light = std::dynamic_pointer_cast<Components::Light>(cloneComp)){
                 light->SetLightIndex(level->lights.size());
                 level->lights.push_back(light);
-                level->lightComps.emplace(GetComponentIDInScene(light->GetLocalId()), light);
+                level->lightComps.emplace(copy->GetComponentIDInScene(light->GetLocalId()), light);
             }
             else if(std::shared_ptr<Components::Model> model = std::dynamic_pointer_cast<Components::Model>(cloneComp))
             {
-                level->models.emplace(GetComponentIDInScene(model->GetLocalId()), model);
+                level->models.emplace(copy->GetComponentIDInScene(model->GetLocalId()), model);
                 model->Update();
             }
             else if(std::shared_ptr<Components::PhysicsBody> physicsBody = std::dynamic_pointer_cast<Components::PhysicsBody>(cloneComp)){
-                level->physicsBodies.emplace(GetComponentIDInScene(physicsBody->GetLocalId()), physicsBody);
-                physicsBody->CreateBody(physicsBody->GetShapeType(), physicsBody->params, physicsBody->GetMotionType());
+                level->physicsBodies.emplace(copy->GetComponentIDInScene(physicsBody->GetLocalId()), physicsBody);
             }
         }
 

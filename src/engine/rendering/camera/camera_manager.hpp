@@ -15,7 +15,7 @@ namespace Pulse::Engine::Rendering{
     class CameraManager{
         public:
             
-            /// @brief Adds a new camera with a name
+            /// @brief Adds a new camera with its actor's id
             void AddCamera(const Core::ObjectID parentID, std::shared_ptr<Camera> camera) {
                 cameras[parentID] = camera;
 

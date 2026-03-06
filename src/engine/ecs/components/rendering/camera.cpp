@@ -29,7 +29,14 @@ namespace Pulse::Engine::ECS::Components {
 
     void Camera::Destroy()
     {
-        Core::GetEngine().GetCameraManager()->RemoveCamera(parent->GetID());
+        if(parent)
+            Core::GetEngine().GetCameraManager()->RemoveCamera(parent->GetID());
+    }
+
+    void Camera::AddToCameraManager()
+    {
+        if(parent)
+            Core::GetEngine().GetCameraManager()->AddCamera(parent->GetID(), static_pointer_cast<Camera>(shared_from_this()));
     }
 
     void Camera::OnFieldChanged(const FieldChangedEvent &event)
@@ -163,7 +170,7 @@ namespace Pulse::Engine::ECS::Components {
 
     std::shared_ptr<Component> Camera::Clone() const
     {
-        auto cloned = std::make_shared<Camera>(*this);
+        auto cloned = Object::Create<Camera>(*this);
 
         return cloned;
     }

@@ -147,14 +147,13 @@ namespace Pulse::Editor::GUI {
         {
             if (ImGui::Button(ICON_LC_SQUARE)){
                 Engine::Core::GetEngine().SetPlayMode(false);
+                Engine::Core::GetEngine().GetCameraManager()->SetActiveCamera(cameraActor->GetID());
             }
         }
         else
         {
             if (ImGui::Button(ICON_LC_PLAY))
             {
-                auto levelManager = Engine::Core::GetEngine().GetLevelManager();
-                levelManager->GetLevelAt(0)->Serialize(levelManager->GetLevelAt(0)->GetPath());
                 parent->SetSelectedActor(nullptr);
                 Engine::Core::GetEngine().SetPlayMode(true);
             }
@@ -205,8 +204,7 @@ namespace Pulse::Editor::GUI {
 
     void ViewportWindow::DrawViewGizmo(){
         ImVec2 gizmoPos = ImGui::GetCursorScreenPos();
-        gizmoPos.x -= 120;
-        gizmoPos.y += 25;
+        gizmoPos.x -= 128;
 
         ImOGuizmo::SetRect(gizmoPos.x, gizmoPos.y, 120.0f);
 

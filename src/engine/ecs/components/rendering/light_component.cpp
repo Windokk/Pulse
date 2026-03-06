@@ -260,7 +260,7 @@ namespace Pulse::Engine::ECS::Components{
 
     std::shared_ptr<Component> Light::Clone() const
     {
-        auto cloned = std::make_shared<Light>(*this);
+        auto cloned = Object::Create<Light>(*this);
 
         return cloned;
     }

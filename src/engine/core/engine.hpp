@@ -144,6 +144,9 @@ namespace Pulse::Engine{
                     playMode = on;
 
                     if(playMode){
+
+                        context.levelManager->GetLevelAt(0)->Serialize(context.levelManager->GetLevelAt(0)->GetPath());
+
                         for(int i = 0; i < context.levelManager->GetLoadedLevelCount(); i++){
                             context.levelManager->GetLevelAt(i)->Play();
                         }
@@ -153,17 +156,20 @@ namespace Pulse::Engine{
 
                             auto cameraEntry = level->cameras.begin();
                             auto camera = cameraEntry->second;
-                            if (!camera || !camera->parent) return;
+                            if (!camera) {
+                                DEBUG_ERROR("First camera is not valid for level : ", level->GetName());
+                                return;
+                            }
 
-                            auto parent = camera->parent->GetParent();
-                            if (!parent) return;
+                            auto parent = camera->parent;
+                            if (!parent) {
+                                DEBUG_ERROR("First camera's parent is not valid for level : ", level->GetName());
+                                return;
+                            }
 
                             context.cameraManager->SetActiveCamera(parent->GetID());
-
                         }
-                    }
 
-                    if(on){
                         activateAllPhysics = true;
                     }
                     else{
@@ -178,9 +184,9 @@ namespace Pulse::Engine{
 
                 EngineCreationSettings settings;
 
-                bool playMode = false;
-                bool activateAllPhysics = false;
-                bool reloadCurrentLevel = false;
+                bool playMode;
+                bool activateAllPhysics;
+                bool reloadCurrentLevel;
         };
 
         #if defined(BUILD_ENGINE)

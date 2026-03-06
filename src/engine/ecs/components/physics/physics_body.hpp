@@ -112,7 +112,7 @@ namespace Pulse::Engine::ECS::Components
             
             std::shared_ptr<Component> Clone() const override;
             
-            Physics::PhysicsShape GetShapeType() { return shape; }
+            Physics::PhysicsShape GetShapeType() { return shapeType; }
 
             template<typename T>
             T& GetShapeParams();
@@ -129,7 +129,7 @@ namespace Pulse::Engine::ECS::Components
             InstancedStruct params;
 
             FIELD(Editable) 
-            Physics::PhysicsShape shape;
+            Physics::PhysicsShape shapeType;
             
             FIELD(Editable)
             EMotionType motionType = EMotionType::Static;

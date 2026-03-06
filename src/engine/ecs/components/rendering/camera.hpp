@@ -44,6 +44,8 @@ namespace Pulse::Engine::ECS::Components {
 
             void Init(int width, int height, float near, float far, float fov, bool ortho, float orthoSize);
 
+            void AddToCameraManager();
+
             void Destroy() override;
 
             void UpdateSize(int new_width, int new_height);

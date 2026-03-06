@@ -168,7 +168,7 @@ namespace Pulse::Engine::ECS::Components{
 
     std::shared_ptr<Component> Model::Clone() const
     {
-        auto cloned = std::make_shared<Model>(*this);
+        auto cloned = Object::Create<Model>(*this);
 
         return cloned;
     }

@@ -63,7 +63,7 @@ namespace Pulse::Engine::ECS::Components{
 
     std::shared_ptr<Component> AudioSource::Clone() const
     {
-        auto cloned = std::make_shared<AudioSource>(*this);
+        auto cloned = Object::Create<AudioSource>(*this);
 
         return cloned;
     }

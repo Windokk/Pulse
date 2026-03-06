@@ -197,9 +197,9 @@ static EnumDescriptor PhysicsShape_descriptor = {
 };
 
 inline FieldInfo PhysicsBody_shape_info = {
-    "shape",
+    "shapeType",
     TypeID::Enum,
-    offsetof(Pulse::Engine::ECS::Components::PhysicsBody, shape),
+    offsetof(Pulse::Engine::ECS::Components::PhysicsBody, shapeType),
     Editable,
     0, 0,
     nullptr,

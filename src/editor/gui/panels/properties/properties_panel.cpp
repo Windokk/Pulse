@@ -64,8 +64,6 @@ namespace Pulse::Editor::GUI{
             
             DrawActorInfo(actor);
 
-            ImGui::Separator();
-
             for (int i = 0; i < actor->GetComponents().size(); i++)
             {
                 ImGui::PushID(i);
@@ -91,7 +89,7 @@ namespace Pulse::Editor::GUI{
             actor->SetName(buffer);
         }
 
-        ImGui::Text("ID: %d", actor->GetID().GetAsInt());
+        ImGui::Text("Object ID: %d", actor->GetID().GetAsInt());
         ImGui::Text("Components: %zu", actor->GetComponents().size());
     }
 
@@ -100,31 +98,41 @@ namespace Pulse::Editor::GUI{
         const ClassDescriptor* desc = comp->GetDescriptor();
 
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
+        ImGui::SetNextItemAllowOverlap();
+        bool open = ImGui::CollapsingHeader(desc->name.c_str(), flags);
 
-        if (ImGui::CollapsingHeader(desc->name.c_str(), flags))
+        ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+        float headerHeight = ImGui::GetFrameHeight();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+
+        bool active = comp->Active();
+        std::string id = "##" + desc->name + "Active";
+        if (ImGui::Checkbox(id.c_str(), &active))
         {
-            bool active = comp->Active();
-            if (ImGui::Checkbox("Active", &active))
-            {
-                active ? comp->Activate() : comp->DeActivate();
-            }
+            active ? comp->Activate() : comp->DeActivate();
+        }
 
-            ImGui::Separator();
+        ImGui::PopStyleVar();
 
+        if (open)
+        {
             for (FieldInfo* field : desc->fields)
             {
-                if(field->type == TypeID::Struct){
-                    uint8_t* base = static_cast<uint8_t*>(static_cast<void*>(comp.get())) + field->offset;
+                if (field->type == TypeID::Struct)
+                {
+                    uint8_t* base = reinterpret_cast<uint8_t*>(comp.get()) + field->offset;
                     InstancedStruct* structPtr = reinterpret_cast<InstancedStruct*>(base);
-                    for(auto& subField : structPtr->descriptor->fields){
-                    
+
+                    for (auto& subField : structPtr->descriptor->fields)
+                    {
                         void* valuePtr = FieldRead(*subField, structPtr->data);
-                    
                         DrawField(subField, valuePtr, comp);
                     }
                 }
-                else{
-
+                else
+                {
                     void* valuePtr = FieldRead(*field, comp.get());
                     DrawField(field, valuePtr, comp);
                 }

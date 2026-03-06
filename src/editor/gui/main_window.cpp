@@ -31,7 +31,7 @@ namespace Pulse::Editor::Core{
         style.ChildBorderSize = 1.0f;
         style.PopupRounding = 0.0f;
         style.PopupBorderSize = 1.0f;
-        style.FramePadding = ImVec2(4.0f, 3.0f);
+        style.FramePadding = ImVec2(4.0f, 4.0f);
         style.FrameRounding = 0.0f;
         style.FrameBorderSize = 0.0f;
         style.ItemSpacing = ImVec2(8.0f, 4.0f);
@@ -74,8 +74,8 @@ namespace Pulse::Editor::Core{
         colors[ImGuiCol_Button]                 = ImVec4(0.44f, 0.44f, 0.44f, 0.40f);
         colors[ImGuiCol_ButtonHovered]          = ImVec4(0.33f, 0.49f, 0.60f, 1.00f);
         colors[ImGuiCol_ButtonActive]           = ImVec4(0.42f, 0.42f, 0.42f, 1.00f);
-        colors[ImGuiCol_Header]                 = ImVec4(0.70f, 0.70f, 0.70f, 0.31f);
-        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.33f, 0.49f, 0.60f, 0.80f);
+        colors[ImGuiCol_Header]                 = ImVec4(0.35f, 0.35f, 0.35f, 0.31f);
+        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.25f, 0.34f, 0.40f, 0.80f);
         colors[ImGuiCol_HeaderActive]           = ImVec4(0.48f, 0.50f, 0.52f, 1.00f);
         colors[ImGuiCol_Separator]              = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
         colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.72f, 0.72f, 0.72f, 0.78f);
@@ -292,7 +292,7 @@ namespace Pulse::Editor::Core{
         propertiesPanel->Draw(selectedActor);
         levelTree->Draw();
 
-        //ImGui::ShowDemoWindow();
+        ImGui::ShowDemoWindow();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

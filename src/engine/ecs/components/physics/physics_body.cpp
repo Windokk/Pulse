@@ -24,7 +24,7 @@ namespace Pulse::Engine::ECS::Components{
         auto& bi = physics->GetBodyInterface();
 
         // --- Shape update ---
-        if (newShape != shape || newParams != params || forceRecreation)
+        if (newShape != shapeType || newParams != params || forceRecreation)
         {
             JPH::ShapeRefC newShapeRef = CreateJoltShape(newShape, newParams);
             if (!newShapeRef)
@@ -38,7 +38,7 @@ namespace Pulse::Engine::ECS::Components{
             );
 
             mShape = newShapeRef;
-            shape = newShape;
+            shapeType = newShape;
             params = newParams;
         }
 
@@ -137,7 +137,7 @@ namespace Pulse::Engine::ECS::Components{
         if (!mShape)
             return;
 
-        this->shape = shape;
+        this->shapeType = shape;
         this->params = params;
         this->motionType = motionType;
 
@@ -161,7 +161,7 @@ namespace Pulse::Engine::ECS::Components{
         if (motionType == EMotionType::Static)
         {
             // Editor-only: recreate
-            CreateBody(shape, params, EMotionType::Static);
+            CreateBody(shapeType, params, EMotionType::Static);
         }
         else if (motionType == EMotionType::Kinematic)
         {
@@ -206,7 +206,7 @@ namespace Pulse::Engine::ECS::Components{
 
         if(shouldUpdateShape)
         {
-            Update(shape, params, motionType, true);
+            Update(shapeType, params, motionType, true);
             shouldUpdateShape = false;
         }
 
@@ -216,7 +216,7 @@ namespace Pulse::Engine::ECS::Components{
 
             if (scaleDirty)
             {
-                Update(shape, params, motionType, /*forceRecreation=*/true);
+                Update(shapeType, params, motionType, /*forceRecreation=*/true);
             }
 
             if (posDirty || rotDirty)
@@ -264,7 +264,7 @@ namespace Pulse::Engine::ECS::Components{
         }
         else{
             // Recreate the static body at a new pos
-            CreateBody(shape, params, motionType);
+            CreateBody(shapeType, params, motionType);
         }
     }
 
@@ -457,7 +457,7 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["active"] = activated;
 
-        switch (shape)
+        switch (shapeType)
         {
             case Physics::BOX: {
                 comp["shape"] = "box";
@@ -516,14 +516,16 @@ namespace Pulse::Engine::ECS::Components{
 
     std::shared_ptr<Component> PhysicsBody::Clone() const
     {
-        auto cloned = std::make_shared<PhysicsBody>(*this);
-
+        auto cloned = Object::Create<PhysicsBody>(*this);
+        cloned->mBodyID = JPH::BodyID();
+        cloned->debugShape = nullptr;
+        cloned->CreateBody(shapeType, params, motionType);
         return cloned;
     }
 
     void PhysicsBody::ForceShapeUpdate(const Physics::PhysicsShape &shape, const InstancedStruct& params, EMotionType motionType)
     {
-        this->shape = shape;
+        this->shapeType = shape;
         this->params = params;
         this->motionType = motionType;
 
@@ -535,7 +537,7 @@ namespace Pulse::Engine::ECS::Components{
 
             InstancedStruct params;
 
-            switch (shape)
+            switch (shapeType)
             {
                 case Physics::BOX:
                     params.Initialize(&BoxParams_descriptor);
@@ -554,13 +556,13 @@ namespace Pulse::Engine::ECS::Components{
                     break;
             }
 
-            ForceShapeUpdate(shape, params, GetMotionType());
+            ForceShapeUpdate(shapeType, params, GetMotionType());
         }
         else if(event.field->name == "motionType"){
             ForceShapeUpdate(GetShapeType(), params, motionType);
         }
         else{
-            ForceShapeUpdate(shape, params, motionType);
+            ForceShapeUpdate(shapeType, params, motionType);
         }
     }
 }
