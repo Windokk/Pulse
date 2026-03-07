@@ -139,6 +139,8 @@ namespace Pulse::Engine{
 
                 std::shared_ptr<Shader> framebufferShader;
 
+                std::shared_ptr<FrameBuffer> currentFramebuffer = nullptr;
+
 
                 RendererSettings settings;
         };

@@ -98,23 +98,6 @@ namespace Pulse::Engine::Debugging{
             }
             return *gSharedLoggerPtr;
         }
-
-    #elif defined(BUILD_EDITOR)
-
-        // Used by the Editor Module DLL
-        inline Logger* gSharedLoggerPtr = nullptr;
-
-        inline void SetLogger(Logger* ptr) {
-            gSharedLoggerPtr = ptr;
-        }
-
-        inline Logger& GetLogger() {
-            if (!gSharedLoggerPtr){
-                exit(2);
-            }
-            return *gSharedLoggerPtr;
-        }
-
     #endif
 
 }

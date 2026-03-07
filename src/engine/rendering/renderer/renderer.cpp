@@ -427,6 +427,15 @@ namespace Pulse::Engine::Rendering{
     {
         auto* gl = Core::GetEngine().GetGL();
 
+        auto Bind = [&](std::shared_ptr<FrameBuffer> fbo)
+        {
+            if (currentFramebuffer != fbo)
+            {
+                fbo->Bind();
+                currentFramebuffer = fbo;
+            }
+        };
+
         for (const auto& pass : renderPasses)
         {
             switch (pass.stage)
@@ -451,17 +460,12 @@ namespace Pulse::Engine::Rendering{
                         break;
                     }
 
-
-                    // Execute pass.callback into pass.target
-                    pass.target->Bind();
+                    // Execute pass.callback (rendered into pass.target)
+                    Bind(pass.target);
                     pass.callback();
-                    pass.target->Unbind();
-
 
                     // Draws a rect using "pass.shader" and pass.target.shader as the texture --> into pass.target
-
-                    tempBuffer->Bind();
-                    gl->Clear(GL_COLOR_BUFFER_BIT);
+                    Bind(tempBuffer);
 
                     gl->ActiveTexture(GL_TEXTURE0);
                     gl->BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
@@ -472,15 +476,6 @@ namespace Pulse::Engine::Rendering{
 
                     gl->BindVertexArray(0);
                     blendShader->Deactivate();
-                    tempBuffer->Unbind();
-
-                    //Copy result back into pass.target
-                    pass.target->Bind();
-                    gl->Clear(GL_COLOR_BUFFER_BIT);
-
-                    tempBuffer->Draw(rectVAO);
-
-                    pass.target->Unbind();
 
                     // Resolve viewport MSAA before sampling it
                     if (viewportBuffer->isMultisampled)
@@ -489,12 +484,24 @@ namespace Pulse::Engine::Rendering{
                     GLuint viewportTex = viewportBuffer->GetFrameTexture();
                     GLuint passTex = pass.target->GetFrameTexture();
 
+                    //Copy temp back into pass.target
+
+                    // Source framebuffer
+                    gl->BindFramebuffer(GL_READ_FRAMEBUFFER, tempBuffer->GetFBO());
+                    // Destination framebuffer
+                    gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, pass.target->GetFBO());
+                    gl->BlitFramebuffer(
+                        0, 0, tempBuffer->GetWidth(), tempBuffer->GetHeight(),   // source rect
+                        0, 0, pass.target->GetWidth(), pass.target->GetHeight(),   // destination rect
+                        GL_COLOR_BUFFER_BIT,   // what to copy
+                        GL_LINEAR             // filtering
+                    );
+                    
                     // If blending into viewport
                     if (pass.appendToViewport)
                     {
                         // Blend into tempBuffer
-                        tempBuffer->Bind();
-                        gl->Clear(GL_COLOR_BUFFER_BIT);
+                        Bind(tempBuffer);
 
                         blendShader->Activate();
                         blendShader->SetInt("blendMode", (int)pass.blendMode);
@@ -512,13 +519,19 @@ namespace Pulse::Engine::Rendering{
 
                         gl->BindVertexArray(0);
                         blendShader->Deactivate();
-                        tempBuffer->Unbind();
 
-                        // Write blended result back into the viewport MSAA FBO
-                        viewportBuffer->Bind();
-                        gl->Clear(GL_COLOR_BUFFER_BIT);
-                        tempBuffer->Draw(rectVAO);  // resolves itself
-                        viewportBuffer->Unbind();
+                        // Write blended result back into the viewport's FBO
+
+                        // Source framebuffer
+                        gl->BindFramebuffer(GL_READ_FRAMEBUFFER, tempBuffer->GetFBO());
+                        // Destination framebuffer
+                        gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, viewportBuffer->GetFBO());
+                        gl->BlitFramebuffer(
+                            0, 0, tempBuffer->GetWidth(), tempBuffer->GetHeight(),   // source rect
+                            0, 0, viewportBuffer->GetWidth(), viewportBuffer->GetHeight(),   // destination rect
+                            GL_COLOR_BUFFER_BIT,   // what to copy
+                            GL_LINEAR             // filtering
+                        );
                     }
 
                     break;
@@ -537,10 +550,9 @@ namespace Pulse::Engine::Rendering{
                     }
 
                     // Render scene into pass.target (maybe MSAA)
-                    pass.target->Bind();
+                    Bind(pass.target);
                     gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                     pass.callback();
-                    pass.target->Unbind();
 
                     // Resolve MSAA scene FBO if needed
                     if (pass.target->isMultisampled)
@@ -560,7 +572,7 @@ namespace Pulse::Engine::Rendering{
                         GLuint sceneTex = pass.target->GetFrameTexture();
 
                         // ---- Blend to temp ----
-                        tempBuffer->Bind();
+                        Bind(tempBuffer);
                         gl->Clear(GL_COLOR_BUFFER_BIT);
 
                         blendShader->Activate();
@@ -580,13 +592,19 @@ namespace Pulse::Engine::Rendering{
 
                         gl->BindVertexArray(0);
                         blendShader->Deactivate();
-                        tempBuffer->Unbind();
 
-                        // Write temp back to viewport MSAA
-                        viewportBuffer->Bind();
-                        gl->Clear(GL_COLOR_BUFFER_BIT);
-                        tempBuffer->Draw(rectVAO);
-                        viewportBuffer->Unbind();
+                        // Write temp back to viewport
+                        
+                        // Source framebuffer
+                        gl->BindFramebuffer(GL_READ_FRAMEBUFFER, tempBuffer->GetFBO());
+                        // Destination framebuffer
+                        gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, viewportBuffer->GetFBO());
+                        gl->BlitFramebuffer(
+                            0, 0, tempBuffer->GetWidth(), tempBuffer->GetHeight(),   // source rect
+                            0, 0, viewportBuffer->GetWidth(), viewportBuffer->GetHeight(),   // destination rect
+                            GL_COLOR_BUFFER_BIT,   // what to copy
+                            GL_LINEAR             // filtering
+                        );
                     }
 
                     break;

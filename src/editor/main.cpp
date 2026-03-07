@@ -1,6 +1,9 @@
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "editor_module_loader.hpp"
+#include "editor/commands/command_stack.hpp"
+#include "editor/core/platform/glfw/glfw_platform.hpp"
+#include "editor/gui/main_window.hpp"
 
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
@@ -8,12 +11,10 @@ using namespace Pulse::Engine::Rendering;
 using namespace Pulse::Engine::Input;
 using namespace Pulse::Engine::ECS::Components;
 using namespace Pulse::Engine::ECS::Objects;
-using namespace Pulse::Editor;
 
 #include <iostream>
 
 Debugging::Level minDebugLevel = Debugging::Level::Log;
-std::string mainModuleLib = "";
 std::string gameModuleLib = "";
 
 EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
@@ -57,9 +58,6 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
                 std::cerr << "Unknown debug level: " << level << ". Using default (Log).\n";
             }
         }
-        else if(strcmp(argv[i], "--editor") == 0 && i + 1 < argc){
-            mainModuleLib = argv[++i];
-        }
         else if (strcmp(argv[i], "--game") == 0 && i + 1 < argc) {
             gameModuleLib = argv[++i];
         }
@@ -79,7 +77,6 @@ int main(int argc, char* argv[]) {
     
     // Engine init parameters
     EngineCreationSettings engineSettings = ComputeEngineSettings(argc, argv);
-
     
     if(engineSettings.project == ""){
         std::cerr<<"No project specified, aborting..."<<std::endl;
@@ -87,16 +84,11 @@ int main(int argc, char* argv[]) {
     }
 
     //Module loader init
-    auto& loader = ModuleLoader::GetInstance();
+    auto& loader = Pulse::Editor::ModuleLoader::GetInstance();
     const std::string mainModuleName = "editor";
     const std::string gameModuleName = "game";
 
-    //Editor module loading
-    if (!loader.LoadModule(mainModuleName, mainModuleLib)) {
-        std::cerr << "Failed to load module: editor" << std::endl;
-        early_crash();
-    }
-
+    //Game module loading
     if (!loader.LoadModule(gameModuleName, gameModuleLib)) {
         std::cerr << "Failed to load module: game" << std::endl;
         early_crash();
@@ -108,21 +100,9 @@ int main(int argc, char* argv[]) {
 
     Debugging::SetLogger(&Debugging::Logger::GetInstance());
 
-    //Editor init
-    {
-        auto initEditor = loader.GetSymbol<EditorInitFn>("editor", "InitializeSingletons");
-        if (!initEditor) {
-            std::cerr << "Failed to find symbol: InitializeSingletons" << std::endl;
-            early_crash();
-        }
-
-        initEditor(&Core::GetEngine(), &Debugging::GetLogger());
-    }
-
-    
     //Game module init
     {
-        auto initGame = loader.GetSymbol<GameInitFn>("game", "InitializeSingletons");
+        auto initGame = loader.GetSymbol<Pulse::Editor::GameInitFn>("game", "InitializeSingletons");
         if (!initGame){
             std::cerr<<"Failed to find symbol: InitializeSingletons"<<std::endl;
             early_crash();
@@ -131,7 +111,7 @@ int main(int argc, char* argv[]) {
         initGame(&Core::GetEngine(),
                  &ECS::Components::GetComponentRegistry());
 
-        auto registerGameComponents = loader.GetSymbol<GameRegisterComponentsFn>("game", "RegisterGameComponents");
+        auto registerGameComponents = loader.GetSymbol<Pulse::Editor::GameRegisterComponentsFn>("game", "RegisterGameComponents");
         if (!registerGameComponents){
             std::cerr<<"Failed to find symbol: RegisterGameComponents"<<std::endl;
             early_crash();
@@ -141,23 +121,13 @@ int main(int argc, char* argv[]) {
 
     {
         // Platform creation
-        auto createPlatform = loader.GetSymbol<CreatePlatformFn>("editor", "CreatePlatform");
-        if (!createPlatform) {
-            std::cerr << "Failed to find symbol: CreatePlatform" << std::endl;
-            early_crash();
-        }
-        engineSettings.platform = createPlatform(argc, argv);
+        engineSettings.platform = new Pulse::Editor::Core::GLFWPlatform();
 
         // Engine startup
         Core::GetEngine().Init(engineSettings);
         
         // Editor startup
-        auto startEditor = loader.GetSymbol<EditorStartFn>("editor", "EditorStart");
-        if (!startEditor) {
-            std::cerr << "Failed to find symbol: EditorStart" << std::endl;
-            early_crash();
-        }
-        startEditor();
+        Pulse::Editor::Commands::CommandStack::Get();
     }
 
     {
@@ -184,22 +154,16 @@ int main(int argc, char* argv[]) {
         );
     }
 
+
     //Main Loop
     while (!Core::GetEngine().shouldEnd()) {
         if (!Core::GetEngine().Run()) break;
 
-        auto tickEditor = loader.GetSymbol<EditorTickFn>("editor", "EditorTick");
-        if (!tickEditor) return 1;
-        tickEditor();
+        Core::GetEngine().GetWindow()->ProcessInputs();
         
     }
 
     //Cleaning
-    {
-        auto cleanupEditor = loader.GetSymbol<EditorCleanupFn>("editor", "EditorCleanup");
-        if (!cleanupEditor) return 1;
-        cleanupEditor();
-    }
 
     Core::GetEngine().Destroy();
 

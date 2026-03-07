@@ -221,22 +221,6 @@ namespace Pulse::Engine{
                     exit(2);
                 return *gSharedEnginePtr;
             }
-
-        #elif defined(BUILD_EDITOR)
-
-            // Used by the Editor Module DLL
-            inline EngineInstance* gSharedEnginePtr = nullptr;
-
-            inline void SetEngine(EngineInstance* ptr) {
-                gSharedEnginePtr = ptr;
-            }
-
-            inline EngineInstance& GetEngine() {
-                if (!gSharedEnginePtr)
-                    exit(2);
-                return *gSharedEnginePtr;
-            }
-
         #endif
     }
    

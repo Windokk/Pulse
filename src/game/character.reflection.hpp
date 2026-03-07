@@ -5,20 +5,6 @@
 
 // Reflection for class Character
 
-inline FieldInfo Character_vectorTest_info = {
-    "vectorTest",
-    TypeID::Mat3,
-    offsetof(Character, vectorTest),
-    Editable,
-    0, 0,
-    nullptr,
-    nullptr,
-    &CopyConstruct<glm::mat3>,
-    &Assign<glm::mat3>,
-    &Destroy<glm::mat3>,
-    &Equals<glm::mat3>
-};
-
 inline FieldInfo Character_speed_info = {
     "speed",
     TypeID::Float,
@@ -120,7 +106,6 @@ inline FieldInfo Character_yaw_info = {
 inline ClassDescriptor Character::descriptor = {
     "Character",
     {
-        &Character_vectorTest_info,
         &Character_speed_info,
         &Character_mouseSensitivity_info,
         &Character_lockedMouseX_info,

@@ -18,9 +18,6 @@ class CLASS() Character : public Pulse::Engine::ECS::Components::Script{
         void OnStop() override;
 
         FIELD(Editable)
-        glm::mat3 vectorTest = glm::mat3(1.0f);
-
-        FIELD(Editable)
         float speed = 1.0f;
         
         FIELD(Editable)

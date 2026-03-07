@@ -296,7 +296,7 @@ namespace Pulse::Editor::Core{
 
             fbOutlineShader->SetInt("maskTex", 0);
             fbOutlineShader->SetFloat("outlineThickness", 4.0f);
-            fbOutlineShader->SetVec2("texelSize", glm::vec2(1.0 / fbOutline.width, 1.0 / fbOutline.height));
+            fbOutlineShader->SetVec2("texelSize", glm::vec2(1.0 / fbOutline.GetWidth(), 1.0 / fbOutline.GetHeight()));
             fbOutlineShader->SetVec3("outlineColor", glm::vec3(1.0f, 0.722f, 0.0f));
 
             fbOutlineShader->Deactivate();

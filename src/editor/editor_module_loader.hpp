@@ -25,18 +25,12 @@ using namespace Pulse::Engine::Debugging;
 
 namespace Pulse::Editor {
 
-
-    using CreatePlatformFn = Platform::IPlatform* (*)(int, char**);
-    
-    // EDITOR
-    using EditorInitFn = void(*)(EngineInstance*, Logger*);
-    using EditorStartFn = void(*)();
-    using EditorTickFn = void(*)();
-    using EditorCleanupFn = void (*)();
-
-    // GAME
+    // GAME MODULE
     using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*);
     using GameRegisterComponentsFn = void(*)();
+
+    // PLUGIN MODULE
+
 
     class ModuleLoader {
     public:
