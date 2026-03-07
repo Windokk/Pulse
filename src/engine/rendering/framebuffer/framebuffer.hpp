@@ -19,7 +19,10 @@ namespace Pulse::Engine::Rendering {
         void Bind() const;
         void Unbind() const;
         void SetShader(std::shared_ptr<Shader> shader);
+        std::shared_ptr<Shader> GetShader();
         bool isMultisampled = false;
+        int width = 0;
+        int height = 0;
     private:
         GLuint fbo;
         GLuint texture;
@@ -29,7 +32,5 @@ namespace Pulse::Engine::Rendering {
         GLuint resolveFBO = 0;
         GLuint resolveTexture = 0;
 
-        int width = 0;
-        int height = 0;
     };
 }

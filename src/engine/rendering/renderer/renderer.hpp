@@ -26,16 +26,16 @@ namespace Pulse::Engine{
             bool enableShadows = true;
             bool enablePostProcessing = true;
             private:
-                int windowWidth = 0;
-                int windowHeight = 0;
+                int viewportWidth = 0;
+                int viewportHeight = 0;
                 bool fullscreen = false;
             friend class Pulse::Engine::Rendering::Renderer;
         };
 
-        enum class RenderStage {
+        enum class RenderPassType {
             Scene,
-            PostProcess,
-            UI
+            Fullscreen,
+            Custom
         };
 
         enum class BlendMode{
@@ -46,7 +46,7 @@ namespace Pulse::Engine{
         };
 
         struct RenderPass {
-            RenderStage stage;
+            RenderPassType stage;
             std::function<void()> callback;
             std::shared_ptr<FrameBuffer> target = nullptr;
             bool appendToViewport = true;
@@ -95,7 +95,7 @@ namespace Pulse::Engine{
                 void RescaleFramebuffers(int newWidth, int newHeight);
 
                 void AddRenderPass(
-                    RenderStage stage, 
+                    RenderPassType stage, 
                     std::function<void()> callback, 
                     std::shared_ptr<FrameBuffer> fb = nullptr, 
                     bool appendToViewport = true,
@@ -116,7 +116,7 @@ namespace Pulse::Engine{
 
                 GLint maxTextures;
                 
-                std::shared_ptr<Shader> defaultShader;
+                std::shared_ptr<Shader> defaultUnlitShader;
                 std::shared_ptr<Cubemap> defaultCubemap;
                 std::shared_ptr<Texture> defaultTexture;
 

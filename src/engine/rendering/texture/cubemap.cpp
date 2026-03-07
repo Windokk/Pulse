@@ -45,9 +45,9 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindVertexArray(cubeVAO);
         Bind(0);
         view = glm::mat4(glm::mat3(view));
-        shader->setMat4("view", view);
-        shader->setMat4("projection", projection);
-        shader->setInt("gCubemapTexture", 0);
+        shader->SetMat4("view", view);
+        shader->SetMat4("projection", projection);
+        shader->SetInt("gCubemapTexture", 0);
         Core::GetEngine().GetGL()->DrawArrays(GL_TRIANGLES, 0, 36);
         shader->Deactivate();
         UnBind(0);
@@ -196,8 +196,8 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 
         equirectangularToCubemapShader->Activate();
-        equirectangularToCubemapShader->setInt("equirectangularMap", 0);
-        equirectangularToCubemapShader->setMat4("projection", captureProjection);
+        equirectangularToCubemapShader->SetInt("equirectangularMap", 0);
+        equirectangularToCubemapShader->SetMat4("projection", captureProjection);
         Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
         Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, hdrTex->GetID());
 
@@ -205,7 +205,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         for (unsigned int i = 0; i < 6; ++i)
         {
-            equirectangularToCubemapShader->setMat4("view", captureViews[i]);
+            equirectangularToCubemapShader->SetMat4("view", captureViews[i]);
             Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
                                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubemap->GetID(), 0);
             Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -236,8 +236,8 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->RenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
 
         irradianceShader->Activate();
-        irradianceShader->setInt("environmentMap", 0);
-        irradianceShader->setMat4("projection", captureProjection);
+        irradianceShader->SetInt("environmentMap", 0);
+        irradianceShader->SetMat4("projection", captureProjection);
         Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
         Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetID());
 
@@ -245,7 +245,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->BindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         for (unsigned int i = 0; i < 6; ++i)
         {
-            irradianceShader->setMat4("view", captureViews[i]);
+            irradianceShader->SetMat4("view", captureViews[i]);
             Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap->GetID(), 0);
             Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -271,8 +271,8 @@ namespace Pulse::Engine::Rendering{
         prefilterMap = std::make_shared<Cubemap>(128, 128, filters, wrapModes, GL_RGB16F, GL_RGB, data, true);
 
         prefilterShader->Activate();
-        prefilterShader->setInt("environmentMap", 0);
-        prefilterShader->setMat4("projection", captureProjection);
+        prefilterShader->SetInt("environmentMap", 0);
+        prefilterShader->SetMat4("projection", captureProjection);
         Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
         Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetID());
 
@@ -288,10 +288,10 @@ namespace Pulse::Engine::Rendering{
             Core::GetEngine().GetGL()->Viewport(0, 0, mipWidth, mipHeight);
 
             float roughness = (float)mip / (float)(maxMipLevels - 1);
-            prefilterShader->setFloat("roughness", roughness);
+            prefilterShader->SetFloat("roughness", roughness);
             for (unsigned int i = 0; i < 6; ++i)
             {
-                prefilterShader->setMat4("view", captureViews[i]);
+                prefilterShader->SetMat4("view", captureViews[i]);
                 Core::GetEngine().GetGL()->FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap->GetID(), mip);
 
                 Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

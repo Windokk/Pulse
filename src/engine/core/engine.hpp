@@ -46,8 +46,6 @@ namespace Pulse::Engine{
 
         struct EngineContext {
 
-            Debugging::Logger* logger = nullptr;
-
             Rendering::Renderer* renderer = nullptr;
             Rendering::CameraManager* cameraManager = nullptr;
             OpenGL* openGL = nullptr;
@@ -173,6 +171,11 @@ namespace Pulse::Engine{
                         activateAllPhysics = true;
                     }
                     else{
+                        
+                        for(int i = 0; i < context.levelManager->GetLoadedLevelCount(); i++){
+                            context.levelManager->GetLevelAt(i)->Stop();
+                        }
+
                         reloadCurrentLevel = true;
                     }
                 }

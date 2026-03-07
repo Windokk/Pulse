@@ -49,10 +49,10 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::Init(RendererSettings settings)
     {
-        settings.windowWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
-        settings.windowHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
+        settings.viewportWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+        settings.viewportHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
 
-        Core::GetEngine().GetGL()->Viewport(0, 0, settings.windowWidth, settings.windowHeight);
+        Core::GetEngine().GetGL()->Viewport(0, 0, settings.viewportWidth, settings.viewportHeight);
 
         this->settings = settings;
 
@@ -74,7 +74,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetGL()->GetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTextures);
 
         //DEFAULTS
-        defaultShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit");
+        defaultUnlitShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit");
 
         GLenum filter[2] = {GL_LINEAR,GL_LINEAR};
         GLenum wrapC[3] = {GL_REPEAT,GL_REPEAT,GL_REPEAT};
@@ -95,8 +95,8 @@ namespace Pulse::Engine::Rendering{
             DEBUG_FATAL("Viewport buffer cannot be created if the framebuffer shader or the blend shader are null");
         }
         else{
-            viewportBuffer = std::make_shared<FrameBuffer>(settings.windowWidth, settings.windowHeight, framebufferShader, true);
-            tempBuffer = std::make_shared<FrameBuffer>(settings.windowWidth, settings.windowHeight, framebufferShader, false);
+            viewportBuffer = std::make_shared<FrameBuffer>(settings.viewportWidth, settings.viewportHeight, framebufferShader, true);
+            tempBuffer = std::make_shared<FrameBuffer>(settings.viewportWidth, settings.viewportHeight, framebufferShader, false);
         }
 
         initialized = true;
@@ -228,12 +228,12 @@ namespace Pulse::Engine::Rendering{
  
             shadowMan->RenderShadowMaps(allMeshes, Core::GetEngine().GetCameraManager()->GetActiveCamera());
 
-            Renderer::settings.windowWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
-            Renderer::settings.windowHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
-            Core::GetEngine().GetGL()->Viewport(0, 0, Renderer::settings.windowWidth, Renderer::settings.windowHeight);
+            Renderer::settings.viewportWidth = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+            Renderer::settings.viewportHeight = Core::GetEngine().GetWindow()->GetFramebufferHeight();
+            Core::GetEngine().GetGL()->Viewport(0, 0, Renderer::settings.viewportWidth, Renderer::settings.viewportHeight);
         }
 
-        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     }
@@ -241,7 +241,7 @@ namespace Pulse::Engine::Rendering{
     void Renderer::DrawScene()
     {
         Core::GetEngine().GetGL()->Enable(GL_DEPTH_TEST);
-        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        Core::GetEngine().GetGL()->ClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         Core::GetEngine().GetGL()->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         Core::GetEngine().GetGL()->Enable(GL_CULL_FACE);
@@ -322,9 +322,9 @@ namespace Pulse::Engine::Rendering{
 
         if(Renderer::settings.showDebugShapes){
             // --- Debug Physics Shapes ---
-            defaultShader->Activate();
-            defaultShader->setMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
-            defaultShader->setMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+            defaultUnlitShader->Activate();
+            defaultUnlitShader->SetMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            defaultUnlitShader->SetMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
 
             for (auto& [id,physicBody] : Core::GetEngine().GetLevelManager()->GetLevelAt(0)->physicsBodies) {
 
@@ -357,9 +357,12 @@ namespace Pulse::Engine::Rendering{
 
                 model *= glm::scale(glm::mat4(1.0f), scale);
 
-                defaultShader->setMat4("model", model);
+                defaultUnlitShader->SetMat4("model", model);
 
                 DebugShape* shape = physicBody->GetDebugShape();
+
+                defaultUnlitShader->SetBool("useTexture", false);
+                defaultUnlitShader->SetBool("useCustomColor", false);
 
                 if(shape){
                     Core::GetEngine().GetGL()->BindVertexArray(shape->GetVAO());
@@ -404,13 +407,13 @@ namespace Pulse::Engine::Rendering{
 
         Core::GetEngine().GetGL()->Viewport(0, 0, newWidth, newHeight);
 
-        settings.windowWidth = newWidth;
-        settings.windowHeight = newHeight;
+        settings.viewportWidth = newWidth;
+        settings.viewportHeight = newHeight;
 
         Core::GetEngine().GetCameraManager()->UpdateSize(newWidth, newHeight);
     }
 
-    void Renderer::AddRenderPass(RenderStage stage, std::function<void()> callback, std::shared_ptr<FrameBuffer> fb, bool appendToViewport, BlendMode blendMode)
+    void Renderer::AddRenderPass(RenderPassType stage, std::function<void()> callback, std::shared_ptr<FrameBuffer> fb, bool appendToViewport, BlendMode blendMode)
     {
         renderPasses.push_back(RenderPass{stage, std::move(callback), fb, appendToViewport, blendMode});
     
@@ -429,9 +432,9 @@ namespace Pulse::Engine::Rendering{
             switch (pass.stage)
             {
                 // ---------------------------------------------------------
-                // UI — rendered to default framebuffer or already drawn viewport
+                // Custom — rendered to default framebuffer or already drawn viewport
                 // ---------------------------------------------------------
-                case RenderStage::UI:
+                case RenderPassType::Custom:
                 {
                     pass.callback();
                     break;
@@ -440,21 +443,43 @@ namespace Pulse::Engine::Rendering{
                 // ---------------------------------------------------------
                 // POST PROCESSING
                 // ---------------------------------------------------------
-                case RenderStage::PostProcess:
+                case RenderPassType::Fullscreen:
                 {
-                    if (!settings.enablePostProcessing)
-                        break;
-
                     if (!pass.target)
                     {
                         DEBUG_ERROR("PostProcess pass missing target framebuffer");
                         break;
                     }
 
-                    // Render the postprocess pass into pass.target
+
+                    // Execute pass.callback into pass.target
                     pass.target->Bind();
-                    gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                     pass.callback();
+                    pass.target->Unbind();
+
+
+                    // Draws a rect using "pass.shader" and pass.target.shader as the texture --> into pass.target
+
+                    tempBuffer->Bind();
+                    gl->Clear(GL_COLOR_BUFFER_BIT);
+
+                    gl->ActiveTexture(GL_TEXTURE0);
+                    gl->BindTexture(GL_TEXTURE_2D, pass.target->GetFrameTexture());
+
+                    gl->Disable(GL_DEPTH_TEST);
+                    
+                    pass.target->Draw(rectVAO);
+
+                    gl->BindVertexArray(0);
+                    blendShader->Deactivate();
+                    tempBuffer->Unbind();
+
+                    //Copy result back into pass.target
+                    pass.target->Bind();
+                    gl->Clear(GL_COLOR_BUFFER_BIT);
+
+                    tempBuffer->Draw(rectVAO);
+
                     pass.target->Unbind();
 
                     // Resolve viewport MSAA before sampling it
@@ -472,16 +497,15 @@ namespace Pulse::Engine::Rendering{
                         gl->Clear(GL_COLOR_BUFFER_BIT);
 
                         blendShader->Activate();
-                        blendShader->setInt("blendMode", (int)pass.blendMode);
-                        blendShader->setInt("texA", 0); // viewport
-                        blendShader->setInt("texB", 1); // postprocess output
+                        blendShader->SetInt("blendMode", (int)pass.blendMode);
+                        blendShader->SetInt("texA", 0); // viewport
+                        blendShader->SetInt("texB", 1); // postprocess output
 
                         gl->ActiveTexture(GL_TEXTURE0);
                         gl->BindTexture(GL_TEXTURE_2D, viewportTex);
 
                         gl->ActiveTexture(GL_TEXTURE1);
                         gl->BindTexture(GL_TEXTURE_2D, passTex);
-
                         gl->Disable(GL_DEPTH_TEST);
                         gl->BindVertexArray(rectVAO);
                         gl->DrawArrays(GL_TRIANGLES, 0, 6);
@@ -503,7 +527,7 @@ namespace Pulse::Engine::Rendering{
                 // ---------------------------------------------------------
                 // SCENE PASS
                 // ---------------------------------------------------------
-                case RenderStage::Scene:
+                case RenderPassType::Scene:
                 default:
                 {
                     if (!pass.target)
@@ -540,9 +564,9 @@ namespace Pulse::Engine::Rendering{
                         gl->Clear(GL_COLOR_BUFFER_BIT);
 
                         blendShader->Activate();
-                        blendShader->setInt("blendMode", (int)pass.blendMode);
-                        blendShader->setInt("texA", 0);
-                        blendShader->setInt("texB", 1);
+                        blendShader->SetInt("blendMode", (int)pass.blendMode);
+                        blendShader->SetInt("texA", 0);
+                        blendShader->SetInt("texB", 1);
 
                         gl->ActiveTexture(GL_TEXTURE0);
                         gl->BindTexture(GL_TEXTURE_2D, viewportTex);
@@ -569,5 +593,8 @@ namespace Pulse::Engine::Rendering{
                 }
             }
         }
+    
+        if(viewportBuffer->isMultisampled)
+            viewportBuffer->Resolve();
     }
 }

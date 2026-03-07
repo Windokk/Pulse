@@ -54,34 +54,34 @@ namespace Pulse::Engine::Rendering {
             void Cleanup();
 
             // Scalar
-            void setBool(const std::string& name, bool value) const;
-            void setInt(const std::string& name, int value) const;
-            void setFloat(const std::string& name, float value) const;
-            void setBoolLoc(GLint location, bool value) const;
-            void setIntLoc(GLint location, int value) const;
-            void setFloatLoc(GLint location, float value) const;
+            void SetBool(const std::string& name, bool value) const;
+            void SetInt(const std::string& name, int value) const;
+            void SetFloat(const std::string& name, float value) const;
+            void SetBoolLoc(GLint location, bool value) const;
+            void SetIntLoc(GLint location, int value) const;
+            void SetFloatLoc(GLint location, float value) const;
             
             // Vectors
-            void setVec2(const std::string& name, const glm::vec2& value) const;
-            void setVec2(const std::string& name, float x, float y) const;
-            void setVec3(const std::string& name, const glm::vec3& value) const;
-            void setVec3(const std::string& name, float x, float y, float z) const;
-            void setVec4(const std::string& name, const glm::vec4& value) const;
-            void setVec4(const std::string& name, float x, float y, float z, float w) const;
-            void setVec2Loc(GLint location, const glm::vec2& value) const;
-            void setVec2Loc(GLint location, float x, float y) const;
-            void setVec3Loc(GLint location, const glm::vec3& value) const;
-            void setVec3Loc(GLint location, float x, float y, float z) const;
-            void setVec4Loc(GLint location, const glm::vec4& value) const;
-            void setVec4Loc(GLint location, float x, float y, float z, float w) const;
+            void SetVec2(const std::string& name, const glm::vec2& value) const;
+            void SetVec2(const std::string& name, float x, float y) const;
+            void SetVec3(const std::string& name, const glm::vec3& value) const;
+            void SetVec3(const std::string& name, float x, float y, float z) const;
+            void SetVec4(const std::string& name, const glm::vec4& value) const;
+            void SetVec4(const std::string& name, float x, float y, float z, float w) const;
+            void SetVec2Loc(GLint location, const glm::vec2& value) const;
+            void SetVec2Loc(GLint location, float x, float y) const;
+            void SetVec3Loc(GLint location, const glm::vec3& value) const;
+            void SetVec3Loc(GLint location, float x, float y, float z) const;
+            void SetVec4Loc(GLint location, const glm::vec4& value) const;
+            void SetVec4Loc(GLint location, float x, float y, float z, float w) const;
             
             // Matrices
-            void setMat2Loc(GLint location, const glm::mat2& mat) const;
-            void setMat3Loc(GLint location, const glm::mat3& mat) const;
-            void setMat4Loc(GLint location, const glm::mat4& mat) const;
-            void setMat2(const std::string& name, const glm::mat2& mat) const;
-            void setMat3(const std::string& name, const glm::mat3& mat) const;
-            void setMat4(const std::string& name, const glm::mat4& mat) const;
+            void SetMat2Loc(GLint location, const glm::mat2& mat) const;
+            void SetMat3Loc(GLint location, const glm::mat3& mat) const;
+            void SetMat4Loc(GLint location, const glm::mat4& mat) const;
+            void SetMat2(const std::string& name, const glm::mat2& mat) const;
+            void SetMat3(const std::string& name, const glm::mat3& mat) const;
+            void SetMat4(const std::string& name, const glm::mat4& mat) const;
 
             std::string fragmentFilePath;
 

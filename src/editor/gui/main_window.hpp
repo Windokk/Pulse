@@ -19,6 +19,31 @@
 
 namespace Pulse::Editor::Core {
 
+    enum EditorBuffer{
+        Final,
+        Shadows,
+        ObjectID,
+        MatID
+    };
+
+    struct EditorSettings{
+
+        // Viewport settings
+
+        bool showOutlines;
+        bool showGizmos;
+        bool showGrid;
+
+        /// TODO
+        /// bool showShadows;
+        /// bool showLights;
+        /// bool showBillboards;
+        /// EditorBuffer currentBuffer;
+
+        // TODO Cam settings 
+
+    };
+
     class EditorMainWindow : public Engine::Core::Platform::IWindow {
     public:
         void Init(const std::string& title, const int& width, const int& height, 
@@ -65,8 +90,11 @@ namespace Pulse::Editor::Core {
         
         GUI::ViewportWindow* viewport = nullptr;
 
+        EditorSettings settings;
+
     private:
         bool imguiInitialized = false;
+        bool renderPassesInitialized = false;
 
         GLFWwindow* window = nullptr;
 

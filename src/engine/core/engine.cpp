@@ -89,9 +89,6 @@ namespace Pulse::Engine{
 
         void EngineInstance::InitSystems()
         {
-            context.logger = new Debugging::Logger();
-            Pulse::Engine::Debugging::g_Logger = context.logger;
-
             context.renderer = new Rendering::Renderer();
             context.cameraManager = new Rendering::CameraManager();
 

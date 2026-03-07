@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
     EngineInstance* engine = &EngineInstance::GetInstance();
 
     Engine::Core::SetEngine(engine);
+    Engine::Debugging::SetLogger(&Engine::Debugging::Logger::GetInstance());
 
     //Module loader init
     auto& loader = ModuleLoader::GetInstance();
@@ -107,7 +108,7 @@ int main(int argc, char* argv[]) {
         }
 
         initGame(&Engine::Core::GetEngine(),
-                 &ECS::Components::GetComponentRegistry());
+                 &ECS::Components::GetComponentRegistry(), &Engine::Debugging::GetLogger());
 
         auto registerGameComponents = loader.GetSymbol<GameRegisterComponentsFn>("game", "RegisterGameComponents");
         if (!registerGameComponents){
@@ -139,13 +140,15 @@ int main(int argc, char* argv[]) {
         };
 
         Engine::Core::GetEngine().GetRenderer()->AddRenderPass(
-            Rendering::RenderStage::Scene,
+            Rendering::RenderPassType::Scene,
             drawFunc,
             std::make_shared<Rendering::FrameBuffer>(sceneFB),
             true,
             Rendering::BlendMode::Normal
         );
     }
+
+    Engine::Core::GetEngine().SetPlayMode(true);
 
     //Main Loop
     while (!Engine::Core::GetEngine().shouldEnd()) {

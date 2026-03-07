@@ -39,6 +39,7 @@ namespace Pulse::Editor::GUI {
             void DrawObjectGizmo();
             void ShowFrameStats();
             void ShowCamSettings();
+            void ShowViewportVisSettings();
 
 
             Core::EditorMainWindow* parent = nullptr;
@@ -65,6 +66,7 @@ namespace Pulse::Editor::GUI {
             bool gizmoActive = false;
             bool showFrameStats = false;
             bool showCamSettings = false;
+            bool showViewportVisibility = false;
             bool uiHovered = false;
 
             float firstClickTime = 0;

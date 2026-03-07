@@ -70,7 +70,7 @@ void Character::OnTick() {
         double deltaX = mouseX - lockedMouseX;
         double deltaY = lockedMouseY - mouseY; // reversed Y
 
-        pitch -= deltaY * mouseSensitivity;
+        pitch += deltaY * mouseSensitivity;
         yaw   -= deltaX * mouseSensitivity;
 
         // Clamp pitch to avoid flipping
@@ -93,5 +93,9 @@ void Character::OnTick() {
     }
 }
 
+void Character::OnStop()
+{
+    Core::GetEngine().GetInputManager()->SetCursorVisibility(true);
+}
 
 REGISTER_COMPONENT(Character);

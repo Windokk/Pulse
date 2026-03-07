@@ -6,6 +6,7 @@
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
 using namespace Pulse::Engine::ECS::Components;
+using namespace Pulse::Engine::Debugging;
 
 #if defined(_WIN32) || defined(_WIN64)
 #   define API_EXPORT __declspec(dllexport)
@@ -14,9 +15,10 @@ using namespace Pulse::Engine::ECS::Components;
 #endif
 
 extern "C" API_EXPORT void InitializeSingletons(Core::EngineInstance* engine, 
-                                                            ComponentRegistry* compReg) {
+                                                            ComponentRegistry* compReg, Logger* logger) {
     SetEngine(engine);
     SetComponentRegistry(compReg);
+    SetLogger(logger);
 }
 
 extern "C" API_EXPORT void RegisterGameComponents() {

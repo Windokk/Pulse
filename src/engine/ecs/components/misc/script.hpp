@@ -23,11 +23,14 @@ namespace Pulse::Engine::ECS::Components
             /// @brief Called when this script component is added to an actor parent
             virtual void OnCreate();
 
-            /// @brief Called when the play mode starts. If the component is created during the play mode, this method is called when the component is added to the actor.
+            /// @brief Called when the play mode starts.
             virtual void OnPlay();
 
             /// @brief Called each frame
             virtual void OnTick();
+
+            /// @brief Called when the play mode stops
+            virtual void OnStop();
 
             /// @brief Called when the component is destroyed
             /// @note Also called when parent actor is destroyed

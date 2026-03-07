@@ -123,7 +123,7 @@ namespace Pulse::Engine::Rendering{
             unit++;
 
             shader->Activate();
-            shader->setIntLoc(tex.location, unit);
+            shader->SetIntLoc(tex.location, unit);
         }
         shader->Deactivate();
     }
@@ -162,25 +162,25 @@ namespace Pulse::Engine::Rendering{
         for (const auto& [name, scalar] : scalarParameters)
         {
             if (std::holds_alternative<float>(scalar.value)){
-                shader->setFloat(name, std::get<float>(scalar.value));
+                shader->SetFloat(name, std::get<float>(scalar.value));
             }
             else if (std::holds_alternative<int>(scalar.value)){
-                shader->setInt(name, std::get<int>(scalar.value));
+                shader->SetInt(name, std::get<int>(scalar.value));
             }
             else if (std::holds_alternative<bool>(scalar.value)){
-                shader->setBool(name, std::get<bool>(scalar.value));
+                shader->SetBool(name, std::get<bool>(scalar.value));
             }
             else if (std::holds_alternative<glm::vec2>(scalar.value)){
-                shader->setVec2(name, std::get<glm::vec2>(scalar.value));
+                shader->SetVec2(name, std::get<glm::vec2>(scalar.value));
             }
             else if (std::holds_alternative<glm::vec3>(scalar.value)){
-                shader->setVec3(name, std::get<glm::vec3>(scalar.value));
+                shader->SetVec3(name, std::get<glm::vec3>(scalar.value));
             }
             else if (std::holds_alternative<glm::vec4>(scalar.value)){
-                shader->setVec4(name, std::get<glm::vec4>(scalar.value));
+                shader->SetVec4(name, std::get<glm::vec4>(scalar.value));
             }
             else if (std::holds_alternative<glm::mat4>(scalar.value)){
-                shader->setMat4(name, std::get<glm::mat4>(scalar.value));
+                shader->SetMat4(name, std::get<glm::mat4>(scalar.value));
             }
         }
 
@@ -201,7 +201,7 @@ namespace Pulse::Engine::Rendering{
             Core::GetEngine().GetGL()->BindTexture(value.samplerType, value.texture);
 
             // Tell shader which unit this sampler is on
-            shader->setInt(name, textureUnit);
+            shader->SetInt(name, textureUnit);
 
             textureUnit++;
         }

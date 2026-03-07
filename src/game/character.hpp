@@ -15,6 +15,7 @@ class CLASS() Character : public Pulse::Engine::ECS::Components::Script{
 
         void OnPlay() override;
         void OnTick() override;
+        void OnStop() override;
 
     private:
         float speed = 1.0f;

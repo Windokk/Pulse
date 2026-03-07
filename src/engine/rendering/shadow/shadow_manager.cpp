@@ -291,13 +291,13 @@ namespace Pulse::Engine::Rendering{
 
                     gl->Clear(GL_DEPTH_BUFFER_BIT);
 
-                    pointShader->setMat4("shadowMatrices[0]", sm.shadowMatrices[face]);
-                    pointShader->setFloat("farPlane", light->radius);
-                    pointShader->setVec3("lightPos", light->position);
+                    pointShader->SetMat4("shadowMatrices[0]", sm.shadowMatrices[face]);
+                    pointShader->SetFloat("farPlane", light->radius);
+                    pointShader->SetVec3("lightPos", light->position);
 
                     for (const auto& pair : meshes)
                     {
-                        pointShader->setMat4("model", pair.first);
+                        pointShader->SetMat4("model", pair.first);
                         pair.second->DrawWithoutMaterial();
                     }
                 }
@@ -313,11 +313,11 @@ namespace Pulse::Engine::Rendering{
 
                 spotShader->Activate();
                 
-                spotShader->setMat4("lightSpaceMatrix", sm.lightMatrix[0]);
+                spotShader->SetMat4("lightSpaceMatrix", sm.lightMatrix[0]);
 
                 for (const auto& pair : meshes)
                 {
-                    spotShader->setMat4("model", pair.first);
+                    spotShader->SetMat4("model", pair.first);
                     pair.second->DrawWithoutMaterial();
                 }
 
@@ -342,11 +342,11 @@ namespace Pulse::Engine::Rendering{
                     float splitFar  = sm.cascadeSplits[c];
                     sm.lightMatrix[c] = light->GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, dirShadowsResolution);
 
-                    dirShader->setMat4("lightSpaceMatrix", sm.lightMatrix[c]);
+                    dirShader->SetMat4("lightSpaceMatrix", sm.lightMatrix[c]);
 
                     for (const auto& pair : meshes)
                     {
-                        dirShader->setMat4("model", pair.first);
+                        dirShader->SetMat4("model", pair.first);
                         pair.second->DrawWithoutMaterial();
                     }
 
@@ -374,17 +374,17 @@ namespace Pulse::Engine::Rendering{
         // Initialize scalar uniforms
         for (int i = 0; i < NUM_CASCADES; ++i)
         {
-            material->shader->setMat4(
+            material->shader->SetMat4(
                 "shadow_dirLightSpaceMatrices[" + std::to_string(i) + "]",
                 glm::mat4(1.0f)
             );
-            material->shader->setFloat(
+            material->shader->SetFloat(
                 "shadow_cascadeSplits[" + std::to_string(i) + "]",
                 1.0f
             );
 
             // Also initialize sampler to -1 to indicate "no texture bound"
-            material->shader->setInt(
+            material->shader->SetInt(
                 "shadow_dirShadowMaps[" + std::to_string(i) + "]",
                 -1
             );
@@ -392,12 +392,12 @@ namespace Pulse::Engine::Rendering{
 
         for (int i = 0; i < MAX_SPOT_LIGHTS; ++i)
         {
-            material->shader->setMat4(
+            material->shader->SetMat4(
                 "shadow_spotLightSpaceMatrices[" + std::to_string(i) + "]",
                 glm::mat4(1.0f)
             );
 
-            material->shader->setInt(
+            material->shader->SetInt(
                 "shadow_spotShadowMaps[" + std::to_string(i) + "]",
                 -1
             );
@@ -405,7 +405,7 @@ namespace Pulse::Engine::Rendering{
 
         for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
         {
-            material->shader->setFloat(
+            material->shader->SetFloat(
                 "shadow_pointLightFarPlanes[" + std::to_string(i) + "]",
                 0.0f
             );
@@ -435,17 +435,17 @@ namespace Pulse::Engine::Rendering{
                     gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[c]);
 
                     // Set sampler uniform
-                    material->shader->setInt(
+                    material->shader->SetInt(
                         "shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]",
                         unit
                     );
 
-                    material->shader->setMat4(
+                    material->shader->SetMat4(
                         "shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]",
                         sm.lightMatrix[c]
                     );
 
-                    material->shader->setFloat(
+                    material->shader->SetFloat(
                         "shadow_cascadeSplits[" + std::to_string(cascadeIndex) + "]",
                         sm.cascadeSplits[c]
                     );
@@ -464,12 +464,12 @@ namespace Pulse::Engine::Rendering{
                 gl->BindTexture(GL_TEXTURE_2D, sm.depthMap[0]);
 
                 // Set sampler uniform
-                material->shader->setInt(
+                material->shader->SetInt(
                     "shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]",
                     unit
                 );
 
-                material->shader->setMat4(
+                material->shader->SetMat4(
                     "shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]",
                     sm.lightMatrix[0]
                 );
@@ -482,7 +482,7 @@ namespace Pulse::Engine::Rendering{
                 if (sm.cubeArrayLayer >= MAX_POINT_LIGHTS)
                     continue;
 
-                material->shader->setFloat(
+                material->shader->SetFloat(
                     "shadow_pointLightFarPlanes[" + std::to_string(sm.cubeArrayLayer) + "]",
                     light.radius
                 );
@@ -492,7 +492,7 @@ namespace Pulse::Engine::Rendering{
         // Bind point light cube map array
         gl->ActiveTexture(GL_TEXTURE0 + POINT_SHADOW_UNIT);
         gl->BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, cubeArrayTex);
-        material->shader->setInt("shadow_pointShadowMapArray", POINT_SHADOW_UNIT);
+        material->shader->SetInt("shadow_pointShadowMapArray", POINT_SHADOW_UNIT);
     }
 
     void ShadowManager::ClearAll()

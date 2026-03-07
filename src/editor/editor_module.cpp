@@ -15,6 +15,7 @@ using namespace Pulse::Engine::Rendering;
 using namespace Pulse::Engine::ECS::Components;
 using namespace Pulse::Engine::ECS::Objects;
 using namespace Pulse::Editor::Commands;
+using namespace Pulse::Engine::Debugging;
 
 #if defined(__WIN32__) || defined(__WIN64__)
 #   define API_EXPORT __declspec(dllexport)
@@ -22,8 +23,9 @@ using namespace Pulse::Editor::Commands;
 #   define API_EXPORT __attribute__((visibility("default")))
 #endif
 
-extern "C" API_EXPORT void InitializeSingletons(Core::EngineInstance* engine) {
+extern "C" API_EXPORT void InitializeSingletons(Core::EngineInstance* engine, Logger* logger) {
     SetEngine(engine);
+    SetLogger(logger);
 }
 
 extern "C" API_EXPORT void EditorStart(){

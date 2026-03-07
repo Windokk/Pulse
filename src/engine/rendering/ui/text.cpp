@@ -15,9 +15,9 @@ namespace Pulse::Engine::Rendering::UI
         glm::vec2 cursor = glm::vec2(transform.GetPosition().x-transform.GetScale().x/2.f, transform.GetPosition().y-transform.GetScale().y/2.f);
         // activate shader and send uniforms
         shader->Activate();
-        shader->setMat4("model", transform.GetTransformMatrix());
-        shader->setMat4("view", view);
-        shader->setMat4("projection", projection);
+        shader->SetMat4("model", transform.GetTransformMatrix());
+        shader->SetMat4("view", view);
+        shader->SetMat4("projection", projection);
         Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0);
         Core::GetEngine().GetGL()->BindVertexArray(font->GetVAO());
 

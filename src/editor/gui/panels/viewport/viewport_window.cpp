@@ -62,13 +62,21 @@ namespace Pulse::Editor::GUI {
         viewportImageMin = ImGui::GetItemRectMin();
         viewportImageMax = ImGui::GetItemRectMax();
 
-        if(parent && parent->GetSelectedActor())
+        if(parent && parent->GetSelectedActor() && parent->settings.showGizmos)
             DrawObjectGizmo();
+
+        glm::mat4 view = camera->GetView();
+        glm::mat4 proj = camera->GetProjection();
+
+        if(parent->settings.showGrid)  
+            ImGuizmo::DrawGrid(glm::value_ptr(view), glm::value_ptr(proj), glm::value_ptr(glm::mat4(1.0f)), 100);
 
         viewportPos = ImGui::GetWindowPos();
 
         ImGui::SameLine();
-        DrawViewGizmo();
+
+        if(parent->settings.showGizmos)
+            DrawViewGizmo();
 
         uiHovered = ImGui::IsAnyItemHovered();
     
@@ -164,7 +172,8 @@ namespace Pulse::Editor::GUI {
         
         float frameStatsWidth = ImGui::CalcTextSize(ICON_LC_CHART_PIE).x + ImGui::GetStyle().FramePadding.x * 2;
         float cameraWidth = ImGui::CalcTextSize(ICON_LC_CAMERA).x + ImGui::GetStyle().FramePadding.x * 2;
-        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + 4); // 4px spacing
+        float eyeWidth = ImGui::CalcTextSize(ICON_LC_EYE_OFF).x + ImGui::GetStyle().FramePadding.x * 2;
+        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + eyeWidth + 4); // 4px spacing
         ImGui::SetCursorPosX(rightX);
 
         // Frame Stats Button
@@ -198,6 +207,24 @@ namespace Pulse::Editor::GUI {
             if(showCamSettings)
             {
                 ShowCamSettings();
+            }
+        }
+
+        ImGui::SameLine();
+
+        // Viewport visibility settings
+        {
+            if(showViewportVisibility)
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+            else
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+            if(ImGui::Button(showViewportVisibility ? ICON_LC_EYE : ICON_LC_EYE_OFF))
+                showViewportVisibility = !showViewportVisibility;
+            ImGui::PopStyleColor();
+
+            if(showViewportVisibility)
+            {
+                ShowViewportVisSettings();
             }
         }
     }
@@ -318,9 +345,7 @@ namespace Pulse::Editor::GUI {
 
     void ViewportWindow::ShowFrameStats(){
 
-        ImGui::Begin("##Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::Text("Statistics");
-        ImGui::Separator();
+        ImGui::Begin("Statistics", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
 
         // Display frame metrics
         Engine::Debugging::MinimalStatistics stats = Engine::Core::GetEngine().GetProfiler()->GetStats();
@@ -357,10 +382,7 @@ namespace Pulse::Editor::GUI {
 
     void ViewportWindow::ShowCamSettings(){
         
-        ImGui::Begin("##Cam", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::Text("Scene Camera");
-        ImGui::Separator();
-
+        ImGui::Begin("Scene Camera", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
         std::shared_ptr<Engine::ECS::Components::Camera> cam = cameraActor->GetComponent<Engine::ECS::Components::Camera>();
 
         // Rendering stats
@@ -385,6 +407,18 @@ namespace Pulse::Editor::GUI {
         else{
             ImGui::SliderFloat("FOV", cam->GetFOV(), 1.0f, 150.0f);
         }
+
+        ImGui::End();
+    }
+
+    void ViewportWindow::ShowViewportVisSettings()
+    {
+        ImGui::Begin("Visibility", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Separator();
+
+        ImGui::Checkbox("Show Outlines ?", &parent->settings.showOutlines);
+        ImGui::Checkbox("Show Gizmos ?", &parent->settings.showGizmos);
+        ImGui::Checkbox("Show Grid ?", &parent->settings.showGrid);
 
         ImGui::End();
     }

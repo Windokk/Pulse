@@ -19,6 +19,15 @@ namespace Pulse::Engine::Debugging{
     class Logger {
     public:
 
+        Logger(const Logger&) = delete;
+        Logger& operator=(const Logger&) = delete;
+
+        // Provide access to the singleton instance
+        static Logger& GetInstance() {
+            static Logger instance;
+            return instance;
+        }
+
         template<typename... Args>
         void Log(Level level, const char* file, int line, Args&&... args) {
             if (static_cast<int>(level) < static_cast<int>(currentMinLevel))
@@ -54,32 +63,64 @@ namespace Pulse::Engine::Debugging{
         std::ofstream logFile;
 
         bool useTimestamp;
+
+        Logger() = default;
     };
 
-    // ------------------------ DLL-shared function pointer ------------------------
-    using LoggerFuncType = void(*)(int level, const char* file, int line, const char* msg);
+    #if defined(BUILD_ENGINE)
 
-    extern LoggerFuncType gLoggerFunc;
+        // Used by the EXE/engine
+        inline Logger* gSharedLoggerPtr = nullptr;
 
-    // ------------------------ Variadic template forwarding ------------------------
-    template<typename... Args>
-    inline void Log(Level level, const char* file, int line, Args&&... args) {
-        if (gLoggerFunc) {
-            std::ostringstream ss;
-            (ss << ... << args);
-            gLoggerFunc(static_cast<int>(level), file, line, ss.str().c_str());
-        } else {
-            // fallback if logger not initialized
-            std::ostringstream ss;
-            (ss << ... << args);
-            std::cerr << "[UNINIT LOGGER] " << ss.str() << std::endl;
+        inline void SetLogger(Logger* ptr) {
+            gSharedLoggerPtr = ptr;
         }
-    }
+
+        inline Logger& GetLogger() {
+            if (!gSharedLoggerPtr){
+                exit(2);
+            }
+            return *gSharedLoggerPtr;
+        }
+
+    #elif defined(BUILD_GAME)
+
+        // Used by the Game Module DLL
+        inline Logger* gSharedLoggerPtr = nullptr;
+
+        inline void SetLogger(Logger* ptr) {
+            gSharedLoggerPtr = ptr;
+        }
+
+        inline Logger& GetLogger() {
+            if (!gSharedLoggerPtr){
+                exit(2);
+            }
+            return *gSharedLoggerPtr;
+        }
+
+    #elif defined(BUILD_EDITOR)
+
+        // Used by the Editor Module DLL
+        inline Logger* gSharedLoggerPtr = nullptr;
+
+        inline void SetLogger(Logger* ptr) {
+            gSharedLoggerPtr = ptr;
+        }
+
+        inline Logger& GetLogger() {
+            if (!gSharedLoggerPtr){
+                exit(2);
+            }
+            return *gSharedLoggerPtr;
+        }
+
+    #endif
 
 }
 
-#define DEBUG_LOG(...)       Pulse::Engine::Debugging::Log(Pulse::Engine::Debugging::Level::Log, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_INFO(...)      Pulse::Engine::Debugging::Log(Pulse::Engine::Debugging::Level::Info, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_WARNING(...)   Pulse::Engine::Debugging::Log(Pulse::Engine::Debugging::Level::Warning, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_ERROR(...)     Pulse::Engine::Debugging::Log(Pulse::Engine::Debugging::Level::Error, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_FATAL(...)     Pulse::Engine::Debugging::Log(Pulse::Engine::Debugging::Level::Fatal, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_LOG(...)       Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Log, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_INFO(...)      Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Info, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_WARNING(...)   Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Warning, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_ERROR(...)     Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Error, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_FATAL(...)     Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Fatal, __FILE_NAME__, __LINE__, __VA_ARGS__)

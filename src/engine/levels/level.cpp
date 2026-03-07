@@ -264,6 +264,15 @@ namespace Pulse::Engine::Levels{
         }
     }
 
+    void Level::Stop()
+    {
+        for(auto& [id,script] : scripts){
+            if(script->Active()){
+                script->OnStop();
+            }
+        }
+    }
+
     void Level::AddActor(std::shared_ptr<ECS::Objects::Actor> a)
     {
         rootActors.emplace(a->GetID(), a);

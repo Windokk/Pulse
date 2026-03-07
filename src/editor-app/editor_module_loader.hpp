@@ -21,6 +21,7 @@
 
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
+using namespace Pulse::Engine::Debugging;
 
 namespace Pulse::Editor {
 
@@ -28,7 +29,7 @@ namespace Pulse::Editor {
     using CreatePlatformFn = Platform::IPlatform* (*)(int, char**);
     
     // EDITOR
-    using EditorInitFn = void(*)(EngineInstance*);
+    using EditorInitFn = void(*)(EngineInstance*, Logger*);
     using EditorStartFn = void(*)();
     using EditorTickFn = void(*)();
     using EditorCleanupFn = void (*)();

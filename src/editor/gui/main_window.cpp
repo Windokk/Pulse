@@ -278,6 +278,87 @@ namespace Pulse::Editor::Core{
             imguiInitialized = true;
         }
 
+        // Wait for viewport size to be initialized
+        if(!renderPassesInitialized && viewport->GetViewportSize() != glm::vec2(50,50)){
+            
+            Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
+
+            auto fbOutlineShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/outline");
+
+            Rendering::FrameBuffer fbOutline(
+                viewport->GetViewportSize().x,
+                viewport->GetViewportSize().y,
+                fbOutlineShader,
+                false
+            );
+
+            fbOutlineShader->Activate();
+
+            fbOutlineShader->SetInt("maskTex", 0);
+            fbOutlineShader->SetFloat("outlineThickness", 4.0f);
+            fbOutlineShader->SetVec2("texelSize", glm::vec2(1.0 / fbOutline.width, 1.0 / fbOutline.height));
+            fbOutlineShader->SetVec3("outlineColor", glm::vec3(1.0f, 0.722f, 0.0f));
+
+            fbOutlineShader->Deactivate();
+
+            // Init Editor Render Pass
+            auto drawOutlineMaskFunc = [this, renderer, fbOutlineShader]() {
+
+                if(!selectedActor || !settings.showOutlines)
+                    return;
+
+                OpenGL* gl = Engine::Core::GetEngine().GetGL();
+
+                gl->ClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+                gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                gl->Disable(GL_DEPTH_TEST);
+                gl->Enable(GL_CULL_FACE);
+                gl->CullFace(GL_BACK);
+                gl->FrontFace(GL_CCW);
+
+                for(auto& cmd : *renderer->GetDrawList()){
+                    
+                    if(cmd.tr->parent->GetID() != selectedActor->GetID())
+                        continue;
+
+                    Engine::Rendering::CameraManager* camMan = Engine::Core::GetEngine().GetCameraManager();
+
+                    std::shared_ptr<Engine::Rendering::Shader> shader = renderer->defaultUnlitShader;
+
+                    shader->Activate();
+
+                    shader->SetMat4("projection", camMan->GetActiveCamera()->GetProjection());
+                    shader->SetMat4("view", camMan->GetActiveCamera()->GetView());
+                    shader->SetMat4("model", cmd.tr->GetTransformMatrix());
+                    
+                    shader->SetBool("masked", false);
+                    shader->SetBool("useTexture", false);
+                    shader->SetBool("useCustomColor", true);
+                    shader->SetVec4("customColor", glm::vec4(1));
+
+                    gl->BindVertexArray(cmd.VAO);
+                    gl->PolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    gl->DrawElements(GL_TRIANGLES, cmd.indexCount, GL_UNSIGNED_INT, (void*)(cmd.indexOffset * sizeof(uint32_t)));
+
+                    shader->Deactivate();
+                }
+
+                gl->BindVertexArray(0);
+                gl->UseProgram(0);
+            };
+
+            renderer->AddRenderPass(
+                Rendering::RenderPassType::Fullscreen,
+                drawOutlineMaskFunc,
+                std::make_shared<Rendering::FrameBuffer>(fbOutline),
+                true,
+                Rendering::BlendMode::Normal
+            );
+
+            renderPassesInitialized = true;
+        }
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -355,6 +436,9 @@ namespace Pulse::Editor::Core{
 
     void EditorMainWindow::ProcessInputs() const
     {
+        if(Engine::Core::GetEngine().IsInPlayMode())
+            return;
+
         Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
 
         if(input->IsKeyDown(Engine::Input::Key::LeftControl)){

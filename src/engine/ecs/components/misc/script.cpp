@@ -33,6 +33,10 @@ namespace Pulse::Engine::ECS::Components
     {
     }
 
+    void Script::OnStop()
+    {
+    }
+
     void Script::OnDestroyed()
     {
     }

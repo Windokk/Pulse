@@ -7,8 +7,6 @@
 
 namespace Pulse::Engine::Debugging{
 
-    LoggerFuncType gLoggerFunc = nullptr;
-
     void Logger::EnableTimestamp()
     {
         useTimestamp = true;

@@ -106,6 +106,8 @@ int main(int argc, char* argv[]) {
 
     Core::SetEngine(engine);
 
+    Debugging::SetLogger(&Debugging::Logger::GetInstance());
+
     //Editor init
     {
         auto initEditor = loader.GetSymbol<EditorInitFn>("editor", "InitializeSingletons");
@@ -114,7 +116,7 @@ int main(int argc, char* argv[]) {
             early_crash();
         }
 
-        initEditor(&Core::GetEngine());
+        initEditor(&Core::GetEngine(), &Debugging::GetLogger());
     }
 
     
@@ -174,7 +176,7 @@ int main(int argc, char* argv[]) {
         };
 
         Core::GetEngine().GetRenderer()->AddRenderPass(
-            Rendering::RenderStage::Scene,
+            Rendering::RenderPassType::Scene,
             drawFunc,
             std::make_shared<Rendering::FrameBuffer>(sceneFB),
             true,

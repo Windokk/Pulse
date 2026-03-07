@@ -157,5 +157,15 @@
     "shaders/ibl/brdf.frag":{
         "id":33,
         "dependencies":[]
+    },
+
+    "shaders/editor/outline.frag":{
+        "id":34,
+        "dependencies":[]
+    },
+
+    "shaders/editor/outline.vert":{
+        "id":35,
+        "dependencies":[]
     }
 }

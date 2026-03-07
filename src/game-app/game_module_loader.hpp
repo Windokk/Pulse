@@ -19,11 +19,12 @@
 
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
+using namespace Pulse::Engine::Debugging;
 
 namespace Pulse::Game {
 
     //GAME
-    using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*);
+    using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*, Logger*);
     using GameRegisterComponentsFn = void(*)();
 
     class ModuleLoader {

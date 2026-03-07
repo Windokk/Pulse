@@ -58,6 +58,7 @@ namespace Pulse::Engine::Levels{
 
             void Tick();
             void Play();
+            void Stop();
             void OnLoad();
             void Unload();
 

@@ -164,7 +164,7 @@ namespace Pulse::Engine::Core::Resources{
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
             std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject+".vert"));
-            
+
             if(assetInfos == nullptr) return nullptr;
 
             Filesystem::Path vertPath = Filesystem::Path(assetInfos->baseInfos.path.GetParent()) / (assetInfos->baseInfos.name + ".vert");

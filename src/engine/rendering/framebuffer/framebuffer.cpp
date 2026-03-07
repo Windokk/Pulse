@@ -211,10 +211,9 @@ namespace Pulse::Engine::Rendering {
 
     void FrameBuffer::Resolve()
     {
+        if (!isMultisampled) return;
         
         auto* gl = Engine::Core::GetEngine().GetGL();
-
-        if (!isMultisampled) return;
 
         gl->BindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
         gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, resolveFBO);
@@ -230,34 +229,23 @@ namespace Pulse::Engine::Rendering {
     {
         auto* gl = Engine::Core::GetEngine().GetGL();
 
-        Resolve();
+        if (isMultisampled)
+            Resolve();
 
         shader->Activate();
-        gl->BindVertexArray(VAO);
+
         gl->Disable(GL_DEPTH_TEST);
 
-        gl->ActiveTexture(GL_TEXTURE0);
-        if (isMultisampled) {
-            gl->BindTexture(GL_TEXTURE_2D, resolveTexture);
-        } else {
-            gl->BindTexture(GL_TEXTURE_2D, texture);
-        }
+        gl->BindVertexArray(VAO);
 
-        gl->DrawArrays(GL_TRIANGLES, 0, 6); 
+        gl->ActiveTexture(GL_TEXTURE0);
+        gl->BindTexture(GL_TEXTURE_2D, isMultisampled ? resolveTexture : texture);
+
+        gl->DrawArrays(GL_TRIANGLES, 0, 6);
 
         gl->BindVertexArray(0);
 
-        for(int i = 0; i < 4; i++){
-            gl->ActiveTexture(GL_TEXTURE0 + i);
-            gl->BindTexture(GL_TEXTURE_2D, 0);
-        }
-
         shader->Deactivate();
-
-        // Unbind framebuffers
-        gl->BindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        
     }
 
     void FrameBuffer::Bind() const
@@ -273,5 +261,10 @@ namespace Pulse::Engine::Rendering {
     void FrameBuffer::SetShader(std::shared_ptr<Shader> shader)
     {
         this->shader = shader;
+    }
+    
+    std::shared_ptr<Shader> FrameBuffer::GetShader()
+    {
+        return this->shader;
     }
 }

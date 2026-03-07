@@ -38,15 +38,15 @@ namespace Pulse::Engine::ECS::Objects{
 
         gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount);
         gl->BindTexture(GL_TEXTURE_CUBE_MAP, envMap->irradianceMap->GetID());
-        mat->shader->setInt("ibl_irradianceMap", matTexturesCount);
+        mat->shader->SetInt("ibl_irradianceMap", matTexturesCount);
 
         gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount + 1);
         gl->BindTexture(GL_TEXTURE_CUBE_MAP, envMap->prefilterMap->GetID());
-        mat->shader->setInt("ibl_prefilteredEnvMap", matTexturesCount + 1);
+        mat->shader->SetInt("ibl_prefilteredEnvMap", matTexturesCount + 1);
 
         gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount + 2);
         gl->BindTexture(GL_TEXTURE_2D, envMap->brdfLUT->GetID());
-        mat->shader->setInt("ibl_brdfLUT", matTexturesCount + 2);
+        mat->shader->SetInt("ibl_brdfLUT", matTexturesCount + 2);
     }
 
     void Skybox::BindEmpty(std::shared_ptr<Rendering::Material> mat)
@@ -61,15 +61,15 @@ namespace Pulse::Engine::ECS::Objects{
 
         gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount);
         gl->BindTexture(GL_TEXTURE_CUBE_MAP, renderer->defaultCubemap->GetID());
-        mat->shader->setInt("ibl_irradianceMap", matTexturesCount);
+        mat->shader->SetInt("ibl_irradianceMap", matTexturesCount);
 
         gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount + 1);
         gl->BindTexture(GL_TEXTURE_CUBE_MAP, renderer->defaultCubemap->GetID());
-        mat->shader->setInt("ibl_prefilteredEnvMap", matTexturesCount + 1);
+        mat->shader->SetInt("ibl_prefilteredEnvMap", matTexturesCount + 1);
 
         gl->ActiveTexture(GL_TEXTURE0 + matTexturesCount + 2);
         gl->BindTexture(GL_TEXTURE_2D, renderer->defaultTexture->GetID());
-        mat->shader->setInt("ibl_brdfLUT", matTexturesCount + 2);
+        mat->shader->SetInt("ibl_brdfLUT", matTexturesCount + 2);
     }
 
     void Skybox::Destroy()

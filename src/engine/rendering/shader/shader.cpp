@@ -190,133 +190,133 @@ namespace Pulse::Engine::Rendering {
         Core::GetEngine().GetGL()->DeleteProgram(ID);
     }
 
-    void Shader::setBool(const std::string &name, bool value) const
+    void Shader::SetBool(const std::string &name, bool value) const
     {
         Core::GetEngine().GetGL()->Uniform1i(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), (int)value);
     }
 
-    void Shader::setInt(const std::string &name, int value) const
+    void Shader::SetInt(const std::string &name, int value) const
     {
         Core::GetEngine().GetGL()->Uniform1i(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), value);
     }
 
-    void Shader::setFloat(const std::string &name, float value) const
+    void Shader::SetFloat(const std::string &name, float value) const
     {
         Core::GetEngine().GetGL()->Uniform1f(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), value);
     }
 
-    void Shader::setVec2(const std::string &name, const glm::vec2 &value) const
+    void Shader::SetVec2(const std::string &name, const glm::vec2 &value) const
     {
         Core::GetEngine().GetGL()->Uniform2fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
 
-    void Shader::setVec2(const std::string &name, float x, float y) const
+    void Shader::SetVec2(const std::string &name, float x, float y) const
     {
         Core::GetEngine().GetGL()->Uniform2f(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), x, y);
     }
 
-    void Shader::setVec3(const std::string &name, const glm::vec3 &value) const
+    void Shader::SetVec3(const std::string &name, const glm::vec3 &value) const
     {
         Core::GetEngine().GetGL()->Uniform3fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
 
-    void Shader::setVec3(const std::string &name, float x, float y, float z) const
+    void Shader::SetVec3(const std::string &name, float x, float y, float z) const
     {
         Core::GetEngine().GetGL()->Uniform3f(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), x, y, z);
     }
 
-    void Shader::setVec4(const std::string &name, const glm::vec4 &value) const
+    void Shader::SetVec4(const std::string &name, const glm::vec4 &value) const
     {
         Core::GetEngine().GetGL()->Uniform4fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, &value[0]);
     }
 
-    void Shader::setVec4(const std::string &name, float x, float y, float z, float w) const
+    void Shader::SetVec4(const std::string &name, float x, float y, float z, float w) const
     {
         Core::GetEngine().GetGL()->Uniform4f(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), x, y, z, w);
     }
 
-    void Shader::setMat2(const std::string &name, const glm::mat2 &mat) const
+    void Shader::SetMat2(const std::string &name, const glm::mat2 &mat) const
     {
         Core::GetEngine().GetGL()->UniformMatrix2fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
-    void Shader::setMat3(const std::string &name, const glm::mat3 &mat) const
+    void Shader::SetMat3(const std::string &name, const glm::mat3 &mat) const
     {
         Core::GetEngine().GetGL()->UniformMatrix3fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
-    void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
+    void Shader::SetMat4(const std::string &name, const glm::mat4 &mat) const
     {
         Core::GetEngine().GetGL()->UniformMatrix4fv(Core::GetEngine().GetGL()->GetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
-    void Shader::setBoolLoc(GLint location, bool value) const
+    void Shader::SetBoolLoc(GLint location, bool value) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform1i(location, (int)value);
     }
 
-    void Shader::setIntLoc(GLint location, int value) const
+    void Shader::SetIntLoc(GLint location, int value) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform1i(location, value);
     }
 
-    void Shader::setFloatLoc(GLint location, float value) const
+    void Shader::SetFloatLoc(GLint location, float value) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform1f(location, value);
     }
 
-    void Shader::setVec2Loc(GLint location, const glm::vec2& value) const
+    void Shader::SetVec2Loc(GLint location, const glm::vec2& value) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform2fv(location, 1, &value[0]);
     }
 
-    void Shader::setVec2Loc(GLint location, float x, float y) const
+    void Shader::SetVec2Loc(GLint location, float x, float y) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform2f(location, x, y);
     }
 
-    void Shader::setVec3Loc(GLint location, const glm::vec3& value) const
+    void Shader::SetVec3Loc(GLint location, const glm::vec3& value) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform3fv(location, 1, &value[0]);
     }
 
-    void Shader::setVec3Loc(GLint location, float x, float y, float z) const
+    void Shader::SetVec3Loc(GLint location, float x, float y, float z) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform3f(location, x, y, z);
     }
 
-    void Shader::setVec4Loc(GLint location, const glm::vec4& value) const
+    void Shader::SetVec4Loc(GLint location, const glm::vec4& value) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform4fv(location, 1, &value[0]);
     }
 
-    void Shader::setVec4Loc(GLint location, float x, float y, float z, float w) const
+    void Shader::SetVec4Loc(GLint location, float x, float y, float z, float w) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->Uniform4f(location, x, y, z, w);
     }
 
-    void Shader::setMat2Loc(GLint location, const glm::mat2& mat) const
+    void Shader::SetMat2Loc(GLint location, const glm::mat2& mat) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->UniformMatrix2fv(location, 1, GL_FALSE, &mat[0][0]);
     }
 
-    void Shader::setMat3Loc(GLint location, const glm::mat3& mat) const
+    void Shader::SetMat3Loc(GLint location, const glm::mat3& mat) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->UniformMatrix3fv(location, 1, GL_FALSE, &mat[0][0]);
     }
 
-    void Shader::setMat4Loc(GLint location, const glm::mat4& mat) const
+    void Shader::SetMat4Loc(GLint location, const glm::mat4& mat) const
     {
         if (location != -1)
             Core::GetEngine().GetGL()->UniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
