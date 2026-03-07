@@ -30,8 +30,8 @@ namespace Pulse::Editor::Core {
 
         // Viewport settings
 
-        bool showOutlines;
-        bool showGizmos;
+        bool showOutlines = true;
+        bool showGizmos = true;
         bool showGrid;
 
         /// TODO

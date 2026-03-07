@@ -298,6 +298,8 @@ inline void* FieldRead(const FieldInfo& field, void* object)
     return static_cast<uint8_t*>(object) + field.offset;
 }
 
+/// @brief Event describing a field change
+/// @note This is kept as a struct in case we need to add more context to the event in the future
 struct FieldChangedEvent
 {
     const FieldInfo* field;

@@ -59,7 +59,7 @@ enum class TypeID : uint16_t {
 
     // Strings
     String,        // std::string
-    CString,       // const char*
+    CString,       // char*
 
     // Containers
     Vector,
@@ -152,7 +152,7 @@ static TypeID GetTypeIDFromString(std::string typeName) {
 
         // Strings
         {"std::string", TypeID::String},
-        {"const char*", TypeID::CString},
+        {"char*", TypeID::CString},
 
         // User-defined
         {"struct", TypeID::Struct},

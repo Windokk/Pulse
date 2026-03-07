@@ -5,12 +5,76 @@
 
 #include "editor/gui/main_window.hpp"
 
+#include <glm/glm.hpp>
+#include <type_traits>
+
 using namespace Pulse::Engine::ECS::Objects;
 using namespace Pulse::Engine::ECS::Components;
 
 namespace Pulse::Editor::GUI{
 
-    bool InputVector3(const char* label, float v[3], float speed = 0.1f)
+    template<typename T>
+    bool InputVector4(const char* label, T v[4], float speed = 0.1f, float min = 0.0f, float max = 0.0f)
+    {
+        bool changed = false;
+
+        ImGui::PushID(label);
+
+        float lineHeight = ImGui::GetFrameHeight();
+        ImVec2 fieldSize = ImVec2(ImGui::CalcItemWidth() / 4.0f - 4.0f, 0);
+
+        const ImU32 colors[4] = {
+            IM_COL32(220, 50, 50, 255),   // X - Red
+            IM_COL32(50, 200, 70, 255),   // Y - Green
+            IM_COL32(80, 120, 255, 255),  // Z - Blue
+            IM_COL32(220, 180, 60, 255)   // W - Purple
+        };
+
+        for (int i = 0; i < 4; i++)
+        {
+            ImGui::PushID(i);
+
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+
+            // Draw colored left bar
+            ImGui::GetWindowDrawList()->AddRectFilled(
+                cursorPos,
+                ImVec2(cursorPos.x + 3.0f, cursorPos.y + lineHeight),
+                colors[i]
+            );
+
+            // Offset input so it doesn't overlap bar
+            ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + 4.0f, cursorPos.y));
+
+            ImGui::PushItemWidth(fieldSize.x - 4.0f);
+
+            if constexpr (std::is_same_v<T, int>) {
+                changed |= ImGui::DragInt("##v", &v[i], speed, (int)min, (int)max);
+            } else if constexpr (std::is_same_v<T, unsigned int>) {
+                int temp = static_cast<int>(v[i]);
+                if (ImGui::DragInt("##v", &temp, speed, 0, (int)max)) {
+                    v[i] = static_cast<unsigned int>(temp);
+                    changed = true;
+                }
+            } else if constexpr (std::is_floating_point_v<T>) {
+                changed |= ImGui::DragFloat("##v", &v[i], speed, min, max);
+            }
+
+            ImGui::PopItemWidth();
+
+            if (i < 3)
+                ImGui::SameLine();
+
+            ImGui::PopID();
+        }
+
+        ImGui::PopID();
+
+        return changed;
+    }
+
+    template<typename T>
+    bool InputVector3(const char* label, T v[3], float speed = 0.1f, float min = 0.0f, float max = 0.0f)
     {
         bool changed = false;
 
@@ -42,13 +106,138 @@ namespace Pulse::Editor::GUI{
             ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + 4.0f, cursorPos.y));
 
             ImGui::PushItemWidth(fieldSize.x - 4.0f);
-            changed |= ImGui::DragFloat("##v", &v[i], speed);
+            
+            if constexpr (std::is_same_v<T, int>) {
+                changed |= ImGui::DragInt("##v", &v[i], speed, (int)min, (int)max);
+            } else if constexpr (std::is_same_v<T, unsigned int>) {
+                int temp = static_cast<int>(v[i]);
+                if (ImGui::DragInt("##v", &temp, speed, 0, (int)max)) {
+                    v[i] = static_cast<unsigned int>(temp);
+                    changed = true;
+                }
+            } else if constexpr (std::is_floating_point_v<T>) {
+                changed |= ImGui::DragFloat("##v", &v[i], speed, min, max);
+            }
+            
             ImGui::PopItemWidth();
 
             if (i < 2)
                 ImGui::SameLine();
 
             ImGui::PopID();
+        }
+
+        ImGui::PopID();
+
+        return changed;
+    }
+
+    template<typename T>
+    bool InputVector2(const char* label, T v[2], float speed = 0.1f, float min = -FLT_MAX, float max = FLT_MAX)
+    {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        float lineHeight = ImGui::GetFrameHeight();
+        ImVec2 fieldSize = ImVec2(ImGui::CalcItemWidth() / 2.0f - 4.0f, 0);
+
+        const ImU32 colors[2] = {
+            IM_COL32(220, 50, 50, 255),   // X - Red
+            IM_COL32(50, 200, 70, 255),   // Y - Green
+        };
+
+        for (int i = 0; i < 2; i++)
+        {
+            ImGui::PushID(i);
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+
+            // Draw colored left bar
+            ImGui::GetWindowDrawList()->AddRectFilled(
+                cursorPos,
+                ImVec2(cursorPos.x + 3.0f, cursorPos.y + lineHeight),
+                colors[i]
+            );
+
+            // Offset input so it doesn't overlap bar
+            ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + 4.0f, cursorPos.y));
+            ImGui::PushItemWidth(fieldSize.x - 4.0f);
+
+            if constexpr (std::is_same_v<T, int>) {
+                changed |= ImGui::DragInt("##v", &v[i], speed, (int)min, (int)max);
+            } else if constexpr (std::is_same_v<T, unsigned int>) {
+                int temp = static_cast<int>(v[i]);
+                if (ImGui::DragInt("##v", &temp, speed, 0, (int)max)) {
+                    v[i] = static_cast<unsigned int>(temp);
+                    changed = true;
+                }
+            } else if constexpr (std::is_floating_point_v<T>) {
+                changed |= ImGui::DragFloat("##v", &v[i], speed, min, max);
+            }
+
+            ImGui::PopItemWidth();
+            if (i < 1) ImGui::SameLine();
+            ImGui::PopID();
+        }
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    template<typename MatType>
+    bool InputMatrix(const char* label, MatType& m, float speed = 0.1f)
+    {
+        constexpr int C = MatType::length();                     // columns
+        constexpr int R = MatType::col_type::length();            // rows
+
+        static const ImU32 axisColors[4] =
+        {
+            IM_COL32(220, 50, 50, 255),   // X
+            IM_COL32(80, 200, 80, 255),   // Y
+            IM_COL32(80, 120, 220, 255),  // Z
+            IM_COL32(220, 180, 60, 255)   // W
+        };
+
+        bool changed = false;
+
+        ImGui::PushID(label);
+
+        float cellWidth = ImGui::CalcItemWidth() / C;
+        float lineHeight = ImGui::GetFrameHeight();
+
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+
+        for (int r = 0; r < R; r++)
+        {
+            for (int c = 0; c < C; c++)
+            {
+                ImGui::PushID(r * C + c);
+
+                ImGui::SetCursorScreenPos(ImVec2(pos.x + 8.0f + cellWidth * c, pos.y + 4 + lineHeight * r));
+
+                // Colored axis bar
+                ImGui::GetWindowDrawList()->AddRectFilled(
+                    ImGui::GetCursorScreenPos(),
+                    ImVec2(ImGui::GetCursorScreenPos().x - 3.0f, ImGui::GetCursorScreenPos().y + lineHeight),
+                    axisColors[r]
+                );
+
+                ImGui::PushItemWidth(cellWidth - 6.0f);
+
+                float v = m[c][r];
+
+                if (ImGui::DragFloat("##cell", &v, speed))
+                {
+                    m[c][r] = v;
+                    changed = true;
+                }
+
+                ImGui::PopItemWidth();
+
+                if (c < C - 1)
+                    ImGui::SameLine();
+
+                ImGui::PopID();
+            }
         }
 
         ImGui::PopID();
@@ -144,6 +333,8 @@ namespace Pulse::Editor::GUI{
     {
         const char * fieldName = field->name;
 
+        bool readOnly = (field->flags & ReadOnly) && !(field->flags & Editable);
+
         if(valueIndexInContainer != -1)
             fieldName = std::to_string(valueIndexInContainer).c_str();
 
@@ -153,7 +344,54 @@ namespace Pulse::Editor::GUI{
 
         std::string id = "##" + std::string(fieldName);
 
+        if(readOnly)
+            ImGui::BeginDisabled();
+
         switch(container ? container->elementType : field->type){
+            case TypeID::Float:
+            {
+                float* v = static_cast<float*>(value);
+                if (ImGui::DragFloat(id.c_str(), v))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Double:
+            {
+                double* v = static_cast<double*>(value);
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_Double, v))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Int8:
+            {
+                int8_t* v = static_cast<int8_t*>(value);
+                int tmp = static_cast<int>(*v);
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, INT8_MIN, INT8_MAX))
+                {
+                    *v = static_cast<int8_t>(tmp);
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Int16:
+            {
+                int16_t* v = static_cast<int16_t*>(value);
+                int tmp = static_cast<int>(*v);
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, INT16_MIN, INT16_MAX))
+                {
+                    *v = static_cast<int16_t>(tmp);
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
             case TypeID::Int32:
             {
                 int* v = static_cast<int*>(value);
@@ -164,10 +402,54 @@ namespace Pulse::Editor::GUI{
                 }
                 break;
             }
-            case TypeID::Float:
+            case TypeID::Int64:
             {
-                float* v = static_cast<float*>(value);
-                if (ImGui::DragFloat(id.c_str(), v))
+                int64_t* v = static_cast<int64_t*>(value);
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_S64, v))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::UInt8:
+            {
+                uint8_t* v = static_cast<uint8_t*>(value);
+                int tmp = static_cast<int>(*v);
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, UINT8_MAX))
+                {
+                    *v = static_cast<uint8_t>(tmp);
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::UInt16:
+            {
+                uint16_t* v = static_cast<uint16_t*>(value);
+                int tmp = static_cast<int>(*v);
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, UINT16_MAX))
+                {
+                    *v = static_cast<uint16_t>(tmp);
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::UInt32:
+            {
+                uint32_t* v = static_cast<uint32_t*>(value);
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U32, v))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::UInt64:
+            {
+                uint64_t* v = static_cast<uint64_t*>(value);
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, v))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -180,19 +462,6 @@ namespace Pulse::Editor::GUI{
                 if (ImGui::Checkbox(id.c_str(), v))
                 {
                     FieldChangedEvent evt{ field };
-                    comp->OnFieldChanged(evt);
-                }
-                break;
-            }
-            case TypeID::ColorRGB:
-            {
-                COL_RGB* v = static_cast<COL_RGB*>(value);
-                static float value[3] = {v->r(), v->g(), v->b()};
-                if(ImGui::ColorEdit3(id.c_str(), value)){
-
-                    *v = COL_RGB(value[0], value[1], value[2]);
-
-                    FieldChangedEvent evt{field};
                     comp->OnFieldChanged(evt);
                 }
                 break;
@@ -241,6 +510,7 @@ namespace Pulse::Editor::GUI{
 
                 if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
                 {
+                    *str = std::string(buffer);
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
@@ -252,7 +522,7 @@ namespace Pulse::Editor::GUI{
                 
                 glm::vec3 vec = glm::degrees(glm::eulerAngles(*quat));
                 
-                if (InputVector3(fieldName, &vec.x))
+                if (InputVector3<float>(fieldName, &vec.x))
                 {
                     *quat = glm::quat(glm::radians(vec));
                     FieldChangedEvent evt{ field };
@@ -301,18 +571,187 @@ namespace Pulse::Editor::GUI{
                 }
                 break;
             }
+            case TypeID::Vec4:
+            {
+                glm::vec4* vec = static_cast<glm::vec4*>(value);
+
+                if (InputVector4<float>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            } 
             case TypeID::Vec3:
             {
                 glm::vec3* vec = static_cast<glm::vec3*>(value);
 
-                if (InputVector3(fieldName, &vec->x))
+                if (InputVector3<float>(fieldName, &vec->x))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
                 break;
             }
+            case TypeID::Vec2:
+            {
+                glm::vec2* vec = static_cast<glm::vec2*>(value);
+
+                if (InputVector2<float>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::IVec2:
+            {
+                glm::ivec2* vec = static_cast<glm::ivec2*>(value);
+
+                if (InputVector2<int>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            } 
+            case TypeID::IVec3:
+            {
+                glm::ivec3* vec = static_cast<glm::ivec3*>(value);
+
+                if (InputVector3<int>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::IVec4:
+            {
+                glm::ivec2* vec = static_cast<glm::ivec2*>(value);
+
+                if (InputVector4<int>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::UVec2:
+            {
+                glm::uvec2* vec = static_cast<glm::uvec2*>(value);
+
+                if (InputVector2<unsigned int>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            } 
+            case TypeID::UVec3:
+            {
+                glm::uvec3* vec = static_cast<glm::uvec3*>(value);
+
+                if (InputVector3<unsigned int>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::UVec4:
+            {
+                glm::uvec2* vec = static_cast<glm::uvec2*>(value);
+
+                if (InputVector4<unsigned int>(fieldName, &vec->x))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Mat2:
+            {
+                glm::mat2* mat = static_cast<glm::mat2*>(value);
+
+                if (InputMatrix(field->name, *mat))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Mat3:
+            {
+                glm::mat3* mat = static_cast<glm::mat3*>(value);
+
+                if (InputMatrix(field->name, *mat))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::Mat4:
+            {
+                glm::mat4* mat = static_cast<glm::mat4*>(value);
+
+                if (InputMatrix(field->name, *mat))
+                {
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::ColorRGB:
+            {
+                COL_RGB* v = static_cast<COL_RGB*>(value);
+                static float value[3] = {v->r(), v->g(), v->b()};
+                if(ImGui::ColorEdit3(id.c_str(), value)){
+
+                    *v = COL_RGB(value[0], value[1], value[2]);
+
+                    FieldChangedEvent evt{field};
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::ColorRGBA:
+            {
+                COL_RGBA* v = static_cast<COL_RGBA*>(value);
+                static float value[4] = {v->r(), v->g(), v->b(), v->a()};
+                if(ImGui::ColorEdit4(id.c_str(), value)){
+
+                    *v = COL_RGBA(value[0], value[1], value[2], value[3]);
+
+                    FieldChangedEvent evt{field};
+                    comp->OnFieldChanged(evt);
+                }
+                break;
+            }
+            case TypeID::CString:
+            {
+                char* str = static_cast<char*>(value);
+
+                static char buffer[256];
+
+                strncpy(buffer, str, sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
+
+                if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
+                {
+                    strncpy(str, buffer, 255);
+                    str[255] = '\0';
+
+                    FieldChangedEvent evt{ field };
+                    comp->OnFieldChanged(evt);
+                }
+
+                break;
+            }
         }
 
+        if(readOnly)
+            ImGui::EndDisabled();
     }
 }

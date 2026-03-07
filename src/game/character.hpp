@@ -17,15 +17,31 @@ class CLASS() Character : public Pulse::Engine::ECS::Components::Script{
         void OnTick() override;
         void OnStop() override;
 
-    private:
+        FIELD(Editable)
+        glm::mat3 vectorTest = glm::mat3(1.0f);
+
+        FIELD(Editable)
         float speed = 1.0f;
-        double lockedMouseX, lockedMouseY = 0;
+        
+        FIELD(Editable)
+        float mouseSensitivity = 0.1f;
+        
+        FIELD(ReadOnly)
+        double lockedMouseX = 0; 
+        
+        FIELD(ReadOnly)
+        double lockedMouseY = 0;
+        
+        FIELD(ReadOnly)
         bool firstClick = true;
 
+        FIELD(ReadOnly)
         float pitch = 0.0f;
+        
+        FIELD(ReadOnly)
         float yaw = 0.0f;
 
-        float mouseSensitivity = 0.1f;
+    private:
 
         DECLARE_DESCRIPTOR(Character);
 };
