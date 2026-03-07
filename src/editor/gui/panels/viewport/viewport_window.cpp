@@ -491,7 +491,7 @@ namespace Pulse::Editor::GUI {
         // Picking
         if(input->WasMouseReleased(Engine::Input::MouseButton::Left)){
             
-            if(Engine::Core::GetEngine().GetTimeManager()->CurrentAppTime().seconds - firstClickTime > 1){
+            if(Engine::Core::GetEngine().GetTimeManager()->CurrentAppTime().seconds - firstClickTime > 0.3f){
                 return;
             }
 
@@ -500,6 +500,8 @@ namespace Pulse::Editor::GUI {
             ImVec2 mouse = ImGui::GetMousePos();
 
             glm::vec2 max = camera->GetSize();
+            max.x += viewportImageMin.x;
+            max.y += viewportImageMin.y;
 
             if (mouse.x >= viewportImageMin.x && mouse.x <= max.x &&
                 mouse.y >= viewportImageMin.y && mouse.y <= max.y)

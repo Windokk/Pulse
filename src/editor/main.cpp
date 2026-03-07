@@ -167,8 +167,6 @@ int main(int argc, char* argv[]) {
 
     Core::GetEngine().Destroy();
 
-    loader.UnloadModule("editor");
-
     std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
