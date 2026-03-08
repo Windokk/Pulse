@@ -102,18 +102,27 @@ namespace Pulse::Engine::ECS::Components {
                 return glm::vec2(width, height);
             }
 
+            FIELD(Editable)
             float farPlane = 0;
+
+            FIELD(Editable)
             float nearPlane = 0;
 
+            FIELD(Editable)
             bool orthographic = false;
 
+            FIELD(Editable)
             bool frustumCulling = true;
+
+            FIELD(Editable)
+            float fov = 60.0f;
+
+            FIELD(Editable)
+            float orthoSize = 10.0f;
 
         private:
 
-            float fov = 60.0f;
 
-            float orthoSize = 10.0f;
 
             // Matrices
             glm::mat4 view;
@@ -124,8 +133,6 @@ namespace Pulse::Engine::ECS::Components {
             int width = 0;
             int height = 0;
 
-            bool canInteract = true;
-            
             DECLARE_DESCRIPTOR(Camera)
     };
 }

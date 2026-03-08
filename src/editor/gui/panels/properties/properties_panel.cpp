@@ -307,24 +307,32 @@ namespace Pulse::Editor::GUI{
 
         if (open)
         {
-            for (FieldInfo* field : desc->fields)
+            if (ImGui::BeginTable("##PropertiesTable", 2, ImGuiTableFlags_SizingStretchProp))
             {
-                if (field->type == TypeID::Struct)
-                {
-                    uint8_t* base = reinterpret_cast<uint8_t*>(comp.get()) + field->offset;
-                    InstancedStruct* structPtr = reinterpret_cast<InstancedStruct*>(base);
+                ImGui::TableSetupColumn("##Property", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+                ImGui::TableSetupColumn("##Value", ImGuiTableColumnFlags_WidthStretch);
 
-                    for (auto& subField : structPtr->descriptor->fields)
+                for (FieldInfo* field : desc->fields)
+                {
+                    if (field->type == TypeID::Struct)
                     {
-                        void* valuePtr = FieldRead(*subField, structPtr->data);
-                        DrawField(subField, valuePtr, comp);
+                        uint8_t* base = reinterpret_cast<uint8_t*>(comp.get()) + field->offset;
+                        InstancedStruct* structPtr = reinterpret_cast<InstancedStruct*>(base);
+
+                        for (auto& subField : structPtr->descriptor->fields)
+                        {
+                            void* valuePtr = FieldRead(*subField, structPtr->data);
+                            DrawField(subField, valuePtr, comp);
+                        }
+                    }
+                    else
+                    {
+                        void* valuePtr = FieldRead(*field, comp.get());
+                        DrawField(field, valuePtr, comp);
                     }
                 }
-                else
-                {
-                    void* valuePtr = FieldRead(*field, comp.get());
-                    DrawField(field, valuePtr, comp);
-                }
+                
+                ImGui::EndTable();
             }
         }
     }
@@ -338,9 +346,16 @@ namespace Pulse::Editor::GUI{
         if(valueIndexInContainer != -1)
             fieldName = std::to_string(valueIndexInContainer).c_str();
 
+        ImGui::TableNextRow();
+
+        // Column 0 : Label
+        ImGui::TableSetColumnIndex(0);
+
         ImGui::AlignTextToFramePadding();
         ImGui::Text(fieldName);
-        ImGui::SameLine();
+
+        // Column 1 : Widget
+        ImGui::TableSetColumnIndex(1);
 
         std::string id = "##" + std::string(fieldName);
 
@@ -351,7 +366,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Float:
             {
                 float* v = static_cast<float*>(value);
-                if (ImGui::DragFloat(id.c_str(), v))
+                if (ImGui::DragFloat(id.c_str(), v, 0.05f, field->min, field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -361,7 +376,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Double:
             {
                 double* v = static_cast<double*>(value);
-                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_Double, v))
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_Double, v, 0.05f, &field->min, &field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -372,7 +387,7 @@ namespace Pulse::Editor::GUI{
             {
                 int8_t* v = static_cast<int8_t*>(value);
                 int tmp = static_cast<int>(*v);
-                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, INT8_MIN, INT8_MAX))
+                if (ImGui::DragInt(id.c_str(), &tmp, 0.05f, (int8_t)field->min, (int8_t)field->max))
                 {
                     *v = static_cast<int8_t>(tmp);
                     FieldChangedEvent evt{ field };
@@ -384,7 +399,7 @@ namespace Pulse::Editor::GUI{
             {
                 int16_t* v = static_cast<int16_t*>(value);
                 int tmp = static_cast<int>(*v);
-                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, INT16_MIN, INT16_MAX))
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, (int16_t)field->min, (int16_t)field->max))
                 {
                     *v = static_cast<int16_t>(tmp);
                     FieldChangedEvent evt{ field };
@@ -395,7 +410,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Int32:
             {
                 int* v = static_cast<int*>(value);
-                if (ImGui::DragInt(id.c_str(), v))
+                if (ImGui::DragInt(id.c_str(), v, 0.05f, (int32_t)field->min, (int32_t)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -405,7 +420,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Int64:
             {
                 int64_t* v = static_cast<int64_t*>(value);
-                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_S64, v))
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_S64, v, 0.05f, (int64_t*)&field->min, (int64_t*)&field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -416,7 +431,7 @@ namespace Pulse::Editor::GUI{
             {
                 uint8_t* v = static_cast<uint8_t*>(value);
                 int tmp = static_cast<int>(*v);
-                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, UINT8_MAX))
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, (uint8_t)field->max))
                 {
                     *v = static_cast<uint8_t>(tmp);
                     FieldChangedEvent evt{ field };
@@ -428,7 +443,7 @@ namespace Pulse::Editor::GUI{
             {
                 uint16_t* v = static_cast<uint16_t*>(value);
                 int tmp = static_cast<int>(*v);
-                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, UINT16_MAX))
+                if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, (uint16_t)field->max))
                 {
                     *v = static_cast<uint16_t>(tmp);
                     FieldChangedEvent evt{ field };
@@ -439,7 +454,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::UInt32:
             {
                 uint32_t* v = static_cast<uint32_t*>(value);
-                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U32, v))
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U32, v, 0, (uint32_t*)&field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -449,7 +464,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::UInt64:
             {
                 uint64_t* v = static_cast<uint64_t*>(value);
-                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, v))
+                if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, v, 0, (uint64_t*)&field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -522,7 +537,7 @@ namespace Pulse::Editor::GUI{
                 
                 glm::vec3 vec = glm::degrees(glm::eulerAngles(*quat));
                 
-                if (InputVector3<float>(fieldName, &vec.x))
+                if (InputVector3<float>(fieldName, &vec.x, 0.1f, field->min, field->max))
                 {
                     *quat = glm::quat(glm::radians(vec));
                     FieldChangedEvent evt{ field };
@@ -575,7 +590,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::vec4* vec = static_cast<glm::vec4*>(value);
 
-                if (InputVector4<float>(fieldName, &vec->x))
+                if (InputVector4<float>(fieldName, &vec->x, 0.1f, field->min, field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -586,7 +601,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::vec3* vec = static_cast<glm::vec3*>(value);
 
-                if (InputVector3<float>(fieldName, &vec->x))
+                if (InputVector3<float>(fieldName, &vec->x, 0.1f, field->min, field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -597,7 +612,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::vec2* vec = static_cast<glm::vec2*>(value);
 
-                if (InputVector2<float>(fieldName, &vec->x))
+                if (InputVector2<float>(fieldName, &vec->x, 0.1f, field->min, field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -608,7 +623,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::ivec2* vec = static_cast<glm::ivec2*>(value);
 
-                if (InputVector2<int>(fieldName, &vec->x))
+                if (InputVector2<int>(fieldName, &vec->x, 1.0f, (int)field->min, (int)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -619,7 +634,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::ivec3* vec = static_cast<glm::ivec3*>(value);
 
-                if (InputVector3<int>(fieldName, &vec->x))
+                if (InputVector3<int>(fieldName, &vec->x, 1.0f, (int)field->min, (int)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -630,7 +645,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::ivec2* vec = static_cast<glm::ivec2*>(value);
 
-                if (InputVector4<int>(fieldName, &vec->x))
+                if (InputVector4<int>(fieldName, &vec->x, 1.0f, (int)field->min, (int)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -641,7 +656,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::uvec2* vec = static_cast<glm::uvec2*>(value);
 
-                if (InputVector2<unsigned int>(fieldName, &vec->x))
+                if (InputVector2<unsigned int>(fieldName, &vec->x, 1.0f, 0.0f, (int)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -652,7 +667,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::uvec3* vec = static_cast<glm::uvec3*>(value);
 
-                if (InputVector3<unsigned int>(fieldName, &vec->x))
+                if (InputVector3<unsigned int>(fieldName, &vec->x, 1.0f, 0.0f, (int)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
@@ -663,7 +678,7 @@ namespace Pulse::Editor::GUI{
             {
                 glm::uvec2* vec = static_cast<glm::uvec2*>(value);
 
-                if (InputVector4<unsigned int>(fieldName, &vec->x))
+                if (InputVector4<unsigned int>(fieldName, &vec->x, 1.0f, 0.0f, (int)field->max))
                 {
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);

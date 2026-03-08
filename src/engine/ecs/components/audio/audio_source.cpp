@@ -97,4 +97,14 @@ namespace Pulse::Engine::ECS::Components{
     {
         Core::GetEngine().GetAudioManager()->RemoveSound(this->audioID);
     }
+
+    void AudioSource::OnFieldChanged(const FieldChangedEvent &event)
+    {
+        if(event.field->name == "volume"){
+            SetVolume(volume);
+        }
+        if(event.field->name == "file"){
+            SetPath(file);
+        }
+    }
 }

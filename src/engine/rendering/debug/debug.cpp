@@ -69,116 +69,153 @@ namespace Pulse::Engine::Rendering{
 
     DebugSphere::DebugSphere(float radius, COL_RGBA color)
     {
+        const int SEGMENTS = 32;
         std::vector<GLuint> indices;
 
-        for (int lat = 0; lat <= LAT_SEGMENTS; ++lat) {
-            float theta = glm::pi<float>() * lat / LAT_SEGMENTS;
-            float sinT = sin(theta), cosT = cos(theta);
+        for (int i = 0; i < SEGMENTS; i++)
+        {
+            float angle = glm::two_pi<float>() * i / SEGMENTS;
+            float c = cos(angle);
+            float s = sin(angle);
 
-            for (int lon = 0; lon <= LONG_SEGMENTS; ++lon) {
-                float phi = glm::two_pi<float>() * lon / LONG_SEGMENTS;
-                float sinP = sin(phi), cosP = cos(phi);
+            // XY ring
+            vertices.push_back({ glm::vec3(radius * c, radius * s, 0), glm::vec3(0), color, glm::vec2(0) });
 
-                glm::vec3 normal = glm::vec3(cosP * sinT, cosT, sinP * sinT);
-                glm::vec3 pos = radius * normal;
+            // XZ ring
+            vertices.push_back({ glm::vec3(radius * c, 0, radius * s), glm::vec3(0), color, glm::vec2(0) });
 
-                vertices.push_back({ pos, normal, color, glm::vec2(0,0) });
-            }
+            // YZ ring
+            vertices.push_back({ glm::vec3(0, radius * c, radius * s), glm::vec3(0), color, glm::vec2(0) });
         }
 
-        for (int lat = 0; lat < LAT_SEGMENTS; ++lat) {
-            for (int lon = 0; lon < LONG_SEGMENTS; ++lon) {
-                int cur = lat * (LONG_SEGMENTS + 1) + lon;
-                int next = cur + LONG_SEGMENTS + 1;
+        for (int i = 0; i < SEGMENTS; i++)
+        {
+            int next = (i + 1) % SEGMENTS;
 
-                indices.push_back(cur);
-                indices.push_back(next);
-                indices.push_back(cur + 1);
+            int xy0 = i * 3;
+            int xy1 = next * 3;
 
-                indices.push_back(next);
-                indices.push_back(next + 1);
-                indices.push_back(cur + 1);
-            }
+            int xz0 = i * 3 + 1;
+            int xz1 = next * 3 + 1;
+
+            int yz0 = i * 3 + 2;
+            int yz1 = next * 3 + 2;
+
+            // XY
+            indices.push_back(xy0);
+            indices.push_back(xy1);
+
+            // XZ
+            indices.push_back(xz0);
+            indices.push_back(xz1);
+
+            // YZ
+            indices.push_back(yz0);
+            indices.push_back(yz1);
         }
 
         SetupGLBuffers(VAO, VBO, EBO, vertices, indices);
-
         indexCount = indices.size();
     }
 
     DebugCapsule::DebugCapsule(float radius, float halfHeight, COL_RGBA color)
     {
-        constexpr int SEGMENTS = 12;
-        constexpr int RINGS = 6;
-
+        const int SEGMENTS = 24;
         std::vector<GLuint> indices;
 
-        // --- Precompute sin/cos tables for segments ---
-        std::vector<float> sinTable(SEGMENTS + 1), cosTable(SEGMENTS + 1);
-        for (int i = 0; i <= SEGMENTS; ++i) {
+        // --- circles (top & bottom) ---
+        for (int i = 0; i < SEGMENTS; i++)
+        {
             float angle = glm::two_pi<float>() * i / SEGMENTS;
-            sinTable[i] = sin(angle);
-            cosTable[i] = cos(angle);
+            float c = cos(angle);
+            float s = sin(angle);
+
+            glm::vec3 dir(c * radius, 0, s * radius);
+
+            // bottom ring
+            vertices.push_back({ dir + glm::vec3(0,-halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+
+            // top ring
+            vertices.push_back({ dir + glm::vec3(0, halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
         }
 
-        // === CYLINDER BODY ===
-        for (int i = 0; i <= SEGMENTS; ++i) {
-            glm::vec3 dir = glm::vec3(cosTable[i], 0.0f, sinTable[i]);
+        for (int i = 0; i < SEGMENTS; i++)
+        {
+            int next = (i + 1) % SEGMENTS;
 
-            vertices.push_back({ dir * radius + glm::vec3(0, -halfHeight, 0), glm::normalize(dir), color, glm::vec2(0,0) });
-            vertices.push_back({ dir * radius + glm::vec3(0,  halfHeight, 0), glm::normalize(dir), color, glm::vec2(0,0)  });
+            // bottom circle
+            indices.push_back(i*2);
+            indices.push_back(next*2);
+
+            // top circle
+            indices.push_back(i*2+1);
+            indices.push_back(next*2+1);
         }
 
-        for (int i = 0; i < SEGMENTS; ++i) {
-            int base = i * 2;
-            indices.push_back(base);
-            indices.push_back(base + 1);
-            indices.push_back(base + 2);
+        // --- vertical lines ---
+        vertices.push_back({ glm::vec3(radius,-halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(radius, halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
 
-            indices.push_back(base + 1);
-            indices.push_back(base + 3);
-            indices.push_back(base + 2);
+        vertices.push_back({ glm::vec3(-radius,-halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(-radius, halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+
+        vertices.push_back({ glm::vec3(0,-halfHeight,radius), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(0, halfHeight,radius), glm::vec3(0), color, glm::vec2(0) });
+
+        vertices.push_back({ glm::vec3(0,-halfHeight,-radius), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(0, halfHeight,-radius), glm::vec3(0), color, glm::vec2(0) });
+
+        int base = vertices.size() - 8;
+
+        for(int i = 0; i < 8; i += 2)
+        {
+            indices.push_back(base + i);
+            indices.push_back(base + i + 1);
         }
 
-        auto addHemisphere = [&](float yOffset, bool flipY) {
-            int startIndex = static_cast<int>(vertices.size());
+        // ----------------------------------------------------
+        // HALF CIRCLES (caps)
+        // ----------------------------------------------------
 
-            for (int ring = 0; ring <= RINGS; ++ring) {
-                float v = (float)ring / RINGS * glm::half_pi<float>();
-                float y = flipY ? -cos(v) : cos(v);
-                float r = sin(v);
+        const int ARC_SEGMENTS = SEGMENTS / 2;
 
-                for (int i = 0; i <= SEGMENTS; ++i) {
-                    float x = cosTable[i];
-                    float z = sinTable[i];
+        auto addHalfCircle = [&](glm::vec3 center, bool topCap, bool xAxis)
+        {
+            int start = vertices.size();
 
-                    glm::vec3 normal = glm::vec3(x * r, y, z * r);
-                    glm::vec3 pos = radius * normal + glm::vec3(0, yOffset, 0);
-                    vertices.push_back({ pos, glm::normalize(normal), color, glm::vec2(0,0) });
-                }
-            }
+            for(int i = 0; i <= ARC_SEGMENTS; i++)
+            {
+                float angle = glm::pi<float>() * i / ARC_SEGMENTS;
 
-            for (int ring = 0; ring < RINGS; ++ring) {
-                for (int seg = 0; seg < SEGMENTS; ++seg) {
-                    int a = startIndex + ring * (SEGMENTS + 1) + seg;
-                    int b = a + SEGMENTS + 1;
+                float x = cos(angle) * radius;
+                float y = sin(angle) * radius;
 
-                    indices.push_back(a);
-                    indices.push_back(b);
-                    indices.push_back(a + 1);
+                if(!topCap) y = -y;
 
-                    indices.push_back(b);
-                    indices.push_back(b + 1);
-                    indices.push_back(a + 1);
+                glm::vec3 p;
+
+                if(xAxis)
+                    p = center + glm::vec3(x, y, 0);
+                else
+                    p = center + glm::vec3(0, y, x);
+
+                vertices.push_back({ p, glm::vec3(0), color, glm::vec2(0) });
+
+                if(i > 0)
+                {
+                    indices.push_back(start + i - 1);
+                    indices.push_back(start + i);
                 }
             }
         };
 
-        // === TOP HEMISPHERE ===
-        addHemisphere(+halfHeight, false);
+        // top hemisphere arcs
+        addHalfCircle(glm::vec3(0, halfHeight, 0), true, true);
+        addHalfCircle(glm::vec3(0, halfHeight, 0), true, false);
 
-        // === BOTTOM HEMISPHERE ===
-        addHemisphere(-halfHeight, true);
+        // bottom hemisphere arcs
+        addHalfCircle(glm::vec3(0,-halfHeight, 0), false, true);
+        addHalfCircle(glm::vec3(0,-halfHeight, 0), false, false);
 
         SetupGLBuffers(VAO, VBO, EBO, vertices, indices);
         indexCount = indices.size();

@@ -39,28 +39,6 @@ namespace Pulse::Engine::ECS::Components {
             Core::GetEngine().GetCameraManager()->AddCamera(parent->GetID(), static_pointer_cast<Camera>(shared_from_this()));
     }
 
-    void Camera::OnFieldChanged(const FieldChangedEvent &event)
-    {
-        if(event.field->name == "width"){
-
-        }
-        else if(event.field->name == "height"){
-
-        }
-        else if(event.field->name == "near"){
-            
-        }
-        else if(event.field->name == "far"){
-
-        }
-        else if(event.field->name == "fov"){
-
-        }
-        else if(event.field->name == "frustumCulling"){
-
-        }
-    }
-
     void Camera::UpdateSize(int new_width, int new_height)
     {
         if(!activated)
@@ -259,6 +237,11 @@ namespace Pulse::Engine::ECS::Components {
 
         // Otherwise, it's at least partially inside
         return true;
+    }
+
+    void Camera::OnFieldChanged(const FieldChangedEvent &event)
+    {
+        
     }
 
 }

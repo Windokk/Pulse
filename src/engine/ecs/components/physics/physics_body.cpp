@@ -533,9 +533,7 @@ namespace Pulse::Engine::ECS::Components{
     }
 
     void PhysicsBody::OnFieldChanged(const FieldChangedEvent& event){
-        if(event.field->name == "shape"){
-
-            InstancedStruct params;
+        if(event.field->name == "shapeType"){
 
             switch (shapeType)
             {

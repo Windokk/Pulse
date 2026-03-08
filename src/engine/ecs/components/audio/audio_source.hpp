@@ -9,11 +9,6 @@
 namespace Pulse::Engine::ECS::Components
 {
     class CLASS() AudioSource : public Component {
-        private:
-            Filesystem::Path path;
-            Audio::AudioID audioID;
-            float volume = -1.0f;
-
 
         public:
             AudioSource(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
@@ -40,6 +35,18 @@ namespace Pulse::Engine::ECS::Components
 
             std::shared_ptr<Component> Clone() const override;
 
+            void OnFieldChanged(const FieldChangedEvent& event) override;
+            
             DECLARE_DESCRIPTOR(AudioSource)
+
+            FIELD(Editable)
+            std::string file;
+
+            FIELD(Editable)
+            float volume = -1.0f;
+
+        private:
+            Filesystem::Path path;
+            Audio::AudioID audioID;
     };
 }
