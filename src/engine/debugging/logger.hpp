@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <functional>
 
 namespace Pulse::Engine::Debugging{
     
@@ -22,11 +24,15 @@ namespace Pulse::Engine::Debugging{
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
 
-        // Provide access to the singleton instance
+        // Provide access to the singleton instance (only used for initilization)
         static Logger& GetInstance() {
             static Logger instance;
             return instance;
         }
+
+        using LogSink = std::function<void(const Level&, const std::string&)>;
+
+        void AddSink(LogSink sink);
 
         template<typename... Args>
         void Log(Level level, const char* file, int line, Args&&... args) {
@@ -41,6 +47,9 @@ namespace Pulse::Engine::Debugging{
             (ss << ... << args);
 
             std::string output = ss.str();
+            for(auto& sink : sinks){
+                sink(level, output);
+            }
             std::cout << output << std::endl;
             if (logFile.is_open())
                 logFile << output << std::endl;
@@ -63,6 +72,8 @@ namespace Pulse::Engine::Debugging{
         std::ofstream logFile;
 
         bool useTimestamp;
+
+        std::vector<LogSink> sinks;
 
         Logger() = default;
     };

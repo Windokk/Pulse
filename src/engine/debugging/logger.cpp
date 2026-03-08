@@ -6,6 +6,11 @@
 #include "engine/core/engine.hpp"
 
 namespace Pulse::Engine::Debugging{
+    
+    void Logger::AddSink(LogSink sink)
+    {
+        sinks.push_back(std::move(sink));
+    }
 
     void Logger::EnableTimestamp()
     {

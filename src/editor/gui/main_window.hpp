@@ -11,6 +11,7 @@
 #include "editor/gui/panels/properties/properties_panel.hpp"
 #include "editor/gui/panels/asset_browser/asset_browser.hpp"
 #include "editor/gui/panels/level_tree/level_tree.hpp"
+#include "editor/gui/panels/console/console.hpp"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -107,6 +108,7 @@ namespace Pulse::Editor::Core {
         GUI::AssetBrowser* assetBrowser = nullptr;
         GUI::PropertiesPanel* propertiesPanel = nullptr;
         GUI::LevelTree* levelTree = nullptr;
+        GUI::Console* console = nullptr;
         
         // User data
         std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor = nullptr;

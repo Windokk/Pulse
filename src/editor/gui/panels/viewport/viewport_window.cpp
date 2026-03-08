@@ -349,7 +349,12 @@ namespace Pulse::Editor::GUI {
 
         // Display frame metrics
         Engine::Debugging::MinimalStatistics stats = Engine::Core::GetEngine().GetProfiler()->GetStats();
-        Engine::Core::Platform::SystemInfos system = Engine::Core::GetEngine().GetWindow()->GetSystemInfos();
+        static Engine::Core::Platform::SystemInfos system;
+
+        if(ImGui::GetFrameCount() % 5 == 0)
+        {
+            system = Engine::Core::GetEngine().GetWindow()->GetSystemInfos();
+        }
 
         ImGui::Text("Sounds: %d", stats.sounds);
 

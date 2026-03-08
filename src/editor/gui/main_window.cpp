@@ -272,6 +272,8 @@ namespace Pulse::Editor::Core{
             levelTree->SetParentWindow(this);
             viewport = new GUI::ViewportWindow();
             viewport->SetParentWindow(this);
+            console = new GUI::Console();
+            console->SetParentWindow(this);
 
             GUI::EditorResources::Instance().Init();
 
@@ -372,6 +374,7 @@ namespace Pulse::Editor::Core{
         viewport->Draw();
         propertiesPanel->Draw(selectedActor);
         levelTree->Draw();
+        console->Draw();
 
         ImGui::ShowDemoWindow();
 
