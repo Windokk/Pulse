@@ -26,3 +26,6 @@
 	path = submodules/imgui
 	url = https://github.com/ocornut/imgui
 	branch = docking
+[submodule "submodules/vk-bootstrap"]
+	path = submodules/vk-bootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap.git
