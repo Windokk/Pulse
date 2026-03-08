@@ -1,16 +1,14 @@
 #pragma once
 
-#include "engine/rendering/shader/shader.hpp"
-#include "engine/rendering/texture/texture.hpp"
-#include "engine/rendering/texture/cubemap.hpp"
-
 #include <variant>
 #include <stdexcept>
 #include <memory>
 
-#include "engine/debugging/logger.hpp"
-
 namespace Pulse::Engine::Rendering {
+
+    class Shader;
+
+    class CommandBuffer;
 
     enum RenderMode{
         OPAQUE,
@@ -20,81 +18,43 @@ namespace Pulse::Engine::Rendering {
 
     using NumericValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
 
-    struct NumericParameter {
-        GLint location;
-        GLenum glType;
-        NumericValue value = -1;
-    };
-
-    struct TextureParameter {
-        GLint location;
-        GLenum samplerType;
-        GLuint texture = 0;
-    };
-
-    class Material{
-
+    class Material {
         public:
-            Material(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode);
-            
-            void SetScalarParameter(const std::string &name, const NumericValue &value)
-            {
-                if(scalarParameters.find(name) != scalarParameters.end()){
-                    scalarParameters[name] = {scalarParameters[name].location, scalarParameters[name].glType, value};
-                }
-            }
 
-            void SetTextureParameter(const std::string &name, const GLuint &value)
-            {
-                if(textureParameters.find(name) != textureParameters.end()){
-                    textureParameters[name] = {textureParameters[name].location, textureParameters[name].samplerType, value};
-                }
-            }
+            virtual ~Material() = default;
 
-            template<typename T>
-            T GetScalarParameter(std::string name, T defaultValue = {});
-            std::optional<NumericParameter> GetScalarParameter(std::string name);
-            std::optional<TextureParameter> GetTextureParameter(std::string name);
+            virtual void SetScalarParameter(
+                const std::string& name,
+                const NumericValue& value) = 0;
 
-            int GetTexturesCount(){
-                return textureParameters.size();
-            }
+            virtual void SetTextureParameter(
+                const std::string& name,
+                uint64_t texture) = 0;
 
-            void Use();
-            void StopUsing();
-            std::shared_ptr<Shader> shader;
-            bool recievesShadows = false;
-            RenderMode renderMode = OPAQUE;
+            virtual std::optional<NumericValue>
+            GetScalarParameter(const std::string& name) = 0;
+
+            virtual uint32_t GetTexturesCount() const = 0;
+
+            virtual void Bind(CommandBuffer& cmd) = 0;
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
             }
 
             Filesystem::AssetID GetAssetID() {
-                return this->assetID;
+                return assetID;
             }
 
-        private:
+        protected:
+
             Filesystem::AssetID assetID;
-            void Init(std::shared_ptr<Shader> shader, bool recievesShadows, RenderMode mode);
 
-            std::unordered_map<std::string, NumericParameter> scalarParameters;
-            std::unordered_map<std::string, TextureParameter> textureParameters;
+        public:
 
+            std::shared_ptr<Shader> shader;
+            bool receivesShadows = false;
+            RenderMode renderMode = OPAQUE;
     };
-
-    template <typename T>
-    inline T Material::GetScalarParameter(std::string name, T defaultValue)
-    {
-        
-        auto param = GetScalarParameter(name);
-        if (!param)
-            return defaultValue;
-
-        if (auto v = std::get_if<T>(&param->value))
-            return *v;
-
-        return defaultValue;
-    }
 
 }

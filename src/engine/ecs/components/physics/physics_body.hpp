@@ -17,8 +17,6 @@
 
 #include "engine/rendering/utils.hpp"
 
-#include "engine/rendering/debug/debug.hpp"
-
 #include "engine/core/reflection_fields.hpp"
 
 namespace Pulse::Engine::ECS::Components

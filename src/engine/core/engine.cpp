@@ -54,7 +54,6 @@ namespace Pulse::Engine{
             context.physicsManager->Init(settings.gravity);
             context.audioManager->Init(100.0f);
             context.renderer->Init();
-            context.renderer->InitFramebuffers();
             context.platform->CreateInput();
 
             float fixedDelta = 1.0f / 30.0f;

@@ -1,21 +1,38 @@
 #include "texture.hpp"
 
-#include "engine/filesystem/filesystem.hpp"
-#include "engine/rendering/renderer/renderer.hpp"
-
 #include "engine/core/engine.hpp"
 
-#include <iostream>
+#include <stb/stb_image.h>
 
 namespace Pulse::Engine::Rendering{
 
-    using namespace Filesystem;
-
-    Image::Image(Filesystem::Path filepath)
+    std::shared_ptr<Texture> Texture::Create(const TextureSpecification &spec, const void *data)
     {
-        unsigned char* data = nullptr;
+        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
+        {
+            case RendererAPI::API::OpenGL:
+                return std::make_shared<GLTexture>(spec, data);
+
+            /*case RendererAPI::API::Vulkan:
+                return std::make_shared<VKTexture>(spec, data);
+
+            case RendererAPI::API::DX11:
+                return std::make_shared<DX11Texture>(spec, data);
+
+            case RendererAPI::API::DX12:
+                return std::make_shared<DX12Texture>(spec, data);*/
+
+            default:
+                return nullptr;
+        }
+    }
+
+    std::shared_ptr<Texture> Texture::Create(TextureSpecification &spec, Filesystem::Path &filepath)
+    {
+        void* data = nullptr;
 
         int width, height, nrChannels;
+        TextureFormat format;
 
         if (filepath.Exists()) {
             std::string file = filepath.ReadFile();
@@ -31,68 +48,32 @@ namespace Pulse::Engine::Rendering{
         }
 
         if (data) {
-            GLenum format;
             if (nrChannels == 1){
-                format = GL_RED;
+                format = TextureFormat::R8;
             }
             else if (nrChannels == 2){
-                format = GL_RG;
+                format = TextureFormat::RG8;
             }
             else if (nrChannels == 3){
-                format = GL_RGB;
+                format = TextureFormat::RGB8;
             }
             else if (nrChannels == 4){
-                format = GL_RGBA;
+                format = TextureFormat::RGBA16F;
             }
             else{
-                format = GL_RGB; // Default to RGB
+                format = TextureFormat::RGB8; // Default to RGB
             }
-
-            texture = std::make_shared<Texture>(width, height, nrChannels, filterModes, wrapModes, format, format, data, true);
 
         } else {
             DEBUG_ERROR("Couldn't load texture : " + filepath.full);   
         }
 
+        spec.format = format;
+        spec.width = width;
+        spec.height = height;
+
+        return Create(spec, data);
+
         stbi_image_free(data);
-        return;
-    }
-
-    Texture::Texture(int width, int height, int nrChannels, GLenum filterMode[2], GLenum wrapMode[2], GLenum internalFormat, GLenum format, unsigned char *data, bool generateMipmap)
-    {
-        infos.width = width;
-        infos.height = height;
-        infos.nrChannels = nrChannels;
-
-        Core::GetEngine().GetGL()->GenTextures(1, &ID);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, ID);
-
-        // Set texture parameters
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode[0]);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode[1]);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMode[0]);
-        Core::GetEngine().GetGL()->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode[1]);
-
-        Core::GetEngine().GetGL()->TexImage2D(GL_TEXTURE_2D, 0, internalFormat, infos.width, infos.height, 0, format, GL_UNSIGNED_BYTE, data);
-
-        if(generateMipmap)
-            Core::GetEngine().GetGL()->GenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    void Texture::Bind(int unit)
-    {
-        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + unit);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, ID);
-    }
-
-    void Texture::UnBind(int unit)
-    {
-        Core::GetEngine().GetGL()->ActiveTexture(GL_TEXTURE0 + unit);
-        Core::GetEngine().GetGL()->BindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    void Texture::Cleanup()
-    {
-        Core::GetEngine().GetGL()->DeleteTextures(1, &ID);
     }
 }

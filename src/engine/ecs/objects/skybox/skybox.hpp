@@ -2,8 +2,6 @@
 
 #include "engine/ecs/objects/level_object.hpp"
 
-#include "engine/rendering/texture/cubemap.hpp"
-
 namespace Pulse::Engine::Rendering{
     class Shader;
 

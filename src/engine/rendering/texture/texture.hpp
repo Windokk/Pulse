@@ -1,52 +1,72 @@
 #pragma once
 
-#include "engine/ecs/components/misc/transform.hpp"
-#include "engine/filesystem/assetID.hpp"
-#include "engine/rendering/opengl/opengl.hpp"
+#include "engine/rendering/utils.hpp"
 
-#include <stb/stb_image.h>
-#include <stb/stb_image_resize2.h>
-#include <string>
-#include <memory>
-
-namespace Pulse::Engine::Filesystem{
-
-    class Path;
-}
+#include "engine/filesystem/filesystem.hpp"
 
 namespace Pulse::Engine::Rendering {
-
-    struct DrawCommand;
-
-    struct TextureInfos{
-        int width, height;           
-        int nrChannels;
+    
+    enum class TextureFilter
+    {
+        Linear,
+        Nearest
     };
 
-    class Texture{
-        public:
-            Texture(int width, int height, int nrChannels, GLenum filterMode[2], GLenum wrapMode[2], GLenum internalFormat, GLenum format, unsigned char *data, bool generateMipmap);
-            void Bind(int unit);
-            void UnBind(int unit);
-            void Cleanup();
-            unsigned int GetID() { return ID; }
-            TextureInfos* GetInfos() { return &infos; }
-
-
-        private:
-
-            unsigned int ID;
-            TextureInfos infos;
+    enum class TextureWrap
+    {
+        Repeat,
+        Clamp,
+        Mirror
     };
 
-    class Image{
-        public:
-            Image(Filesystem::Path filepath);
-        
-            std::shared_ptr<Texture> texture;
+    enum class TextureFormat
+    {
+        R8,
+        RG8,
+        RGB8,
+        RGBA8,
+        RGBA16F,
+        Depth24Stencil8
+    };
 
-            GLenum wrapModes[2] = {GL_REPEAT, GL_REPEAT};
-            GLenum filterModes[2] = {GL_LINEAR, GL_LINEAR};
+    struct TextureSpecification
+    {
+        uint32_t width = 0;
+        uint32_t height = 0;
+
+        TextureFormat format = TextureFormat::RGBA8;
+
+        TextureFilter minFilter = TextureFilter::Linear;
+        TextureFilter magFilter = TextureFilter::Linear;
+
+        TextureWrap wrapS = TextureWrap::Repeat;
+        TextureWrap wrapT = TextureWrap::Repeat;
+
+        bool generateMips = true;
+    };
+
+    class Texture
+    {
+        public:
+
+            virtual ~Texture() = default;
+
+            virtual void Bind(uint32_t slot = 0) const = 0;
+
+            virtual uint32_t GetWidth() const = 0;
+            virtual uint32_t GetHeight() const = 0;
+
+            virtual const TextureSpecification& GetSpecification() const = 0;
+
+            static std::shared_ptr<Texture> Create(
+                const TextureSpecification& spec,
+                const void* data
+            );
+
+            static std::shared_ptr<Texture> Create(
+                TextureSpecification& spec,
+                Filesystem::Path& filepath
+            );
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
@@ -57,6 +77,6 @@ namespace Pulse::Engine::Rendering {
             }
         private:
             Filesystem::AssetID assetID;
-            
     };
+
 }

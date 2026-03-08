@@ -48,7 +48,6 @@ namespace Pulse::Engine{
 
             Rendering::Renderer* renderer = nullptr;
             Rendering::CameraManager* cameraManager = nullptr;
-            OpenGL* openGL = nullptr;
 
             Resources::ResourcesManager* resourcesManager = nullptr;
             Filesystem::FileManager* fileManager = nullptr;
@@ -74,7 +73,6 @@ namespace Pulse::Engine{
 
             Debugging::Profiler* profiler = nullptr;
         };
-
 
         class EngineInstance {
             public:
@@ -105,10 +103,6 @@ namespace Pulse::Engine{
                 Rendering::Renderer* GetRenderer() const { return context.renderer; }
 
                 Rendering::CameraManager* GetCameraManager() const { return context.cameraManager; }
-
-                OpenGL* GetGL() const { return context.openGL; }
-
-                void SetGL(OpenGL* gl) { context.openGL = gl; }
 
                 Resources::ResourcesManager* GetResourcesManager() const { return context.resourcesManager; }
 
