@@ -4,7 +4,7 @@
 
 namespace Pulse::Engine::Rendering{
     
-    GLCubemap::GLCubemap(const TextureSpecifications &spec, const std::array<void *, 6> &faces)
+    GLCubemap::GLCubemap(const TextureSpecifications &spec, std::array<unsigned char*, 6> faces)
     {
         m_Specifications = spec;
 
@@ -16,7 +16,7 @@ namespace Pulse::Engine::Rendering{
         GLenum wrapModeR;
 
         GLenum minFilter;
-        GLenum magFilter;  
+        GLenum magFilter;
 
         GLenum internalFormat;
 
@@ -80,19 +80,19 @@ namespace Pulse::Engine::Rendering{
         }
       
         switch(spec.format){
-            case TextureFormat::R8:{
+            case TextureFormat::RED:{
                 internalFormat = GL_RED;
                 break;
             }
-            case TextureFormat::RG8:{
+            case TextureFormat::RG:{
                 internalFormat = GL_RG;
                 break;
             }
-            case TextureFormat::RGB8:{
+            case TextureFormat::RGB:{
                 internalFormat = GL_RGB;
                 break;
             }
-            case TextureFormat::RGBA16F:{
+            case TextureFormat::RGBA:{
                 internalFormat = GL_RGBA;
                 break;
             }
@@ -127,15 +127,5 @@ namespace Pulse::Engine::Rendering{
     GLCubemap::~GLCubemap()
     {
         glDeleteTextures(1, &ID);
-    }
-    
-    GLEnvironmentMap::GLEnvironmentMap(const EnvironmentMapInfos &infos, const std::array<void *, 6> &faces)
-    {
-        
-    }
-
-    GLEnvironmentMap::GLEnvironmentMap(const EnvironmentMapInfos &infos, const void *hdrData)
-    {
-
     }
 }

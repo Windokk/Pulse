@@ -70,19 +70,19 @@ namespace Pulse::Engine::Rendering{
         GLenum internalFormat;
 
         switch(spec.format){
-            case TextureFormat::R8:{
+            case TextureFormat::RED:{
                 internalFormat = GL_RED;
                 break;
             }
-            case TextureFormat::RG8:{
+            case TextureFormat::RG:{
                 internalFormat = GL_RG;
                 break;
             }
-            case TextureFormat::RGB8:{
+            case TextureFormat::RGB:{
                 internalFormat = GL_RGB;
                 break;
             }
-            case TextureFormat::RGBA16F:{
+            case TextureFormat::RGBA:{
                 internalFormat = GL_RGBA;
                 break;
             }

@@ -29,7 +29,7 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    std::shared_ptr<Texture> Texture::Create(TextureSpecifications &spec, Filesystem::Path &filepath)
+    std::shared_ptr<Texture> Texture::Create(TextureSpecifications &spec, const Filesystem::Path &filepath)
     {
         void* data = nullptr;
 
@@ -51,19 +51,19 @@ namespace Pulse::Engine::Rendering{
 
         if (data) {
             if (nrChannels == 1){
-                format = TextureFormat::R8;
+                format = TextureFormat::RED;
             }
             else if (nrChannels == 2){
-                format = TextureFormat::RG8;
+                format = TextureFormat::RG;
             }
             else if (nrChannels == 3){
-                format = TextureFormat::RGB8;
+                format = TextureFormat::RGB;
             }
             else if (nrChannels == 4){
-                format = TextureFormat::RGBA16F;
+                format = TextureFormat::RGBA;
             }
             else{
-                format = TextureFormat::RGB8; // Default to RGB
+                format = TextureFormat::RGB; // Default to RGB
             }
 
         } else {

@@ -7,7 +7,7 @@ namespace Pulse::Engine::Rendering{
     class GLCubemap : public Cubemap{
         public:
 
-            GLCubemap(const TextureSpecifications& spec, const std::array<void*,6>& faces);
+            GLCubemap(const TextureSpecifications& spec, std::array<unsigned char*, 6> faces);
 
             void Bind(uint32_t slot = 0) const override;
 
@@ -18,13 +18,4 @@ namespace Pulse::Engine::Rendering{
         private:
             uint32_t ID;
     };
-
-    class GLEnvironmentMap : public EnvironmentMap{
-        public:
-            GLEnvironmentMap(const EnvironmentMapInfos& infos, const std::array<void*,6>& faces);
-            GLEnvironmentMap(const EnvironmentMapInfos& infos, const void* hdrData);
-        private:
-
-    };
-
 }

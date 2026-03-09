@@ -7,78 +7,70 @@
 #include <stb/stb_image.h>
 
 namespace Pulse::Engine::Rendering{
-    std::shared_ptr<Cubemap> Cubemap::Create(
-        const TextureSpecifications& spec,
-        const std::array<void*,6>& faces
-    )
+    std::shared_ptr<Cubemap> Cubemap::Create(const TextureSpecifications& specs, std::array<unsigned char*, 6> faces)
     {
         switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
         {
             case RendererAPI::API::OpenGL:
-                return std::make_shared<GLCubemap>(spec, faces);
+                return std::make_shared<GLCubemap>(specs, faces);
 
             /*case API::Vulkan:
-                return std::make_shared<VKCubemap>(spec, faces);
+                return std::make_shared<VKCubemap>(faces);
 
             case API::DX11:
-                return std::make_shared<DX11Cubemap>(spec, faces);
+                return std::make_shared<DX11Cubemap>(faces);
 
             case API::DX12:
-                return std::make_shared<DX12Cubemap>(spec, faces);*/
+                return std::make_shared<DX12Cubemap>(faces);*/
 
             default:
                 return nullptr;
         }
     }
 
-    std::shared_ptr<Cubemap> Create(
-        const TextureSpecifications& spec,
-        const std::vector<Filesystem::Path> imageFiles)
+    std::shared_ptr<Cubemap> Cubemap::Create(TextureSpecifications& specs, const std::vector<Filesystem::Path> imageFiles)
     {
-        
-        stbi_set_flip_vertically_on_load(false);
+        if (imageFiles.size() != 6)
+        return nullptr;
 
-        std::array<void*,6>& faces = {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr};
+        std::array<unsigned char*, 6> faces;
 
-        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
+        int width, height, channels;
+
+        for (size_t i = 0; i < 6; i++)
         {
-            case RendererAPI::API::OpenGL:
-                return std::make_shared<GLEnvironmentMap>(spec, faces);
+            Filesystem::Path filePath = imageFiles[i];
 
-            /*case API::Vulkan:
-                return std::make_shared<VKCubemap>(spec, faces);
-
-            case API::DX11:
-                return std::make_shared<DX11Cubemap>(spec, faces);
-
-            case API::DX12:
-                return std::make_shared<DX12Cubemap>(spec, faces);*/
-
-            default:
+            if(!filePath.Exists() || filePath.IsDirectory()){
+                DEBUG_ERROR("Attempted to create a cubemap with a missing file : ",filePath.full);
                 return nullptr;
-        }
-    }
+            }
 
-    std::shared_ptr<Cubemap> Create(
-        const TextureSpecifications& spec,
-        const Filesystem::Path hdrFile)
-    {
-        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
-        {
-            case RendererAPI::API::OpenGL:
-                return std::make_shared<GLEnvironmentMap>(spec, faces);
+            std::string file = filePath.ReadFile();
+            
+            faces[i] = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(file.data()),
+                                            static_cast<int>(file.size()),
+                                            &width, &height, &channels, 0);
 
-            /*case API::Vulkan:
-                return std::make_shared<VK>(spec, faces);
+            if (!faces[i])
+            {
+                for (size_t j = 0; j < i; j++)
+                    stbi_image_free(faces[j]);
 
-            case API::DX11:
-                return std::make_shared<DX11>(spec, faces);
-
-            case API::DX12:
-                return std::make_shared<DX12>(spec, faces);*/
-
-            default:
                 return nullptr;
+            }
         }
+
+        auto cubemap = Create(specs, faces);
+
+        //TODO : Set specifications from data
+        // specs.width = 
+        // specs.height = 
+        // specs.format = 
+
+        for (int i = 0; i < 6; i++)
+            stbi_image_free(faces[i]);
+
+        return cubemap;
     }
 }

@@ -21,11 +21,11 @@ namespace Pulse::Engine::Rendering {
 
     enum class TextureFormat
     {
-        R8,
-        RG8,
-        RGB8,
-        RGBA8,
-        RGBA16F,
+        RED,
+        RG,
+        RGB,
+        RGBA,
+        RGBA,
         Depth24Stencil8
     };
 
@@ -34,7 +34,7 @@ namespace Pulse::Engine::Rendering {
         uint32_t width = 0;
         uint32_t height = 0;
 
-        TextureFormat format = TextureFormat::RGBA8;
+        TextureFormat format = TextureFormat::RGBA;
 
         TextureFilter minFilter = TextureFilter::Linear;
         TextureFilter magFilter = TextureFilter::Linear;
@@ -68,7 +68,7 @@ namespace Pulse::Engine::Rendering {
 
             static std::shared_ptr<Texture> Create(
                 TextureSpecifications& spec,
-                Filesystem::Path& filepath
+                const Filesystem::Path& filepath
             );
 
             void SetAssetID(Filesystem::AssetID assetID) {
