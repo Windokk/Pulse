@@ -29,7 +29,7 @@ namespace Pulse::Engine::Rendering {
         Depth24Stencil8
     };
 
-    struct TextureSpecification
+    struct TextureSpecifications
     {
         uint32_t width = 0;
         uint32_t height = 0;
@@ -41,6 +41,7 @@ namespace Pulse::Engine::Rendering {
 
         TextureWrap wrapS = TextureWrap::Repeat;
         TextureWrap wrapT = TextureWrap::Repeat;
+        TextureWrap wrapR = TextureWrap::Repeat;
 
         bool generateMips = true;
     };
@@ -53,18 +54,20 @@ namespace Pulse::Engine::Rendering {
 
             virtual void Bind(uint32_t slot = 0) const = 0;
 
-            virtual uint32_t GetWidth() const = 0;
-            virtual uint32_t GetHeight() const = 0;
+            uint32_t GetWidth() const { return m_Specifications.width; }
+            uint32_t GetHeight() const { return m_Specifications.height; }
 
-            virtual const TextureSpecification& GetSpecification() const = 0;
+            virtual uint32_t GetHandle() const = 0;
+
+            const TextureSpecifications& GetSpecifications() const { return m_Specifications; };
 
             static std::shared_ptr<Texture> Create(
-                const TextureSpecification& spec,
+                const TextureSpecifications& spec,
                 const void* data
             );
 
             static std::shared_ptr<Texture> Create(
-                TextureSpecification& spec,
+                TextureSpecifications& spec,
                 Filesystem::Path& filepath
             );
 
@@ -75,8 +78,10 @@ namespace Pulse::Engine::Rendering {
             Filesystem::AssetID GetAssetID() {
                 return this->assetID;
             }
-        private:
+        protected:
             Filesystem::AssetID assetID;
+
+            TextureSpecifications m_Specifications;
     };
 
 }

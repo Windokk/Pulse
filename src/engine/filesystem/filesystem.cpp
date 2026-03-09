@@ -94,6 +94,11 @@ namespace Pulse::Engine::Filesystem{
     {
         // Replace "/" with native dir separator
 
+        if(IsDirectory()){
+            DEBUG_WARNING("Tried reading a folder : ",full);
+            return;
+        }
+
         std::string filepath = full;
 
         #if defined(__WIN32__)

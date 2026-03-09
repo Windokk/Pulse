@@ -2,11 +2,13 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/rendering/backends/opengl/texture/gl_texture.hpp"
+
 #include <stb/stb_image.h>
 
 namespace Pulse::Engine::Rendering{
 
-    std::shared_ptr<Texture> Texture::Create(const TextureSpecification &spec, const void *data)
+    std::shared_ptr<Texture> Texture::Create(const TextureSpecifications &spec, const void *data)
     {
         switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
         {
@@ -27,7 +29,7 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    std::shared_ptr<Texture> Texture::Create(TextureSpecification &spec, Filesystem::Path &filepath)
+    std::shared_ptr<Texture> Texture::Create(TextureSpecifications &spec, Filesystem::Path &filepath)
     {
         void* data = nullptr;
 

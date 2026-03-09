@@ -11,15 +11,19 @@ namespace Pulse::Engine::Rendering {
 
             virtual void Bind(uint32_t slot = 0) const = 0;
 
-            virtual uint32_t GetWidth() const = 0;
-            virtual uint32_t GetHeight() const = 0;
+            uint32_t GetWidth() const { return m_Specifications.width; }
+            uint32_t GetHeight() const { return m_Specifications.height; }
 
-            virtual const TextureSpecification& GetSpecification() const = 0;
+            virtual uint32_t GetHandle() const = 0;
+            
+            virtual const TextureSpecifications& GetSpecification() const = 0;
 
             static std::shared_ptr<Cubemap> Create(
-                const TextureSpecification& spec,
+                const TextureSpecifications& spec,
                 const std::array<void*,6>& faces
             );
+        protected:
+            TextureSpecifications m_Specifications;
     };
 
     struct EnvironmentMapInfos{
@@ -32,7 +36,15 @@ namespace Pulse::Engine::Rendering {
     {
         public:
 
-            EnvironmentMap(const Filesystem::Path& filepath);
+            static std::shared_ptr<Cubemap> Create(
+                const TextureSpecifications& spec,
+                const std::vector<Filesystem::Path> imageFiles
+            );
+
+            static std::shared_ptr<Cubemap> Create(
+                const TextureSpecifications& spec,
+                const Filesystem::Path hdrFile
+            );
 
             const EnvironmentMapInfos& GetInfos() const { return infos; }
 
@@ -51,12 +63,12 @@ namespace Pulse::Engine::Rendering {
                 return assetID;
             }
 
-        private:
+        protected:
 
-            void CreateFromHDR();
-            void CreateFromFolder();
+            virtual void CreateFromHDR();
+            virtual void CreateFromFiles();
 
-            void GenerateIBLMaps();
+            virtual void GenerateIBLMaps();
 
             Filesystem::AssetID assetID;
 

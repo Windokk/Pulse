@@ -157,7 +157,8 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    void EnvironmentMap::CreateFromHDR(){
+    void EnvironmentMap::CreateFromHDR()
+    {
 
         std::string name = Core::GetEngine().GetFileManager()->GetFileInfos(*infos.filepath.get()).nameInProject;
 

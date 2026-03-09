@@ -7,7 +7,7 @@
 namespace Pulse::Engine::Rendering {
 
     enum class ShaderDataType
-    {
+    {   None         = 0,
         Bool,
         Int,
         Float,
@@ -22,7 +22,14 @@ namespace Pulse::Engine::Rendering {
 
         Texture1D,
         Texture2D,
-        TextureCube
+        Texture3D,
+        TextureCube,
+        Texture2DMultisample,
+
+        Texture1DArray,
+        Texture2DArray,
+        TextureCubeArray,
+        Texture2DMultisampleArray
     };
 
     struct UniformInfo
@@ -63,25 +70,24 @@ namespace Pulse::Engine::Rendering {
             virtual void SetMat3(const std::string& name, const glm::mat3& mat) = 0;
             virtual void SetMat4(const std::string& name, const glm::mat4& mat) = 0;
 
-            virtual void Cleanup() = 0;
-
             static std::shared_ptr<Shader> Create(
                 const Filesystem::Path& vertexPath,
                 const Filesystem::Path& fragmentPath,
                 const Filesystem::Path& geometryPath = Filesystem::Path(""));
 
-            Filesystem::AssetID assetID;
 
             void SetAssetID(Filesystem::AssetID id)
             {
-                assetID = id;
+                m_AssetID = id;
             }
 
         protected:
+        
+            Filesystem::AssetID m_AssetID;
 
-            std::string vertexFilePath;
-            std::string fragmentFilePath;
-            std::string geometryFilePath;
+            std::string m_VertexFilePath;
+            std::string m_FragmentFilePath;
+            std::string m_GeometryFilePath;
     };
 
 }

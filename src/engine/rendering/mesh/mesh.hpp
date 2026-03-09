@@ -6,6 +6,10 @@
 
 #include "engine/rendering/utils.hpp"
 
+#include "engine/filesystem/filesystem.hpp"
+
+#include <ufbx/ufbx.h>
+
 namespace Pulse::Engine::Rendering {
 
     struct SubMesh {
@@ -25,7 +29,7 @@ namespace Pulse::Engine::Rendering {
 
         Mesh* mesh;
         Material* material;
-        Transform* transform;
+        ECS::Components::Transform* transform;
 
         glm::vec3 boundsMin;
         glm::vec3 boundsMax;
@@ -47,33 +51,38 @@ namespace Pulse::Engine::Rendering {
 
             virtual ~Mesh() = default;
 
-            virtual int SubMeshesCount() const = 0;
+            const int SubMeshesCount() const { return m_Submeshes.size(); }
+            const std::vector<SubMesh>& GetSubMeshes() const { return m_Submeshes; }
 
-            virtual const std::vector<SubMesh>& GetSubMeshes() const = 0;
+            const size_t GetIndexCount() const { return m_Indices.size(); }
+            const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
 
-            virtual size_t GetIndexCount() const = 0;
+            const size_t GetVertexCount() const { return m_Vertices.size(); }
+            const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 
-            std::vector<DrawCommand> Mesh::CreateDrawCmds(
-                std::shared_ptr<ECS::Components::Transform> tr,
-                int objectID,
-                std::vector<std::shared_ptr<Material>> mats)
+            std::vector<DrawCommand> Mesh::CreateDrawCommands(std::shared_ptr<ECS::Components::Transform> tr, int objectID, std::vector<std::shared_ptr<Material>> mats)
             {
+                if(mats.size() != m_Submeshes.size() && m_Submeshes.size() != 1){
+                    DEBUG_ERROR("Cannot create draw command for meshes with different submeshes and materials count");
+                }
+
                 std::vector<DrawCommand> cmds;
 
-                for (size_t i = 0; i < submeshes.size(); i++)
+                for (size_t i = 0; i < m_Submeshes.size(); i++)
                 {
                     DrawCommand cmd;
 
-                    cmd.indexOffset = submeshes[i].indexOffset;
-                    cmd.indexCount  = submeshes[i].indexCount;
+                    cmd.indexOffset = m_Submeshes[i].indexOffset;
+                    cmd.indexCount  = m_Submeshes[i].indexCount;
 
                     cmd.mesh        = this;
                     cmd.material    = mats[i].get();
                     cmd.transform   = tr.get();
                     cmd.objectID    = objectID;
 
-                    cmd.boundsMax = boundsMax;
-                    cmd.boundsMin = boundsMin;
+                    /// @todo Per draw cmd bounds
+                    cmd.boundsMax = m_BoundsMax;
+                    cmd.boundsMin = m_BoundsMin;
 
                     cmds.push_back(cmd);
                 }
@@ -82,24 +91,26 @@ namespace Pulse::Engine::Rendering {
             }
 
             void SetAssetID(Filesystem::AssetID assetID) {
-                this->assetID = assetID;
+                m_AssetID = assetID;
             }
 
             Filesystem::AssetID GetAssetID() {
-                return assetID;
+                return m_AssetID;
             }
 
         protected:
 
-            Filesystem::AssetID assetID;
+            Filesystem::AssetID m_AssetID;
 
-            std::vector<SubMesh> submeshes;
+            std::vector<SubMesh> m_Submeshes;
+            std::vector<Vertex> m_Vertices;
+            std::vector<uint32_t> m_Indices;
 
-            glm::vec3 boundsMin = glm::vec3(std::numeric_limits<float>::max());
-            glm::vec3 boundsMax = glm::vec3(std::numeric_limits<float>::lowest());
+            glm::vec3 m_BoundsMin = glm::vec3(std::numeric_limits<float>::max());
+            glm::vec3 m_BoundsMax = glm::vec3(std::numeric_limits<float>::lowest());
 
         public:
 
-            int materialsSlots = 0;
+            int m_MaterialsSlots = 0;
     };
 }

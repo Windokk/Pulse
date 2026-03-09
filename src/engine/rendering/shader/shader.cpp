@@ -2,6 +2,8 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/rendering/backends/opengl/shader/gl_shader.hpp"
+
 namespace Pulse::Engine::Rendering {
     std::shared_ptr<Shader> Shader::Create(const Filesystem::Path &vertexPath, const Filesystem::Path &fragmentPath, const Filesystem::Path &geometryPath)
     {
