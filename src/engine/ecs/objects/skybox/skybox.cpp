@@ -50,11 +50,11 @@ namespace Pulse::Engine::ECS::Objects{
         cmd.objectID = id.GetAsInt();
         cmd.modelMatrix = glm::mat4(1.0f);
         std::shared_ptr<Rendering::Mesh> unitCube = Core::GetEngine().GetRenderer()->GetUnitCube();
-        cmd.mesh = unitCube.get();
+        cmd.mesh = unitCube;
         cmd.indexCount = unitCube->GetIndexCount();
         cmd.indexOffset = 0;
         cmd.vertexCount = unitCube->GetVertexCount();
-        cmd.material = m_Material.get();
+        cmd.material = m_Material;
 
         Core::GetEngine().GetRenderer()->AddCommands({cmd}, {"ForwardPass"});
     }

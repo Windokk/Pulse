@@ -27,22 +27,11 @@ namespace Pulse::Engine::Rendering{
         viewportSpecs.multisampled = true;
         m_ViewportBuffer = Framebuffer::Create(viewportSpecs);
 
-        //Init built-in passes
-        /// Shadow passes (sent from the shadow manager)
-
-        /// Forward pass
-        std::shared_ptr<RenderPass> forwardPass = std::make_shared<RenderPass>();
-        forwardPass->target = m_ViewportBuffer;
-        forwardPass->clearColor = true;
-        forwardPass->clearDepth = true;
-        forwardPass->overridePipeline = false;
-        AddRenderPass(forwardPass, "ForwardPass");
-
         //Init base geometry
         /// Unit cube
         VertexLayout basicVertexLayout{
             {"aPos",       ShaderDataType::Vec3, 0},
-            {"aTexCoords", ShaderDataType::Vec2, 1}
+            {"aTexCoord", ShaderDataType::Vec2, 1}
         };
         std::vector<Vertex> cubeVertices = {
             // Front
@@ -109,6 +98,20 @@ namespace Pulse::Engine::Rendering{
         m_LightManager = std::make_shared<LightManager>();
         m_ShadowManager = std::make_shared<ShadowManager>();
         m_ShadowManager->Init(512, 1024, 2048);
+
+        
+        //Init built-in passes
+        /// Shadow passes (sent from the shadow manager)
+
+        /// Forward pass
+        std::shared_ptr<RenderPass> forwardPass = std::make_shared<RenderPass>();
+        forwardPass->target = m_ViewportBuffer;
+        forwardPass->clearColor = true;
+        forwardPass->clearDepth = true;
+        forwardPass->overridePipeline = false;
+        AddRenderPass(forwardPass, "ForwardPass");
+
+        /// @note for now we're forced to submit the forward after the shadow passes "manually", in the future, we'll create a render graph with dependencies
     }
 
     void Renderer::Render()
@@ -298,6 +301,7 @@ namespace Pulse::Engine::Rendering{
     void Renderer::BeginFrame()
     {
         ReorderDrawList();
+        m_ShadowManager->UpdatePassUniforms();
     }
 
     void Renderer::DrawFrame()

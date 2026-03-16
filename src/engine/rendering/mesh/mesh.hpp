@@ -32,8 +32,8 @@ namespace Pulse::Engine::Rendering {
         uint32_t indexCount;
         uint32_t vertexCount;
 
-        Mesh* mesh;
-        Material* material;
+        std::shared_ptr<Mesh> mesh;
+        std::shared_ptr<Material> material;
         glm::mat4 modelMatrix;
 
         glm::vec3 boundsMin;
@@ -50,7 +50,7 @@ namespace Pulse::Engine::Rendering {
         uint64_t commandID;
     };
 
-    class Mesh
+    class Mesh : public std::enable_shared_from_this<Mesh>
     {
         public:
 

@@ -91,7 +91,6 @@ namespace Pulse::Engine::Rendering {
     {
         std::string name;
         ShaderDataType type;
-        uint32_t arraySize = 1;
         int32_t location = -1;
     };
 
@@ -99,8 +98,7 @@ namespace Pulse::Engine::Rendering {
     {
         std::string name;
         ShaderSamplerType type;
-        uint32_t arraySize = 1;
-        int32_t location = -1;
+        int32_t binding = -1;
     };
 
     class CommandBuffer;
@@ -133,6 +131,9 @@ namespace Pulse::Engine::Rendering {
                 const Filesystem::Path& fragmentPath,
                 const Filesystem::Path& geometryPath = Filesystem::Path(""));
 
+            std::string GetVertexShaderName() const { return m_VertexFilePath; }
+            std::string GetFragmentShaderName() const { return m_FragmentFilePath; }
+            std::string GetGeometryShaderName() const { return m_GeometryFilePath; }
 
             void SetAssetID(Filesystem::AssetID id)
             {

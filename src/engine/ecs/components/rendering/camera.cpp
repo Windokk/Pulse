@@ -15,7 +15,6 @@ namespace Pulse::Engine::ECS::Components {
     
     Camera::Camera(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
-
     }
 
     void Camera::Init(int width, int height, float near, float far, float fov, bool ortho, float orthoSize)

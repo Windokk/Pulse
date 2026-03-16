@@ -78,8 +78,10 @@ namespace Pulse::Engine::Rendering{
         spec.width = width;
         spec.height = height;
 
-        return Create(spec, data);
+        auto tex = Create(spec, data);
 
         stbi_image_free(data);
+        
+        return tex;
     }
 }

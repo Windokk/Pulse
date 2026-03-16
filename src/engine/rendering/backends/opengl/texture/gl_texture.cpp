@@ -25,7 +25,44 @@ namespace Pulse::Engine::Rendering{
             glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, GL_UNSIGNED_BYTE, data);
+        GLenum type = GL_UNSIGNED_BYTE;
+
+        switch(specs.internalFormat)
+        {
+            case TextureInternalFormat::R16F:
+            case TextureInternalFormat::RG16F:
+            case TextureInternalFormat::RGB16F:
+            case TextureInternalFormat::RGBAF:
+            case TextureInternalFormat::RGBA32F:
+            case TextureInternalFormat::RGB32F:
+            case TextureInternalFormat::Depth32F:
+                type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::RGB32I:
+            case TextureInternalFormat::RGBA32I:
+                type = GL_INT;
+                break;
+
+            case TextureInternalFormat::Depth24Stencil8:
+                type = GL_UNSIGNED_INT_24_8;
+                break;
+
+            case TextureInternalFormat::Depth16:
+                type = GL_UNSIGNED_SHORT;
+                break;
+
+            case TextureInternalFormat::Depth24:
+            case TextureInternalFormat::Depth32:
+                type = GL_UNSIGNED_INT;
+                break;
+
+            default:
+                type = GL_UNSIGNED_BYTE;
+                break;
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, type, data);
 
         if(specs.generateMips)
             glGenerateMipmap(GL_TEXTURE_2D);

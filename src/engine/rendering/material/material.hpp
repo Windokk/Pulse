@@ -54,6 +54,8 @@ namespace Pulse::Engine::Rendering {
 
             static std::shared_ptr<Material> Create(std::shared_ptr<Shader> shader, std::shared_ptr<Pipeline> pipeline, bool receivesShadows = true, Opacity opacity = Opacity::Opaque);
 
+            bool GetRecieveShadows() const { return m_ReceivesShadows; }
+
         protected:
 
             std::shared_ptr<Shader> m_Shader;

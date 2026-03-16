@@ -54,6 +54,7 @@ namespace Pulse::Engine::Rendering {
 
             void AddRenderPass(const std::shared_ptr<RenderPass> pass, const std::string& name);
             void RemoveRenderPass(const std::string& name);
+            std::shared_ptr<RenderPass> GetRenderPass(std::string name) const { return m_RenderPasses.at(name); }
 
             void RescaleFramebuffers(int newWidth, int newHeight);
 

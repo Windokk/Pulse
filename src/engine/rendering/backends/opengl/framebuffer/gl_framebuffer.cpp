@@ -230,6 +230,7 @@ namespace Pulse::Engine::Rendering{
     {
         if (!m_Specifications.multisampled) return;
 
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);   
         glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBO);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_ResolveFBO);
         glBlitFramebuffer(

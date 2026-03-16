@@ -101,6 +101,8 @@ namespace Pulse::Editor::GUI {
         cameraActor->transform->SetPosition(glm::vec3(10, 0, 0));
 
         camera = cameraActor->GetComponent<Engine::ECS::Components::Camera>();
+
+        camera->UpdateMatrix();
     }
 
     void ViewportWindow::DrawToolbar()

@@ -64,9 +64,9 @@ namespace Pulse::Engine::Core::Resources{
         std::shared_ptr<Rendering::Mesh> mesh = Rendering::Mesh::Create();
         Rendering::VertexLayout vertexLayout = {
             {"aPos", Rendering::ShaderDataType::Vec3, 0},
-            {"aNormal", Rendering::ShaderDataType::Vec3, 1},
-            {"aColor", Rendering::ShaderDataType::Vec4, 2},
-            {"aTexCoord", Rendering::ShaderDataType::Vec2, 3},
+            {"aTexCoord", Rendering::ShaderDataType::Vec2, 1},
+            {"aNormal", Rendering::ShaderDataType::Vec3, 2},
+            {"aColor", Rendering::ShaderDataType::Vec4, 3},
             {"aTangent", Rendering::ShaderDataType::Vec3, 4}
         };
         mesh->CreateFromFBX(ufbx_mesh, scene->settings.unit_meters, scene->materials, mesh_node, vertexLayout);
@@ -91,6 +91,8 @@ namespace Pulse::Engine::Core::Resources{
     std::shared_ptr<Rendering::EnvironmentMap> ResourcesManager::LoadEnvMap(const std::string &pathInProject, const Filesystem::Path &path)
     {
         Rendering::TextureSpecifications specs = {};
+        specs.internalFormat = Rendering::TextureInternalFormat::RGB16F;
+        specs.format = Rendering::TextureFormat::RGB;
         std::shared_ptr<Rendering::EnvironmentMap> envMap = Rendering::EnvironmentMap::Create(specs, path);
         if(!envMap){
             DEBUG_ERROR("Error during cubemap import");

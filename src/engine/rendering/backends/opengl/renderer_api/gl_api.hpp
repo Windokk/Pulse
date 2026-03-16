@@ -28,15 +28,15 @@ namespace Pulse::Engine::Rendering{
 
         private: 
             
-            void BindMesh(Mesh* mesh);
+            void BindMesh(std::shared_ptr<Mesh> mesh);
 
             void BindPipeline(std::shared_ptr<Pipeline> pipeline);
 
-            void BindMaterial(Material* mat);
+            void BindMaterial(std::shared_ptr<Material> mat);
 
             void BindPassData(const std::shared_ptr<RenderPass> pass, std::shared_ptr<Pipeline> pipeline);
 
-            void BindPassData(const std::shared_ptr<RenderPass> pass, Material* material);
+            void BindPassData(const std::shared_ptr<RenderPass> pass, std::shared_ptr<Material> material);
 
             void BindLevelState(std::shared_ptr<Shader> shader, glm::mat4 modelMatrix, int objectID);
 

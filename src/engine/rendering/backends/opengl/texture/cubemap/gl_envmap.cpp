@@ -80,7 +80,51 @@ namespace Pulse::Engine::Rendering{
     std::shared_ptr<EnvironmentMap> GLEnvironmentMapGenerator::GenerateFromHDR(TextureSpecifications &specs, const Filesystem::Path hdrFile)
     {
         //Extract cubemap data from the hdr file
-        std::shared_ptr<Texture2D> hdrTex = Texture2D::Create(specs, hdrFile);
+
+        void* data = nullptr;
+
+        int width, height, nrChannels;
+        TextureFormat format;
+
+        if (hdrFile.Exists()) {
+            std::string file = hdrFile.ReadFile();
+            
+            stbi_set_flip_vertically_on_load(true);
+            data = stbi_loadf_from_memory(reinterpret_cast<const unsigned char*>(file.data()),
+                                            static_cast<int>(file.size()),
+                                            &width, &height, &nrChannels, 0);
+
+        } else {
+            DEBUG_ERROR("Couldn't find texture : " + hdrFile.full);
+            return nullptr;
+        }
+
+        if (data) {
+            if (nrChannels == 1){
+                format = TextureFormat::RED;
+            }
+            else if (nrChannels == 2){
+                format = TextureFormat::RG;
+            }
+            else if (nrChannels == 3){
+                format = TextureFormat::RGB;
+            }
+            else if (nrChannels == 4){
+                format = TextureFormat::RGBA;
+            }
+            else{
+                format = TextureFormat::RGB; // Default to RGB
+            }
+
+        } else {
+            DEBUG_ERROR("Couldn't load texture : " + hdrFile.full);   
+        }
+
+        specs.format = format;
+        specs.width = width;
+        specs.height = height;
+
+        std::shared_ptr<Texture2D> hdrTex = Texture2D::Create(specs, data);
 
         specs.width = hdrTex->GetWidth();
         specs.height = hdrTex->GetHeight();
@@ -249,7 +293,7 @@ namespace Pulse::Engine::Rendering{
         glGenBuffers(1, &quadVBO);
         glBindVertexArray(quadVAO);
         glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);

@@ -287,17 +287,17 @@ namespace Pulse::Editor::Core{
 
             imguiInitialized = true;
         }
+            
+        Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
 
         // Wait for viewport size to be initialized
         if(!renderPassesInitialized && viewport->GetViewportSize() != glm::vec2(50,50)){
-            
-            Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
-
+        
             /// Outline mask pass
 
             Rendering::FramebufferSpecifications fbOutlineMaskSpecs;
             fbOutlineMaskSpecs.hasColor = true;
-            fbOutlineMaskSpecs.hasDepth = false;
+            fbOutlineMaskSpecs.hasDepth = true;
             fbOutlineMaskSpecs.colorSpecs = {};
             fbOutlineMaskSpecs.width = viewport->GetViewportSize().x;
             fbOutlineMaskSpecs.height = viewport->GetViewportSize().y;
@@ -307,15 +307,14 @@ namespace Pulse::Editor::Core{
             std::shared_ptr<Rendering::Shader> outlineMaskShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/outline_mask");
             
             Rendering::PipelineSpecifications outlineMaskPipelineSpecs;
-            outlineMaskPipelineSpecs.depthTest = false;
             outlineMaskPipelineSpecs.shader = outlineMaskShader;
             outlineMaskPipelineSpecs.debugName = "OutlineMaskPipeline";
             outlineMaskPipelineSpecs.vertexLayout = {
-                {"aPos",Rendering::ShaderDataType::Vec3,0},
-                {"aNormal",Rendering::ShaderDataType::Vec3,1},
-                {"aColor",Rendering::ShaderDataType::Vec4,2},
-                {"aTexCoord",Rendering::ShaderDataType::Vec2,3},
-                {"aTangent",Rendering::ShaderDataType::Vec2,4}
+                {"aPos", Rendering::ShaderDataType::Vec3, 0},
+                {"aTexCoord", Rendering::ShaderDataType::Vec2, 1},
+                {"aNormal", Rendering::ShaderDataType::Vec3, 2},
+                {"aColor", Rendering::ShaderDataType::Vec4, 3},
+                {"aTangent", Rendering::ShaderDataType::Vec3, 4}
             };
             std::shared_ptr<Rendering::Pipeline> outlineMaskPipeline = Rendering::Pipeline::Create(outlineMaskPipelineSpecs);
 
@@ -372,13 +371,18 @@ namespace Pulse::Editor::Core{
 
             Rendering::DrawCommand cmd;
             cmd.fullscreenTri = true;
-            cmd.material = outlineMaterial.get();
+            cmd.material = outlineMaterial;
 
             renderer->AddCommands({cmd}, {"EditorOutlinePass"});
 
             for(auto model : Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->models)
                 model.second->Update();
+
+            renderPassesInitialized = true;
         }
+        
+        if(selectedActor)
+            renderer->GetRenderPass("EditorOutlineMaskPass")->customUniforms.emplace("selectedObjID", selectedActor->GetID().GetAsInt());;
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();

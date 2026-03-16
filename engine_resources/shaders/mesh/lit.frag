@@ -38,22 +38,29 @@ uniform bool masked;
 #define CASCADES_PER_LIGHT 3
 #define NUM_CASCADES (MAX_DIRECTIONAL_LIGHTS * CASCADES_PER_LIGHT)
 
-uniform sampler2DShadow shadow_dirShadowMaps[NUM_CASCADES];
 uniform mat4 shadow_dirLightSpaceMatrices[NUM_CASCADES];
 uniform float shadow_cascadeSplits[NUM_CASCADES];
 
-uniform sampler2DShadow shadow_spotShadowMaps[10];
 uniform mat4 shadow_spotLightSpaceMatrices[10];
 
-uniform samplerCubeArrayShadow shadow_pointShadowMapArray;
 uniform float shadow_pointLightFarPlanes[10];
+
+layout(binding = 0) uniform sampler2D albedo;
+layout(binding = 1) uniform sampler2D metallicMap;
+layout(binding = 2) uniform sampler2D roughnessMap;
+layout(binding = 3) uniform sampler2D normalMap;
+
+layout(binding = 4) uniform samplerCube ibl_irradianceMap;
+layout(binding = 5) uniform samplerCube ibl_prefilteredEnvMap;
+layout(binding = 6) uniform sampler2D ibl_brdfLUT;
+
+layout(binding = 10) uniform sampler2DShadow shadow_dirShadowMaps[NUM_CASCADES];
+layout(binding = 20) uniform sampler2DShadow shadow_spotShadowMaps[10];
+
+layout(binding = 30) uniform samplerCubeArrayShadow shadow_pointShadowMapArray;
 
 // PBR values
 const float PI = 3.141592653589793;
-uniform sampler2D albedo;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D normalMap;
 uniform float metallic;
 uniform float roughness;
 uniform float ambientIntensity;
@@ -65,12 +72,6 @@ vec3 gridSamplingDisk[20] = vec3[](
     vec3(1,0,1), vec3(-1,0,1), vec3(1,0,-1), vec3(-1,0,-1),
     vec3(0,1,1), vec3(0,-1,1), vec3(0,-1,-1), vec3(0,1,-1)
 );
-
-// IBL
-
-uniform samplerCube ibl_irradianceMap;          // diffuse IBL
-uniform samplerCube ibl_prefilteredEnvMap;      // specular mipmapped env map
-uniform sampler2D   ibl_brdfLUT;                // 2D BRDF integration LUT
 
 uniform bool useEnvReflections;
 

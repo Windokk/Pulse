@@ -45,8 +45,8 @@ namespace Pulse::Engine::Rendering{
             cmd.indexCount  = m_Submeshes[i].indexCount;
             cmd.vertexCount = m_Submeshes[i].vertexCount;
 
-            cmd.mesh        = this;
-            cmd.material    = mats[i].get();
+            cmd.mesh        = shared_from_this();
+            cmd.material    = mats[i];
             cmd.modelMatrix = tr->GetTransformMatrix();
             cmd.objectID    = tr->parent->GetID().GetAsInt();
             cmd.modelID     = modelID;

@@ -10,6 +10,7 @@
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/lighting/light_manager.hpp"
 #include "engine/rendering/texture/cubemap/envmap.hpp"
+#include "engine/rendering/lighting/shadow_manager.hpp"
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
@@ -79,9 +80,9 @@ namespace Pulse::Engine::Rendering{
         return version ? reinterpret_cast<const char*>(version) : "Unknown";
     }
 
-    void GLRendererAPI::BindMesh(Mesh *mesh)
+    void GLRendererAPI::BindMesh(std::shared_ptr<Mesh> mesh)
     {
-        GLMesh* glMesh = static_cast<GLMesh*>(mesh);
+        std::shared_ptr<GLMesh> glMesh = std::static_pointer_cast<GLMesh>(mesh);
         glBindVertexArray(glMesh->GetVAO());
     }
 
@@ -91,9 +92,9 @@ namespace Pulse::Engine::Rendering{
         glPipeline->Bind();
     }
 
-    void GLRendererAPI::BindMaterial(Material *mat)
+    void GLRendererAPI::BindMaterial(std::shared_ptr<Material> mat)
     {
-        GLMaterial* glMat = static_cast<GLMaterial*>(mat);
+        std::shared_ptr<GLMaterial> glMat = std::static_pointer_cast<GLMaterial>(mat);
         glMat->Bind();
     }
 
@@ -151,7 +152,7 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    void GLRendererAPI::BindPassData(const std::shared_ptr<RenderPass> pass, Material* material)
+    void GLRendererAPI::BindPassData(const std::shared_ptr<RenderPass> pass, std::shared_ptr<Material> material)
     {
         for (auto& [name, texture] : pass->customSamplers){
             material->SetTextureParameter(name, texture);
@@ -171,20 +172,11 @@ namespace Pulse::Engine::Rendering{
 
         if(it != shader->GetActiveUniformsMap().end() && level->skybox){
             //Bind skybox data
-            glActiveTexture(GL_TEXTURE0 + shader->GetActiveSamplers().size() - 3);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, level->skybox->GetEnvMap()->GetIrradiance()->GetHandle());
+            glBindTextureUnit(shader->GetActiveSamplersMap().find("ibl_irradianceMap")->second.binding, level->skybox->GetEnvMap()->GetIrradiance()->GetHandle());
 
-            shader->SetInt("ibl_irradianceMap", shader->GetActiveSamplers().size() - 3);
+            glBindTextureUnit(shader->GetActiveSamplersMap().find("ibl_prefilteredEnvMap")->second.binding, level->skybox->GetEnvMap()->GetPrefilter()->GetHandle());
 
-            glActiveTexture(GL_TEXTURE0 + shader->GetActiveSamplers().size() - 2);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, level->skybox->GetEnvMap()->GetPrefilter()->GetHandle());
-
-            shader->SetInt("ibl_prefilteredEnvMap", shader->GetActiveSamplers().size() - 2);
-
-            glActiveTexture(GL_TEXTURE0 + shader->GetActiveSamplers().size() - 1);
-            glBindTexture(GL_TEXTURE_2D, level->skybox->GetEnvMap()->GetBRDFLUT()->GetHandle());
-
-            shader->SetInt("ibl_brdfLUT", shader->GetActiveSamplers().size() - 1);
+            glBindTextureUnit(shader->GetActiveSamplersMap().find("ibl_brdfLUT")->second.binding, level->skybox->GetEnvMap()->GetBRDFLUT()->GetHandle());
         }
 
         shader->SetMat4("model", modelMatrix);
@@ -232,6 +224,8 @@ namespace Pulse::Engine::Rendering{
             BindPassData(pass, pipeline);
         }
         else{
+            if(command.material->GetRecieveShadows())
+                Core::GetEngine().GetRenderer()->GetShadowManager()->BindShadowMaps(command.material);
             BindPassData(pass, command.material);
             BindMaterial(command.material);
         }

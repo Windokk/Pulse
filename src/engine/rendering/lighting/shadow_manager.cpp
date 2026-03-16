@@ -46,6 +46,41 @@ namespace Pulse::Engine::Rendering{
         m_CurrentPointLightCapacity = 0;
     }
 
+    void ShadowManager::UpdatePassUniforms()
+    {
+        int passesCount = 0;
+
+        std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
+
+        for(auto& sm : m_ShadowMaps){
+            if (sm.light.type == static_cast<int>(LightType::Point))
+            {
+                passesCount++;
+            }
+            else if(sm.light.type == static_cast<int>(LightType::Spot))
+            {
+                passesCount++;
+            }
+            else if(sm.light.type == static_cast<int>(LightType::Directional))
+            {
+                for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
+                {
+                    std::string currentPassName = "ShadowPass"+std::to_string(passesCount);
+
+                    auto pass = Core::GetEngine().GetRenderer()->GetRenderPass(currentPassName);
+
+                    float splitNear = c == 0 ? cam->nearPlane : sm.cascadeSplits[c - 1];
+                    float splitFar  = sm.cascadeSplits[c];
+                    sm.lightMatrix[c] = sm.light.GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, m_DirShadowsResolution);
+
+                    pass->customUniforms["lightSpaceMatrix"] = sm.lightMatrix[c];
+
+                    passesCount++;
+                }
+            }
+        }
+    }
+
     void ShadowManager::SubmitPasses()
     {
         std::vector<std::shared_ptr<RenderPass>> passes = {};
@@ -80,6 +115,8 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<Pipeline> pointShadowPassPipeline = Pipeline::Create(pointSpecs);
         std::shared_ptr<Pipeline> spotShadowPassPipeline = Pipeline::Create(spotSpecs);
         std::shared_ptr<Pipeline> dirShadowPassPipeline = Pipeline::Create(dirSpecs);
+        
+        std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
         for (auto& sm : m_ShadowMaps)
         {
@@ -119,15 +156,13 @@ namespace Pulse::Engine::Rendering{
             }
             else if(light->type == static_cast<int>(LightType::Directional))
             {
-                std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
-
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                     sm.cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
 
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
                     std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
-                    pass->target = sm.framebuffer[0];
+                    pass->target = sm.framebuffer[c];
                     pass->clearColor = false;
                     pass->clearDepth = true;
                     pass->customPipeline = dirShadowPassPipeline;
@@ -137,7 +172,7 @@ namespace Pulse::Engine::Rendering{
                     float splitFar  = sm.cascadeSplits[c];
                     sm.lightMatrix[c] = light->GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, m_DirShadowsResolution);
 
-                    pass->customUniforms.emplace("lightSpaceMatrix", sm.lightMatrix[0]);
+                    pass->customUniforms.emplace("lightSpaceMatrix", sm.lightMatrix[c]);
 
                     passes.push_back(pass);
                 }
@@ -381,7 +416,6 @@ namespace Pulse::Engine::Rendering{
         constexpr int MAX_POINT_LIGHTS = 10;
 
         // Bind shadow textures
-        int cascadeIndex = 0;
         int spotIndex    = 0;
 
         for (const auto& sm : m_ShadowMaps)
@@ -396,26 +430,21 @@ namespace Pulse::Engine::Rendering{
             {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
-                    if (cascadeIndex >= NUM_CASCADES)
-                        break;
-
                     // Set sampler uniform
                     material->SetTextureParameter(
-                        "shadow_dirShadowMaps[" + std::to_string(cascadeIndex) + "]",
+                        "shadow_dirShadowMaps[" + std::to_string(c) + "]",
                         sm.framebuffer[c]->GetDepthAttachment()
                     );
 
                     material->SetScalarParameter(
-                        "shadow_dirLightSpaceMatrices[" + std::to_string(cascadeIndex) + "]",
+                        "shadow_dirLightSpaceMatrices[" + std::to_string(c) + "]",
                         sm.lightMatrix[c]
                     );
 
                     material->SetScalarParameter(
-                        "shadow_cascadeSplits[" + std::to_string(cascadeIndex) + "]",
+                        "shadow_cascadeSplits[" + std::to_string(c) + "]",
                         sm.cascadeSplits[c]
                     );
-
-                    ++cascadeIndex;
                 }
             }
             // Spot lights
@@ -453,7 +482,8 @@ namespace Pulse::Engine::Rendering{
         }
 
         // Bind point light cube map array
-        material->SetTextureParameter("shadow_pointShadowMapArray", m_CubeArrayTex->GetHandle());
+        if(m_CurrentPointLightCapacity)
+            material->SetTextureParameter("shadow_pointShadowMapArray", m_CubeArrayTex->GetHandle());
     }
 
     void ShadowManager::ClearAll()

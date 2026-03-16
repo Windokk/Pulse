@@ -8,6 +8,9 @@
 
 #include "engine/debugging/logger.hpp"
 
+#include "engine/core/engine.hpp"
+#include "engine/filesystem/assetID.hpp"
+
 namespace Pulse::Engine::Rendering{
 
     static GLenum ShaderSamplerTypeToOpenGL(ShaderSamplerType type)
@@ -62,17 +65,13 @@ namespace Pulse::Engine::Rendering{
 
     void GLMaterial::SetScalarParameter(const std::string &name, const NumericValue &value)
     {
-        const auto& uniforms = m_Shader->GetActiveUniforms();
+        const auto& uniforms = m_Shader->GetActiveUniformsMap();
 
-        auto it = std::find_if(uniforms.begin(), uniforms.end(),
-            [&](const UniformInfo& u)
-            {
-                return u.name == name;
-            });
+        auto it = uniforms.find(name);
 
         if (it == uniforms.end())
         {
-            DEBUG_LOG("Tried setting scalar parameter '{}' but it does not exist in shader", name);
+            DEBUG_LOG("Tried setting scalar parameter \'",name,"\' but it does not exist in shader : ", m_Shader->GetVertexShaderName());
             return;
         }
 
@@ -81,17 +80,13 @@ namespace Pulse::Engine::Rendering{
 
     void GLMaterial::SetTextureParameter(const std::string& name, uint64_t texture)
     {
-        const auto& samplers = m_Shader->GetActiveSamplers();
+        const auto& samplers = m_Shader->GetActiveSamplersMap();
 
-        auto it = std::find_if(samplers.begin(), samplers.end(),
-            [&](const SamplerInfo& s)
-            {
-                return s.name == name;
-            });
+        auto it = samplers.find(name);
 
         if (it == samplers.end())
         {
-            DEBUG_LOG("Tried setting texture parameter '{}' but it does not exist in shader", name);
+            DEBUG_LOG("Tried setting texture parameter \'",name,"\' but it does not exist in shader : ", m_Shader->GetVertexShaderName());
             return;
         }
 
@@ -121,16 +116,13 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<GLShader> glShader = std::static_pointer_cast<GLShader>(m_Shader);
         glShader->Bind();
 
+        std::unordered_map<std::string, Pulse::Engine::Rendering::SamplerInfo> samplers = glShader->GetActiveSamplersMap();
+
         for (auto& [name, texture] : m_SamplersParameters)
         {
-            glActiveTexture(GL_TEXTURE0 + textureSlot);
-            glBindTexture(GL_TEXTURE_2D, texture);
-
-            m_Shader->SetInt(name, textureSlot);
-
-            textureSlot++;
+            glBindTextureUnit(samplers.at(name).binding, texture);
         }
-
+        
         for (auto& [name, value] : m_ScalarParameters)
         {
             std::visit([&](auto&& v)

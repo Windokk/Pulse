@@ -141,16 +141,37 @@ namespace Pulse::Engine::Rendering{
 
                 if (dataType != ShaderDataType::None)
                 {
-                    UniformInfo info{
-                        name,
-                        dataType,
-                        (uint32_t)size,
-                        location
-                    };
+                    if (size > 1)
+                    {
+                        for (int j = 0; j < size; j++)
+                        {
+                            std::string elementName = name + "[" + std::to_string(j) + "]";
+                            GLint elementLocation = glGetUniformLocation(m_Program, elementName.c_str());
 
-                    m_activeUniforms.push_back(info);
-                    m_activeUniformsMap.emplace(name, info);
-                    continue;
+                            if (elementLocation == -1)
+                                continue;
+
+                            UniformInfo info{
+                                elementName,
+                                dataType,
+                                elementLocation
+                            };
+
+                            m_activeUniforms.push_back(info);
+                            m_activeUniformsMap.emplace(elementName, info);
+                        }
+                    }
+                    else
+                    {
+                        UniformInfo info{
+                            name,
+                            dataType,
+                            location
+                        };
+
+                        m_activeUniforms.push_back(info);
+                        m_activeUniformsMap.emplace(name, info);
+                    }
                 }
 
                 // -------------------------
@@ -196,15 +217,43 @@ namespace Pulse::Engine::Rendering{
 
                 if (samplerType != ShaderSamplerType::None)
                 {
-                    SamplerInfo info{
-                        name,
-                        samplerType,
-                        (uint32_t)size,
-                        location
-                    };
+                    if (size > 1)
+                    {
+                        for (int j = 0; j < size; j++)
+                        {
+                            std::string elementName = name + "[" + std::to_string(j) + "]";
+                            GLint elementLocation = glGetUniformLocation(m_Program, elementName.c_str());
 
-                    m_ActiveSamplers.push_back(info);
-                    m_ActiveSamplersMap.emplace(name, info);
+                            if (elementLocation == -1)
+                                continue;
+
+                            GLint binding = -1;
+                            glGetUniformiv(m_Program, elementLocation, &binding);
+
+                            SamplerInfo info{
+                                elementName,
+                                samplerType,
+                                binding
+                            };
+
+                            m_ActiveSamplers.push_back(info);
+                            m_ActiveSamplersMap.emplace(elementName, info);
+                        }
+                    }
+                    else
+                    {
+                        GLint binding = -1;
+                        glGetUniformiv(m_Program, location, &binding);
+
+                        SamplerInfo info{
+                            name,
+                            samplerType,
+                            binding
+                        };
+
+                        m_ActiveSamplers.push_back(info);
+                        m_ActiveSamplersMap.emplace(name, info);
+                    }
                 }
             }
 

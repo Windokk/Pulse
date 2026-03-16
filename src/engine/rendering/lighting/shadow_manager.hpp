@@ -61,8 +61,33 @@ namespace Pulse::Engine::Rendering {
         int SPOT_SHADOW_BASE_UNIT  = 20; // MAX_SPOT_LIGHTS units
         int POINT_SHADOW_UNIT      = 30; // 1 cube map array
 
-        const int GetShadowMapsCount() const { return m_ShadowMaps.size(); }
+        const int GetShadowMapsCount() const {
+            {
+                int count = 0;
 
+                for (const auto& map : m_ShadowMaps)
+                {
+                    switch (map.light.type)
+                    {
+                        case LightType::Directional:
+                            count += CASCADES_PER_LIGHT;
+                            break;
+
+                        case LightType::Spot:
+                            count += 1;
+                            break;
+
+                        case LightType::Point:
+                            count += 1; // cubemap array layer
+                            break;
+                    }
+                }
+
+                return count;
+            } 
+        }
+
+        void UpdatePassUniforms();
         
     private:
 

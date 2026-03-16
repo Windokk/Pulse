@@ -1,7 +1,9 @@
 #include "light_manager.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include "engine/core/engine.hpp"
 #include "engine/core/platform/iwindow.hpp"

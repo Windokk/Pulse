@@ -60,11 +60,12 @@ namespace Pulse::Engine::Serialization{
 
             Rendering::VertexLayout vertexLayout = {
                 {"aPos", Rendering::ShaderDataType::Vec3, 0},
-                {"aNormal", Rendering::ShaderDataType::Vec3, 1},
-                {"aColor", Rendering::ShaderDataType::Vec4, 2},
-                {"aTexCoord", Rendering::ShaderDataType::Vec2, 3},
+                {"aTexCoord", Rendering::ShaderDataType::Vec2, 1},
+                {"aNormal", Rendering::ShaderDataType::Vec3, 2},
+                {"aColor", Rendering::ShaderDataType::Vec4, 3},
                 {"aTangent", Rendering::ShaderDataType::Vec3, 4}
             };
+
             std::shared_ptr<Material> mat = Material::Create(shader, Pipeline::Create({shader, vertexLayout}), data["recievesShadows"], renderMode);
 
             for(auto& uniform : data["uniforms"]){
