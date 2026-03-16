@@ -4,17 +4,36 @@
 
 namespace Pulse::Engine::Rendering{
 
-    class GLTexture : public Texture{
+    struct GLTextureSpec{
+        
+        unsigned int wrapModeS;
+        unsigned int wrapModeT;
+        unsigned int wrapModeR;
+
+        unsigned int minFilter;
+        unsigned int magFilter;
+
+        unsigned int internalFormat;
+        unsigned int format;
+        
+        unsigned int compareFunc;
+
+        static GLTextureSpec FromTextureSpecifications(const TextureSpecifications& spec);
+    };
+
+    class GLTexture2D : public Texture2D{
 
         public:
 
-            GLTexture(TextureSpecifications& spec, const void* data);
+            GLTexture2D(TextureSpecifications& specs, const void* data);
 
             void Bind(uint32_t slot = 0) const override;
 
+            bool IsValid() const override;
+
             uint32_t GetHandle() const override { return ID; }
 
-            ~GLTexture();
+            ~GLTexture2D();
 
         private:
 

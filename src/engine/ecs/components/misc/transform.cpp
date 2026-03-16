@@ -6,6 +6,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/ecs/components/rendering/light_component.hpp"
+#include "engine/rendering/lighting/shadow_manager.hpp"
 
 #include "engine/core/engine.hpp"
 
@@ -77,10 +78,6 @@ namespace Pulse::Engine::ECS::Components{
 			}
 		}
 
-		if(oldpos != position){
-			Core::GetEngine().GetRenderer()->ReorderDrawList();
-		}
-
 		UpdateMeshReferencesInLevel();
 
 		if(updateDirty)
@@ -146,10 +143,6 @@ namespace Pulse::Engine::ECS::Components{
 			for(auto& light : parent->GetComponents<Light>()){
 				light->SetPosition(glm::vec3(this->position.x, this->position.y, this->position.z));
 			}
-		}
-		
-		if(deltaPosition.z != 0){
-			Core::GetEngine().GetRenderer()->ReorderDrawList();
 		}
 
 		UpdateMeshReferencesInLevel();

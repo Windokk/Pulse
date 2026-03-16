@@ -4,10 +4,13 @@
 
 #include "engine/rendering/backends/opengl/shader/gl_shader.hpp"
 
+#include "engine/rendering/renderer/renderer.hpp"
+#include "engine/debugging/logger.hpp"
+
 namespace Pulse::Engine::Rendering {
     std::shared_ptr<Shader> Shader::Create(const Filesystem::Path &vertexPath, const Filesystem::Path &fragmentPath, const Filesystem::Path &geometryPath)
     {
-        switch (Core::GetEngine().GetRenderer()->GetRendererAPI())
+        switch (Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())
         {
             case RendererAPI::API::OpenGL:
                 return std::make_shared<GLShader>(vertexPath, fragmentPath, geometryPath);
@@ -22,6 +25,7 @@ namespace Pulse::Engine::Rendering {
                 return std::make_shared<DX12Shader>(vertexPath, fragmentPath, geometry);*/
         }
 
-        throw std::runtime_error("Unknown RendererAPI");
+        DEBUG_ERROR("Invalid Renderer API during shader creation : ", vertexPath.full);
+        return nullptr;
     }
 }

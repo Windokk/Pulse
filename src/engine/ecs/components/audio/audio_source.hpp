@@ -6,6 +6,8 @@
 
 #include "engine/rendering/utils.hpp"
 
+#include "engine/core/attributes.hpp"
+
 namespace Pulse::Engine::ECS::Components
 {
     class CLASS() AudioSource : public Component {

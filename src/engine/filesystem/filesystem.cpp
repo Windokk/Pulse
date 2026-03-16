@@ -96,7 +96,7 @@ namespace Pulse::Engine::Filesystem{
 
         if(IsDirectory()){
             DEBUG_WARNING("Tried reading a folder : ",full);
-            return;
+            return "";
         }
 
         std::string filepath = full;

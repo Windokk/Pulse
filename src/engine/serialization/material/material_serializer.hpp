@@ -1,8 +1,10 @@
 #pragma once
 
-#include "engine/rendering/material/material.hpp"
-
 #include "engine/filesystem/filesystem.hpp"
+
+namespace Pulse::Engine::Rendering{
+    class Material;
+}
 
 namespace Pulse::Engine::Serialization{
 

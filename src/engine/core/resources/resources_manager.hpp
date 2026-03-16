@@ -9,7 +9,7 @@
 
 namespace Pulse::Engine::Rendering{
     class Mesh;
-    class Texture;
+    class Texture2D;
     class Shader;
     class Material;
 }
@@ -31,11 +31,11 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Mesh
             std::shared_ptr<Rendering::Mesh> LoadModel(const std::string &pathInProject, const Filesystem::Path &path);
             
-            /// @brief Loads an image from a given path and adds it to the project's loaded images list
-            /// @param name The name of the image in the project
-            /// @param path The normalized path at which the image is located (filename + extension expected)
-            /// @return A shared pointer to an Image
-            std::shared_ptr<Rendering::Image> LoadImage(const std::string &pathInProject, const Filesystem::Path &path);
+            /// @brief Loads a texture2D from a given path and adds it to the project's loaded textures list
+            /// @param name The name of the texture2D in the project
+            /// @param path The normalized path at which the texture2D is located (filename + extension expected)
+            /// @return A shared pointer to a Texture2D
+            std::shared_ptr<Rendering::Texture2D> LoadTexture(const std::string &pathInProject, const Filesystem::Path &path);
             
             std::shared_ptr<Rendering::EnvironmentMap> LoadEnvMap(const std::string &pathInProject, const Filesystem::Path &path);
 
@@ -74,10 +74,10 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Shader
             std::shared_ptr<Rendering::Shader> GetShader(std::string pathInProject);
 
-            /// @brief Retrieves an image from the project's loaded images lists (Tries to load it if it isn't loaded yet)
-            /// @param name The name of the image in the project
-            /// @return A shared pointer to an Image
-            std::shared_ptr<Rendering::Image> GetImage(std::string pathInProject);
+            /// @brief Retrieves a texture2D from the project's loaded textures lists (Tries to load it if it isn't loaded yet)
+            /// @param name The name of the texture2D in the project
+            /// @return A shared pointer to a Texture
+            std::shared_ptr<Rendering::Texture2D> GetTexture(std::string pathInProject);
 
             std::shared_ptr<Rendering::EnvironmentMap> GetEnvMap(std::string pathInProject);
 
@@ -100,7 +100,7 @@ namespace Pulse::Engine::Core::Resources{
         private:
 
             std::unordered_map<std::string, std::shared_ptr<Rendering::Mesh>> meshes;
-            std::unordered_map<std::string, std::shared_ptr<Rendering::Image>> images;
+            std::unordered_map<std::string, std::shared_ptr<Rendering::Texture2D>> textures;
             std::unordered_map<std::string, std::shared_ptr<Rendering::EnvironmentMap>> envmaps;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Shader>> shaders;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Material>> materials;

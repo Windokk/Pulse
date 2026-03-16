@@ -4,8 +4,9 @@
 
 namespace Pulse::Engine::Rendering{
     class Shader;
-
     class Material;
+    class EnvironmentMap;
+    class Cubemap;
 }
 
 
@@ -13,31 +14,24 @@ namespace Pulse::Engine::ECS::Objects
 {
     class Skybox : public LevelObject{
 
-            public:
+        public:
 
-                Skybox(std::shared_ptr<Rendering::EnvironmentMap> envMap, std::shared_ptr<Rendering::Shader> shader);
+            Skybox(std::shared_ptr<Rendering::EnvironmentMap> envMap, std::shared_ptr<Rendering::Material> material);
 
-                void SetCubemap(std::shared_ptr<Rendering::Cubemap> cubemap);
+            void SetEnvironmentMap(std::shared_ptr<Rendering::EnvironmentMap> envMap);
 
-                void SetShader(std::shared_ptr<Rendering::Shader> shader);
+            void SetMaterial(std::shared_ptr<Rendering::Material> material);
 
-                void Draw(glm::mat4 view, glm::mat4 projection);
+            void Destroy() override;
 
-                void Bind(std::shared_ptr<Rendering::Material> mat);
+            std::shared_ptr<Rendering::EnvironmentMap> GetEnvMap() const { return m_EnvMap; }
+            std::shared_ptr<Rendering::Material> GetMaterial() const { return m_Material; }
 
-                void BindEmpty(std::shared_ptr<Rendering::Material> mat);
+        private:
 
-                void Destroy() override;
+            void CreateDrawCommands();
 
-                unsigned int GetIrradianceID();
-                unsigned int GetPrefilterID();
-                unsigned int GetBrdfLutID();
-
-                std::shared_ptr<Rendering::EnvironmentMap> envMap;
-
-
-            private:
-                std::shared_ptr<Rendering::Shader> shader;
-
+            std::shared_ptr<Rendering::EnvironmentMap> m_EnvMap;
+            std::shared_ptr<Rendering::Material> m_Material;
     };
 }

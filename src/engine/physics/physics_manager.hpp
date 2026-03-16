@@ -23,8 +23,11 @@
 #include <functional>
 
 #include "engine/rendering/utils.hpp"
+#include <glm/gtc/quaternion.hpp>
 
 #include "engine/debugging/logger.hpp"
+
+
 
 using namespace JPH;
 
@@ -209,12 +212,10 @@ namespace Pulse::Engine::Physics
     public:
         virtual void OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override
         {
-            //TODO
         }
 
         virtual void OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override
         {
-            //TODO
         }
     };
 

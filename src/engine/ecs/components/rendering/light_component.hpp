@@ -4,8 +4,13 @@
 
 #include "engine/rendering/renderer/renderer.hpp"
 
+#include "engine/core/attributes.hpp"
+
+#include "engine/rendering/lighting/light_manager.hpp"
+
 namespace Pulse::Engine::ECS::Components
 {
+    
     class CLASS() Light : public Component{
         public:
             Light(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);

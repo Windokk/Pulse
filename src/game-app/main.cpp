@@ -61,6 +61,17 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
         else if(strcmp(argv[i], "--game") == 0 && i + 1 < argc){
             mainModuleLib = argv[++i];
         }
+        else if(strcmp(argv[i], "--api") == 0 && i + 1 < argc){
+            std::string api = argv[++i];
+            if(api == "opengl")
+                settings.api = 0;
+            if(api == "vulkan")
+                settings.api = 1;
+            if(api == "dx11")
+                settings.api = 2;
+            if(api == "dx12")
+                settings.api = 3;
+        }
     }
 
     return settings;
@@ -124,34 +135,11 @@ int main(int argc, char* argv[]) {
     // Engine startup
     Engine::Core::GetEngine().Init(engineSettings);
 
-    {
-        // Scene framebuffer
-        auto fbShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
-        Rendering::FrameBuffer sceneFB(
-            Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth(),
-            Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight(),
-            fbShader,
-            true
-        );
-
-        // Main renderpasss
-        auto drawFunc = []() {
-            Engine::Core::GetEngine().GetRenderer()->DrawScene();
-        };
-
-        Engine::Core::GetEngine().GetRenderer()->AddRenderPass(
-            Rendering::RenderPassType::Scene,
-            drawFunc,
-            std::make_shared<Rendering::FrameBuffer>(sceneFB),
-            true,
-            Rendering::BlendMode::Normal
-        );
-    }
-
+    
     Engine::Core::GetEngine().SetPlayMode(true);
 
     //Main Loop
-    while (!Engine::Core::GetEngine().shouldEnd()) {
+    while (!Engine::Core::GetEngine().ShouldEnd()) {
         if (!Engine::Core::GetEngine().Run()) break;
     }
 

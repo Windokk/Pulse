@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace Pulse::Engine::Core::Platform {
 
@@ -29,7 +30,7 @@ namespace Pulse::Engine::Core::Platform {
         virtual ~IWindow() = default;
 
         virtual void Init(const std::string& title, const int& width, const int& height, 
-                            const bool& fullscreen, const int& vsync) = 0;
+                            const bool& fullscreen, const int& vsync, const uint32_t& api) = 0;
 
         virtual void* GetNativeHandle() const = 0;
         virtual void PollEvents() = 0;

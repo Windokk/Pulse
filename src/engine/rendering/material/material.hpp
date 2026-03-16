@@ -3,17 +3,22 @@
 #include <variant>
 #include <stdexcept>
 #include <memory>
+#include <optional>
+
+#include <glm/glm.hpp>
+
+#include "engine/filesystem/filesystem.hpp"
 
 namespace Pulse::Engine::Rendering {
 
     class Shader;
-
+    class Pipeline;
     class CommandBuffer;
 
-    enum RenderMode{
-        OPAQUE,
-        TRANSLUCENT,
-        MASKED
+    enum class Opacity{
+        Opaque,
+        Masked,
+        Translucent
     };
 
     using NumericValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
@@ -36,25 +41,28 @@ namespace Pulse::Engine::Rendering {
 
             virtual uint32_t GetTexturesCount() const = 0;
 
-            virtual void Bind(CommandBuffer& cmd) = 0;
+            std::shared_ptr<Shader> GetShader() const { return m_Shader; }
+            std::shared_ptr<Pipeline> GetPipeline() const { return m_Pipeline; }
 
             void SetAssetID(Filesystem::AssetID assetID) {
-                this->assetID = assetID;
+                this->m_AssetID = assetID;
             }
 
             Filesystem::AssetID GetAssetID() {
-                return assetID;
+                return m_AssetID;
             }
+
+            static std::shared_ptr<Material> Create(std::shared_ptr<Shader> shader, std::shared_ptr<Pipeline> pipeline, bool receivesShadows = true, Opacity opacity = Opacity::Opaque);
 
         protected:
 
-            Filesystem::AssetID assetID;
-
-        public:
-
-            std::shared_ptr<Shader> shader;
-            bool receivesShadows = false;
-            RenderMode renderMode = OPAQUE;
+            std::shared_ptr<Shader> m_Shader;
+            std::shared_ptr<Pipeline> m_Pipeline;
+            bool m_ReceivesShadows = false;
+            Opacity m_Opacity;
+            std::unordered_map<std::string, NumericValue> m_ScalarParameters;
+            std::unordered_map<std::string, uint32_t> m_SamplersParameters;
+            Filesystem::AssetID m_AssetID;
     };
 
 }

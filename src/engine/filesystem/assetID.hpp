@@ -29,7 +29,7 @@ namespace Pulse::Engine::Filesystem
 
             
             bool operator==(const AssetID& other) const { return packed == other.packed; }
-            bool operator!=(const AssetID& other) const { return !(*this == other); }
+            bool operator!=(const AssetID& other) const { return this->packed != other.packed; }
             bool operator<(const AssetID& other) const { return packed < other.packed; }
 
             

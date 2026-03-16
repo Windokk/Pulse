@@ -13,7 +13,7 @@ namespace Pulse::Game::Core::Platform {
     class GLFWWindow : public Engine::Core::Platform::IWindow {
     public:
         void Init(const std::string& title, const int& width, const int& height, 
-                    const bool& fullscreen, const int& vsync) override;
+                    const bool& fullscreen, const int& vsync, const uint32_t& api) override;
 
         void SetGLFWInputManager(GLFWInput* inputManager);
 

@@ -6,6 +6,8 @@
 
 #include "camera.reflection.hpp"
 
+#include "engine/core/platform/iplatform.hpp"
+
 #include "engine/core/engine.hpp"
 #include <glm/gtx/string_cast.hpp>
 

@@ -1,16 +1,20 @@
 #include "framebuffer.hpp"
 
+#include <memory>
+
 #include "engine/core/engine.hpp"
+
+#include "engine/rendering/renderer/renderer.hpp"
 
 #include "engine/rendering/backends/opengl/framebuffer/gl_framebuffer.hpp"
 
 namespace Pulse::Engine::Rendering{
-    std::shared_ptr<Framebuffer> Framebuffer::Create(const FramebufferSpecifications& spec)
+    std::shared_ptr<Framebuffer> Framebuffer::Create(const FramebufferSpecifications& specs)
     {
-        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
+        switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())
         {
             case RendererAPI::API::OpenGL:
-                return std::make_shared<GLFramebuffer>(spec);
+                return std::make_shared<GLFramebuffer>(specs);
 
             /*case RendererAPI::API::Vulkan:
                 return std::make_shared<VKFramebuffer>(spec);

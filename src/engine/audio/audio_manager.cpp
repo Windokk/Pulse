@@ -11,6 +11,8 @@
 #include "engine/core/engine.hpp"
 #include "engine/debugging/logger.hpp"
 
+#include "engine/ecs/components/audio/audio_source.hpp"
+
 
 namespace Pulse::Engine::Audio
 {

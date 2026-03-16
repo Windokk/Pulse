@@ -2,6 +2,8 @@
 
 #include "editor/gui/main_window.hpp"
 
+#include "engine/projects/project.hpp"
+
 namespace Pulse::Editor::GUI{
 
     const ImGuiTableSortSpecs* Asset::s_current_sort_specs = NULL;
@@ -238,7 +240,7 @@ namespace Pulse::Editor::GUI{
 
                             // Draw icon
                             draw_list->AddImage(
-                                (void*)(intptr_t)EditorResources::Instance().GetIconAtlas()->GetTexture()->GetID(),
+                                (void*)(intptr_t)EditorResources::Instance().GetIconAtlas()->GetTexture()->GetHandle(),
                                 icon_min,
                                 icon_max,
                                 item_data->icon->uv0,
@@ -376,7 +378,7 @@ namespace Pulse::Editor::GUI{
 
         auto* assetManager = engine.GetAssetIDManager();
         if (assetManager)
-            /// @todo recreate assets database, resources, etc...
+            /// @todo modify assets database, resources, etc...
             //assetManager->OnAssetRenamed(oldFile, newPath);
 
         renamingID = {};

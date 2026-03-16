@@ -3,6 +3,8 @@
 
 #include "icon_atlas.hpp"
 
+#include <stb/stb_image.h>
+
 namespace Pulse::Editor::GUI {
     
     bool IconAtlas::Build(const std::vector<std::string>& iconPaths, int atlasSize)
@@ -84,20 +86,17 @@ namespace Pulse::Editor::GUI {
             stbi_image_free(img);
 
         // Create engine texture
-        GLenum filters[2] = { GL_LINEAR, GL_LINEAR };
-        GLenum wraps[2]   = { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE };
 
-        texture = std::make_shared<Engine::Rendering::Texture>(
-            width,
-            height,
-            4,
-            filters,
-            wraps,
-            GL_RGBA8,
-            GL_RGBA,
-            atlasPixels.data(),
-            true
-        );
+        Engine::Rendering::TextureSpecifications specs;
+
+        specs.wrapS = Engine::Rendering::TextureWrap::ClampEdge;
+        specs.wrapT = Engine::Rendering::TextureWrap::ClampEdge;
+        specs.minFilter = Engine::Rendering::TextureFilter::Linear;
+        specs.magFilter = Engine::Rendering::TextureFilter::Linear;
+        specs.width = width;
+        specs.height = height;
+
+        texture = Engine::Rendering::Texture2D::Create(specs, atlasPixels.data());
 
         return true;
     }

@@ -1,6 +1,7 @@
 file(GLOB_RECURSE ENGINE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib/glad.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/rendering/backends/glad/src/gl.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/rendering/backends/glad/src/vulkan.c
   ${CMAKE_SOURCE_DIR}/submodules/ufbx/ufbx.c
 )
 

@@ -8,20 +8,70 @@
 
 #include <stb/stb_image.h>
 
+#include "engine/core/resources/resources_manager.hpp"
+
+#include "engine/rendering/backends/opengl/shader/gl_shader.hpp"
+
 namespace Pulse::Engine::Rendering{
 
     std::shared_ptr<EnvironmentMap> GLEnvironmentMapGenerator::GenerateFromFiles(TextureSpecifications &specs, const std::vector<Filesystem::Path> imageFiles)
     {
-        std::shared_ptr<Cubemap> cubemap = Cubemap::Create(specs, imageFiles);
+        if(imageFiles.size() < 6)
+            return nullptr;
+
+        std::array<Filesystem::Path, 6> files = {imageFiles[0], imageFiles[1], imageFiles[2], imageFiles[3], imageFiles[4], imageFiles[5]};
+        std::shared_ptr<Cubemap> cubemap = Cubemap::Create(specs, files);
 
         std::shared_ptr<Cubemap> irradianceMap;
         std::shared_ptr<Cubemap> prefilterMap;
-        std::shared_ptr<Texture> brdfLUT;
+        std::shared_ptr<Texture2D> brdfLUT;
 
         GenerateGeometry();
 
+        std::array<unsigned char*, 6> dataArray = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
+        TextureSpecifications texSpecs;
+
+        texSpecs.magFilter = TextureFilter::Linear;
+        texSpecs.minFilter = TextureFilter::Linear;
+        texSpecs.wrapS = TextureWrap::ClampBorder;
+        texSpecs.wrapT = TextureWrap::ClampBorder;
+        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.generateMips = false;
+        texSpecs.format = TextureFormat::RGB;
+        texSpecs.width = 32;
+        texSpecs.height = 32;
+
+        irradianceMap = Cubemap::Create(texSpecs, dataArray);
+
         CreateIrradiance(irradianceMap, cubemap);
+
+        texSpecs.magFilter = TextureFilter::Linear;
+        texSpecs.minFilter = TextureFilter::Linear;
+        texSpecs.wrapS = TextureWrap::ClampBorder;
+        texSpecs.wrapT = TextureWrap::ClampBorder;
+        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.generateMips = true;
+        texSpecs.format = TextureFormat::RGB;
+        texSpecs.width = 128;
+        texSpecs.height = 128;
+
+        prefilterMap = Cubemap::Create(texSpecs, dataArray);
+
         CreatePrefilter(prefilterMap, cubemap);
+
+        texSpecs.magFilter = TextureFilter::Linear;
+        texSpecs.minFilter = TextureFilter::Linear;
+        texSpecs.wrapS = TextureWrap::ClampBorder;
+        texSpecs.wrapT = TextureWrap::ClampBorder;
+        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.generateMips = false;
+        texSpecs.format = TextureFormat::RG;
+        texSpecs.width = 512;
+        texSpecs.height = 512;
+
+        brdfLUT = Texture2D::Create(texSpecs, nullptr);
+
         CreateBRDFLUT(brdfLUT);
 
         return std::make_shared<GLEnvironmentMap>(specs, cubemap, irradianceMap, prefilterMap, brdfLUT);
@@ -30,13 +80,15 @@ namespace Pulse::Engine::Rendering{
     std::shared_ptr<EnvironmentMap> GLEnvironmentMapGenerator::GenerateFromHDR(TextureSpecifications &specs, const Filesystem::Path hdrFile)
     {
         //Extract cubemap data from the hdr file
-        std::shared_ptr<Texture> hdrTex = Texture::Create(specs, hdrFile);
+        std::shared_ptr<Texture2D> hdrTex = Texture2D::Create(specs, hdrFile);
 
         specs.width = hdrTex->GetWidth();
         specs.height = hdrTex->GetHeight();
         specs.format = hdrTex->GetSpecifications().format;
 
-        std::shared_ptr<Shader> equirectangularToCubemapShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/equirectToCubemap");
+        std::shared_ptr<Shader> equirectangularToCubemapShaderAbstract = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/equirectToCubemap");
+
+        std::shared_ptr<GLShader> equirectangularToCubemapShader = std::static_pointer_cast<GLShader>(equirectangularToCubemapShaderAbstract);
 
         std::array<unsigned char*, 6> dataArray = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
         std::shared_ptr<Cubemap> cubemap = Cubemap::Create(specs, dataArray);
@@ -44,7 +96,7 @@ namespace Pulse::Engine::Rendering{
             if(!equirectangularToCubemapShader)
             {
                 DEBUG_ERROR("HDR cubemap couldn't be created because shader \"shaders/ibl/equirectToCubemap\" is not loaded !");
-                return;
+                return nullptr;
             }
 
             glGenFramebuffers(1, &captureFBO);
@@ -77,12 +129,52 @@ namespace Pulse::Engine::Rendering{
     
         std::shared_ptr<Cubemap> irradianceMap;
         std::shared_ptr<Cubemap> prefilterMap;
-        std::shared_ptr<Texture> brdfLUT;
+        std::shared_ptr<Texture2D> brdfLUT;
 
         GenerateGeometry();
 
+        TextureSpecifications texSpecs;
+
+        texSpecs.magFilter = TextureFilter::Linear;
+        texSpecs.minFilter = TextureFilter::Linear;
+        texSpecs.wrapS = TextureWrap::ClampBorder;
+        texSpecs.wrapT = TextureWrap::ClampBorder;
+        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.generateMips = false;
+        texSpecs.format = TextureFormat::RGB;
+        texSpecs.width = 32;
+        texSpecs.height = 32;
+
+        irradianceMap = Cubemap::Create(texSpecs, dataArray);
+
         CreateIrradiance(irradianceMap, cubemap);
+
+        texSpecs.magFilter = TextureFilter::Linear;
+        texSpecs.minFilter = TextureFilter::Linear;
+        texSpecs.wrapS = TextureWrap::ClampBorder;
+        texSpecs.wrapT = TextureWrap::ClampBorder;
+        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.generateMips = true;
+        texSpecs.format = TextureFormat::RGB;
+        texSpecs.width = 128;
+        texSpecs.height = 128;
+
+        prefilterMap = Cubemap::Create(texSpecs, dataArray);
+
         CreatePrefilter(prefilterMap, cubemap);
+
+        texSpecs.magFilter = TextureFilter::Linear;
+        texSpecs.minFilter = TextureFilter::Linear;
+        texSpecs.wrapS = TextureWrap::ClampBorder;
+        texSpecs.wrapT = TextureWrap::ClampBorder;
+        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.generateMips = false;
+        texSpecs.format = TextureFormat::RG;
+        texSpecs.width = 512;
+        texSpecs.height = 512;
+
+        brdfLUT = Texture2D::Create(texSpecs, nullptr);
+
         CreateBRDFLUT(brdfLUT);
 
         return std::make_shared<GLEnvironmentMap>(specs, cubemap, irradianceMap, prefilterMap, brdfLUT);
@@ -166,29 +258,15 @@ namespace Pulse::Engine::Rendering{
 
     void GLEnvironmentMapGenerator::CreateIrradiance(std::shared_ptr<Cubemap> irradianceMap, std::shared_ptr<Cubemap> cubemap)
     {
-        std::shared_ptr<Shader> irradianceShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/irradiance");
+        std::shared_ptr<Shader> irradianceShaderAbstract = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/irradiance");
+
+        std::shared_ptr<GLShader> irradianceShader = std::static_pointer_cast<GLShader>(irradianceShaderAbstract);
 
         if(!irradianceShader)
         {
             DEBUG_ERROR("Cubemap irradiance map couldn't be created because shader \"shaders/ibl/irradiance\" is not loaded !");
             return;
         }
-        
-        std::array<unsigned char*, 6> dataArray = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-
-        TextureSpecifications specs;
-
-        specs.magFilter = TextureFilter::Linear;
-        specs.minFilter = TextureFilter::Linear;
-        specs.wrapS = TextureWrap::Clamp;
-        specs.wrapT = TextureWrap::Clamp;
-        specs.wrapR = TextureWrap::Clamp;
-        specs.generateMips = false;
-        specs.format = TextureFormat::RGB;
-        specs.width = 32;
-        specs.height = 32;
-
-        irradianceMap = Cubemap::Create(specs, dataArray);
 
         glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
@@ -215,29 +293,15 @@ namespace Pulse::Engine::Rendering{
 
     void GLEnvironmentMapGenerator::CreatePrefilter(std::shared_ptr<Cubemap> prefilterMap, std::shared_ptr<Cubemap> cubemap)
     {
-        std::shared_ptr<Shader> prefilterShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/prefilter");
+        std::shared_ptr<Shader> prefilterShaderAbstract = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/prefilter");
+
+        std::shared_ptr<GLShader> prefilterShader = std::static_pointer_cast<GLShader>(prefilterShaderAbstract);
 
         if(!prefilterShader)
         {
             DEBUG_ERROR("Cubemap prefilter map couldn't be created because shader \"shaders/ibl/equirectToCubemap\" is not loaded !");
             return;
         }
-
-        std::array<unsigned char*, 6> dataArray = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-
-        TextureSpecifications specs;
-
-        specs.magFilter = TextureFilter::Linear;
-        specs.minFilter = TextureFilter::Linear;
-        specs.wrapS = TextureWrap::Clamp;
-        specs.wrapT = TextureWrap::Clamp;
-        specs.wrapR = TextureWrap::Clamp;
-        specs.generateMips = true;
-        specs.format = TextureFormat::RGB;
-        specs.width = 128;
-        specs.height = 128;
-
-        prefilterMap = Cubemap::Create(specs, dataArray);
 
         prefilterShader->Bind();
         prefilterShader->SetInt("environmentMap", 0);
@@ -270,29 +334,17 @@ namespace Pulse::Engine::Rendering{
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void GLEnvironmentMapGenerator::CreateBRDFLUT(std::shared_ptr<Texture> brdfLUT)
+    void GLEnvironmentMapGenerator::CreateBRDFLUT(std::shared_ptr<Texture2D> brdfLUT)
     {
-        std::shared_ptr<Shader> brdfShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/brdf");
+        std::shared_ptr<Shader> brdfShaderAbstract = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/brdf");
+
+        std::shared_ptr<GLShader> brdfShader = std::static_pointer_cast<GLShader>(brdfShaderAbstract);
 
         if(!brdfShader)
         {
             DEBUG_ERROR("Cubemap brdf lookup table couldn't be created because shader \"shaders/ibl/brdf\" is not loaded !");
             return;
         }
-
-        TextureSpecifications specs;
-
-        specs.magFilter = TextureFilter::Linear;
-        specs.minFilter = TextureFilter::Linear;
-        specs.wrapS = TextureWrap::Clamp;
-        specs.wrapT = TextureWrap::Clamp;
-        specs.wrapR = TextureWrap::Clamp;
-        specs.generateMips = false;
-        specs.format = TextureFormat::RG;
-        specs.width = 512;
-        specs.height = 512;
-
-        brdfLUT = Texture::Create(specs, nullptr);
 
         // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
         glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
@@ -322,7 +374,7 @@ namespace Pulse::Engine::Rendering{
         glBindVertexArray(0);
     }
 
-    GLEnvironmentMap::GLEnvironmentMap(const TextureSpecifications &infos, std::shared_ptr<Cubemap> cubemap, std::shared_ptr<Cubemap> irradianceMap, std::shared_ptr<Cubemap> prefilterMap, std::shared_ptr<Texture> brdfLUT)
+    GLEnvironmentMap::GLEnvironmentMap(const TextureSpecifications &infos, std::shared_ptr<Cubemap> cubemap, std::shared_ptr<Cubemap> irradianceMap, std::shared_ptr<Cubemap> prefilterMap, std::shared_ptr<Texture2D> brdfLUT)
     {
         m_Infos = infos;
         m_Cubemap = cubemap;

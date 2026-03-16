@@ -4,6 +4,8 @@
 
 #include "editor/gui/main_window.hpp"
 
+#include "engine/levels/level_manager.hpp"
+
 namespace Pulse::Editor::GUI{
     
     using Engine::Core::GetEngine;

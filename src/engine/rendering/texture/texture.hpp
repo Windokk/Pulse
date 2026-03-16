@@ -15,8 +15,31 @@ namespace Pulse::Engine::Rendering {
     enum class TextureWrap
     {
         Repeat,
-        Clamp,
+        ClampEdge,
+        ClampBorder,
         Mirror
+    };
+
+    enum class TextureInternalFormat
+    {
+        RED,
+        R16F,
+        RG,
+        RG16F,
+        RGB,
+        RGB16F,
+        RGB32I,
+        RGB32F,
+        RGBA8,
+        RGBA,
+        RGBAF,
+        RGBA32I,
+        RGBA32F,
+        Depth24Stencil8,
+        Depth16,
+        Depth24,
+        Depth32,
+        Depth32F
     };
 
     enum class TextureFormat
@@ -25,8 +48,22 @@ namespace Pulse::Engine::Rendering {
         RG,
         RGB,
         RGBA,
-        RGBA,
-        Depth24Stencil8
+        Depth
+    };
+
+    enum class TextureCompareFunc
+    {
+        Less,
+        LessOrEqual,
+        Greater,
+        Always,
+        Never
+    };
+
+    enum class TextureCompareMode
+    {
+        None,
+        CompareRefToTexture
     };
 
     struct TextureSpecifications
@@ -35,6 +72,7 @@ namespace Pulse::Engine::Rendering {
         uint32_t height = 0;
 
         TextureFormat format = TextureFormat::RGBA;
+        TextureInternalFormat internalFormat = TextureInternalFormat::RGBA;
 
         TextureFilter minFilter = TextureFilter::Linear;
         TextureFilter magFilter = TextureFilter::Linear;
@@ -43,14 +81,19 @@ namespace Pulse::Engine::Rendering {
         TextureWrap wrapT = TextureWrap::Repeat;
         TextureWrap wrapR = TextureWrap::Repeat;
 
+        COL_RGBA borderColor = COL_RGBA(-1.0f);
+
+        TextureCompareFunc compareFunc;
+        TextureCompareMode compareMode;
+
         bool generateMips = true;
     };
 
-    class Texture
+    class Texture2D
     {
         public:
 
-            virtual ~Texture() = default;
+            virtual ~Texture2D() = default;
 
             virtual void Bind(uint32_t slot = 0) const = 0;
 
@@ -59,14 +102,16 @@ namespace Pulse::Engine::Rendering {
 
             virtual uint32_t GetHandle() const = 0;
 
+            virtual bool IsValid() const = 0;
+
             const TextureSpecifications& GetSpecifications() const { return m_Specifications; };
 
-            static std::shared_ptr<Texture> Create(
-                const TextureSpecifications& spec,
+            static std::shared_ptr<Texture2D> Create(
+                TextureSpecifications& spec,
                 const void* data
             );
 
-            static std::shared_ptr<Texture> Create(
+            static std::shared_ptr<Texture2D> Create(
                 TextureSpecifications& spec,
                 const Filesystem::Path& filepath
             );
@@ -83,5 +128,4 @@ namespace Pulse::Engine::Rendering {
 
             TextureSpecifications m_Specifications;
     };
-
 }

@@ -7,7 +7,8 @@
 namespace Pulse::Engine::Rendering {
 
     enum class ShaderDataType
-    {   None         = 0,
+    {   
+        None         = 0,
         Bool,
         Int,
         Float,
@@ -18,7 +19,12 @@ namespace Pulse::Engine::Rendering {
 
         Mat2,
         Mat3,
-        Mat4,
+        Mat4
+    };
+
+    enum class ShaderSamplerType
+    {
+        None = 0,
 
         Texture1D,
         Texture2D,
@@ -29,20 +35,72 @@ namespace Pulse::Engine::Rendering {
         Texture1DArray,
         Texture2DArray,
         TextureCubeArray,
-        Texture2DMultisampleArray
+        Texture2DMultisampleArray,
+
+        // Shadow samplers
+        Texture1DShadow,
+        Texture2DShadow,
+        TextureCubeShadow,
+
+        Texture1DArrayShadow,
+        Texture2DArrayShadow,
+        TextureCubeArrayShadow
     };
+
+    static uint32_t ShaderDataTypeSize(ShaderDataType type)
+    {
+        switch(type)
+        {
+            case ShaderDataType::Float: return sizeof(float);
+            case ShaderDataType::Bool:  return sizeof(bool);
+            case ShaderDataType::Int:   return sizeof(int);
+
+            case ShaderDataType::Vec2:  return sizeof(glm::vec2);
+            case ShaderDataType::Vec3:  return sizeof(glm::vec3);
+            case ShaderDataType::Vec4:  return sizeof(glm::vec4);
+
+            case ShaderDataType::Mat2:  return sizeof(glm::mat2);
+            case ShaderDataType::Mat3:  return sizeof(glm::mat3);
+            case ShaderDataType::Mat4:  return sizeof(glm::mat4);
+        }
+
+        return 0;
+    }
+
+    static uint32_t ShaderDataTypeComponentCount(ShaderDataType type)
+    {
+        switch(type)
+        {
+            case ShaderDataType::Float: return 1;
+            case ShaderDataType::Bool:  return 1;
+            case ShaderDataType::Int:   return 1;
+
+            case ShaderDataType::Vec2:  return 2;
+            case ShaderDataType::Vec3:  return 3;
+            case ShaderDataType::Vec4:  return 4;
+
+            case ShaderDataType::Mat2:  return 4;
+            case ShaderDataType::Mat3:  return 9;
+            case ShaderDataType::Mat4:  return 16;
+        }
+
+        return 0;
+    }
 
     struct UniformInfo
     {
         std::string name;
         ShaderDataType type;
-        uint32_t location;
-        uint32_t arraySize;
+        uint32_t arraySize = 1;
+        int32_t location = -1;
+    };
 
-        bool IsTexture() const
-        {
-            return type == ShaderDataType::Texture2D || type == ShaderDataType::Texture1D || type == ShaderDataType::TextureCube;
-        }
+    struct SamplerInfo
+    {
+        std::string name;
+        ShaderSamplerType type;
+        uint32_t arraySize = 1;
+        int32_t location = -1;
     };
 
     class CommandBuffer;
@@ -52,11 +110,11 @@ namespace Pulse::Engine::Rendering {
         public:
 
             virtual ~Shader() = default;
-
-            virtual void Bind(CommandBuffer& cmd) = 0;
-            virtual void Unbind() = 0;
-
+            
             virtual std::vector<UniformInfo> GetActiveUniforms() = 0;
+            virtual std::unordered_map<std::string, UniformInfo> GetActiveUniformsMap() = 0;
+            virtual std::vector<SamplerInfo> GetActiveSamplers() = 0;
+            virtual std::unordered_map<std::string, SamplerInfo> GetActiveSamplersMap() = 0;
 
             virtual void SetBool(const std::string& name, bool value) = 0;
             virtual void SetInt(const std::string& name, int value) = 0;
@@ -79,6 +137,10 @@ namespace Pulse::Engine::Rendering {
             void SetAssetID(Filesystem::AssetID id)
             {
                 m_AssetID = id;
+            }
+
+            Filesystem::AssetID GetAssetID() {
+                return m_AssetID;
             }
 
         protected:

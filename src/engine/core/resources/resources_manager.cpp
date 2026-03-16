@@ -6,6 +6,15 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/projects/project.hpp"
+
+#include "engine/rendering/texture/cubemap/envmap.hpp"
+
+#include "engine/rendering/mesh/mesh.hpp"
+#include "engine/rendering/pipeline/pipeline.hpp"
+#include "engine/rendering/shader/shader.hpp"
+#include "engine/rendering/material/material.hpp"
+
 namespace Pulse::Engine::Core::Resources{
 
     using namespace Filesystem;
@@ -52,7 +61,15 @@ namespace Pulse::Engine::Core::Resources{
             }
         }
 
-        std::shared_ptr<Rendering::Mesh> mesh = std::make_shared<Rendering::Mesh>(ufbx_mesh, scene->settings.unit_meters, scene->materials, mesh_node);
+        std::shared_ptr<Rendering::Mesh> mesh = Rendering::Mesh::Create();
+        Rendering::VertexLayout vertexLayout = {
+            {"aPos", Rendering::ShaderDataType::Vec3, 0},
+            {"aNormal", Rendering::ShaderDataType::Vec3, 1},
+            {"aColor", Rendering::ShaderDataType::Vec4, 2},
+            {"aTexCoord", Rendering::ShaderDataType::Vec2, 3},
+            {"aTangent", Rendering::ShaderDataType::Vec3, 4}
+        };
+        mesh->CreateFromFBX(ufbx_mesh, scene->settings.unit_meters, scene->materials, mesh_node, vertexLayout);
         meshes.emplace(pathInProject, mesh);
         mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
 
@@ -62,17 +79,19 @@ namespace Pulse::Engine::Core::Resources{
 
     }
 
-    std::shared_ptr<Rendering::Image> ResourcesManager::LoadImage(const std::string &pathInProject, const Filesystem::Path &path)
+    std::shared_ptr<Rendering::Texture2D> ResourcesManager::LoadTexture(const std::string &pathInProject, const Filesystem::Path &path)
     {
-        std::shared_ptr<Rendering::Image> img = std::make_shared<Rendering::Image>(path);
-        images.emplace(pathInProject, img);
+        Rendering::TextureSpecifications specs = {};
+        std::shared_ptr<Rendering::Texture2D> img = Rendering::Texture2D::Create(specs,path);
+        textures.emplace(pathInProject, img);
         img->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
         return img;
     }
 
     std::shared_ptr<Rendering::EnvironmentMap> ResourcesManager::LoadEnvMap(const std::string &pathInProject, const Filesystem::Path &path)
     {
-        std::shared_ptr<Rendering::EnvironmentMap> envMap = std::make_shared<Rendering::EnvironmentMap>(path);
+        Rendering::TextureSpecifications specs = {};
+        std::shared_ptr<Rendering::EnvironmentMap> envMap = Rendering::EnvironmentMap::Create(specs, path);
         if(!envMap){
             DEBUG_ERROR("Error during cubemap import");
             return nullptr;
@@ -84,7 +103,7 @@ namespace Pulse::Engine::Core::Resources{
 
     std::shared_ptr<Rendering::Shader> ResourcesManager::LoadShader(const std::string &pathInProject, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath)
     {
-        std::shared_ptr<Rendering::Shader> shader = std::make_shared<Rendering::Shader>(vsPath, fsPath, gsPath);
+        std::shared_ptr<Rendering::Shader> shader = Rendering::Shader::Create(vsPath, fsPath, gsPath);
         shaders.emplace(pathInProject, shader);
         return shader;
     }
@@ -174,10 +193,10 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
-    std::shared_ptr<Rendering::Image> ResourcesManager::GetImage(std::string pathInProject)
+    std::shared_ptr<Rendering::Texture2D> ResourcesManager::GetTexture(std::string pathInProject)
     {
-        auto it = images.find(pathInProject);
-        if (it != images.end())
+        auto it = textures.find(pathInProject);
+        if (it != textures.end())
             return it->second;
         else{
             Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
@@ -185,7 +204,7 @@ namespace Pulse::Engine::Core::Resources{
 
             if(assetInfos == nullptr) return nullptr;
 
-            return LoadImage(pathInProject, assetInfos->baseInfos.path);
+            return LoadTexture(pathInProject, assetInfos->baseInfos.path);
         }
     }
 
@@ -252,10 +271,10 @@ namespace Pulse::Engine::Core::Resources{
 
     void ResourcesManager::UnloadImage(const std::string &name)
     {
-        auto it = images.find(name);
-        if (it != images.end())
+        auto it = textures.find(name);
+        if (it != textures.end())
         {
-            images.erase(it);
+            textures.erase(it);
         }
     }
 

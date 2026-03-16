@@ -2,6 +2,8 @@
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 
+#include "engine/debugging/logger.hpp"
+
 namespace Pulse::Engine::Rendering{
 
     void GLShader::CompileErrors(unsigned int shader, const char* type)
@@ -92,123 +94,124 @@ namespace Pulse::Engine::Rendering{
             glDeleteShader(fragmentShader);
             if (hasGeometry)
                 glDeleteShader(geometryShader);
-        }
-    }
 
-    std::vector<UniformInfo> GLShader::GetActiveUniforms()
-    {
-        std::vector<UniformInfo> uniforms;
+            GLint uniformCount;
+            glGetProgramiv(m_Program, GL_ACTIVE_UNIFORMS, &uniformCount);
 
-        GLint uniformCount;
-        glGetProgramiv(m_Program, GL_ACTIVE_UNIFORMS, &uniformCount);
-    
-        GLint maxNameLength = 0;
-        glGetProgramiv(m_Program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLength);
-    
-        std::vector<char> nameData(maxNameLength);
-    
-        for (GLint i = 0; i < uniformCount; ++i) {
-            int length = 0;
-            int size = 0;
-            GLenum type = 0;
-            ShaderDataType shaderType;
-    
-            glGetActiveUniform(m_Program, i, maxNameLength, &length, &size, &type, nameData.data());
+            GLint maxNameLength;
+            glGetProgramiv(m_Program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLength);
 
-            std::string name(nameData.data(), length);
-    
-            uint32_t location = glGetUniformLocation(m_Program, name.c_str());
-    
-            switch (type)
+            std::vector<char> nameData(maxNameLength);
+
+            for (GLint i = 0; i < uniformCount; ++i)
             {
-                case GL_BOOL:
-                    shaderType = ShaderDataType::Bool;
-                    break;
+                GLsizei length;
+                GLint size;
+                GLenum type;
 
-                case GL_INT:
-                    shaderType = ShaderDataType::Int;
-                    break;
+                glGetActiveUniform(m_Program, i, maxNameLength, &length, &size, &type, nameData.data());
 
-                case GL_FLOAT:
-                    shaderType = ShaderDataType::Float;
-                    break;
+                std::string name(nameData.data(), length);
 
-                case GL_FLOAT_VEC2:
-                    shaderType = ShaderDataType::Vec2;
-                    break;
+                if (name.rfind("gl_", 0) == 0)
+                    continue;
 
-                case GL_FLOAT_VEC3:
-                    shaderType = ShaderDataType::Vec3;
-                    break;
-                
-                case GL_FLOAT_VEC4:
-                    shaderType = ShaderDataType::Vec4;
-                    break;
+                if (auto pos = name.find("[0]"); pos != std::string::npos)
+                    name.resize(pos);
 
-                case GL_FLOAT_MAT2:
-                    shaderType = ShaderDataType::Mat2;
-                    break;
-                
-                case GL_FLOAT_MAT3:
-                    shaderType = ShaderDataType::Mat3;
-                    break;
+                GLint location = glGetUniformLocation(m_Program, name.c_str());
 
-                case GL_FLOAT_MAT4:
-                    shaderType = ShaderDataType::Mat4;
-                    break;
+                // -------------------------
+                // Data uniforms
+                // -------------------------
+                ShaderDataType dataType = ShaderDataType::None;
 
-                case GL_SAMPLER_1D:
-                case GL_SAMPLER_1D_SHADOW:
-                    shaderType = ShaderDataType::Texture1D;
-                    break;
+                switch (type)
+                {
+                    case GL_BOOL:        dataType = ShaderDataType::Bool; break;
+                    case GL_INT:         dataType = ShaderDataType::Int; break;
+                    case GL_FLOAT:       dataType = ShaderDataType::Float; break;
+                    case GL_FLOAT_VEC2:  dataType = ShaderDataType::Vec2; break;
+                    case GL_FLOAT_VEC3:  dataType = ShaderDataType::Vec3; break;
+                    case GL_FLOAT_VEC4:  dataType = ShaderDataType::Vec4; break;
+                    case GL_FLOAT_MAT2:  dataType = ShaderDataType::Mat2; break;
+                    case GL_FLOAT_MAT3:  dataType = ShaderDataType::Mat3; break;
+                    case GL_FLOAT_MAT4:  dataType = ShaderDataType::Mat4; break;
+                }
 
-                case GL_SAMPLER_2D:
-                case GL_SAMPLER_2D_SHADOW:
-                    shaderType = ShaderDataType::Texture2D;
-                    break;
+                if (dataType != ShaderDataType::None)
+                {
+                    UniformInfo info{
+                        name,
+                        dataType,
+                        (uint32_t)size,
+                        location
+                    };
 
-                case GL_SAMPLER_3D:
-                    shaderType = ShaderDataType::Texture3D;
-                    break;
+                    m_activeUniforms.push_back(info);
+                    m_activeUniformsMap.emplace(name, info);
+                    continue;
+                }
 
-                case GL_SAMPLER_CUBE:
-                case GL_SAMPLER_CUBE_SHADOW:
-                    shaderType = ShaderDataType::TextureCube;
-                    break;
+                // -------------------------
+                // Samplers
+                // -------------------------
+                ShaderSamplerType samplerType = ShaderSamplerType::None;
 
-                case GL_SAMPLER_1D_ARRAY:
-                case GL_SAMPLER_1D_ARRAY_SHADOW:
-                    shaderType = ShaderDataType::Texture1DArray;
-                    break;
+                switch (type)
+                {
+                    case GL_SAMPLER_1D:
+                    case GL_SAMPLER_1D_SHADOW:
+                        samplerType = ShaderSamplerType::Texture1D; break;
 
-                case GL_SAMPLER_2D_ARRAY:
-                case GL_SAMPLER_2D_ARRAY_SHADOW:
-                    shaderType = ShaderDataType::Texture2DArray;
-                    break;
+                    case GL_SAMPLER_2D:
+                    case GL_SAMPLER_2D_SHADOW:
+                        samplerType = ShaderSamplerType::Texture2D; break;
 
-                case GL_SAMPLER_CUBE_MAP_ARRAY:
-                case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-                    shaderType = ShaderDataType::TextureCubeArray;
-                    break;
+                    case GL_SAMPLER_3D:
+                        samplerType = ShaderSamplerType::Texture3D; break;
 
-                case GL_SAMPLER_2D_MULTISAMPLE:
-                    shaderType = ShaderDataType::Texture2DMultisample;
-                    break;
+                    case GL_SAMPLER_CUBE:
+                    case GL_SAMPLER_CUBE_SHADOW:
+                        samplerType = ShaderSamplerType::TextureCube; break;
 
-                case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-                    shaderType = ShaderDataType::Texture2DMultisampleArray;
-                    break;
+                    case GL_SAMPLER_1D_ARRAY:
+                    case GL_SAMPLER_1D_ARRAY_SHADOW:
+                        samplerType = ShaderSamplerType::Texture1DArray; break;
+
+                    case GL_SAMPLER_2D_ARRAY:
+                    case GL_SAMPLER_2D_ARRAY_SHADOW:
+                        samplerType = ShaderSamplerType::Texture2DArray; break;
+
+                    case GL_SAMPLER_CUBE_MAP_ARRAY:
+                    case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+                        samplerType = ShaderSamplerType::TextureCubeArray; break;
+
+                    case GL_SAMPLER_2D_MULTISAMPLE:
+                        samplerType = ShaderSamplerType::Texture2DMultisample; break;
+
+                    case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+                        samplerType = ShaderSamplerType::Texture2DMultisampleArray; break;
+                }
+
+                if (samplerType != ShaderSamplerType::None)
+                {
+                    SamplerInfo info{
+                        name,
+                        samplerType,
+                        (uint32_t)size,
+                        location
+                    };
+
+                    m_ActiveSamplers.push_back(info);
+                    m_ActiveSamplersMap.emplace(name, info);
+                }
             }
 
-            if (name.find("gl_") == 0) continue;
-
-            uniforms.push_back({ name, shaderType, location, (uint32_t)size });
         }
-        
-        return uniforms;
     }
 
-    void GLShader::Bind(CommandBuffer &cmd)
+    void GLShader::Bind()
     {
         glUseProgram(m_Program);
     }
@@ -216,6 +219,26 @@ namespace Pulse::Engine::Rendering{
     void GLShader::Unbind()
     {
         glUseProgram(0);
+    }
+
+    std::vector<UniformInfo> GLShader::GetActiveUniforms()
+    {
+        return m_activeUniforms;
+    }
+
+    std::vector<SamplerInfo> GLShader::GetActiveSamplers()
+    {
+        return m_ActiveSamplers;
+    }
+
+    std::unordered_map<std::string, UniformInfo> GLShader::GetActiveUniformsMap()
+    {
+        return m_activeUniformsMap;
+    }
+
+    std::unordered_map<std::string, SamplerInfo> GLShader::GetActiveSamplersMap()
+    {
+        return m_ActiveSamplersMap;
     }
 
     void GLShader::SetBool(const std::string &name, bool value)

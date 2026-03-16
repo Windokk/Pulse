@@ -6,7 +6,6 @@ file(GLOB SOURCES
 add_executable(PulseGame
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     ${SOURCES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib/glad.c
 )
 
 set(GLFW_LIB_DIR ${CMAKE_BINARY_DIR})

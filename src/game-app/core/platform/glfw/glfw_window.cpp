@@ -2,9 +2,14 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/rendering/renderer/renderer.hpp"
+
+#include "engine/rendering/backends/glad/include/glad/gl.h"
+#include "engine/rendering/backends/glad/include/glad/vulkan.h"
+
 namespace Pulse::Game::Core::Platform{
     
-    void Platform::GLFWWindow::Init(const std::string &title, const int &width, const int &height, const bool &fullscreen, const int &vsync)
+    void Platform::GLFWWindow::Init(const std::string &title, const int &width, const int &height, const bool &fullscreen, const int &vsync, const uint32_t& api)
     {
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -34,12 +39,12 @@ namespace Pulse::Game::Core::Platform{
         });
         glfwSwapInterval(vsync);
 
-        gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
-        OpenGL* gl = new OpenGL();
-        gl->InitFromGLAD();
-
-        Engine::Core::GetEngine().SetGL(gl);
+        if(api == (int)Engine::Rendering::RendererAPI::API::OpenGL)
+            gladLoadGL((GLADloadfunc)glfwGetProcAddress);
+        else if(api == (int)Engine::Rendering::RendererAPI::API::Vulkan)
+        {    
+            //gladLoadVulkan(Engine::Core::GetEngine().GetRenderer()->GetDevicePointer?,(GLADloadfunc)glfwGetProcAddress);
+        }
     }
 
     void Platform::GLFWWindow::SetGLFWInputManager(GLFWInput *inputManager)
@@ -132,14 +137,10 @@ namespace Pulse::Game::Core::Platform{
     Pulse::Engine::Core::Platform::SystemInfos Pulse::Game::Core::Platform::GLFWWindow::GetSystemInfos() const
     {
         Engine::Core::Platform::SystemInfos ret{};
-                
-        const GLubyte* vendor   = Engine::Core::GetEngine().GetGL()->GetString(GL_VENDOR);
-        const GLubyte* renderer = Engine::Core::GetEngine().GetGL()->GetString(GL_RENDERER);
-        const GLubyte* version  = Engine::Core::GetEngine().GetGL()->GetString(GL_VERSION);
 
-        ret.gpu_vendor   = vendor   ? reinterpret_cast<const char*>(vendor)   : "Unknown";
-        ret.gpu_renderer = renderer ? reinterpret_cast<const char*>(renderer) : "Unknown";
-        ret.gl_version   = version  ? reinterpret_cast<const char*>(version)  : "Unknown";
+        ret.gpu_vendor   = Engine::Core::GetEngine().GetRenderer()->GetDeviceVendor();
+        ret.gpu_renderer = Engine::Core::GetEngine().GetRenderer()->GetRendererName();
+        ret.gl_version   = Engine::Core::GetEngine().GetRenderer()->GetDriverVersion();
 
         // GLFW context version
         int major, minor, rev;

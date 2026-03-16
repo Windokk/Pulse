@@ -20,10 +20,10 @@ namespace Pulse::Editor::Core {
             Engine::Core::Platform::IInput* GetInput() override { return input.get(); };
 
             void CreateWindow(const std::string& title, const int& width, const int& height, 
-                            const bool& fullscreen, const int& vsync) override 
+                            const bool& fullscreen, const int& vsync, const uint32_t& api) override 
             {
                 window = std::make_unique<EditorMainWindow>();
-                window->Init(title, width, height, fullscreen, vsync);
+                window->Init(title, width, height, fullscreen, vsync, api);
             }
 
             void CreateInput() override {

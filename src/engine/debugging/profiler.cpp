@@ -20,6 +20,15 @@
 
 #endif
 
+#include "engine/debugging/logger.hpp"
+#include "engine/rendering/renderer/renderer.hpp"
+#include "engine/rendering/lighting/light_manager.hpp"
+#include "engine/audio/audio_manager.hpp"
+#include "engine/levels/level_manager.hpp"
+#include "engine/time/time_manager.hpp"
+#include "engine/rendering/mesh/mesh.hpp"
+#include "engine/core/platform/iplatform.hpp"
+
 namespace Pulse::Engine::Debugging{
    
     Profiler::Profiler(){
@@ -111,17 +120,11 @@ namespace Pulse::Engine::Debugging{
     {
         MinimalStatistics ret{};
 
-        for(auto& cmd : *Core::GetEngine().GetRenderer()->GetDrawList()){
-            ret.cmds++;
-            ret.triangles += cmd.indexCount / 3;
-            ret.vertices += cmd.verticesCount;
-        }
-
         ret.frameTimeMs = Core::GetEngine().GetTimeManager()->GetDeltaTime() * 1000;
         ret.fps = 1000 / ret.frameTimeMs;
 
         ret.actors = Core::GetEngine().GetLevelManager()->GetLevelAt(0)->transforms.size();
-        ret.lights = Core::GetEngine().GetRenderer()->lightMan->GetLightsCount();
+        ret.lights = Core::GetEngine().GetRenderer()->GetLightManager()->GetLightsCount();
 
         ret.sounds = Core::GetEngine().GetAudioManager()->GetSoundsCount();
 

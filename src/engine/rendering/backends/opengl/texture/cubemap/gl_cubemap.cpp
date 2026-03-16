@@ -1,118 +1,32 @@
 #include "gl_cubemap.hpp"
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
+#include "engine/rendering/backends/opengl/texture/gl_texture.hpp"
 
 namespace Pulse::Engine::Rendering{
     
-    GLCubemap::GLCubemap(const TextureSpecifications &spec, std::array<unsigned char*, 6> faces)
+    GLCubemap::GLCubemap(const TextureSpecifications &specs, std::array<unsigned char*, 6> faces)
     {
-        m_Specifications = spec;
+        m_Specifications = specs;
 
-        glGenTextures(1, &ID);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
+        glGenTextures(1, &m_ID);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_ID);
 
-        GLenum wrapModeS;
-        GLenum wrapModeT;
-        GLenum wrapModeR;
-
-        GLenum minFilter;
-        GLenum magFilter;
-
-        GLenum internalFormat;
-
-        if(spec.magFilter == TextureFilter::Linear){
-            magFilter = GL_LINEAR;
-        }
-        else{
-            magFilter = GL_NEAREST;
-        }
-
-        if(spec.minFilter == TextureFilter::Linear){
-            minFilter = GL_LINEAR;
-        }
-        else{
-            minFilter = GL_NEAREST;
-        }
-
-        switch(spec.wrapS){
-            case TextureWrap::Clamp:{
-                wrapModeS = GL_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Mirror:{
-                wrapModeS =  GL_MIRROR_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Repeat:{
-                wrapModeS = GL_REPEAT;
-                break;
-            }
-        }
-
-        switch(spec.wrapT){
-            case TextureWrap::Clamp:{
-                wrapModeS = GL_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Mirror:{
-                wrapModeT =  GL_MIRROR_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Repeat:{
-                wrapModeT = GL_REPEAT;
-                break;
-            }
-        }
-
-        switch(spec.wrapR){
-            case TextureWrap::Clamp:{
-                wrapModeR = GL_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Mirror:{
-                wrapModeR =  GL_MIRROR_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Repeat:{
-                wrapModeR = GL_REPEAT;
-                break;
-            }
-        }
-      
-        switch(spec.format){
-            case TextureFormat::RED:{
-                internalFormat = GL_RED;
-                break;
-            }
-            case TextureFormat::RG:{
-                internalFormat = GL_RG;
-                break;
-            }
-            case TextureFormat::RGB:{
-                internalFormat = GL_RGB;
-                break;
-            }
-            case TextureFormat::RGBA:{
-                internalFormat = GL_RGBA;
-                break;
-            }
-            default:{
-                internalFormat = GL_RGB;
-                break;
-            }
-        }
+        GLTextureSpec glSpecs = GLTextureSpec::FromTextureSpecifications(specs);
 
         for(int i = 0; i < 6; i++){
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalFormat, spec.width, spec.height, 0, internalFormat, GL_UNSIGNED_BYTE, faces[i]);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, GL_UNSIGNED_BYTE, faces[i]);
         }
 
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, minFilter);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, magFilter);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, wrapModeS);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrapModeT);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, wrapModeR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, glSpecs.minFilter);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, glSpecs.magFilter);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, glSpecs.wrapModeS);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, glSpecs.wrapModeT);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, glSpecs.wrapModeR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, specs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_FUNC, glSpecs.compareFunc);
 
-        if(spec.generateMips)
+        if(specs.generateMips)
         {
             glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
         }
@@ -121,11 +35,106 @@ namespace Pulse::Engine::Rendering{
     void GLCubemap::Bind(uint32_t slot) const
     {
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ID);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_ID);
     }
-    
+
+    bool GLCubemap::IsValid() const
+    {
+        return glIsTexture(m_ID);
+    }
+
     GLCubemap::~GLCubemap()
     {
-        glDeleteTextures(1, &ID);
+        glDeleteTextures(1, &m_ID);
+    }
+    
+    GLCubemapArray::GLCubemapArray(const TextureSpecifications &specs, std::vector<std::array<unsigned char *, 6>> data)
+    {
+        m_Specifications = specs;
+
+        m_CubemapCount = data.size();
+
+        glGenTextures(1, &m_ID);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_ID);
+
+        GLTextureSpec glSpecs = GLTextureSpec::FromTextureSpecifications(specs);
+
+        // Allocate storage
+        int mipLevels = specs.generateMips
+            ? (int)std::floor(std::log2(std::max(specs.width, specs.height))) + 1
+            : 1;
+
+        glTexStorage3D(
+            GL_TEXTURE_CUBE_MAP_ARRAY,
+            mipLevels,
+            glSpecs.internalFormat,
+            specs.width,
+            specs.height,
+            m_CubemapCount * 6
+        );
+
+        // Upload each cubemap face
+        for (int cube = 0; cube < m_CubemapCount; cube++)
+        {
+            for (int face = 0; face < 6; face++)
+            {
+                int layer = cube * 6 + face;
+
+                glTexSubImage3D(
+                    GL_TEXTURE_CUBE_MAP_ARRAY,
+                    0,
+                    0,
+                    0,
+                    layer,
+                    specs.width,
+                    specs.height,
+                    1,
+                    glSpecs.format,
+                    GL_UNSIGNED_BYTE,
+                    data[cube][face]
+                );
+            }
+        }
+
+        // Texture parameters
+        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, glSpecs.minFilter);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, glSpecs.magFilter);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, glSpecs.wrapModeS);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, glSpecs.wrapModeT);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, glSpecs.wrapModeR);
+
+        glTexParameteri(
+            GL_TEXTURE_CUBE_MAP_ARRAY,
+            GL_TEXTURE_COMPARE_MODE,
+            specs.compareMode == TextureCompareMode::CompareRefToTexture
+                ? GL_COMPARE_REF_TO_TEXTURE
+                : GL_NONE
+        );
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_FUNC, glSpecs.compareFunc);
+
+        if (specs.generateMips)
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP_ARRAY);
+    }
+
+    void GLCubemapArray::Bind(uint32_t slot) const
+    {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_ID);
+    }
+
+    bool GLCubemapArray::IsValid() const
+    {
+        return glIsTexture(m_ID);
+    }
+
+    uint32_t GLCubemapArray::GetCount() const
+    {
+        return m_CubemapCount;
+    }
+
+    GLCubemapArray::~GLCubemapArray()
+    {
+        glDeleteTextures(1, &m_ID);
     }
 }

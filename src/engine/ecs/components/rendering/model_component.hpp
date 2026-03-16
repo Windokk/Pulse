@@ -50,8 +50,6 @@ namespace Pulse::Engine::ECS::Components
         
         private:
 
-            bool alreadySubmitted = false;
-
             std::shared_ptr<Rendering::Mesh> mesh;
             std::vector<std::shared_ptr<Rendering::Material>> materials;
 

@@ -5,9 +5,13 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/ecs/components/core/registry/component_registry.hpp"
+#include "engine/ecs/components/audio/audio_source.hpp"
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/ecs/objects/skybox/skybox.hpp"
+#include "engine/rendering/texture/cubemap/envmap.hpp"
+#include "engine/rendering/material/material.hpp"
+#include "engine/rendering/pipeline/pipeline.hpp"
 
 namespace Pulse::Engine::Levels{
 
@@ -102,10 +106,20 @@ namespace Pulse::Engine::Levels{
                 if(skybox_folder.is_string()){
                     std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/cubemap/cubemap");
                     std::shared_ptr<Rendering::EnvironmentMap> envMap = Core::GetEngine().GetResourcesManager()->GetEnvMap(data["skybox"]);
-                    
+                    Rendering::PipelineSpecifications specs;
+                    specs.depthCompare = Rendering::DepthCompareOp::LessOrEqual;
+                    specs.depthWrite = false;
+                    specs.shader = shader;
+                    specs.topology = Rendering::PrimitiveTopology::Triangles;
+                    specs.debugName = "SkyboxPipeline";
+
+                    std::shared_ptr<Rendering::Pipeline> skyboxPipeline = Rendering::Pipeline::Create(specs);
+
+                    std::shared_ptr<Rendering::Material> skyboxMat = Rendering::Material::Create(shader, skyboxPipeline, false, Rendering::Opacity::Opaque);
+
                     if(shader != nullptr && envMap != nullptr)
                     {
-                        std::shared_ptr<ECS::Objects::Skybox> sb = Core::Object::Create<ECS::Objects::Skybox>(envMap, shader);
+                        std::shared_ptr<ECS::Objects::Skybox> sb = Core::Object::Create<ECS::Objects::Skybox>(envMap, skyboxMat);
                         this->skybox = sb;
                     }
                     else{
@@ -165,7 +179,7 @@ namespace Pulse::Engine::Levels{
         full["actors"] = actorsArray;
 
         if(skybox){
-            full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(skybox->envMap->GetInfos()->filepath->full).nameInProject;
+            full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(Core::GetEngine().GetAssetIDManager()->GetAssetFromID(skybox->GetEnvMap()->GetAssetID())->baseInfos.path).nameInProject;
         }
 
         std::string fileContent = full.dump();

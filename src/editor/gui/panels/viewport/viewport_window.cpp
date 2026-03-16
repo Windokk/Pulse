@@ -1,7 +1,6 @@
 #include "viewport_window.hpp"
 
 #include "engine/core/engine.hpp"
-#include "engine/rendering/opengl/opengl.hpp"
 #include "engine/core/platform/iplatform.hpp"
 #include "engine/ecs/components/misc/transform.reflection.hpp"
 
@@ -14,6 +13,9 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+
+#include "engine/debugging/profiler.hpp"
+#include "engine/time/time_manager.hpp"
 
 
 namespace Pulse::Editor::GUI {
@@ -32,7 +34,7 @@ namespace Pulse::Editor::GUI {
         ImVec2 current_size = ImGui::GetWindowSize();
 
         // Rendu texture framebuffer
-        uint32_t textureID = Engine::Core::GetEngine().GetRenderer()->GetViewportTextureID();
+        uint32_t textureID = Engine::Core::GetEngine().GetRenderer()->GetViewportTextureHandle();
 
         ImVec2 avail = ImGui::GetContentRegionAvail();
         viewportSize = glm::vec2(avail.x, avail.y);

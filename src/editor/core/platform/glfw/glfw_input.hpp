@@ -1,13 +1,14 @@
 #pragma once
 
-#include "glad/glad.h"
-
 #include <unordered_map>
 #include <iostream>
 
 #include "engine/inputs/keys.hpp"
 #include "engine/debugging/logger.hpp"
 #include "engine/core/platform/iplatform.hpp"
+
+#include "engine/rendering/backends/glad/include/glad/gl.h"
+#include "engine/rendering/backends/glad/include/glad/vulkan.h"
 
 #include "GLFW/glfw3.h"
 

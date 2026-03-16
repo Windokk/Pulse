@@ -24,4 +24,4 @@ IF %ERRORLEVEL% NEQ 0 (
 
 REM Run the editor only if build succeeded
 echo [INFO] Build succeeded. Starting editor...
-start "" ./PulseEditor.exe --game libGameModule.dll --project ..\\test_project\\test_project.json
+start "" ./PulseEditor.exe --game libGameModule.dll --project ..\\test_project\\test_project.json --api opengl

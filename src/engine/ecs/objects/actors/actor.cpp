@@ -2,6 +2,9 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/projects/project.hpp"
+#include "engine/ecs/components/audio/audio_source.hpp"
+
 namespace Pulse::Engine::ECS::Objects{
     
     using namespace Components;
@@ -33,29 +36,29 @@ namespace Pulse::Engine::ECS::Objects{
         if (auto light = std::dynamic_pointer_cast<Light>(component)) {
             light->SetLightIndex(level->lights.size());
             level->lights.push_back(light);
-            level->lightComps.emplace(GetComponentIDInScene(light->GetLocalId()), light);
+            level->lightComps.emplace(GetComponentIDInLevel(light->GetLocalId()), light);
         }
 
         if (auto model = std::dynamic_pointer_cast<Model>(component)) {
-            level->models.emplace(GetComponentIDInScene(model->GetLocalId()), model);
+            level->models.emplace(GetComponentIDInLevel(model->GetLocalId()), model);
         }
 
         if (auto transform = std::dynamic_pointer_cast<Transform>(component)) {
-            level->transforms.emplace(GetComponentIDInScene(transform->GetLocalId()), transform);
+            level->transforms.emplace(GetComponentIDInLevel(transform->GetLocalId()), transform);
         }
 
         if (auto physics = std::dynamic_pointer_cast<PhysicsBody>(component)) {
-            level->physicsBodies.emplace(GetComponentIDInScene(physics->GetLocalId()), physics);
+            level->physicsBodies.emplace(GetComponentIDInLevel(physics->GetLocalId()), physics);
         }
 
         if (auto audio = std::dynamic_pointer_cast<AudioSource>(component)) {
-            level->audioSources.emplace(GetComponentIDInScene(audio->GetLocalId()), audio);
+            level->audioSources.emplace(GetComponentIDInLevel(audio->GetLocalId()), audio);
         }
 
         if (auto script = std::dynamic_pointer_cast<Script>(component)) {
-            level->scripts.emplace(GetComponentIDInScene(script->GetLocalId()), script);
+            level->scripts.emplace(GetComponentIDInLevel(script->GetLocalId()), script);
 
-            uint32_t id = GetComponentIDInScene(components.size() - 1);
+            uint32_t id = GetComponentIDInLevel(components.size() - 1);
 
             RegisterComponentEvents(script);
 
@@ -63,7 +66,7 @@ namespace Pulse::Engine::ECS::Objects{
         }
 
         if (auto cam = std::dynamic_pointer_cast<Camera>(component)) {
-            level->cameras.emplace(GetComponentIDInScene(cam->GetLocalId()), cam);
+            level->cameras.emplace(GetComponentIDInLevel(cam->GetLocalId()), cam);
             Core::GetEngine().GetCameraManager()->AddCamera(GetID(), cam);
         }
 
@@ -75,7 +78,7 @@ namespace Pulse::Engine::ECS::Objects{
         for(auto& component : components){
             
             if(level)
-                level->RemoveComponent(GetComponentIDInScene(component->GetLocalId()), component);
+                level->RemoveComponent(GetComponentIDInLevel(component->GetLocalId()), component);
             
             component->Destroy();
         }
@@ -110,7 +113,7 @@ namespace Pulse::Engine::ECS::Objects{
 
         this->level = lvl;
 
-        level->transforms.emplace(GetComponentIDInScene(transform->GetLocalId()), transform);
+        level->transforms.emplace(GetComponentIDInLevel(transform->GetLocalId()), transform);
 
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
@@ -123,13 +126,13 @@ namespace Pulse::Engine::ECS::Objects{
 
     void Actor::RegisterComponentEvents(const std::shared_ptr<Script>& component){
         
-        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactAddedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactAddedEvent& event) {
+        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactAddedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactAddedEvent& event) {
             component->OnContactAdded(event);
         });
-        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactPersistedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactPersistedEvent& event) {
+        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactPersistedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactPersistedEvent& event) {
             component->OnContactPersisted(event);
         });
-        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactRemovedEvent>(GetComponentIDInScene(components.size()-1), [component](const Events::ContactRemovedEvent& event) {
+        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactRemovedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactRemovedEvent& event) {
             component->OnContactEnded(event);
         });
     }
@@ -169,7 +172,7 @@ namespace Pulse::Engine::ECS::Objects{
         std::shared_ptr<Actor> copy = Core::Object::Create<Actor>("Copy of "+name);
 
         if(level)
-            level->transforms.erase(GetComponentIDInScene(copy->transform->GetLocalId()));
+            level->transforms.erase(GetComponentIDInLevel(copy->transform->GetLocalId()));
         
         copy->transform->Destroy();
 
@@ -207,7 +210,7 @@ namespace Pulse::Engine::ECS::Objects{
                 tr->SetScale(transform->GetScale());
 
                 if(copy->level && copy->level->IsLoaded())
-                    level->transforms.emplace(copy->GetComponentIDInScene(tr->GetLocalId()), tr);
+                    level->transforms.emplace(copy->GetComponentIDInLevel(tr->GetLocalId()), tr);
 
                 copy->transform = tr;
             }
@@ -216,30 +219,30 @@ namespace Pulse::Engine::ECS::Objects{
                 continue;
 
             if(std::shared_ptr<Components::AudioSource> audioSource = std::dynamic_pointer_cast<Components::AudioSource>(cloneComp)){
-                level->audioSources.emplace(copy->GetComponentIDInScene(audioSource->GetLocalId()), audioSource);
+                level->audioSources.emplace(copy->GetComponentIDInLevel(audioSource->GetLocalId()), audioSource);
                 audioSource->Update();
             }
             else if(std::shared_ptr<Components::Script> script = std::dynamic_pointer_cast<Components::Script>(cloneComp)){    
-                level->scripts.emplace(copy->GetComponentIDInScene(script->GetLocalId()), script);
+                level->scripts.emplace(copy->GetComponentIDInLevel(script->GetLocalId()), script);
                 RegisterComponentEvents(script);
                 script->OnCreate();
             }
             else if(std::shared_ptr<Components::Camera> camera = std::dynamic_pointer_cast<Components::Camera>(cloneComp)){
-                level->cameras.emplace(copy->GetComponentIDInScene(camera->GetLocalId()), camera);
+                level->cameras.emplace(copy->GetComponentIDInLevel(camera->GetLocalId()), camera);
                 Core::GetEngine().GetCameraManager()->AddCamera(copy->GetID(), camera);
             }
             else if(std::shared_ptr<Components::Light> light = std::dynamic_pointer_cast<Components::Light>(cloneComp)){
                 light->SetLightIndex(level->lights.size());
                 level->lights.push_back(light);
-                level->lightComps.emplace(copy->GetComponentIDInScene(light->GetLocalId()), light);
+                level->lightComps.emplace(copy->GetComponentIDInLevel(light->GetLocalId()), light);
             }
             else if(std::shared_ptr<Components::Model> model = std::dynamic_pointer_cast<Components::Model>(cloneComp))
             {
-                level->models.emplace(copy->GetComponentIDInScene(model->GetLocalId()), model);
+                level->models.emplace(copy->GetComponentIDInLevel(model->GetLocalId()), model);
                 model->Update();
             }
             else if(std::shared_ptr<Components::PhysicsBody> physicsBody = std::dynamic_pointer_cast<Components::PhysicsBody>(cloneComp)){
-                level->physicsBodies.emplace(copy->GetComponentIDInScene(physicsBody->GetLocalId()), physicsBody);
+                level->physicsBodies.emplace(copy->GetComponentIDInLevel(physicsBody->GetLocalId()), physicsBody);
             }
         }
 

@@ -6,14 +6,18 @@
 
 #include <stb/stb_image.h>
 
+#include "engine/rendering/renderer/renderer.hpp"
+
+#include "engine/debugging/logger.hpp"
+
 namespace Pulse::Engine::Rendering{
 
-    std::shared_ptr<Texture> Texture::Create(const TextureSpecifications &spec, const void *data)
+    std::shared_ptr<Texture2D> Texture2D::Create(TextureSpecifications &spec, const void *data)
     {
-        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
+        switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())
         {
             case RendererAPI::API::OpenGL:
-                return std::make_shared<GLTexture>(spec, data);
+                return std::make_shared<GLTexture2D>(spec, data);
 
             /*case RendererAPI::API::Vulkan:
                 return std::make_shared<VKTexture>(spec, data);
@@ -29,7 +33,7 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    std::shared_ptr<Texture> Texture::Create(TextureSpecifications &spec, const Filesystem::Path &filepath)
+    std::shared_ptr<Texture2D> Texture2D::Create(TextureSpecifications &spec, const Filesystem::Path &filepath)
     {
         void* data = nullptr;
 
@@ -46,7 +50,7 @@ namespace Pulse::Engine::Rendering{
 
         } else {
             DEBUG_ERROR("Couldn't find texture : " + filepath.full);
-            return;
+            return nullptr;
         }
 
         if (data) {

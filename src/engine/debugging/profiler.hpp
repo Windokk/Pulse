@@ -7,18 +7,24 @@
 
 #endif
 
+#include <cstdint>
+
 namespace Pulse::Engine::Debugging{
     
     struct MinimalStatistics {
         //Audio
         int sounds = 0;
 
-        //Rendering
+        /// Rendering
         float frameTimeMs = 0;
         float fps = 0;
+
+        ////// Draw list
         int cmds = 0;
         int triangles = 0;
         int vertices = 0;
+
+        ////// Memory usage
         float gpuMemoryMB = 0;
 
         //Level

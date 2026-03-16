@@ -4,11 +4,13 @@
 
 #include "engine/rendering/backends/opengl/texture/cubemap/gl_envmap.hpp"
 
+#include "engine/rendering/renderer/renderer.hpp"
+
 namespace Pulse::Engine::Rendering{
     
     std::shared_ptr<EnvironmentMap> EnvironmentMap::Create(TextureSpecifications& specs, const std::vector<Filesystem::Path> imageFiles)
     {
-        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
+        switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())
         {
             case RendererAPI::API::OpenGL:{
                 GLEnvironmentMapGenerator glGenerator;
@@ -30,7 +32,7 @@ namespace Pulse::Engine::Rendering{
     }
     std::shared_ptr<EnvironmentMap> EnvironmentMap::Create(TextureSpecifications &specs, const Filesystem::Path hdrFile)
     {
-        switch(Core::GetEngine().GetRenderer()->GetRendererAPI())
+        switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())
         {
             case RendererAPI::API::OpenGL:{
                 GLEnvironmentMapGenerator glGenerator;

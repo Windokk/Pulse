@@ -2,9 +2,32 @@
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 
+#include "engine/rendering/shader/shader.hpp"
+
 namespace Pulse::Engine::Rendering{
     
-    void GLMesh::Create(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
+    static GLenum ShaderDataTypeToOpenGL(ShaderDataType type)
+    {
+        switch(type)
+        {
+            case ShaderDataType::Bool:  
+            case ShaderDataType::Int:   return GL_INT;
+
+            case ShaderDataType::Float:
+            case ShaderDataType::Vec2:
+            case ShaderDataType::Vec3:
+            case ShaderDataType::Vec4:
+            case ShaderDataType::Mat2:
+            case ShaderDataType::Mat3:
+            case ShaderDataType::Mat4:
+                return GL_FLOAT;
+
+            default:
+                return GL_FLOAT;
+        }
+    }
+
+    void GLMesh::Create(std::vector<Vertex> vertices, std::vector<uint32_t> indices, const VertexLayout& layout)
     {
         m_Vertices.clear();
         m_Submeshes.clear();
@@ -14,55 +37,12 @@ namespace Pulse::Engine::Rendering{
         m_Indices = indices;
         m_Submeshes.push_back({0, indices.size(), vertices.size()});
 
-        GenGLBuffers();
+        m_VertexLayout = layout;
+
+        GenerateGLBuffers();
     }
 
-    void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-    {
-        // Initialize tangent accumulators
-        for (auto &v : vertices) {
-            v.tangent = glm::vec3(0.0f);
-        }
-
-        // For each triangle:
-        for (size_t i = 0; i + 2 < indices.size(); i += 3) {
-            Vertex &v0 = vertices[indices[i + 0]];
-            Vertex &v1 = vertices[indices[i + 1]];
-            Vertex &v2 = vertices[indices[i + 2]];
-
-            glm::vec3 edge1 = v1.position - v0.position;
-            glm::vec3 edge2 = v2.position - v0.position;
-            glm::vec2 deltaUV1 = v1.texCoord - v0.texCoord;
-            glm::vec2 deltaUV2 = v2.texCoord - v0.texCoord;
-
-            float denom = (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-            float f = (denom == 0.0f) ? 0.0f : 1.0f / denom;
-
-            glm::vec3 tangent = glm::vec3(0.0f);
-            tangent.x = f * ( deltaUV2.y * edge1.x - deltaUV1.y * edge2.x );
-            tangent.y = f * ( deltaUV2.y * edge1.y - deltaUV1.y * edge2.y );
-            tangent.z = f * ( deltaUV2.y * edge1.z - deltaUV1.y * edge2.z );
-
-            // Accumulate to each vertex
-            v0.tangent += tangent;
-            v1.tangent += tangent;
-            v2.tangent += tangent;
-        }
-
-        // Finally normalize and orthogonalize
-        for (auto &v : vertices) {
-            // Gram-Schmidt orthogonalization
-            glm::vec3 n = v.normal;
-            glm::vec3 t = v.tangent;
-
-            // Remove component in normal direction:
-            t = glm::normalize(t - n * glm::dot(n, t));
-
-            v.tangent = t;
-        }
-    }
-
-    void GLMesh::CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list &ufbx_mats, ufbx_node *mesh_node, COL_RGBA vertexColor)
+    void GLMesh::CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, ufbx_material_list &ufbx_mats, ufbx_node *mesh_node, const VertexLayout& layout, COL_RGBA vertexColor)
     {
         double scene_scale = scene_unit_meters;
 
@@ -177,52 +157,125 @@ namespace Pulse::Engine::Rendering{
             m_Submeshes.push_back(SubMesh{
                 .indexOffset = indexOffset,
                 .indexCount = indexCount,
-                .verticesCount = group.verts.size()
+                .vertexCount = group.verts.size()
             });
         }
 
-        GenGLBuffers();
+        m_VertexLayout = layout;
+        
+        GenerateGLBuffers();
+    }
+
+    void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+    {
+        // Initialize tangent accumulators
+        for (auto &v : vertices) {
+            v.tangent = glm::vec3(0.0f);
+        }
+
+        // For each triangle:
+        for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+            Vertex &v0 = vertices[indices[i + 0]];
+            Vertex &v1 = vertices[indices[i + 1]];
+            Vertex &v2 = vertices[indices[i + 2]];
+
+            glm::vec3 edge1 = v1.position - v0.position;
+            glm::vec3 edge2 = v2.position - v0.position;
+            glm::vec2 deltaUV1 = v1.texCoord - v0.texCoord;
+            glm::vec2 deltaUV2 = v2.texCoord - v0.texCoord;
+
+            float denom = (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+            float f = (denom == 0.0f) ? 0.0f : 1.0f / denom;
+
+            glm::vec3 tangent = glm::vec3(0.0f);
+            tangent.x = f * ( deltaUV2.y * edge1.x - deltaUV1.y * edge2.x );
+            tangent.y = f * ( deltaUV2.y * edge1.y - deltaUV1.y * edge2.y );
+            tangent.z = f * ( deltaUV2.y * edge1.z - deltaUV1.y * edge2.z );
+
+            // Accumulate to each vertex
+            v0.tangent += tangent;
+            v1.tangent += tangent;
+            v2.tangent += tangent;
+        }
+
+        // Finally normalize and orthogonalize
+        for (auto &v : vertices) {
+            // Gram-Schmidt orthogonalization
+            glm::vec3 n = v.normal;
+            glm::vec3 t = v.tangent;
+
+            // Remove component in normal direction:
+            t = glm::normalize(t - n * glm::dot(n, t));
+
+            v.tangent = t;
+        }
     }
 
     GLMesh::~GLMesh()
     {
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &EBO);
+        glDeleteVertexArrays(1, &m_VAO);
+        glDeleteBuffers(1, &m_VBO);
+        glDeleteBuffers(1, &m_EBO);
     }
 
-    void GLMesh::GenGLBuffers()
+    void GLMesh::GenerateGLBuffers()
     {
+        if (m_VAO)
+        {
+            glDeleteVertexArrays(1, &m_VAO);
+            glDeleteBuffers(1, &m_VBO);
+            glDeleteBuffers(1, &m_EBO);
+        }
+
         ComputeTangents(m_Vertices, m_Indices);
 
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
+        glGenVertexArrays(1, &m_VAO);
+        glGenBuffers(1, &m_VBO);
+        glGenBuffers(1, &m_EBO);
 
-        glBindVertexArray(VAO);
+        glBindVertexArray(m_VAO);
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, m_Vertices.size() * sizeof(Vertex), m_Vertices.data(), GL_STATIC_DRAW);
+        // Upload vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            m_Vertices.size() * sizeof(Vertex),
+            m_Vertices.data(),
+            GL_STATIC_DRAW
+        );
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_Indices.size() * sizeof(unsigned int), m_Indices.data(), GL_STATIC_DRAW);
+        // Upload index data
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            m_Indices.size() * sizeof(uint32_t),
+            m_Indices.data(),
+            GL_STATIC_DRAW
+        );
 
-        // layout: 0 - position, 1 - normal, 2 - color, 3 - texCoord, 4 - tangent 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        glEnableVertexAttribArray(0);
+        const auto& elements = m_VertexLayout.GetElements();
+        uint32_t stride = m_VertexLayout.GetStride();
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-        glEnableVertexAttribArray(1);
+        for (const auto& element : elements)
+        {
+            glEnableVertexAttribArray(element.location);
 
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-        glEnableVertexAttribArray(2);
+            GLenum glType = GL_FLOAT;
 
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-        glEnableVertexAttribArray(3);
+            glType = ShaderDataTypeToOpenGL(element.type);
 
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-        glEnableVertexAttribArray(4);
+            glVertexAttribPointer(
+                element.location,
+                ShaderDataTypeComponentCount(element.type),
+                glType,
+                GL_FALSE,
+                stride,
+                (const void*)(uintptr_t)element.offset
+            );
+
+        }
 
         glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }

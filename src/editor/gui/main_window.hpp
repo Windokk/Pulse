@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "engine/core/platform/iwindow.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/debugging/logger.hpp"
@@ -17,10 +16,13 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
+
+#include <cstdint>
 
 namespace Pulse::Editor::Core {
 
-    enum EditorBuffer{
+    enum EditorViewportBuffer{
         Final,
         Shadows,
         ObjectID,
@@ -39,7 +41,7 @@ namespace Pulse::Editor::Core {
         /// bool showShadows;
         /// bool showLights;
         /// bool showBillboards;
-        /// EditorBuffer currentBuffer;
+        /// EditorViewportBuffer currentBuffer;
 
         // TODO Cam settings 
 
@@ -48,7 +50,7 @@ namespace Pulse::Editor::Core {
     class EditorMainWindow : public Engine::Core::Platform::IWindow {
     public:
         void Init(const std::string& title, const int& width, const int& height, 
-                    const bool& fullscreen, const int& vsync) override;
+                    const bool& fullscreen, const int& vsync, const uint32_t& api) override;
 
         void SetGLFWInputManager(GLFWInput* inputManager);
 

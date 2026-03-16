@@ -7,10 +7,18 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <cstdlib> // for malloc, free
-#include <cstring> // for memcpy
+#include <cstdlib>
+#include <cstring>
 
 #include "editor/gui/IconsLucide.h"
+
+#include "engine/core/resources/resources_manager.hpp"
+#include "engine/levels/level_manager.hpp"
+#include "engine/projects/project.hpp"
+#include "engine/rendering/renderer/renderer.hpp"
+#include "engine/rendering/shader/shader.hpp"
+#include "engine/rendering/pipeline/pipeline.hpp"
+#include "engine/rendering/material/material.hpp"
 
 namespace Pulse::Editor::Core{
     
@@ -191,7 +199,7 @@ namespace Pulse::Editor::Core{
         return font;
     }
 
-    void EditorMainWindow::Init(const std::string &title, const int &width, const int &height, const bool &fullscreen, const int &vsync)
+    void EditorMainWindow::Init(const std::string &title, const int &width, const int &height, const bool &fullscreen, const int &vsync, const uint32_t& api)
     {
         //Init glfw and gl context
         glfwInit();
@@ -219,12 +227,12 @@ namespace Pulse::Editor::Core{
         glfwSetWindowUserPointer(window, this);
         glfwSwapInterval(vsync);
 
-        gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
-        OpenGL* gl = new OpenGL();
-        gl->InitFromGLAD();
-
-        Engine::Core::GetEngine().SetGL(gl);
+        if(api == (uint32_t)Engine::Rendering::RendererAPI::API::OpenGL)
+            gladLoadGL((GLADloadfunc)glfwGetProcAddress);
+        else if(api == (uint32_t)Engine::Rendering::RendererAPI::API::Vulkan)
+        {    
+            //gladLoadVulkan(Engine::Core::GetEngine().GetRenderer()->GetDevicePointer?,(GLADloadfunc)glfwGetProcAddress);
+        }
     }
 
     void EditorMainWindow::SetGLFWInputManager(GLFWInput *inputManager)
@@ -285,80 +293,91 @@ namespace Pulse::Editor::Core{
             
             Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
 
-            auto fbOutlineShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/outline");
+            /// Outline mask pass
 
-            Rendering::FrameBuffer fbOutline(
-                viewport->GetViewportSize().x,
-                viewport->GetViewportSize().y,
-                fbOutlineShader,
-                false
-            );
+            Rendering::FramebufferSpecifications fbOutlineMaskSpecs;
+            fbOutlineMaskSpecs.hasColor = true;
+            fbOutlineMaskSpecs.hasDepth = false;
+            fbOutlineMaskSpecs.colorSpecs = {};
+            fbOutlineMaskSpecs.width = viewport->GetViewportSize().x;
+            fbOutlineMaskSpecs.height = viewport->GetViewportSize().y;
 
-            fbOutlineShader->Activate();
+            std::shared_ptr<Rendering::Framebuffer> fbOutlineMask = Rendering::Framebuffer::Create(fbOutlineMaskSpecs);
 
-            fbOutlineShader->SetInt("maskTex", 0);
-            fbOutlineShader->SetFloat("outlineThickness", 4.0f);
-            fbOutlineShader->SetVec2("texelSize", glm::vec2(1.0 / fbOutline.GetWidth(), 1.0 / fbOutline.GetHeight()));
-            fbOutlineShader->SetVec3("outlineColor", glm::vec3(1.0f, 0.722f, 0.0f));
-
-            fbOutlineShader->Deactivate();
-
-            // Init Editor Render Pass
-            auto drawOutlineMaskFunc = [this, renderer, fbOutlineShader]() {
-
-                if(!selectedActor || !settings.showOutlines)
-                    return;
-
-                OpenGL* gl = Engine::Core::GetEngine().GetGL();
-
-                gl->ClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                gl->Disable(GL_DEPTH_TEST);
-                gl->Enable(GL_CULL_FACE);
-                gl->CullFace(GL_BACK);
-                gl->FrontFace(GL_CCW);
-
-                for(auto& cmd : *renderer->GetDrawList()){
-                    
-                    if(cmd.tr->parent->GetID() != selectedActor->GetID())
-                        continue;
-
-                    Engine::Rendering::CameraManager* camMan = Engine::Core::GetEngine().GetCameraManager();
-
-                    std::shared_ptr<Engine::Rendering::Shader> shader = renderer->defaultUnlitShader;
-
-                    shader->Activate();
-
-                    shader->SetMat4("projection", camMan->GetActiveCamera()->GetProjection());
-                    shader->SetMat4("view", camMan->GetActiveCamera()->GetView());
-                    shader->SetMat4("model", cmd.tr->GetTransformMatrix());
-                    
-                    shader->SetBool("masked", false);
-                    shader->SetBool("useTexture", false);
-                    shader->SetBool("useCustomColor", true);
-                    shader->SetVec4("customColor", glm::vec4(1));
-
-                    gl->BindVertexArray(cmd.VAO);
-                    gl->PolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                    gl->DrawElements(GL_TRIANGLES, cmd.indexCount, GL_UNSIGNED_INT, (void*)(cmd.indexOffset * sizeof(uint32_t)));
-
-                    shader->Deactivate();
-                }
-
-                gl->BindVertexArray(0);
-                gl->UseProgram(0);
+            std::shared_ptr<Rendering::Shader> outlineMaskShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/outline_mask");
+            
+            Rendering::PipelineSpecifications outlineMaskPipelineSpecs;
+            outlineMaskPipelineSpecs.depthTest = false;
+            outlineMaskPipelineSpecs.shader = outlineMaskShader;
+            outlineMaskPipelineSpecs.debugName = "OutlineMaskPipeline";
+            outlineMaskPipelineSpecs.vertexLayout = {
+                {"aPos",Rendering::ShaderDataType::Vec3,0},
+                {"aNormal",Rendering::ShaderDataType::Vec3,1},
+                {"aColor",Rendering::ShaderDataType::Vec4,2},
+                {"aTexCoord",Rendering::ShaderDataType::Vec2,3},
+                {"aTangent",Rendering::ShaderDataType::Vec2,4}
             };
+            std::shared_ptr<Rendering::Pipeline> outlineMaskPipeline = Rendering::Pipeline::Create(outlineMaskPipelineSpecs);
 
-            renderer->AddRenderPass(
-                Rendering::RenderPassType::Fullscreen,
-                drawOutlineMaskFunc,
-                std::make_shared<Rendering::FrameBuffer>(fbOutline),
-                true,
-                Rendering::BlendMode::Normal
-            );
+            std::shared_ptr<Rendering::Material> outlineMaskMaterial = Rendering::Material::Create(outlineMaskShader, outlineMaskPipeline, false, Rendering::Opacity::Opaque);
 
-            renderPassesInitialized = true;
+            std::shared_ptr<Rendering::RenderPass> outlineMaskPass = std::make_shared<Rendering::RenderPass>();
+            outlineMaskPass->clearColor = true;
+            outlineMaskPass->clearDepth = true;
+            outlineMaskPass->customPipeline = outlineMaskPipeline;
+            outlineMaskPass->target = fbOutlineMask;
+            outlineMaskPass->overridePipeline = true;
+            if(selectedActor)
+                outlineMaskPass->customUniforms.emplace("selectedObjID", selectedActor->GetID().GetAsInt());
+
+            renderer->AddRenderPass(outlineMaskPass, "EditorOutlineMaskPass");
+
+            /////////
+
+            /// Outline Pass
+            
+            Rendering::FramebufferSpecifications fbOutlineSpecs;
+            fbOutlineSpecs.hasColor = true;
+            fbOutlineSpecs.hasDepth = false;
+            fbOutlineSpecs.colorSpecs = {};
+            fbOutlineSpecs.width = viewport->GetViewportSize().x;
+            fbOutlineSpecs.height = viewport->GetViewportSize().y;
+
+            std::shared_ptr<Rendering::Framebuffer> fbOutline = Rendering::Framebuffer::Create(fbOutlineSpecs);
+
+            std::shared_ptr<Rendering::Shader> outlineShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/outline");
+            
+            Rendering::PipelineSpecifications outlinePipelineSpecs;
+            outlinePipelineSpecs.depthTest = false;
+            outlinePipelineSpecs.depthWrite = false;
+            outlinePipelineSpecs.shader = outlineShader;
+            outlinePipelineSpecs.debugName = "FullscreenOutlinePipeline";
+            outlinePipelineSpecs.vertexLayout = {};
+            std::shared_ptr<Rendering::Pipeline> outlinePipeline = Rendering::Pipeline::Create(outlinePipelineSpecs);
+            
+            std::shared_ptr<Rendering::Material> outlineMaterial = Rendering::Material::Create(outlineShader, outlinePipeline, false, Rendering::Opacity::Opaque);
+            
+            std::shared_ptr<Rendering::RenderPass> outlinePass = std::make_shared<Rendering::RenderPass>();
+            outlinePass->clearColor = true;
+            outlinePass->clearDepth = true;
+            outlinePass->customPipeline = outlinePipeline;
+            outlinePass->target = fbOutline;
+            outlinePass->overridePipeline = true;
+            outlinePass->customUniforms.emplace("outlineThickness", 4.0f);
+            outlinePass->customUniforms.emplace("texelSize", glm::vec2(1.0 / fbOutlineMask->GetWidth(), 1.0 / fbOutlineMask->GetHeight()));
+            outlinePass->customUniforms.emplace("outlineColor", glm::vec3(1.0f, 0.722f, 0.0f));
+            outlinePass->customSamplers.emplace("maskTex", fbOutlineMask->GetColorAttachment());
+
+            renderer->AddRenderPass(outlinePass, "EditorOutlinePass");
+
+            Rendering::DrawCommand cmd;
+            cmd.fullscreenTri = true;
+            cmd.material = outlineMaterial.get();
+
+            renderer->AddCommands({cmd}, {"EditorOutlinePass"});
+
+            for(auto model : Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->models)
+                model.second->Update();
         }
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -481,14 +500,10 @@ namespace Pulse::Editor::Core{
     Pulse::Engine::Core::Platform::SystemInfos EditorMainWindow::GetSystemInfos() const
     {
         Engine::Core::Platform::SystemInfos ret{};
-                
-        const GLubyte* vendor   = Engine::Core::GetEngine().GetGL()->GetString(GL_VENDOR);
-        const GLubyte* renderer = Engine::Core::GetEngine().GetGL()->GetString(GL_RENDERER);
-        const GLubyte* version  = Engine::Core::GetEngine().GetGL()->GetString(GL_VERSION);
 
-        ret.gpu_vendor   = vendor   ? reinterpret_cast<const char*>(vendor)   : "Unknown";
-        ret.gpu_renderer = renderer ? reinterpret_cast<const char*>(renderer) : "Unknown";
-        ret.gl_version   = version  ? reinterpret_cast<const char*>(version)  : "Unknown";
+        ret.gpu_vendor   = Engine::Core::GetEngine().GetRenderer()->GetDeviceVendor();
+        ret.gpu_renderer = Engine::Core::GetEngine().GetRenderer()->GetRendererName();
+        ret.gl_version   =  Engine::Core::GetEngine().GetRenderer()->GetDriverVersion();
 
         // GLFW context version
         int major, minor, rev;
@@ -510,4 +525,3 @@ namespace Pulse::Editor::Core{
         return ret;
     }
 }
-

@@ -1,14 +1,16 @@
 #include "model_component.hpp"
 
+#include "engine/core/engine.hpp"
+#include "engine/core/resources/resources_manager.hpp"
+
 #include "engine/rendering/renderer/renderer.hpp"
+#include "engine/rendering/material/material.hpp"
 
 #include "engine/ecs/objects/actors/actor.hpp"
 
-#include "engine/core/resources/resources_manager.hpp"
-
-#include "engine/core/engine.hpp"
-
 #include "model_component.reflection.hpp"
+
+#include "engine/rendering/lighting/shadow_manager.hpp"
 
 namespace Pulse::Engine::ECS::Components{
     
@@ -114,7 +116,9 @@ namespace Pulse::Engine::ECS::Components{
         {
             return;
         }
-        parent->level->meshes[parent->GetComponentIDInScene(local_id)] = { parent->transform->GetTransformMatrix(), mesh.get() };
+        parent->level->meshes[parent->GetComponentIDInLevel(local_id)] = { parent->transform->GetTransformMatrix(), mesh.get() };
+        
+        Update();
     }
 
     void Model::SetMaterials(std::vector<std::shared_ptr<Rendering::Material>>&& newMaterials)
@@ -143,11 +147,18 @@ namespace Pulse::Engine::ECS::Components{
 
             std::shared_ptr<Transform> tr = parent->transform;
 
-            std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCmds(tr, parent->GetComponentIDInScene(local_id), this->materials);
+            std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCommands(tr, parent->GetComponentIDInLevel(local_id), this->materials);
 
-            Core::GetEngine().GetRenderer()->SubmitCommands(cmds, alreadySubmitted);
+            std::vector<std::string> passesName;
+            passesName.push_back("ForwardPass");
+            passesName.push_back("EditorOutlineMaskPass");
 
-            alreadySubmitted = true;
+            for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
+            {   
+                passesName.push_back("ShadowPass"+std::to_string(i));    
+            }
+
+            Core::GetEngine().GetRenderer()->AddCommands(cmds, passesName);
         }
     }
 
@@ -155,9 +166,21 @@ namespace Pulse::Engine::ECS::Components{
     {
         if (materials.size() > 0 && mesh != nullptr && parent->level->IsLoaded()){
             std::shared_ptr<Transform> tr = parent->transform;
-            std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCmds(tr, parent->GetComponentIDInScene(local_id), this->materials);
-            Core::GetEngine().GetRenderer()->RemoveCommands(cmds);
-            alreadySubmitted = false;
+            std::vector<uint32_t> cmdsID;
+            for(int i = 0; i < mesh->GetSubMeshes().size(); i++){
+                cmdsID.push_back(parent->GetComponentIDInLevel(local_id) + i);
+            }
+
+            
+            std::vector<std::string> passesName;
+            passesName.push_back("ForwardPass");
+
+            for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
+            {   
+                passesName.push_back("ShadowPass"+std::to_string(i));    
+            }
+
+            Core::GetEngine().GetRenderer()->RemoveCommands(cmdsID, passesName);
         }
     }
 

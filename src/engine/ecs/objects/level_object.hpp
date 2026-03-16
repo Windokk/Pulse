@@ -52,11 +52,8 @@ namespace Pulse::Engine::ECS::Objects{
 
             virtual void Destroy();
         
-        private:
+        protected:
             std::vector<Core::ObjectID> children;
             Core::ObjectID parent = Core::ObjectID(-1);
-
-            friend class Actor;
-            friend class Skybox;
     };
 }

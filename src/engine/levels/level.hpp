@@ -2,12 +2,7 @@
 
 #include <string>
 
-#include "engine/rendering/renderer/renderer.hpp"
-
 #include "engine/core/objectID.hpp"
-#include "engine/ecs/components/physics/physics_body.hpp"
-#include "engine/ecs/components/audio/audio_source.hpp"
-#include "engine/ecs/components/rendering/camera.hpp"
 #include "engine/ecs/components/misc/script.hpp"
 #include "engine/ecs/components/rendering/model_component.hpp"
 #include "engine/ecs/objects/skybox/skybox.hpp"
@@ -21,12 +16,17 @@ namespace Pulse::Engine::ECS{
 
     namespace Components{
         class Light;
+        class Camera;
+        class Model;
+        class Script;
+        class AudioSource;
     }
 }
 
 namespace Pulse::Engine::Rendering{
     class Renderer;
     class Mesh;
+    class Texture2D;
 }
 
 namespace Pulse::Engine::Levels{
@@ -91,7 +91,7 @@ namespace Pulse::Engine::Levels{
 
             float ambientIntensity = 0.2f;
             std::shared_ptr<ECS::Objects::Skybox> skybox;
-            std::shared_ptr<Rendering::Texture> ibl_texture;
+            std::shared_ptr<Rendering::Texture2D> ibl_texture;
 
             // These are maps for fast lookup (key: id IN LEVEL, value: ptr to the comp)
             std::vector<std::shared_ptr<ECS::Components::Light>> lights;

@@ -1,28 +1,68 @@
 #pragma once
 
 #include <stdexcept>
-
-#include "engine/filesystem/filesystem.hpp"
-#include "engine/levels/level_manager.hpp"
-#include "engine/ecs/objects/actors/actor.hpp"
-#include "engine/core/platform/iplatform.hpp"
-#include "engine/time/time_manager.hpp"
-#include "engine/core/resources/resources_manager.hpp"
-#include "engine/rendering/renderer/renderer.hpp"
-#include "engine/projects/project.hpp"
-#include "engine/debugging/profiler.hpp"
-#include "engine/core/attributes.hpp"
+#include <memory>
+#include <glm/glm.hpp>
 
 namespace Pulse::Engine{
- 
+
     namespace Rendering {
-        
+        class Renderer;
         class CameraManager;
+        struct RendererSettings;
+    }
+
+    namespace Events {
+        class EventDispatcher;
+    }
+
+    namespace Levels{
+        class LevelManager;
+    }
+
+    namespace Audio{
+        class AudioManager;
+        class AudioIDManager;
+    }
+
+    namespace Physics{
+        class PhysicsManager;
+    }
+
+    namespace Time{
+        class TimeManager;
+    }
+
+    namespace Projects{
+        class Project;
+    }
+
+    namespace Debugging{
+        class Profiler;
+    }
+
+    namespace Projects{
+        struct BuildSettings;
+    }
+
+    namespace Filesystem{
+        class FileManager;
+        class AssetIDManager;
     }
 
     namespace Core {
-        
-        class ResourcesManager;
+
+        namespace Resources{
+            class ResourcesManager;
+        }
+
+        namespace Platform{
+            class IPlatform;
+            class IInput;
+            class IWindow;
+        }
+
+        class ObjectIDManager;
 
         struct EngineCreationSettings{
             //PLATFORM
@@ -42,6 +82,8 @@ namespace Pulse::Engine{
 
             //PLAY MODE
             bool startInPlayMode = false;
+
+            uint32_t api;
         };
 
         struct EngineContext {
@@ -86,104 +128,66 @@ namespace Pulse::Engine{
                 }
 
                 // Public interface
-                bool shouldEnd() { return context.platform->GetWindow()->ShouldClose(); }
+                bool ShouldEnd();
                 void Destroy();
                 bool Run();
                 void Init(EngineCreationSettings settings);
                 void InitSystems();
 
                 // Optional: configure engine before initialization
-                void SetSettings(const EngineCreationSettings& s) { settings = s; }
-                EngineCreationSettings GetSettings() const { return settings; }
+                void SetSettings(const EngineCreationSettings& s) { m_EngineSettings = s; }
+                EngineCreationSettings GetSettings() const { return m_EngineSettings; }
 
-                Platform::IWindow* GetWindow() const { return context.platform->GetWindow(); }
+                Platform::IWindow* GetWindow() const;
 
-                Platform::IInput* GetInputManager() const { return context.platform->GetInput(); }
+                Platform::IInput* GetInputManager() const;
 
-                Rendering::Renderer* GetRenderer() const { return context.renderer; }
+                Rendering::Renderer* GetRenderer() const { return m_Context.renderer; }
 
-                Rendering::CameraManager* GetCameraManager() const { return context.cameraManager; }
+                Rendering::CameraManager* GetCameraManager() const { return m_Context.cameraManager; }
 
-                Resources::ResourcesManager* GetResourcesManager() const { return context.resourcesManager; }
+                Resources::ResourcesManager* GetResourcesManager() const { return m_Context.resourcesManager; }
 
-                Filesystem::FileManager* GetFileManager() const { return context.fileManager; }
+                Filesystem::FileManager* GetFileManager() const { return m_Context.fileManager; }
 
-                Filesystem::AssetIDManager* GetAssetIDManager() const { return context.assetIDManager; }
+                Filesystem::AssetIDManager* GetAssetIDManager() const { return m_Context.assetIDManager; }
 
-                ObjectIDManager* GetObjectIDManager() const { return context.objIDManager; }
+                ObjectIDManager* GetObjectIDManager() const { return m_Context.objIDManager; }
 
-                Physics::PhysicsManager* GetPhysicsManager() const { return context.physicsManager; }
+                Physics::PhysicsManager* GetPhysicsManager() const { return m_Context.physicsManager; }
 
-                Levels::LevelManager* GetLevelManager() const { return context.levelManager; }
+                Levels::LevelManager* GetLevelManager() const { return m_Context.levelManager; }
 
-                Events::EventDispatcher* GetEventDispatcher() const { return context.eventDispatcher; }
+                Events::EventDispatcher* GetEventDispatcher() const { return m_Context.eventDispatcher; }
 
-                Audio::AudioManager* GetAudioManager() const { return context.audioManager; }
+                Audio::AudioManager* GetAudioManager() const { return m_Context.audioManager; }
 
-                Audio::AudioIDManager* GetAudioIDManager() const { return context.audioIDManager; }
+                Audio::AudioIDManager* GetAudioIDManager() const { return m_Context.audioIDManager; }
 
-                Time::TimeManager* GetTimeManager() const { return context.timeManager; }
+                Time::TimeManager* GetTimeManager() const { return m_Context.timeManager; }
 
-                Projects::BuildSettings* GetBuildSettings() const { return context.currentProject->GetBuildSettings(); }
+                Projects::BuildSettings* GetBuildSettings() const;
 
-                std::shared_ptr<Projects::Project> GetCurrentProject() const { return context.currentProject; }
+                std::shared_ptr<Projects::Project> GetCurrentProject() const { return m_Context.currentProject; }
 
-                Debugging::Profiler* GetProfiler() const { return context.profiler; }
+                Debugging::Profiler* GetProfiler() const { return m_Context.profiler; }
 
-                bool IsInPlayMode() const { return playMode; }
+                bool IsInPlayMode() const { return m_PlayMode; }
 
-                void SetPlayMode(bool on) { 
-                    playMode = on;
-
-                    if(playMode){
-
-                        context.levelManager->GetLevelAt(0)->Serialize(context.levelManager->GetLevelAt(0)->GetPath());
-
-                        for(int i = 0; i < context.levelManager->GetLoadedLevelCount(); i++){
-                            context.levelManager->GetLevelAt(i)->Play();
-                        }
-
-                        auto* level = context.levelManager->GetLevelAt(0);
-                        if (level && !level->cameras.empty()){
-
-                            auto cameraEntry = level->cameras.begin();
-                            auto camera = cameraEntry->second;
-                            if (!camera) {
-                                DEBUG_ERROR("First camera is not valid for level : ", level->GetName());
-                                return;
-                            }
-
-                            auto parent = camera->parent;
-                            if (!parent) {
-                                DEBUG_ERROR("First camera's parent is not valid for level : ", level->GetName());
-                                return;
-                            }
-
-                            context.cameraManager->SetActiveCamera(parent->GetID());
-                        }
-
-                        activateAllPhysics = true;
-                    }
-                    else{
-                        
-                        for(int i = 0; i < context.levelManager->GetLoadedLevelCount(); i++){
-                            context.levelManager->GetLevelAt(i)->Stop();
-                        }
-
-                        reloadCurrentLevel = true;
-                    }
-                }
+                void SetPlayMode(bool on);
 
             private:
                 EngineInstance() = default;
 
-                EngineContext context;
+                EngineContext m_Context;
 
-                EngineCreationSettings settings;
+                EngineCreationSettings m_EngineSettings;
 
-                bool playMode;
-                bool activateAllPhysics;
-                bool reloadCurrentLevel;
+                bool m_PlayMode = false;
+                bool m_ActivateAllPhysics = false;
+                bool m_ReloadCurrentLevel = false;
+                
+                std::shared_ptr<Rendering::RendererSettings> m_RendererSettings;
         };
 
         #if defined(BUILD_ENGINE)

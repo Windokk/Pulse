@@ -1,15 +1,17 @@
-#include "engine/core/object.hpp"
+#include "level_object.hpp"
 
 #include "engine/debugging/logger.hpp"
 
 #include "engine/core/engine.hpp"
+
+#include <memory>
 
 namespace Pulse::Engine::ECS::Objects{
     
     std::shared_ptr<LevelObject> LevelObject::GetParent()
     {
         auto obj = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(parent);
-        if(auto lvlObj = dynamic_pointer_cast<LevelObject>(obj))
+        if(auto lvlObj = std::dynamic_pointer_cast<LevelObject>(obj))
             return lvlObj;
         else
             return nullptr;
@@ -36,7 +38,7 @@ namespace Pulse::Engine::ECS::Objects{
     std::shared_ptr<LevelObject> LevelObject::GetChild(int index)
     {
         auto obj = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(children[index]);
-        if(auto lvlObj = dynamic_pointer_cast<LevelObject>(obj))
+        if(auto lvlObj = std::dynamic_pointer_cast<LevelObject>(obj))
             return lvlObj;
         else
             return nullptr;
@@ -51,7 +53,7 @@ namespace Pulse::Engine::ECS::Objects{
         {
             if (child == ObjectID) {
                 auto obj = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(child);
-                if(auto lvlObj = dynamic_pointer_cast<LevelObject>(obj))
+                if(auto lvlObj = std::dynamic_pointer_cast<LevelObject>(obj))
                     return lvlObj;
                 else
                     return nullptr;

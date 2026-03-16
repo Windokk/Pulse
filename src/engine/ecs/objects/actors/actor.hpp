@@ -48,7 +48,7 @@ namespace Pulse::Engine::ECS::Objects{
 
             void Destroy() override;
 
-            int GetComponentIDInScene(int componentIndex) { 
+            int GetComponentIDInLevel(int componentIndex) { 
                 if(componentIndex >= 0 && id.GetAsInt() >= 0){
                     return (id.GetAsInt() << 12) | (componentIndex & 0xFFF);
                 }
@@ -162,33 +162,33 @@ namespace Pulse::Engine::ECS::Objects{
             if constexpr (IsSubclassOf<Light, T>()) {
                 component->SetLightIndex(level->lights.size());
                 level->lights.push_back(component);
-                level->lightComps.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->lightComps.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<Model, T>()) {
-                level->models.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->models.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<Transform, T>()) {
-                level->transforms.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->transforms.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<PhysicsBody, T>()) {
-                level->physicsBodies.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->physicsBodies.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<AudioSource, T>()) {
-                level->audioSources.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->audioSources.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
             }
 
             if constexpr (IsSubclassOf<Script, T>()) {
-                level->scripts.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->scripts.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
                 RegisterComponentEvents(component);
                 component->OnCreate();
             }
 
             if constexpr (IsSubclassOf<Camera, T>()) {
-                level->cameras.emplace(GetComponentIDInScene(component->GetLocalId()), component);
+                level->cameras.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
                 static_pointer_cast<Camera>(component)->AddToCameraManager();
             }
         }

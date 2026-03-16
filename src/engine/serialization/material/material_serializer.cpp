@@ -6,6 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "engine/rendering/pipeline/pipeline.hpp"
+#include "engine/rendering/shader/shader.hpp"
+#include "engine/rendering/material/material.hpp"
 
 using namespace nlohmann;
 
@@ -49,13 +52,20 @@ namespace Pulse::Engine::Serialization{
                 return nullptr;
             }
 
-            RenderMode renderMode = OPAQUE;
+            Opacity renderMode = Opacity::Opaque;
             if(mode == "translucent")
-                renderMode = TRANSLUCENT;
+                renderMode = Opacity::Translucent;
             else if(mode == "masked")
-                renderMode = MASKED;
-            
-            std::shared_ptr<Material> mat = std::make_shared<Material>(shader, data["recievesShadows"], renderMode);
+                renderMode = Opacity::Masked;
+
+            Rendering::VertexLayout vertexLayout = {
+                {"aPos", Rendering::ShaderDataType::Vec3, 0},
+                {"aNormal", Rendering::ShaderDataType::Vec3, 1},
+                {"aColor", Rendering::ShaderDataType::Vec4, 2},
+                {"aTexCoord", Rendering::ShaderDataType::Vec2, 3},
+                {"aTangent", Rendering::ShaderDataType::Vec3, 4}
+            };
+            std::shared_ptr<Material> mat = Material::Create(shader, Pipeline::Create({shader, vertexLayout}), data["recievesShadows"], renderMode);
 
             for(auto& uniform : data["uniforms"]){
                 for (auto it = uniform.begin(); it != uniform.end(); ++it) {
@@ -64,7 +74,7 @@ namespace Pulse::Engine::Serialization{
 
                     // Texture
                     if (value.is_string()) {
-                        GLuint tex = Core::GetEngine().GetResourcesManager()->GetImage(value.get<std::string>())->texture->GetID();
+                        uint32_t tex = Core::GetEngine().GetResourcesManager()->GetTexture(value.get<std::string>())->GetHandle();
                         if(tex){
                             mat->SetTextureParameter(name, tex);
                         }

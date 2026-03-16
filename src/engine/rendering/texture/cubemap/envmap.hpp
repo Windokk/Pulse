@@ -19,7 +19,7 @@ namespace Pulse::Engine::Rendering{
             std::shared_ptr<Cubemap> GetCubemap() const { return m_Cubemap; }
             std::shared_ptr<Cubemap> GetIrradiance() const { return m_IrradianceMap; }
             std::shared_ptr<Cubemap> GetPrefilter() const { return m_PrefilterMap; }
-            std::shared_ptr<Texture> GetBRDFLUT() const { return m_BrdfLUT; }
+            std::shared_ptr<Texture2D> GetBRDFLUT() const { return m_BrdfLUT; }
 
             void SetAssetID(Filesystem::AssetID assetID)
             {
@@ -40,7 +40,7 @@ namespace Pulse::Engine::Rendering{
             std::shared_ptr<Cubemap> m_Cubemap;
             std::shared_ptr<Cubemap> m_IrradianceMap;
             std::shared_ptr<Cubemap> m_PrefilterMap;
-            std::shared_ptr<Texture> m_BrdfLUT;
+            std::shared_ptr<Texture2D> m_BrdfLUT;
     };
 
     class EnvironmentMapGenerator

@@ -1,5 +1,7 @@
 #include "debug_shapes.hpp"
 
+#include <glm/gtc/constants.hpp>
+
 namespace Pulse::Engine::Rendering {
 
     void DebugBox::GenerateBox(glm::vec3 halfExtent, COL_RGBA color)
@@ -43,13 +45,13 @@ namespace Pulse::Engine::Rendering {
             float s = sin(angle);
 
             // XY ring
-            vertices.push_back({ glm::vec3(radius * c, radius * s, 0), glm::vec3(0), color, glm::vec2(0) });
+            vertices.push_back({ glm::vec3(radius * c, radius * s, 0), glm::vec2(0), glm::vec3(0), color });
 
             // XZ ring
-            vertices.push_back({ glm::vec3(radius * c, 0, radius * s), glm::vec3(0), color, glm::vec2(0) });
+            vertices.push_back({ glm::vec3(radius * c, 0, radius * s), glm::vec2(0), glm::vec3(0), color });
 
             // YZ ring
-            vertices.push_back({ glm::vec3(0, radius * c, radius * s), glm::vec3(0), color, glm::vec2(0) });
+            vertices.push_back({ glm::vec3(0, radius * c, radius * s), glm::vec2(0), glm::vec3(0), color });
         }
 
         for (int i = 0; i < segments; i++)
@@ -93,10 +95,10 @@ namespace Pulse::Engine::Rendering {
             glm::vec3 dir(c * radius, 0, s * radius);
 
             // bottom ring
-            vertices.push_back({ dir + glm::vec3(0,-halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+            vertices.push_back({ dir + glm::vec3(0,-halfHeight,0), glm::vec2(0), glm::vec3(0), color });
 
             // top ring
-            vertices.push_back({ dir + glm::vec3(0, halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+            vertices.push_back({ dir + glm::vec3(0, halfHeight,0), glm::vec2(0), glm::vec3(0), color });
         }
 
         for (int i = 0; i < segments; i++)
@@ -113,17 +115,17 @@ namespace Pulse::Engine::Rendering {
         }
 
         // --- vertical lines ---
-        vertices.push_back({ glm::vec3(radius,-halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
-        vertices.push_back({ glm::vec3(radius, halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(radius,-halfHeight,0), glm::vec2(0), glm::vec3(0), color });
+        vertices.push_back({ glm::vec3(radius, halfHeight,0), glm::vec2(0), glm::vec3(0), color });
 
-        vertices.push_back({ glm::vec3(-radius,-halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
-        vertices.push_back({ glm::vec3(-radius, halfHeight,0), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(-radius,-halfHeight,0), glm::vec2(0), glm::vec3(0), color });
+        vertices.push_back({ glm::vec3(-radius, halfHeight,0), glm::vec2(0), glm::vec3(0), color });
 
-        vertices.push_back({ glm::vec3(0,-halfHeight,radius), glm::vec3(0), color, glm::vec2(0) });
-        vertices.push_back({ glm::vec3(0, halfHeight,radius), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(0,-halfHeight,radius), glm::vec2(0), glm::vec3(0), color });
+        vertices.push_back({ glm::vec3(0, halfHeight,radius), glm::vec2(0), glm::vec3(0), color });
 
-        vertices.push_back({ glm::vec3(0,-halfHeight,-radius), glm::vec3(0), color, glm::vec2(0) });
-        vertices.push_back({ glm::vec3(0, halfHeight,-radius), glm::vec3(0), color, glm::vec2(0) });
+        vertices.push_back({ glm::vec3(0,-halfHeight,-radius), glm::vec2(0), glm::vec3(0), color });
+        vertices.push_back({ glm::vec3(0, halfHeight,-radius), glm::vec2(0), glm::vec3(0), color });
 
         int base = vertices.size() - 8;
 
@@ -157,7 +159,7 @@ namespace Pulse::Engine::Rendering {
                 else
                     p = center + glm::vec3(0, y, x);
 
-                vertices.push_back({ p, glm::vec3(0), color, glm::vec2(0) });
+                vertices.push_back({ p, glm::vec2(0), glm::vec3(0), color });
 
                 if(i > 0)
                 {
@@ -187,9 +189,9 @@ namespace Pulse::Engine::Rendering {
             glm::vec3 dir = glm::vec3(x, 0, z);
 
             // bottom ring
-            vertices.push_back({ dir * radius + glm::vec3(0, -halfHeight, 0), dir, color, glm::vec2(0,0)});
+            vertices.push_back({ dir * radius + glm::vec3(0, -halfHeight, 0), glm::vec2(0,0), dir, color });
             // top ring
-            vertices.push_back({ dir * radius + glm::vec3(0, +halfHeight, 0), dir, color, glm::vec2(0,0)});
+            vertices.push_back({ dir * radius + glm::vec3(0, +halfHeight, 0), glm::vec2(0,0), dir, color });
         }
 
         // Index generation

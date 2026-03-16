@@ -4,40 +4,107 @@
 
 #include "engine/rendering/framebuffer/framebuffer.hpp"
 
+#include "engine/rendering/mesh/mesh.hpp"
+
+#include <map>
+#include <variant>
+
 namespace Pulse::Engine::Rendering {
 
-    enum class BlendMode{
-        Add,
-        Multiply,
-        Screen,
-        Normal
-    };
+    class LightManager;
+    class ShadowManager;
+
+    using NumericValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
+
+    class Renderer;
 
     struct RenderPass{
         std::shared_ptr<Framebuffer> target = nullptr;
-        BlendMode blendMode = BlendMode::Normal;
         bool clearColor = true;
         bool clearDepth = true;
+        std::map<std::string, NumericValue> customUniforms;
+        std::map<std::string, uint64_t> customSamplers;
+        bool overridePipeline = false;
+        std::shared_ptr<Pipeline> customPipeline = nullptr;
+        private:
+            std::vector<DrawCommand> drawList = {};
+            bool drawListDirty = false;
+            std::unordered_map<uint32_t, size_t> drawCommandsLookup;
+        friend class Renderer;
+    };
+
+
+    /// @todo move this in a "setting manager" system
+    struct RendererSettings{
+        int viewportWidth;
+        int viewportHeight;
+        bool multisampling = true;
+        RendererAPI::API api;
     };
 
     class Renderer{
         public:
-
-            void Init();
+            void Init(std::shared_ptr<RendererSettings> initialSettings);
+            uint64_t GenerateSortKey(const DrawCommand &cmd, const uint32_t submeshID);
             void Render();
             void Shutdown();
+            void AddCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes);
+            void RemoveCommands(const std::vector<uint32_t> commandsID, const std::vector<std::string>& passes);
+            void ForceDrawlistUpdate(const std::vector<std::string>& passes);
 
-            const RendererAPI::API GetRendererAPI() const { if(rendererAPI) return rendererAPI->GetAPI(); }
+            void AddRenderPass(const std::shared_ptr<RenderPass> pass, const std::string& name);
+            void RemoveRenderPass(const std::string& name);
 
+            void RescaleFramebuffers(int newWidth, int newHeight);
+
+            uint32_t GetViewportTextureHandle() const { return m_ViewportBuffer->GetResolveColorAttachment(); }
+
+            void ToggleMultisampling(const bool on);
+
+            std::string GetDeviceVendor();
+            std::string GetRendererName();
+            std::string GetDriverVersion();
+            
+            RendererAPI* GetRendererAPI() const 
+            {
+                if(m_RendererAPI) 
+                    return m_RendererAPI.get();
+                else
+                    return nullptr; 
+            }
+            const std::shared_ptr<Mesh> GetUnitCube() { return m_UnitCube; }
+            const std::shared_ptr<Mesh> GetUnitQuad() { return m_UnitQuad; }
+            const std::shared_ptr<ShadowManager> GetShadowManager() { return m_ShadowManager; }
+            const std::shared_ptr<LightManager> GetLightManager() { return m_LightManager; }
         private:
 
             void BeginFrame();
+            void DrawFrame();
             void EndFrame();
 
-            void BeginRenderPass(const RenderPass& pass);
+            void ReorderDrawList();
+
+            void BeginRenderPass(const std::shared_ptr<RenderPass>& pass);
+            void ExecuteRenderPass();
             void EndRenderPass();
 
-            RendererAPI* rendererAPI;
+            std::shared_ptr<RendererAPI> m_RendererAPI;
+
+            std::map<std::string, std::shared_ptr<RenderPass>> m_RenderPasses;
+
+            std::shared_ptr<RenderPass> m_CurrentPass;
+
+            std::shared_ptr<Mesh> m_UnitCube = nullptr;
+            std::shared_ptr<Mesh> m_UnitQuad = nullptr;
+
+            std::shared_ptr<Framebuffer> m_ViewportBuffer;
+
+            std::shared_ptr<ShadowManager> m_ShadowManager;
+            std::shared_ptr<LightManager> m_LightManager;
+
+            bool m_MultisamplingEnabled = false;
+
+            std::shared_ptr<RendererSettings> m_Settings;
     };
 
 }

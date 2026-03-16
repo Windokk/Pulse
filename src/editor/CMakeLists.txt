@@ -1,6 +1,5 @@
 file(GLOB_RECURSE EDITOR_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/third-party/lib/glad.c
   ${CMAKE_SOURCE_DIR}/submodules/imguizmo/ImGuizmo.cpp
   ${CMAKE_SOURCE_DIR}/submodules/imgui/imgui_demo.cpp
   ${CMAKE_SOURCE_DIR}/submodules/imgui/imgui.cpp

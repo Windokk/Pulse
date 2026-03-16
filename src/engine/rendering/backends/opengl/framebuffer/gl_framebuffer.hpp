@@ -9,24 +9,35 @@ namespace Pulse::Engine::Rendering{
             void CheckFBStatus();
 
             GLFramebuffer(const FramebufferSpecifications &spec);
-            virtual ~GLFramebuffer();
+            void Destroy() override;
 
             void Bind() override;
             void Unbind() override;
 
+            void CopyFrom(std::shared_ptr<Framebuffer> src) override;
+
             void ResolveMultisampled() override;
+
+            uint32_t GetHandle() const override;
 
             void Resize(uint32_t width, uint32_t height) override;
 
+            bool IsValid() const override;
+
             uint32_t GetColorAttachment() const override;
+            uint32_t GetDepthAttachment() const override;
+            
+            uint32_t GetResolveColorAttachment() const override;
+            uint32_t GetResolveDepthAttachment() const override;
 
         private:
             uint32_t m_FBO = 0;
-            uint32_t m_RBO = 0;
             uint32_t m_ColorAttachment = 0;
+            uint32_t m_DepthAttachment = 0;
 
             uint32_t m_ResolveFBO = 0;
-            uint32_t m_ResolveTexture = 0;
+            uint32_t m_ResolveColorAttachment = 0;
+            uint32_t m_ResolveDepthAttachment = 0;
     };
 
 }

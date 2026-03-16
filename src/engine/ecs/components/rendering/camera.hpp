@@ -4,6 +4,8 @@
 
 #include "engine/ecs/components/core/component.hpp"
 
+#include "engine/core/attributes.hpp"
+
 namespace Pulse::Engine::ECS::Components {
     
     struct Plane

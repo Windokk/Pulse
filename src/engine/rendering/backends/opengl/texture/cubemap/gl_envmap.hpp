@@ -4,6 +4,8 @@
 
 #include "engine/rendering/texture/cubemap/envmap.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace Pulse::Engine::Rendering{
 
     class GLEnvironmentMap : public EnvironmentMap{
@@ -11,7 +13,7 @@ namespace Pulse::Engine::Rendering{
 
             GLEnvironmentMap(const TextureSpecifications& infos, std::shared_ptr<Cubemap> cubemap,
                 std::shared_ptr<Cubemap> irradianceMap, std::shared_ptr<Cubemap> prefilterMap,
-                std::shared_ptr<Texture> brdfLUT);
+                std::shared_ptr<Texture2D> brdfLUT);
 
         private:
     };
@@ -40,7 +42,7 @@ namespace Pulse::Engine::Rendering{
             void GenerateGeometry();
             void CreateIrradiance(std::shared_ptr<Cubemap> irradianceMap, std::shared_ptr<Cubemap> cubemap);
             void CreatePrefilter(std::shared_ptr<Cubemap> prefilterMap, std::shared_ptr<Cubemap> cubemap);
-            void CreateBRDFLUT(std::shared_ptr<Texture> brdfLUT);
+            void CreateBRDFLUT(std::shared_ptr<Texture2D> brdfLUT);
 
             void RenderUnitCube();
             void RenderUnitQuad();

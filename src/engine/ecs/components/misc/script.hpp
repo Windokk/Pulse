@@ -4,6 +4,8 @@
 
 #include "engine/events/event_system.hpp"
 
+#include "engine/core/attributes.hpp"
+
 namespace Pulse::Engine::ECS::Components
 {
     /// @brief Main scripting component. All scripts should inherit from this component. Scripts method are called from their parent actor, in order of addition

@@ -3,6 +3,10 @@
 #include "iwindow.hpp"
 #include "iinput.hpp"
 
+#ifdef CreateWindow
+#undef CreateWindow
+#endif
+
 namespace Pulse::Engine::Core::Platform {
 
     class IPlatform {
@@ -14,7 +18,7 @@ namespace Pulse::Engine::Core::Platform {
             virtual IInput* GetInput() = 0;
 
             virtual void CreateWindow(const std::string& title, const int& width, const int& height, 
-                            const bool& fullscreen, const int& vsync) = 0;
+                            const bool& fullscreen, const int& vsync, const uint32_t& api) = 0;
             virtual void CreateInput() = 0;
 
             // Utility

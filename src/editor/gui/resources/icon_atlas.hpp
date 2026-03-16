@@ -19,11 +19,11 @@ namespace Pulse::Editor::GUI {
         public:
             bool Build(const std::vector<std::string>& iconPaths, int atlasSize = 1024);
 
-            std::shared_ptr<Engine::Rendering::Texture> GetTexture() { return texture; }
+            std::shared_ptr<Engine::Rendering::Texture2D> GetTexture() { return texture; }
             const AtlasRegion& GetRegion(const Engine::Filesystem::Type type) const;
 
         private:
-            std::shared_ptr<Engine::Rendering::Texture> texture;
+            std::shared_ptr<Engine::Rendering::Texture2D> texture;
             std::unordered_map<Engine::Filesystem::Type, AtlasRegion> regions;
             int width = 0;
             int height = 0;

@@ -18,6 +18,10 @@
 #include "engine/rendering/utils.hpp"
 
 #include "engine/core/reflection_fields.hpp"
+#include "engine/core/attributes.hpp"
+
+#include "engine/rendering/debug/debug_shapes.hpp"
+
 
 namespace Pulse::Engine::ECS::Components
 {

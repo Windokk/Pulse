@@ -8,12 +8,16 @@ namespace Pulse::Engine::Rendering{
         public:
             GLShader(const Filesystem::Path &vertexPath, const Filesystem::Path &fragmentPath, const Filesystem::Path &geometryPath);
 
-            ~GLShader() = default;
+            ~GLShader();
 
-            void Bind(CommandBuffer& cmd)  override;
-            void Unbind() override;
+            void Bind();
+            void Unbind();
 
             std::vector<UniformInfo> GetActiveUniforms() override;
+            std::vector<SamplerInfo> GetActiveSamplers() override;
+            
+            std::unordered_map<std::string, UniformInfo> GetActiveUniformsMap() override;
+            std::unordered_map<std::string, SamplerInfo> GetActiveSamplersMap() override;
 
             void SetBool(const std::string& name, bool value) override;
             void SetInt(const std::string& name, int value) override;
@@ -27,11 +31,17 @@ namespace Pulse::Engine::Rendering{
             void SetMat3(const std::string& name, const glm::mat3& mat) override;
             void SetMat4(const std::string& name, const glm::mat4& mat) override;
 
+            uint32_t GetProgram() const { return m_Program; }
+
         private:
 
             void CompileErrors(unsigned int shader, const char *type);
 
             uint32_t m_Program;
+            std::vector<UniformInfo> m_activeUniforms;
+            std::unordered_map<std::string, UniformInfo> m_activeUniformsMap;
+            std::vector<SamplerInfo> m_ActiveSamplers;
+            std::unordered_map<std::string, SamplerInfo> m_ActiveSamplersMap;
     };
 
 }

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "engine/ecs/components/misc/transform.hpp"
+#include <glm/glm.hpp>
 
 //3D
 struct Vertex {
     glm::vec3 position;
+    glm::vec2 texCoord;
     glm::vec3 normal;
     glm::vec4 color;
-    glm::vec2 texCoord;
     glm::vec3 tangent;
     
     bool operator==(const Vertex& other) const {
@@ -31,7 +31,6 @@ namespace std {
         }
     };
 }
-
 
 //Colors
 struct COL_RGB{
@@ -121,7 +120,10 @@ struct COL_RGB{
     }
 
     bool operator==(const COL_RGB& other) const {
-        return components[0] == other.components[0] && components[1] == other.components[1] && components[2] == other.components[2];
+        const float eps = 1e-6f;
+        return fabs(components[0] - other.components[0]) < eps &&
+            fabs(components[1] - other.components[1]) < eps &&
+            fabs(components[2] - other.components[2]) < eps;
     }
 
     bool operator!=(const COL_RGB& other) const {
@@ -188,13 +190,12 @@ struct COL_RGB{
         return glm::vec3(components[0], components[1], components[2]);
     }
 
-    float r() const { return components[0]; }
-    float g() const { return components[1]; }
-    float b() const { return components[2]; }
+    float& r() { return components[0]; }
+    float& g() { return components[1]; }
+    float& b() { return components[2]; }
 
     private:
-
-        float components[3] = {0.0f, 0.0f ,0.0f};
+        float components[3] = {0.0f, 0.0f, 0.0f};
 };
 
 struct COL_RGBA{    
@@ -295,7 +296,7 @@ struct COL_RGBA{
             components[0] - scalar,
             components[1] - scalar,
             components[2] - scalar,
-            components[2] - scalar
+            components[3] - scalar
         );
     }
 
@@ -313,7 +314,7 @@ struct COL_RGBA{
             components[0] / scalar,
             components[1] / scalar,
             components[2] / scalar,
-            components[2] / scalar
+            components[3] / scalar
         );
     }
 
@@ -393,7 +394,7 @@ struct COL_RGBA{
         return COL_RGB(components[0], components[1], components[2]);
     }
 
-    COL_RGB rgb(){
+    COL_RGB rgb() const {
         return COL_RGB(components[0], components[1], components[2]);
     }
 
@@ -406,4 +407,3 @@ struct COL_RGBA{
 
         float components[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 };
-

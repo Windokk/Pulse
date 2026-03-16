@@ -1,113 +1,104 @@
 #include "light_manager.hpp"
 
-#include <type_traits>
-#include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "engine/core/engine.hpp"
+#include "engine/core/platform/iwindow.hpp"
 
 #include "engine/rendering/renderer/renderer.hpp"
 
+#include "engine/rendering/lighting/shadow_manager.hpp"
 
-#include <glm/gtx/string_cast.hpp>
-
-#include "engine/core/engine.hpp"
-
-#include "engine/rendering/opengl/opengl.hpp"
+#include "engine/rendering/buffer/storage_buffer.hpp"
 
 namespace Pulse::Engine::Rendering{
-    
+
     LightManager::LightManager()
     {
-        Core::GetEngine().GetGL()->GenBuffers(1, &ssbo);
+        m_SSBO = StorageBuffer::Create(sizeof(LightData) * MAX_LIGHTS);
     }
 
     LightManager::~LightManager()
     {
-        Core::GetEngine().GetGL()->DeleteBuffers(1, &ssbo);
+        m_SSBO->~StorageBuffer();
     }
 
-    /// @note Only call this AFTER modifying the light data
-    /// @brief Update the light system's storage buffer, and shadow maps
-    /// @param updatedLight The global index (scene-relative) of the modified light
-    void LightManager::Update(int updatedLight){
-
-        if(lights.size() != 0){
-            std::vector<LightData> flatLights;
-            flatLights.reserve(lights.size());
-
-            for (std::shared_ptr<LightData> light : lights) {
-                if (light) {
-                    flatLights.push_back(*light.get());
-                }
-            }
-
-            Core::GetEngine().GetGL()->BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-            Core::GetEngine().GetGL()->BufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightData) * flatLights.size(), flatLights.data(), GL_DYNAMIC_DRAW);
-            Core::GetEngine().GetGL()->BindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
-        }
-
-        if(updatedLight == -1)
+    void LightManager::Update(int index)
+    {
+        if(m_Lights.empty())
             return;
 
-        Core::GetEngine().GetRenderer()->shadowMan->RegisterLight(updatedLight, lights[updatedLight]);
+        std::vector<LightData> flatLights;
+        flatLights.reserve(m_Lights.size());
+
+        for (auto& light : m_Lights)
+        {
+            if (light)
+                flatLights.push_back(*light);
+        }
+
+        m_SSBO->SetData(flatLights.data(), sizeof(LightData) * flatLights.size());
+        m_SSBO->Bind(0);
+
+        if(index == -1)
+            return;
+
+        Core::GetEngine()
+            .GetRenderer()
+            ->GetShadowManager()
+            ->RegisterLight(index, m_Lights[index]);
     }
 
-    /// @brief Add a light to the renderer
-    /// @param index The global index (scene-relative) of the light
-    /// @param light The light's parameters
-    void LightManager::AddLight(int index, std::shared_ptr<LightData> light)
+    void LightManager::AddLight(int index, std::shared_ptr<LightData> data)
     {
-        lights.push_back(light);
+        m_Lights.push_back(data);
     }
 
-    /// @brief Remove all lights from the renderer (and their associated shadow maps)
     void LightManager::Clear()
     {
-        for (int i = 0; i < lights.size(); ++i)
+        for (int i = 0; i < m_Lights.size(); ++i)
         {
-            if (lights[i] && lights[i]->castShadow)
+            if (m_Lights[i] && m_Lights[i]->castShadow)
             {
-                Core::GetEngine().GetRenderer()->shadowMan->UnregisterLight(i);
+                Core::GetEngine().GetRenderer()->GetShadowManager()->UnregisterLight(i);
             }
         }
 
-        lights.clear();
+        m_Lights.clear();
     }
 
-    /// @brief Remove light from renderer (and its associated shadow map)
-    /// @param lightIndex The global (scene-relative) light index to remove
     void LightManager::RemoveLight(int lightIndex)
     {
-        if (lightIndex < 0 || lightIndex >= static_cast<int>(lights.size()))
+        if (lightIndex < 0 || lightIndex >= static_cast<int>(m_Lights.size()))
             return;
 
         auto* renderer = Core::GetEngine().GetRenderer();
-        auto* shadowMan = renderer->shadowMan;
+        auto shadowMan = renderer->GetShadowManager();
 
-        if (lights[lightIndex] && lights[lightIndex]->castShadow)
+        if (m_Lights[lightIndex] && m_Lights[lightIndex]->castShadow)
         {
             shadowMan->UnregisterLight(lightIndex);
         }
 
-        lights.erase(lights.begin() + lightIndex);
+        m_Lights.erase(m_Lights.begin() + lightIndex);
 
         shadowMan->ClearAll();
 
-        for (size_t i = 0; i < lights.size(); ++i)
+        for (size_t i = 0; i < m_Lights.size(); ++i)
         {
-            if (lights[i] && lights[i]->castShadow)
+            if (m_Lights[i] && m_Lights[i]->castShadow)
             {
-                shadowMan->RegisterLight(static_cast<int>(i), lights[i]);
+                shadowMan->RegisterLight(static_cast<int>(i), m_Lights[i]);
             }
         }
     }
 
-    /// @brief Getter for lights count
-    /// @return The total number of lights in the renderer
     int LightManager::GetLightsCount()
     {
-        return lights.size();
+        return m_Lights.size();
     }
-    
-    
+
     std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& projview)
     {
         const auto inv = glm::inverse(projview);
@@ -128,8 +119,6 @@ namespace Pulse::Engine::Rendering{
         return frustumCorners;
     }
 
-    /// @brief Getter for lights matrices
-    /// @return The view-projection matrix from the light's point of view
     glm::mat4 LightData::GetLightMatrix(const glm::mat4& cameraView, const float fov, const float aspectRatio, const float cascadeNear, const float cascadeFar, const float shadowRes)
     {
         if (type == static_cast<int>(LightType::Directional) && cascadeFar != -1 && fov != -1 && aspectRatio != -1 && cascadeFar != -1)
@@ -167,7 +156,7 @@ namespace Pulse::Engine::Rendering{
                 maxZ = std::max(maxZ, trf.z);
             }
 
-            // Tune this parameter according to the scene
+            // Tune this parameter according to the level
             constexpr float zMult = 10.0f;
             if (minZ < 0)
             {
@@ -207,4 +196,5 @@ namespace Pulse::Engine::Rendering{
         // For point lights : returns identity matrix
         return glm::mat4(1.0f);
     }
+
 }

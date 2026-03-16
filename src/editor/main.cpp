@@ -61,6 +61,17 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
         else if (strcmp(argv[i], "--game") == 0 && i + 1 < argc) {
             gameModuleLib = argv[++i];
         }
+        else if(strcmp(argv[i], "--api") == 0 && i + 1 < argc){
+            std::string api = argv[++i];
+            if(api == "opengl")
+                settings.api = 0;
+            if(api == "vulkan")
+                settings.api = 1;
+            if(api == "dx11")
+                settings.api = 2;
+            if(api == "dx12")
+                settings.api = 3;
+        }
     }
 
     return settings;
@@ -130,33 +141,8 @@ int main(int argc, char* argv[]) {
         Pulse::Editor::Commands::CommandStack::Get();
     }
 
-    {
-        // Scene framebuffer
-        auto fbShader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/fb/framebuffer");
-        Rendering::FrameBuffer sceneFB(
-            Core::GetEngine().GetWindow()->GetFramebufferWidth(),
-            Core::GetEngine().GetWindow()->GetFramebufferHeight(),
-            fbShader,
-            true
-        );
-
-        // Main renderpasss
-        auto drawFunc = []() {
-            Core::GetEngine().GetRenderer()->DrawScene();
-        };
-
-        Core::GetEngine().GetRenderer()->AddRenderPass(
-            Rendering::RenderPassType::Scene,
-            drawFunc,
-            std::make_shared<Rendering::FrameBuffer>(sceneFB),
-            true,
-            Rendering::BlendMode::Normal
-        );
-    }
-
-
     //Main Loop
-    while (!Core::GetEngine().shouldEnd()) {
+    while (!Core::GetEngine().ShouldEnd()) {
         if (!Core::GetEngine().Run()) break;
 
         Core::GetEngine().GetWindow()->ProcessInputs();

@@ -1,23 +1,33 @@
 #pragma once
 
 #include "engine/rendering/mesh/mesh.hpp"
+#include "engine/rendering/pipeline/pipeline.hpp"
 
 namespace Pulse::Engine::Rendering{
 
+    class VertexLayout;
+
     class GLMesh : public Mesh{
         public:
-            void Create(std::vector<Vertex> vertices, std::vector<uint32_t> indices) override;
+
+            GLMesh() {};
+
+            void Create(std::vector<Vertex> vertices, std::vector<uint32_t> indices, const VertexLayout& layout) override;
 
             void CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, 
-                ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, 
+                ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, const VertexLayout& layout,
                 COL_RGBA vertexColor = COL_RGBA(0.99f,0.06f,0.75f,1.0f)) override;
 
             ~GLMesh() override;
 
-            void GenGLBuffers();
+            uint32_t GetVAO() const { return m_VAO; }
 
         private:
-            uint32_t VAO, VBO, EBO = 0;
+
+            void GenerateGLBuffers();
+
+            uint32_t m_VAO, m_VBO, m_EBO = 0;
+            VertexLayout m_VertexLayout;
 
     };
 }
