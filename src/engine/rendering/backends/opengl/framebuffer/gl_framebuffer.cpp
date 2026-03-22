@@ -84,11 +84,13 @@ namespace Pulse::Engine::Rendering{
                 glGenTextures(1, &m_ResolveColorAttachment);
                 glBindTexture(GL_TEXTURE_2D, m_ResolveColorAttachment);
                 GLTextureSpec colorSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications.colorSpecs);
-                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, spec.width, spec.height, 0, colorSpecs.format, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, spec.width, spec.height, 0, colorSpecs.format, colorSpecs.type, nullptr);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, colorSpecs.minFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, colorSpecs.magFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, colorSpecs.wrapModeS);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, colorSpecs.wrapModeT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, spec.colorSpecs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, colorSpecs.compareFunc);
                 if(m_Specifications.colorSpecs.borderColor != COL_RGBA(-1.0f)){
                     float borderColor[] = {m_Specifications.colorSpecs.borderColor.r(), m_Specifications.colorSpecs.borderColor.g(), m_Specifications.colorSpecs.borderColor.b(), m_Specifications.colorSpecs.borderColor.a()};
                     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -100,11 +102,13 @@ namespace Pulse::Engine::Rendering{
                 glGenTextures(1, &m_ResolveDepthAttachment);
                 glBindTexture(GL_TEXTURE_2D, m_ResolveDepthAttachment);
                 GLTextureSpec depthSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications.depthSpecs);
-                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, spec.width, spec.height, 0, depthSpecs.format, GL_UNSIGNED_INT, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, spec.width, spec.height, 0, depthSpecs.format, depthSpecs.type, nullptr);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, depthSpecs.minFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, depthSpecs.magFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, depthSpecs.wrapModeS);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, depthSpecs.wrapModeT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, spec.depthSpecs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, depthSpecs.compareFunc);
                 if(m_Specifications.depthSpecs.borderColor != COL_RGBA(-1.0f)){
                     float borderColor[] = {m_Specifications.depthSpecs.borderColor.r(), m_Specifications.depthSpecs.borderColor.g(), m_Specifications.depthSpecs.borderColor.b(), m_Specifications.depthSpecs.borderColor.a()};
                     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -118,11 +122,13 @@ namespace Pulse::Engine::Rendering{
                 glGenTextures(1, &m_ColorAttachment);
                 glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
                 GLTextureSpec colorSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications.colorSpecs);
-                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, spec.width, spec.height, 0, colorSpecs.format, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, spec.width, spec.height, 0, colorSpecs.format, colorSpecs.type, nullptr);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, colorSpecs.minFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, colorSpecs.magFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, colorSpecs.wrapModeS);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, colorSpecs.wrapModeT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, spec.colorSpecs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, colorSpecs.compareFunc);
                 if(m_Specifications.colorSpecs.borderColor != COL_RGBA(-1.0f)){
                     float borderColor[] = {m_Specifications.colorSpecs.borderColor.r(), m_Specifications.colorSpecs.borderColor.g(), m_Specifications.colorSpecs.borderColor.b(), m_Specifications.colorSpecs.borderColor.a()};
                     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -134,11 +140,13 @@ namespace Pulse::Engine::Rendering{
                 glGenTextures(1, &m_DepthAttachment);
                 glBindTexture(GL_TEXTURE_2D, m_DepthAttachment);
                 GLTextureSpec depthSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications.depthSpecs);
-                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, spec.width, spec.height, 0, depthSpecs.format, GL_UNSIGNED_INT, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, spec.width, spec.height, 0, depthSpecs.format, depthSpecs.type, nullptr);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, depthSpecs.minFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, depthSpecs.magFilter);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, depthSpecs.wrapModeS);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, depthSpecs.wrapModeT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, spec.depthSpecs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, depthSpecs.compareFunc);
                 if(m_Specifications.depthSpecs.borderColor != COL_RGBA(-1.0f)){
                     float borderColor[] = {m_Specifications.depthSpecs.borderColor.r(), m_Specifications.depthSpecs.borderColor.g(), m_Specifications.depthSpecs.borderColor.b(), m_Specifications.depthSpecs.borderColor.a()};
                     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -263,26 +271,26 @@ namespace Pulse::Engine::Rendering{
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_Specifications.samplesCount, colorSpecs.internalFormat, width, height, GL_TRUE);
 
                 glBindTexture(GL_TEXTURE_2D, m_ResolveColorAttachment);
-                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, colorSpecs.type, nullptr);
             }
             if(m_Specifications.hasDepth){
                 glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_DepthAttachment);
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_Specifications.samplesCount, depthSpecs.internalFormat, width, height, GL_TRUE);
 
                 glBindTexture(GL_TEXTURE_2D, m_ResolveDepthAttachment);
-                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, width, height, 0, depthSpecs.format, GL_UNSIGNED_INT, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, width, height, 0, depthSpecs.format, depthSpecs.type, nullptr);
             }
         }
         else {
             if (m_Specifications.hasColor)
             {
                 glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
-                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, colorSpecs.type, nullptr);
             }
             if(m_Specifications.hasDepth)
             {
                 glBindTexture(GL_TEXTURE_2D, m_DepthAttachment);
-                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, width, height, 0, depthSpecs.format, GL_UNSIGNED_INT, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, depthSpecs.internalFormat, width, height, 0, depthSpecs.format, depthSpecs.type, nullptr);
             }
         }
 

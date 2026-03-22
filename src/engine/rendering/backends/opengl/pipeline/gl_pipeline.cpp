@@ -20,6 +20,10 @@ namespace Pulse::Engine::Rendering{
     {
         const auto& spec = m_Specifications;
 
+        std::shared_ptr<GLShader> glShader = std::static_pointer_cast<GLShader>(spec.shader);
+
+        glUseProgram(glShader->GetProgram());
+
         if (spec.depthTest)
             glEnable(GL_DEPTH_TEST);
         else

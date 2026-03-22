@@ -63,7 +63,6 @@ namespace Pulse::Engine{
             m_RendererSettings->viewportHeight = m_Context.platform->GetWindow()->GetFramebufferHeight();
             m_RendererSettings->api = (RendererAPI::API)settings.api;
             m_Context.renderer->Init(m_RendererSettings);
-            DEBUG_LOG("renderer initialized");
             m_Context.platform->CreateInput();
 
             float fixedDelta = 1.0f / 30.0f;

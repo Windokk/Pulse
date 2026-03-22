@@ -35,7 +35,7 @@ namespace Pulse::Engine::Rendering{
         switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())
         {
             case RendererAPI::API::OpenGL:{
-                GLEnvironmentMapGenerator glGenerator;
+                static GLEnvironmentMapGenerator glGenerator;
                 return glGenerator.GenerateFromHDR(specs, hdrFile);
             }
 

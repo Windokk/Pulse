@@ -123,18 +123,27 @@ namespace Pulse::Engine::Rendering{
         specs.format = format;
         specs.width = width;
         specs.height = height;
+        specs.wrapS = TextureWrap::ClampEdge;
+        specs.wrapT = TextureWrap::ClampEdge;
+        specs.wrapR = TextureWrap::ClampEdge;
+        specs.magFilter = TextureFilter::LinearMipmapLinear;
+        specs.minFilter = TextureFilter::LinearMipmapLinear;
 
         std::shared_ptr<Texture2D> hdrTex = Texture2D::Create(specs, data);
-
-        specs.width = hdrTex->GetWidth();
-        specs.height = hdrTex->GetHeight();
-        specs.format = hdrTex->GetSpecifications().format;
 
         std::shared_ptr<Shader> equirectangularToCubemapShaderAbstract = Core::GetEngine().GetResourcesManager()->GetShader("shaders/ibl/equirectToCubemap");
 
         std::shared_ptr<GLShader> equirectangularToCubemapShader = std::static_pointer_cast<GLShader>(equirectangularToCubemapShaderAbstract);
 
         std::array<unsigned char*, 6> dataArray = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+        specs.internalFormat = TextureInternalFormat::RGB32F; // can also be RGB16F
+        specs.format = TextureFormat::RGB;
+            
+        const uint32_t CUBEMAP_SIZE = 512;
+
+        specs.width = CUBEMAP_SIZE;
+        specs.height = CUBEMAP_SIZE;
+
         std::shared_ptr<Cubemap> cubemap = Cubemap::Create(specs, dataArray);
         {
             if(!equirectangularToCubemapShader)
@@ -157,17 +166,22 @@ namespace Pulse::Engine::Rendering{
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, hdrTex->GetHandle());
 
-            glViewport(0, 0, specs.width, specs.height); // Viewport => capture's dimensions
+            glViewport(0, 0, CUBEMAP_SIZE, CUBEMAP_SIZE);
             glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
             for (unsigned int i = 0; i < 6; ++i)
             {
-                equirectangularToCubemapShader->SetMat4("view", captureViews[i]);
+                equirectangularToCubemapShader->SetMat4("view", glm::mat4(glm::mat3(captureViews[i])));
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
                                     GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubemap->GetHandle(), 0);
+                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                {
+                    DEBUG_ERROR("Capture FBO is not complete for skybox : ", hdrFile.full);
+                }
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 RenderUnitCube(); // renders a 1x1 cube
             }
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
     
@@ -186,6 +200,7 @@ namespace Pulse::Engine::Rendering{
         texSpecs.wrapR = TextureWrap::ClampBorder;
         texSpecs.generateMips = false;
         texSpecs.format = TextureFormat::RGB;
+        texSpecs.internalFormat = TextureInternalFormat::RGB32F;
         texSpecs.width = 32;
         texSpecs.height = 32;
 
@@ -200,6 +215,7 @@ namespace Pulse::Engine::Rendering{
         texSpecs.wrapR = TextureWrap::ClampBorder;
         texSpecs.generateMips = true;
         texSpecs.format = TextureFormat::RGB;
+        texSpecs.internalFormat = TextureInternalFormat::RGB32F;
         texSpecs.width = 128;
         texSpecs.height = 128;
 
@@ -226,6 +242,9 @@ namespace Pulse::Engine::Rendering{
 
     void GLEnvironmentMapGenerator::GenerateGeometry()
     {
+        if (cubeVAO != 0)
+            return;
+
         float skyboxVertices[] = {
             // positions          
             -1.0f,  1.0f, -1.0f,
@@ -354,7 +373,7 @@ namespace Pulse::Engine::Rendering{
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetHandle());
 
         glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-        unsigned int maxMipLevels = 5;
+        unsigned int maxMipLevels = 2;
         for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
         {
             // reisze framebuffer according to mip-level size.
@@ -406,6 +425,9 @@ namespace Pulse::Engine::Rendering{
 
     void GLEnvironmentMapGenerator::RenderUnitCube()
     {
+        if (cubeVAO == 0)
+            GenerateGeometry();
+
         glBindVertexArray(cubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);

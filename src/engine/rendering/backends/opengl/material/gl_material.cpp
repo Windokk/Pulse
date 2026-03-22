@@ -3,12 +3,11 @@
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 #include "engine/rendering/backends/opengl/pipeline/gl_pipeline.hpp"
 #include "engine/rendering/shader/shader.hpp"
-
 #include "engine/rendering/backends/opengl/shader/gl_shader.hpp"
 
 #include "engine/debugging/logger.hpp"
-
 #include "engine/core/engine.hpp"
+#include "engine/core/resources/resources_manager.hpp"
 #include "engine/filesystem/assetID.hpp"
 
 namespace Pulse::Engine::Rendering{
@@ -109,20 +108,50 @@ namespace Pulse::Engine::Rendering{
         return (uint32_t)m_SamplersParameters.size();
     }
 
+    bool StartsWith(const std::string& str, const std::string& prefix)
+    {
+        return str.rfind(prefix, 0) == 0;
+    }
+
+    uint32_t GLMaterial::GetDefaultTexture(std::string samplerName)
+    {
+        if(StartsWith(samplerName, "albedo")){
+            return Core::GetEngine().GetResourcesManager()->GetTexture("textures/white.png")->GetHandle();
+        }
+        else if(StartsWith(samplerName, "roughness")){
+            return Core::GetEngine().GetResourcesManager()->GetTexture("textures/white.png")->GetHandle();
+        }
+        else if(StartsWith(samplerName, "metallic")){
+            return Core::GetEngine().GetResourcesManager()->GetTexture("textures/white.png")->GetHandle();
+        }
+        else if(StartsWith(samplerName, "normal")){
+            return Core::GetEngine().GetResourcesManager()->GetTexture("textures/default_normal.png")->GetHandle();
+        }
+        return 0;
+    }
+
+    bool IsGlobalSampler(const std::string& name)
+    {
+        return StartsWith(name,"ibl_");
+    }
+
     void GLMaterial::Bind()
     {
-        uint32_t textureSlot = 0;
-
         std::shared_ptr<GLShader> glShader = std::static_pointer_cast<GLShader>(m_Shader);
         glShader->Bind();
 
         std::unordered_map<std::string, Pulse::Engine::Rendering::SamplerInfo> samplers = glShader->GetActiveSamplersMap();
 
-        for (auto& [name, texture] : m_SamplersParameters)
+        for (auto& [name, samplerInfo] : samplers)
         {
-            glBindTextureUnit(samplers.at(name).binding, texture);
+            if (IsGlobalSampler(name))
+                continue;
+
+            GLuint texture = m_SamplersParameters.find(name) != m_SamplersParameters.end() ? m_SamplersParameters[name] : GetDefaultTexture(name);
+
+            glBindTextureUnit(samplerInfo.binding, texture);
         }
-        
+
         for (auto& [name, value] : m_ScalarParameters)
         {
             std::visit([&](auto&& v)

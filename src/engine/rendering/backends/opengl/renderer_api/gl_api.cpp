@@ -53,8 +53,10 @@ namespace Pulse::Engine::Rendering{
         if ((uint32_t)clearBits & (uint32_t)ClearBit::Color)
             bits |= GL_COLOR_BUFFER_BIT;
 
-        if ((uint32_t)clearBits & (uint32_t)ClearBit::Depth)
+        if ((uint32_t)clearBits & (uint32_t)ClearBit::Depth){
+            glDepthMask(GL_TRUE);
             bits |= GL_DEPTH_BUFFER_BIT;
+        }
 
         if ((uint32_t)clearBits & (uint32_t)ClearBit::Stencil)
             bits |= GL_STENCIL_BUFFER_BIT;

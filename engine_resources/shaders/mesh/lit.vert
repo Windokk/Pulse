@@ -13,7 +13,6 @@ uniform mat4 view;
 out vec2 texCoord;
 out vec4 color;
 out vec3 worldPos;
-out vec3 worldNormal;
 out mat4 viewMatrix;
 out vec3 T;
 out vec3 B;

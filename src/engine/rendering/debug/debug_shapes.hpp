@@ -2,7 +2,11 @@
 
 #include "engine/rendering/utils.hpp"
 
+#include <memory>
+
 namespace Pulse::Engine::Rendering {
+
+    class Mesh;
 
     class DebugShape
     {
@@ -11,15 +15,7 @@ namespace Pulse::Engine::Rendering {
             DebugShape() = default;
             virtual ~DebugShape() = default;
 
-            const std::vector<Vertex>& GetVertices() const { return vertices; }
-            const std::vector<uint32_t>& GetIndices() const { return indices; }
-
-            int GetIndexCount() const { return indices.size(); }
-
-        protected:
-
-            std::vector<Vertex> vertices;
-            std::vector<uint32_t> indices;
+            std::shared_ptr<Mesh> m_Mesh;
     };
 
     class DebugBox : public DebugShape

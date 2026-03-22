@@ -19,6 +19,7 @@
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
 #include "engine/rendering/material/material.hpp"
+#include "engine/core/engine.hpp"
 
 namespace Pulse::Editor::Core{
     
@@ -309,14 +310,7 @@ namespace Pulse::Editor::Core{
             Rendering::PipelineSpecifications outlineMaskPipelineSpecs;
             outlineMaskPipelineSpecs.shader = outlineMaskShader;
             outlineMaskPipelineSpecs.debugName = "OutlineMaskPipeline";
-            outlineMaskPipelineSpecs.vertexLayout = {
-                {"aPos", Rendering::ShaderDataType::Vec3, 0},
-                {"aTexCoord", Rendering::ShaderDataType::Vec2, 1},
-                {"aNormal", Rendering::ShaderDataType::Vec3, 2},
-                {"aColor", Rendering::ShaderDataType::Vec4, 3},
-                {"aTangent", Rendering::ShaderDataType::Vec3, 4}
-            };
-            std::shared_ptr<Rendering::Pipeline> outlineMaskPipeline = Rendering::Pipeline::Create(outlineMaskPipelineSpecs);
+            std::shared_ptr<Rendering::Pipeline> outlineMaskPipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAdd(outlineMaskPipelineSpecs);
 
             std::shared_ptr<Rendering::Material> outlineMaskMaterial = Rendering::Material::Create(outlineMaskShader, outlineMaskPipeline, false, Rendering::Opacity::Opaque);
 
@@ -329,7 +323,7 @@ namespace Pulse::Editor::Core{
             if(selectedActor)
                 outlineMaskPass->customUniforms.emplace("selectedObjID", selectedActor->GetID().GetAsInt());
 
-            renderer->AddRenderPass(outlineMaskPass, "EditorOutlineMaskPass");
+            renderer->AddRenderPass(outlineMaskPass, "EditorOutlineMaskPass", {});
 
             /////////
 
@@ -352,8 +346,8 @@ namespace Pulse::Editor::Core{
             outlinePipelineSpecs.shader = outlineShader;
             outlinePipelineSpecs.debugName = "FullscreenOutlinePipeline";
             outlinePipelineSpecs.vertexLayout = {};
-            std::shared_ptr<Rendering::Pipeline> outlinePipeline = Rendering::Pipeline::Create(outlinePipelineSpecs);
-            
+            std::shared_ptr<Rendering::Pipeline> outlinePipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAdd(outlinePipelineSpecs);
+             
             std::shared_ptr<Rendering::Material> outlineMaterial = Rendering::Material::Create(outlineShader, outlinePipeline, false, Rendering::Opacity::Opaque);
             
             std::shared_ptr<Rendering::RenderPass> outlinePass = std::make_shared<Rendering::RenderPass>();
@@ -367,7 +361,7 @@ namespace Pulse::Editor::Core{
             outlinePass->customUniforms.emplace("outlineColor", glm::vec3(1.0f, 0.722f, 0.0f));
             outlinePass->customSamplers.emplace("maskTex", fbOutlineMask->GetColorAttachment());
 
-            renderer->AddRenderPass(outlinePass, "EditorOutlinePass");
+            renderer->AddRenderPass(outlinePass, "EditorOutlinePass", {});
 
             Rendering::DrawCommand cmd;
             cmd.fullscreenTri = true;

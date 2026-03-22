@@ -57,16 +57,8 @@ namespace Pulse::Engine::Serialization{
                 renderMode = Opacity::Translucent;
             else if(mode == "masked")
                 renderMode = Opacity::Masked;
-
-            Rendering::VertexLayout vertexLayout = {
-                {"aPos", Rendering::ShaderDataType::Vec3, 0},
-                {"aTexCoord", Rendering::ShaderDataType::Vec2, 1},
-                {"aNormal", Rendering::ShaderDataType::Vec3, 2},
-                {"aColor", Rendering::ShaderDataType::Vec4, 3},
-                {"aTangent", Rendering::ShaderDataType::Vec3, 4}
-            };
-
-            std::shared_ptr<Material> mat = Material::Create(shader, Pipeline::Create({shader, vertexLayout}), data["recievesShadows"], renderMode);
+                
+            std::shared_ptr<Material> mat = Material::Create(shader, Core::GetEngine().GetRenderer()->GetOrAdd({shader}), data["recievesShadows"], renderMode);
 
             for(auto& uniform : data["uniforms"]){
                 for (auto it = uniform.begin(); it != uniform.end(); ++it) {

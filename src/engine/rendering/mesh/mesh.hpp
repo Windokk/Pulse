@@ -10,6 +10,8 @@
 
 #include "engine/ecs/components/misc/transform.hpp"
 
+#include "engine/rendering/pipeline/pipeline.hpp"
+
 #include <ufbx/ufbx.h>
 
 namespace Pulse::Engine::Rendering {
@@ -36,8 +38,8 @@ namespace Pulse::Engine::Rendering {
         std::shared_ptr<Material> material;
         glm::mat4 modelMatrix;
 
-        glm::vec3 boundsMin;
-        glm::vec3 boundsMax;
+        glm::vec3 boundsMin = glm::vec3(0);
+        glm::vec3 boundsMax = glm::vec3(0);
 
         uint32_t objectID;
         uint32_t modelID;
@@ -56,10 +58,10 @@ namespace Pulse::Engine::Rendering {
 
             static std::shared_ptr<Mesh> Create();
 
-            virtual void Create(std::vector<Vertex> vertices, std::vector<uint32_t> indices, const VertexLayout& layout) = 0;
+            virtual void Create(std::vector<uint8_t> vertices, std::vector<uint32_t> indices, const VertexLayout& layout) = 0;
 
             virtual void CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, 
-                ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, const VertexLayout& layout, COL_RGBA vertexColor = COL_RGBA(0.99f,0.06f,0.75f,1.0f)) = 0;
+                ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA vertexColor = COL_RGBA(0.99f,0.06f,0.75f,1.0f)) = 0;
 
             virtual ~Mesh() = default;
 
@@ -69,8 +71,8 @@ namespace Pulse::Engine::Rendering {
             const size_t GetIndexCount() const { return m_Indices.size(); }
             const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
 
-            const size_t GetVertexCount() const { return m_Vertices.size(); }
-            const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
+            const size_t GetVertexCount() const { return m_VertexCount; }
+            const std::vector<uint8_t>& GetVertices() const { return m_Vertices; }
 
             std::vector<DrawCommand> CreateDrawCommands(std::shared_ptr<ECS::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats);
 
@@ -82,13 +84,18 @@ namespace Pulse::Engine::Rendering {
                 return m_AssetID;
             }
 
+            const VertexLayout& GetVertexLayout() const { return m_VertexLayout; }
+
         protected:
 
             Filesystem::AssetID m_AssetID;
 
             std::vector<SubMesh> m_Submeshes;
-            std::vector<Vertex> m_Vertices;
+            std::vector<uint8_t> m_Vertices;
             std::vector<uint32_t> m_Indices;
+            size_t m_VertexCount;
+            
+            VertexLayout m_VertexLayout;
 
             glm::vec3 m_BoundsMin = glm::vec3(std::numeric_limits<float>::max());
             glm::vec3 m_BoundsMax = glm::vec3(std::numeric_limits<float>::lowest());

@@ -6,17 +6,19 @@ namespace Pulse::Engine::Rendering{
 
     struct GLTextureSpec{
         
-        unsigned int wrapModeS;
-        unsigned int wrapModeT;
-        unsigned int wrapModeR;
+        uint32_t wrapModeS;
+        uint32_t wrapModeT;
+        uint32_t wrapModeR;
 
-        unsigned int minFilter;
-        unsigned int magFilter;
+        uint32_t minFilter;
+        uint32_t magFilter;
 
-        unsigned int internalFormat;
-        unsigned int format;
+        uint32_t internalFormat;
+        uint32_t format;
         
-        unsigned int compareFunc;
+        uint32_t compareFunc;
+        
+        uint32_t type;
 
         static GLTextureSpec FromTextureSpecifications(const TextureSpecifications& spec);
     };

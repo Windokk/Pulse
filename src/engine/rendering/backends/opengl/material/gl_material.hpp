@@ -32,5 +32,7 @@ namespace Pulse::Engine::Rendering{
 
     private:
 
+        uint32_t GetDefaultTexture(std::string samplerName);
+
     };
 }

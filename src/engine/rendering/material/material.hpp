@@ -56,6 +56,10 @@ namespace Pulse::Engine::Rendering {
 
             bool GetRecieveShadows() const { return m_ReceivesShadows; }
 
+            void SetPipeline(std::shared_ptr<Pipeline> pipeline){
+                m_Pipeline = pipeline;
+            }
+
         protected:
 
             std::shared_ptr<Shader> m_Shader;

@@ -92,7 +92,7 @@ namespace Pulse::Engine::Rendering{
         pointSpecs.polygonMode = PolygonMode::Fill;
         pointSpecs.topology = PrimitiveTopology::Triangles;
         pointSpecs.shader = m_PointShader;
-        pointSpecs.vertexLayout = {{"aPos", ShaderDataType::Vec3, 0}};
+        pointSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
 
         PipelineSpecifications spotSpecs;
         spotSpecs.blending = false;
@@ -101,7 +101,7 @@ namespace Pulse::Engine::Rendering{
         spotSpecs.polygonMode = PolygonMode::Fill;
         spotSpecs.topology = PrimitiveTopology::Triangles;
         spotSpecs.shader = m_SpotShader;
-        spotSpecs.vertexLayout = {{"aPos", ShaderDataType::Vec3, 0}};
+        spotSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
 
         PipelineSpecifications dirSpecs;
         dirSpecs.blending = false;
@@ -110,11 +110,11 @@ namespace Pulse::Engine::Rendering{
         dirSpecs.polygonMode = PolygonMode::Fill;
         dirSpecs.topology = PrimitiveTopology::Triangles;
         dirSpecs.shader = m_DirShader;
-        dirSpecs.vertexLayout = {{"aPos", ShaderDataType::Vec3, 0}};
+        dirSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
 
-        std::shared_ptr<Pipeline> pointShadowPassPipeline = Pipeline::Create(pointSpecs);
-        std::shared_ptr<Pipeline> spotShadowPassPipeline = Pipeline::Create(spotSpecs);
-        std::shared_ptr<Pipeline> dirShadowPassPipeline = Pipeline::Create(dirSpecs);
+        std::shared_ptr<Pipeline> pointShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(pointSpecs);
+        std::shared_ptr<Pipeline> spotShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(spotSpecs);
+        std::shared_ptr<Pipeline> dirShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(dirSpecs);
         
         std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
@@ -141,6 +141,9 @@ namespace Pulse::Engine::Rendering{
                 pass->customUniforms.emplace("lightPos", light->position);
                 pass->customUniforms.emplace("cubeIndex", sm.cubeArrayLayer);
 
+                pass->allowResize = false;
+                pass->allowCulling = false;
+
                 passes.push_back(pass);
             }
             else if(light->type == static_cast<int>(LightType::Spot))
@@ -152,6 +155,8 @@ namespace Pulse::Engine::Rendering{
                 pass->customPipeline = spotShadowPassPipeline;
                 pass->overridePipeline = true;
                 pass->customUniforms.emplace("lightSpaceMatrix", sm.lightMatrix[0]);
+                pass->allowResize = false;
+                pass->allowCulling = false;
                 passes.push_back(pass);
             }
             else if(light->type == static_cast<int>(LightType::Directional))
@@ -174,13 +179,22 @@ namespace Pulse::Engine::Rendering{
 
                     pass->customUniforms.emplace("lightSpaceMatrix", sm.lightMatrix[c]);
 
+                    pass->allowResize = false;
+                    pass->allowCulling = false;
+
                     passes.push_back(pass);
                 }
             }
         }
 
         for(int i = 0; i < passes.size(); i++){
-            Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], "ShadowPass"+std::to_string(i));
+            if(i == 0)
+            {
+                Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], "ShadowPass"+std::to_string(i), {});
+                continue;
+            }
+            
+            Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], "ShadowPass"+std::to_string(i), {"ShadowPass"+std::to_string(i-1)});
         }
     }
 
@@ -247,7 +261,7 @@ namespace Pulse::Engine::Rendering{
 
             FramebufferSpecifications specs;
             specs.hasColor = false;
-            specs.hasDepth = false;
+            specs.hasDepth = true;
             specs.multisampled = false;
             specs.width = m_PointShadowsResolution;
             specs.height = m_PointShadowsResolution;
@@ -270,6 +284,7 @@ namespace Pulse::Engine::Rendering{
                 textureSpecs.magFilter = TextureFilter::Linear;
                 textureSpecs.wrapS = TextureWrap::ClampBorder;
                 textureSpecs.wrapT = TextureWrap::ClampBorder;
+                textureSpecs.wrapR = TextureWrap::ClampBorder;
                 textureSpecs.internalFormat = TextureInternalFormat::Depth32F;
                 textureSpecs.format = TextureFormat::Depth;
 
@@ -426,25 +441,27 @@ namespace Pulse::Engine::Rendering{
                 continue;
 
             // Directional lights
-            if (light.type == static_cast<int>(LightType::Directional))
+            int dirCascadeIndex = 0;
+            if (light.type == Directional)
             {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
-                    // Set sampler uniform
                     material->SetTextureParameter(
-                        "shadow_dirShadowMaps[" + std::to_string(c) + "]",
+                        "shadow_dirShadowMaps[" + std::to_string(dirCascadeIndex) + "]",
                         sm.framebuffer[c]->GetDepthAttachment()
                     );
 
                     material->SetScalarParameter(
-                        "shadow_dirLightSpaceMatrices[" + std::to_string(c) + "]",
+                        "shadow_dirLightSpaceMatrices[" + std::to_string(dirCascadeIndex) + "]",
                         sm.lightMatrix[c]
                     );
 
                     material->SetScalarParameter(
-                        "shadow_cascadeSplits[" + std::to_string(c) + "]",
+                        "shadow_cascadeSplits[" + std::to_string(dirCascadeIndex) + "]",
                         sm.cascadeSplits[c]
                     );
+
+                    dirCascadeIndex++;
                 }
             }
             // Spot lights

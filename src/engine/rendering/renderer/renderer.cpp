@@ -8,6 +8,8 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
+#include <queue>
+#include <glm/gtx/string_cast.hpp>
 
 namespace Pulse::Engine::Rendering{
 
@@ -29,9 +31,16 @@ namespace Pulse::Engine::Rendering{
 
         //Init base geometry
         /// Unit cube
+        
+        struct Vertex {
+            glm::vec3 position;
+            glm::vec2 texCoord;
+        };
+
         VertexLayout basicVertexLayout{
-            {"aPos",       ShaderDataType::Vec3, 0},
-            {"aTexCoord", ShaderDataType::Vec2, 1}
+            {{"aPos",       ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
+            {"aTexCoord", ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)}},
+            sizeof(Vertex)
         };
         std::vector<Vertex> cubeVertices = {
             // Front
@@ -79,7 +88,11 @@ namespace Pulse::Engine::Rendering{
             20,21,22, 22,23,20  // Bottom
         };
         m_UnitCube = Mesh::Create();
-        m_UnitCube->Create(cubeVertices, cubeIndices, basicVertexLayout);
+        std::vector<uint8_t> cubeVertexBuffer;
+        cubeVertexBuffer.resize(cubeVertices.size() * sizeof(Vertex));
+        memcpy(cubeVertexBuffer.data(), cubeVertices.data(), cubeVertexBuffer.size());
+        m_UnitCube->Create(cubeVertexBuffer, cubeIndices, basicVertexLayout);
+
         /// Unit quad
         std::vector<Vertex> quadVertices = {
             {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}}, // top-left
@@ -92,26 +105,105 @@ namespace Pulse::Engine::Rendering{
             2, 3, 0
         };
         m_UnitQuad = Mesh::Create();
-        m_UnitQuad->Create(quadVertices, quadIndices, basicVertexLayout);
+        std::vector<uint8_t> quadVertexBuffer;
+        quadVertexBuffer.resize(quadVertices.size() * sizeof(Vertex));
+        memcpy(quadVertexBuffer.data(), quadVertices.data(), quadVertexBuffer.size());
+        m_UnitQuad->Create(quadVertexBuffer, quadIndices, basicVertexLayout);
 
         // Init lighting
         m_LightManager = std::make_shared<LightManager>();
         m_ShadowManager = std::make_shared<ShadowManager>();
         m_ShadowManager->Init(512, 1024, 2048);
 
-        
         //Init built-in passes
-        /// Shadow passes (sent from the shadow manager)
-
         /// Forward pass
         std::shared_ptr<RenderPass> forwardPass = std::make_shared<RenderPass>();
         forwardPass->target = m_ViewportBuffer;
         forwardPass->clearColor = true;
         forwardPass->clearDepth = true;
         forwardPass->overridePipeline = false;
-        AddRenderPass(forwardPass, "ForwardPass");
+        AddRenderPass(forwardPass, "ForwardPass", {"ShadowPass0", "ShadowPass1", "ShadowPass2"});
+        m_RendererAPI->SetClearColor(0,0,0,1);
+    }
 
-        /// @note for now we're forced to submit the forward after the shadow passes "manually", in the future, we'll create a render graph with dependencies
+    void Renderer::BuildExecutionOrder()
+    {
+        m_ExecutionOrder.clear();
+
+        std::unordered_map<std::string, int> inDegree;
+        std::unordered_map<std::string, std::vector<std::string>> dependents;
+
+        for (const auto& [name, _] : m_RenderPasses)
+        {
+            inDegree[name] = 0;
+            dependents[name] = {};
+        }
+
+        for (const auto& [name, deps] : m_RenderPassDependencies)
+        {
+            for (const auto& dep : deps)
+            {
+                inDegree[name]++;
+                dependents[dep].push_back(name);
+            }
+        }
+
+        std::queue<std::string> q;
+
+        for (const auto& name : m_PassInsertionOrder)
+        {
+            if (inDegree[name] == 0)
+                q.push(name);
+        }
+
+        std::vector<std::string> topo;
+
+        while (!q.empty())
+        {
+            auto current = q.front();
+            q.pop();
+
+            topo.push_back(current);
+
+            for (const auto& dep : dependents[current])
+            {
+                if (--inDegree[dep] == 0)
+                    q.push(dep);
+            }
+        }
+
+        // Cycle check
+        if (topo.size() != m_RenderPasses.size())
+        {
+            DEBUG_ERROR("RenderPass cycle detected!");
+            return;
+        }
+
+        // Categorize
+        std::vector<std::string> cat1, cat2, cat3, cat4;
+
+        for (const auto& name : topo)
+        {
+            auto it = m_RenderPassDependencies.find(name);
+            bool hasDeps = (it != m_RenderPassDependencies.end() && !it->second.empty());
+            bool hasDependents = !dependents[name].empty();
+
+            if (!hasDeps && !hasDependents)
+                cat1.push_back(name);
+            else if (!hasDeps && hasDependents)
+                cat2.push_back(name);
+            else if (hasDeps && hasDependents)
+                cat3.push_back(name);
+            else
+                cat4.push_back(name);
+        }
+
+        // Merge everything
+        m_ExecutionOrder.clear();
+        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat1.begin(), cat1.end());
+        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat2.begin(), cat2.end());
+        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat3.begin(), cat3.end());
+        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat4.begin(), cat4.end());
     }
 
     void Renderer::Render()
@@ -147,20 +239,21 @@ namespace Pulse::Engine::Rendering{
         return key;
     }
 
-    void Renderer::ReorderDrawList()
+    std::shared_ptr<Pipeline> Renderer::GetOrAdd(const PipelineSpecifications& specs)
     {
-        for(auto [name, pass] : m_RenderPasses){
-            if(!pass->drawListDirty)
-                continue;
-            std::sort(pass->drawList.begin(), pass->drawList.end(),
-                [](const DrawCommand& a, const DrawCommand& b)
-                {
-                    return a.sortKey < b.sortKey;
-                });
+        auto [it, inserted] = m_Pipelines.try_emplace(specs, nullptr);
 
-            pass->drawListDirty = false;
+        if (inserted)
+        {
+            it->second = Pipeline::Create(specs);
         }
 
+        return it->second;
+    }
+
+    void Renderer::ReorderDrawList()
+    {
+        
     }
 
     void Renderer::AddCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes)
@@ -169,15 +262,18 @@ namespace Pulse::Engine::Rendering{
             auto pass = m_RenderPasses.find(passName);
 
             if(pass != m_RenderPasses.end()){
-                for(int i = 0; i < commands.size(); i++)
+                for(int submeshID = 0; submeshID < commands.size(); submeshID++)
                 {
-                    auto cmd = commands[i];
+                    auto cmd = commands[submeshID];
                     
                     if(!cmd.fullscreenTri)
                     {
-                        uint64_t cmdID = ((uint64_t)cmd.modelID << 16) | (uint64_t)i;
+                        uint64_t cmdID =
+                            ((uint64_t)(cmd.mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
+                            ((uint64_t)(cmd.modelID & 0xFFFFFFFF) << 16) |
+                            ((uint64_t)(submeshID & 0xFFFF));
                         cmd.commandID = cmdID;
-                        cmd.sortKey = GenerateSortKey(cmd, i);
+                        cmd.sortKey = GenerateSortKey(cmd, submeshID);
                     }
 
                     auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
@@ -244,16 +340,25 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    void Renderer::AddRenderPass(const std::shared_ptr<RenderPass> pass, const std::string &name)
+    void Renderer::AddRenderPass(const std::shared_ptr<RenderPass> pass, const std::string& name, const std::vector<std::string>& dependencies)
     {
-        auto it = m_RenderPasses.find(name);
+        if (!pass)
+        {
+            DEBUG_ERROR("Trying to add null RenderPass: " + name);
+            return;
+        }
 
-        if(it != m_RenderPasses.end()){
-            m_RenderPasses[it->first] = pass;
+        if(m_RenderPasses.find(name) == m_RenderPasses.end()){
+            m_PassInsertionOrder.push_back(name);
         }
-        else{
-            m_RenderPasses.emplace(name, pass);
-        }
+
+        // Replace or insert
+        m_RenderPasses[name] = pass;
+
+        // Set dependencies
+        m_RenderPassDependencies[name] = dependencies;
+
+        BuildExecutionOrder();
     }
 
     void Renderer::RemoveRenderPass(const std::string &name)
@@ -271,7 +376,9 @@ namespace Pulse::Engine::Rendering{
     void Renderer::RescaleFramebuffers(int newWidth, int newHeight)
     {
         for(auto renderPass : m_RenderPasses){
-            renderPass.second->target->Resize(newWidth, newHeight);
+            if(renderPass.second->allowResize){
+                renderPass.second->target->Resize(newWidth, newHeight);
+            }
         }
 
         Core::GetEngine().GetCameraManager()->UpdateSize(newWidth, newHeight);
@@ -300,17 +407,21 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::BeginFrame()
     {
+        Core::GetEngine().GetCameraManager()->Tick();
         ReorderDrawList();
         m_ShadowManager->UpdatePassUniforms();
     }
 
     void Renderer::DrawFrame()
     {
-        for(auto [id, pass] : m_RenderPasses){
+        for (const auto& passName : m_ExecutionOrder)
+        {
+            auto pass = m_RenderPasses[passName];
             BeginRenderPass(pass);
             ExecuteRenderPass();
             EndRenderPass();
         }
+
     }
 
     void Renderer::EndFrame()
@@ -332,32 +443,40 @@ namespace Pulse::Engine::Rendering{
     }
 
     void Renderer::ExecuteRenderPass()
-    {
+    { 
+        if (m_CurrentPass->drawList.empty())
+            return;
+
         for(auto& drawCmd : m_CurrentPass->drawList){
+            
+            glm::vec3 center = (drawCmd.boundsMin + drawCmd.boundsMax) * 0.5f;
+            glm::vec3 extents = (drawCmd.boundsMax - drawCmd.boundsMin) * 0.5f;
 
-            glm::mat4 M = drawCmd.modelMatrix;
+            glm::vec3 worldCenter = glm::vec3(drawCmd.modelMatrix * glm::vec4(center, 1.0));
 
-            glm::vec3 corners[8] = {
-                M * glm::vec4(drawCmd.boundsMin.x, drawCmd.boundsMin.y, drawCmd.boundsMin.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMin.x, drawCmd.boundsMin.y, drawCmd.boundsMax.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMin.x, drawCmd.boundsMax.y, drawCmd.boundsMin.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMin.x, drawCmd.boundsMax.y, drawCmd.boundsMax.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMax.x, drawCmd.boundsMin.y, drawCmd.boundsMin.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMax.x, drawCmd.boundsMin.y, drawCmd.boundsMax.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMax.x, drawCmd.boundsMax.y, drawCmd.boundsMin.z, 1.0),
-                M * glm::vec4(drawCmd.boundsMax.x, drawCmd.boundsMax.y, drawCmd.boundsMax.z, 1.0)
-            };
+            glm::mat3 m = glm::mat3(drawCmd.modelMatrix);
 
-            glm::vec3 worldMin( std::numeric_limits<float>::max() );
-            glm::vec3 worldMax( std::numeric_limits<float>::lowest() );
+            glm::mat3 absM(
+                glm::abs(m[0]),
+                glm::abs(m[1]),
+                glm::abs(m[2])
+            );
 
-            for (int i = 0; i < 8; i++) {
-                worldMin = glm::min(worldMin, corners[i]);
-                worldMax = glm::max(worldMax, corners[i]);
-            }
+            glm::vec3 worldExtents = absM * extents;
 
-            if (!drawCmd.material || drawCmd.indexCount <= 0 || (Core::GetEngine().GetCameraManager()->GetActiveCamera()->frustumCulling && !Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsInFrustum(worldMin, worldMax)))
+            glm::vec3 worldMin = worldCenter - worldExtents;
+            glm::vec3 worldMax = worldCenter + worldExtents;
+
+            auto camera = Core::GetEngine().GetCameraManager()->GetActiveCamera();
+
+            if (!drawCmd.material || drawCmd.indexCount <= 0)
                 continue;
+
+            if (camera->frustumCulling && worldMin != worldMax && m_CurrentPass->allowCulling)
+            {
+                if (!camera->IsInFrustum(worldMin, worldMax))
+                    continue;
+            }
 
             m_RendererAPI->ExecuteDrawCommand(drawCmd, m_CurrentPass);
         }

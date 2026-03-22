@@ -9,7 +9,11 @@ namespace Pulse::Engine::Rendering {
     enum class TextureFilter
     {
         Linear,
-        Nearest
+        LinearMipmapLinear,
+        LinearMipmapNearest,
+        Nearest,
+        NearestMipmapLinear,
+        NearestMipmapNearest
     };
 
     enum class TextureWrap

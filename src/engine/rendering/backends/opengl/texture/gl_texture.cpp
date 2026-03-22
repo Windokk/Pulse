@@ -25,44 +25,7 @@ namespace Pulse::Engine::Rendering{
             glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
         }
 
-        GLenum type = GL_UNSIGNED_BYTE;
-
-        switch(specs.internalFormat)
-        {
-            case TextureInternalFormat::R16F:
-            case TextureInternalFormat::RG16F:
-            case TextureInternalFormat::RGB16F:
-            case TextureInternalFormat::RGBAF:
-            case TextureInternalFormat::RGBA32F:
-            case TextureInternalFormat::RGB32F:
-            case TextureInternalFormat::Depth32F:
-                type = GL_FLOAT;
-                break;
-
-            case TextureInternalFormat::RGB32I:
-            case TextureInternalFormat::RGBA32I:
-                type = GL_INT;
-                break;
-
-            case TextureInternalFormat::Depth24Stencil8:
-                type = GL_UNSIGNED_INT_24_8;
-                break;
-
-            case TextureInternalFormat::Depth16:
-                type = GL_UNSIGNED_SHORT;
-                break;
-
-            case TextureInternalFormat::Depth24:
-            case TextureInternalFormat::Depth32:
-                type = GL_UNSIGNED_INT;
-                break;
-
-            default:
-                type = GL_UNSIGNED_BYTE;
-                break;
-        }
-
-        glTexImage2D(GL_TEXTURE_2D, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, type, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, glSpecs.type, data);
 
         if(specs.generateMips)
             glGenerateMipmap(GL_TEXTURE_2D);
@@ -88,18 +51,33 @@ namespace Pulse::Engine::Rendering{
     {
         GLTextureSpec glSpecs;
 
-        if(spec.magFilter == TextureFilter::Linear){
-            glSpecs.magFilter = GL_LINEAR;
-        }
-        else{
-            glSpecs.magFilter = GL_NEAREST;
-        }
-
-        if(spec.minFilter == TextureFilter::Linear){
-            glSpecs.minFilter = GL_LINEAR;
-        }
-        else{
-            glSpecs.minFilter = GL_NEAREST;
+        glSpecs.magFilter = (spec.magFilter == TextureFilter::Nearest) ? GL_NEAREST : GL_LINEAR;
+        
+        switch(spec.minFilter){
+            case TextureFilter::Linear:{
+                glSpecs.minFilter = GL_LINEAR;
+                break;
+            }
+            case TextureFilter::LinearMipmapLinear:{
+                glSpecs.minFilter = GL_LINEAR_MIPMAP_LINEAR;
+                break;
+            }
+            case TextureFilter::LinearMipmapNearest:{
+                glSpecs.minFilter = GL_LINEAR_MIPMAP_NEAREST;
+                break;
+            }
+            case TextureFilter::Nearest:{
+                glSpecs.minFilter = GL_NEAREST;
+                break;
+            }
+            case TextureFilter::NearestMipmapNearest:{
+                glSpecs.minFilter = GL_NEAREST_MIPMAP_NEAREST;
+                break;
+            }
+            case TextureFilter::NearestMipmapLinear:{
+                glSpecs.minFilter = GL_NEAREST_MIPMAP_LINEAR;
+                break;
+            }
         }
 
         switch(spec.wrapS){
@@ -273,6 +251,41 @@ namespace Pulse::Engine::Rendering{
             case TextureCompareFunc::LessOrEqual: glSpecs.compareFunc = GL_LEQUAL; break;
             case TextureCompareFunc::Never:       glSpecs.compareFunc = GL_NEVER; break;
             default:                              glSpecs.compareFunc = GL_LESS; break;
+        }
+
+        switch(spec.internalFormat)
+        {
+            case TextureInternalFormat::R16F:
+            case TextureInternalFormat::RG16F:
+            case TextureInternalFormat::RGB16F:
+            case TextureInternalFormat::RGBAF:
+            case TextureInternalFormat::RGBA32F:
+            case TextureInternalFormat::RGB32F:
+            case TextureInternalFormat::Depth32F:
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::RGB32I:
+            case TextureInternalFormat::RGBA32I:
+                glSpecs.type = GL_INT;
+                break;
+
+            case TextureInternalFormat::Depth24Stencil8:
+                glSpecs.type = GL_UNSIGNED_INT_24_8;
+                break;
+
+            case TextureInternalFormat::Depth16:
+                glSpecs.type = GL_UNSIGNED_SHORT;
+                break;
+
+            case TextureInternalFormat::Depth24:
+            case TextureInternalFormat::Depth32:
+                glSpecs.type = GL_UNSIGNED_INT;
+                break;
+
+            default:
+                glSpecs.type = GL_UNSIGNED_BYTE;
+                break;
         }
 
         return glSpecs;

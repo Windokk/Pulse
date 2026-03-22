@@ -2,7 +2,17 @@
 
 #include <glm/gtc/constants.hpp>
 
+#include "engine/rendering/mesh/mesh.hpp"
+#include "engine/rendering/shader/shader.hpp"
+
 namespace Pulse::Engine::Rendering {
+
+    struct Vertex {
+        glm::vec3 position;
+        glm::vec2 texCoord;
+        glm::vec3 normal;
+        glm::vec4 color;
+    };
 
     void DebugBox::GenerateBox(glm::vec3 halfExtent, COL_RGBA color)
     {
@@ -17,6 +27,9 @@ namespace Pulse::Engine::Rendering {
             {-halfExtent.x,  halfExtent.y,  halfExtent.z}
         };
 
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+
         vertices.resize(8);
         for (int i = 0; i < 8; ++i) {
             glm::vec3 pos = localCorners[i];
@@ -24,7 +37,6 @@ namespace Pulse::Engine::Rendering {
             vertices[i].normal = glm::normalize(pos);
             vertices[i].color = color;
             vertices[i].texCoord = glm::vec2(0,0);
-            vertices[i].tangent = glm::vec3(0);
         }
 
         indices = {
@@ -32,11 +44,26 @@ namespace Pulse::Engine::Rendering {
             4,5, 5,6, 6,7, 7,4, // top square edges
             0,4, 1,5, 2,6, 3,7  // vertical edgess
         };
+
+        std::vector<uint8_t> vertexBuffer;
+        vertexBuffer.resize(vertices.size() * sizeof(Vertex));
+        memcpy(vertexBuffer.data(), vertices.data(), vertexBuffer.size());
+
+        m_Mesh = Mesh::Create();
+        m_Mesh->Create(vertexBuffer, indices, {{
+            {"aPos",     ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
+            {"aTexCoord",ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)},
+            {"aNormal",  ShaderDataType::Vec3, 2, offsetof(Vertex, normal)},
+            {"aColor",   ShaderDataType::Vec4, 3, offsetof(Vertex, color)},
+        }, sizeof(Vertex)});
     }
 
     void DebugSphere::GenerateSphere(float radius, COL_RGBA color)
     {
         int segments = 32;
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
 
         for (int i = 0; i < segments; i++)
         {
@@ -79,11 +106,26 @@ namespace Pulse::Engine::Rendering {
             indices.push_back(yz0);
             indices.push_back(yz1);
         }
+
+        std::vector<uint8_t> vertexBuffer;
+        vertexBuffer.resize(vertices.size() * sizeof(Vertex));
+        memcpy(vertexBuffer.data(), vertices.data(), vertexBuffer.size());
+
+        m_Mesh = Mesh::Create();
+        m_Mesh->Create(vertexBuffer, indices, {{
+            {"aPos",     ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
+            {"aTexCoord",ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)},
+            {"aNormal",  ShaderDataType::Vec3, 2, offsetof(Vertex, normal)},
+            {"aColor",   ShaderDataType::Vec4, 3, offsetof(Vertex, color)},
+        }, sizeof(Vertex)});
     }
 
     void DebugCapsule::GenerateCapsule(float radius, float halfHeight, COL_RGBA color)
     {
         int segments = 24;
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
 
         // --- circles (top & bottom) ---
         for (int i = 0; i < segments; i++)
@@ -176,11 +218,26 @@ namespace Pulse::Engine::Rendering {
         // bottom hemisphere arcs
         addHalfCircle(glm::vec3(0,-halfHeight, 0), false, true);
         addHalfCircle(glm::vec3(0,-halfHeight, 0), false, false);
+
+        std::vector<uint8_t> vertexBuffer;
+        vertexBuffer.resize(vertices.size() * sizeof(Vertex));
+        memcpy(vertexBuffer.data(), vertices.data(), vertexBuffer.size());
+
+        m_Mesh = Mesh::Create();
+        m_Mesh->Create(vertexBuffer, indices, {{
+            {"aPos",     ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
+            {"aTexCoord",ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)},
+            {"aNormal",  ShaderDataType::Vec3, 2, offsetof(Vertex, normal)},
+            {"aColor",   ShaderDataType::Vec4, 3, offsetof(Vertex, color)},
+        }, sizeof(Vertex)});
     }
 
     void DebugCylinder::GenerateCylinder(float radius, float halfHeight, COL_RGBA color)
     {
         int segments = 18; // minimal segment count for wireframe
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
 
         // Vertex generation (top and bottom circles)
         for (int i = 0; i < segments; ++i) {
@@ -215,6 +272,18 @@ namespace Pulse::Engine::Rendering {
             indices.push_back(b0);
             indices.push_back(t0);
         }
+    
+        std::vector<uint8_t> vertexBuffer;
+        vertexBuffer.resize(vertices.size() * sizeof(Vertex));
+        memcpy(vertexBuffer.data(), vertices.data(), vertexBuffer.size());
+
+        m_Mesh = Mesh::Create();
+        m_Mesh->Create(vertexBuffer, indices, {{
+            {"aPos",     ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
+            {"aTexCoord",ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)},
+            {"aNormal",  ShaderDataType::Vec3, 2, offsetof(Vertex, normal)},
+            {"aColor",   ShaderDataType::Vec4, 3, offsetof(Vertex, color)},
+        }, sizeof(Vertex)});
     }
 
 }

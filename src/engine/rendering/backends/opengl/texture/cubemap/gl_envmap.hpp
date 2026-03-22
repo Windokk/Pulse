@@ -25,9 +25,9 @@ namespace Pulse::Engine::Rendering{
             std::shared_ptr<EnvironmentMap> GenerateFromHDR(TextureSpecifications& specs, const Filesystem::Path hdrFile) override;
 
         private:
-            uint32_t captureFBO, captureRBO;
-            uint32_t cubeVAO, cubeVBO;
-            uint32_t quadVAO, quadVBO;
+            uint32_t captureFBO, captureRBO = 0;
+            uint32_t cubeVAO, cubeVBO = 0;
+            uint32_t quadVAO, quadVBO = 0;
 
             glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
             glm::mat4 captureViews[6] = {

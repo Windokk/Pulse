@@ -18,7 +18,7 @@ namespace Pulse::Engine::Rendering{
 
     LightManager::LightManager()
     {
-        m_SSBO = StorageBuffer::Create(sizeof(LightData) * MAX_LIGHTS);
+        m_SSBO = StorageBuffer::Create(sizeof(LightData) * 0);
     }
 
     LightManager::~LightManager()
@@ -46,10 +46,12 @@ namespace Pulse::Engine::Rendering{
         if(index == -1)
             return;
 
-        Core::GetEngine()
-            .GetRenderer()
-            ->GetShadowManager()
-            ->RegisterLight(index, m_Lights[index]);
+        if(m_Lights.at(index)->castShadow){
+            Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterLight(index, m_Lights[index]);
+        }
+        else{
+            Core::GetEngine().GetRenderer()->GetShadowManager()->UnregisterLight(index);
+        }
     }
 
     void LightManager::AddLight(int index, std::shared_ptr<LightData> data)
@@ -121,6 +123,8 @@ namespace Pulse::Engine::Rendering{
         return frustumCorners;
     }
 
+    /// @brief Getter for lights matrices
+    /// @return The view-projection matrix from the light's point of view
     glm::mat4 LightData::GetLightMatrix(const glm::mat4& cameraView, const float fov, const float aspectRatio, const float cascadeNear, const float cascadeFar, const float shadowRes)
     {
         if (type == static_cast<int>(LightType::Directional) && cascadeFar != -1 && fov != -1 && aspectRatio != -1 && cascadeFar != -1)
@@ -158,7 +162,7 @@ namespace Pulse::Engine::Rendering{
                 maxZ = std::max(maxZ, trf.z);
             }
 
-            // Tune this parameter according to the level
+            // Tune this parameter according to the scene
             constexpr float zMult = 10.0f;
             if (minZ < 0)
             {

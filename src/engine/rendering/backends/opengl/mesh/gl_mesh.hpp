@@ -12,13 +12,14 @@ namespace Pulse::Engine::Rendering{
 
             GLMesh() {};
 
-            void Create(std::vector<Vertex> vertices, std::vector<uint32_t> indices, const VertexLayout& layout) override;
+            void Create(std::vector<uint8_t> vertices, std::vector<uint32_t> indices, const VertexLayout& layout) override;
 
             void CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, 
-                ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, const VertexLayout& layout,
+                ufbx_material_list& ufbx_mats, ufbx_node* mesh_node,
                 COL_RGBA vertexColor = COL_RGBA(0.99f,0.06f,0.75f,1.0f)) override;
 
             ~GLMesh() override;
+
 
             uint32_t GetVAO() const { return m_VAO; }
 
@@ -27,7 +28,6 @@ namespace Pulse::Engine::Rendering{
             void GenerateGLBuffers();
 
             uint32_t m_VAO, m_VBO, m_EBO = 0;
-            VertexLayout m_VertexLayout;
 
     };
 }

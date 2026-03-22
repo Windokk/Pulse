@@ -59,15 +59,15 @@
                     "type": "light",
                     "active": true,
                     "light_type": "directional",
-                    "intensity": 1.0,
+                    "intensity": 3.0,
                     "radius": 100.0,
                     "color": {
                         "r": 1.0,
                         "g": 1.0,
                         "b": 1.0
                     },
-                    "innerCutoff": 0.9998477101325989,
-                    "outerCutoff": 0.9998477101325989,
+                    "innerCutoff": 0.9998477697372437,
+                    "outerCutoff": 0.9998477697372437,
                     "castShadow": true
                 }
             ]
@@ -389,6 +389,43 @@
                     "materials": {
                         "0": "materials/cerberus.mat"
                     }
+                }
+            ]
+        },
+        {
+            "name": "Player",
+            "components": [
+                {
+                    "type": "transform",
+                    "active": true,
+                    "position": {
+                        "x": 0.0,
+                        "y": -2.7525267601013184,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": -0.0,
+                        "z": 0.0
+                    },
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    }
+                },
+                {
+                    "type": "camera",
+                    "orthographic": false,
+                    "active": true,
+                    "near": 0.10000000149011612,
+                    "far": 100.0,
+                    "fov": 60.0,
+                    "orthoSize": 10.0
+                },
+                {
+                    "type": "Character",
+                    "active": true
                 }
             ]
         }
