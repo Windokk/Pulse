@@ -84,8 +84,6 @@ namespace Pulse::Engine::Core::Resources{
     std::shared_ptr<Rendering::EnvironmentMap> ResourcesManager::LoadEnvMap(const std::string &pathInProject, const Filesystem::Path &path)
     {
         Rendering::TextureSpecifications specs = {};
-        specs.internalFormat = Rendering::TextureInternalFormat::RGB32F;
-        specs.format = Rendering::TextureFormat::RGB;
         std::shared_ptr<Rendering::EnvironmentMap> envMap = Rendering::EnvironmentMap::Create(specs, path);
         if(!envMap){
             DEBUG_ERROR("Error during cubemap import");

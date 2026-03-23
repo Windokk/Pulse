@@ -212,7 +212,6 @@ namespace Pulse::Engine::Rendering{
         TextureSpecifications texSpecs;
 
         texSpecs.internalFormat = TextureInternalFormat::Depth16;
-        texSpecs.format = TextureFormat::Depth;
         texSpecs.compareMode = TextureCompareMode::CompareRefToTexture;
         texSpecs.compareFunc = TextureCompareFunc::LessOrEqual;
         texSpecs.width = m_PointShadowsResolution;

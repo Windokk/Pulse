@@ -31,12 +31,13 @@ namespace Pulse::Engine::Rendering {
         RG,
         RG16F,
         RGB,
+        RGB8,
         RGB16F,
         RGB32I,
         RGB32F,
         RGBA8,
         RGBA,
-        RGBAF,
+        RGBA16F,
         RGBA32I,
         RGBA32F,
         Depth24Stencil8,
@@ -87,8 +88,8 @@ namespace Pulse::Engine::Rendering {
 
         COL_RGBA borderColor = COL_RGBA(-1.0f);
 
-        TextureCompareFunc compareFunc;
-        TextureCompareMode compareMode;
+        TextureCompareFunc compareFunc = TextureCompareFunc::Less;
+        TextureCompareMode compareMode = TextureCompareMode::None;
 
         bool generateMips = true;
     };

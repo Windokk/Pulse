@@ -18,7 +18,7 @@
                             "rotation": {
                                 "x": 90.0,
                                 "y": -0.0,
-                                "z": -180.0
+                                "z": 180.0
                             },
                             "scale": {
                                 "x": 1.0,
@@ -246,7 +246,7 @@
                     "active": true,
                     "mesh": "models/sphere.fbx",
                     "materials": {
-                        "0": "materials/fabric_f.mat"
+                        "0": "materials/spheres/sphere05_05.mat"
                     }
                 },
                 {
@@ -254,7 +254,7 @@
                     "active": true,
                     "shape": "sphere",
                     "params": {
-                        "radius": 4.150000095367432
+                        "radius": 0.5
                     },
                     "motion_type": "dynamic"
                 }

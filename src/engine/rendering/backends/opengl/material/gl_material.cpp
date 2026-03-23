@@ -60,6 +60,26 @@ namespace Pulse::Engine::Rendering{
         m_ReceivesShadows = receivesShadows;
         m_Opacity = opacity;
         m_Pipeline = pipeline;
+        switch (m_Opacity)
+        {
+            case Opacity::Masked:{
+                SetScalarParameter("masked", true);
+                m_Pipeline->GetSpecifications().blending = false;
+            }
+            case Opacity::Translucent:{
+                m_Pipeline->GetSpecifications().blending = true;
+                m_Pipeline->GetSpecifications().srcBlend = BlendFactor::SrcAlpha;
+                m_Pipeline->GetSpecifications().dstBlend = BlendFactor::OneMinusSrcAlpha;
+                break;
+            }
+        
+            case Opacity::Opaque:
+            default:
+            {
+                m_Pipeline->GetSpecifications().blending = false;
+                break;
+            }
+        }
     }
 
     void GLMaterial::SetScalarParameter(const std::string &name, const NumericValue &value)

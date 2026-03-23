@@ -34,11 +34,11 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.magFilter = TextureFilter::Linear;
         texSpecs.minFilter = TextureFilter::Linear;
-        texSpecs.wrapS = TextureWrap::ClampBorder;
-        texSpecs.wrapT = TextureWrap::ClampBorder;
-        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.wrapS = TextureWrap::ClampEdge;
+        texSpecs.wrapT = TextureWrap::ClampEdge;
+        texSpecs.wrapR = TextureWrap::ClampEdge;
         texSpecs.generateMips = false;
-        texSpecs.format = TextureFormat::RGB;
+        texSpecs.internalFormat = TextureInternalFormat::RGB16F;
         texSpecs.width = 32;
         texSpecs.height = 32;
 
@@ -48,11 +48,11 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.magFilter = TextureFilter::Linear;
         texSpecs.minFilter = TextureFilter::Linear;
-        texSpecs.wrapS = TextureWrap::ClampBorder;
-        texSpecs.wrapT = TextureWrap::ClampBorder;
-        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.wrapS = TextureWrap::ClampEdge;
+        texSpecs.wrapT = TextureWrap::ClampEdge;
+        texSpecs.wrapR = TextureWrap::ClampEdge;
         texSpecs.generateMips = true;
-        texSpecs.format = TextureFormat::RGB;
+        texSpecs.internalFormat = TextureInternalFormat::RGB16F;
         texSpecs.width = 128;
         texSpecs.height = 128;
 
@@ -62,11 +62,11 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.magFilter = TextureFilter::Linear;
         texSpecs.minFilter = TextureFilter::Linear;
-        texSpecs.wrapS = TextureWrap::ClampBorder;
-        texSpecs.wrapT = TextureWrap::ClampBorder;
-        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.wrapS = TextureWrap::ClampEdge;
+        texSpecs.wrapT = TextureWrap::ClampEdge;
+        texSpecs.wrapR = TextureWrap::ClampEdge;
         texSpecs.generateMips = false;
-        texSpecs.format = TextureFormat::RG;
+        texSpecs.internalFormat = TextureInternalFormat::RG;
         texSpecs.width = 512;
         texSpecs.height = 512;
 
@@ -90,7 +90,7 @@ namespace Pulse::Engine::Rendering{
             std::string file = hdrFile.ReadFile();
             
             stbi_set_flip_vertically_on_load(true);
-            data = stbi_loadf_from_memory(reinterpret_cast<const unsigned char*>(file.data()),
+            data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(file.data()),
                                             static_cast<int>(file.size()),
                                             &width, &height, &nrChannels, 0);
 
@@ -117,17 +117,24 @@ namespace Pulse::Engine::Rendering{
             }
 
         } else {
-            DEBUG_ERROR("Couldn't load texture : " + hdrFile.full);   
+            DEBUG_ERROR("Couldn't load texture : " + hdrFile.full);
+            return nullptr;
         }
 
-        specs.format = format;
+        if(format != TextureFormat::RGB)
+        {
+            DEBUG_ERROR("Currently cannot create an environment map without rgb format : "+hdrFile.full);
+            return nullptr;
+        }
+
+        specs.internalFormat = TextureInternalFormat::RGB8;
         specs.width = width;
         specs.height = height;
         specs.wrapS = TextureWrap::ClampEdge;
         specs.wrapT = TextureWrap::ClampEdge;
         specs.wrapR = TextureWrap::ClampEdge;
-        specs.magFilter = TextureFilter::LinearMipmapLinear;
-        specs.minFilter = TextureFilter::LinearMipmapLinear;
+        specs.magFilter = TextureFilter::Linear;
+        specs.minFilter = TextureFilter::Linear;
 
         std::shared_ptr<Texture2D> hdrTex = Texture2D::Create(specs, data);
 
@@ -136,8 +143,7 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<GLShader> equirectangularToCubemapShader = std::static_pointer_cast<GLShader>(equirectangularToCubemapShaderAbstract);
 
         std::array<unsigned char*, 6> dataArray = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-        specs.internalFormat = TextureInternalFormat::RGB32F; // can also be RGB16F
-        specs.format = TextureFormat::RGB;
+        specs.internalFormat = TextureInternalFormat::RGB;
             
         const uint32_t CUBEMAP_SIZE = 512;
 
@@ -195,12 +201,11 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.magFilter = TextureFilter::Linear;
         texSpecs.minFilter = TextureFilter::Linear;
-        texSpecs.wrapS = TextureWrap::ClampBorder;
-        texSpecs.wrapT = TextureWrap::ClampBorder;
-        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.wrapS = TextureWrap::ClampEdge;
+        texSpecs.wrapT = TextureWrap::ClampEdge;
+        texSpecs.wrapR = TextureWrap::ClampEdge;
         texSpecs.generateMips = false;
-        texSpecs.format = TextureFormat::RGB;
-        texSpecs.internalFormat = TextureInternalFormat::RGB32F;
+        texSpecs.internalFormat = TextureInternalFormat::RGB16F;
         texSpecs.width = 32;
         texSpecs.height = 32;
 
@@ -210,12 +215,11 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.magFilter = TextureFilter::Linear;
         texSpecs.minFilter = TextureFilter::Linear;
-        texSpecs.wrapS = TextureWrap::ClampBorder;
-        texSpecs.wrapT = TextureWrap::ClampBorder;
-        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.wrapS = TextureWrap::ClampEdge;
+        texSpecs.wrapT = TextureWrap::ClampEdge;
+        texSpecs.wrapR = TextureWrap::ClampEdge;
         texSpecs.generateMips = true;
-        texSpecs.format = TextureFormat::RGB;
-        texSpecs.internalFormat = TextureInternalFormat::RGB32F;
+        texSpecs.internalFormat = TextureInternalFormat::RGB16F;
         texSpecs.width = 128;
         texSpecs.height = 128;
 
@@ -225,11 +229,11 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.magFilter = TextureFilter::Linear;
         texSpecs.minFilter = TextureFilter::Linear;
-        texSpecs.wrapS = TextureWrap::ClampBorder;
-        texSpecs.wrapT = TextureWrap::ClampBorder;
-        texSpecs.wrapR = TextureWrap::ClampBorder;
+        texSpecs.wrapS = TextureWrap::ClampEdge;
+        texSpecs.wrapT = TextureWrap::ClampEdge;
+        texSpecs.wrapR = TextureWrap::ClampEdge;
         texSpecs.generateMips = false;
-        texSpecs.format = TextureFormat::RG;
+        texSpecs.internalFormat = TextureInternalFormat::RG16F;
         texSpecs.width = 512;
         texSpecs.height = 512;
 

@@ -49,243 +49,167 @@ namespace Pulse::Engine::Rendering{
 
     GLTextureSpec GLTextureSpec::FromTextureSpecifications(const TextureSpecifications &spec)
     {
-        GLTextureSpec glSpecs;
+        GLTextureSpec glSpecs{};
 
+        // Filtering
         glSpecs.magFilter = (spec.magFilter == TextureFilter::Nearest) ? GL_NEAREST : GL_LINEAR;
-        
-        switch(spec.minFilter){
-            case TextureFilter::Linear:{
-                glSpecs.minFilter = GL_LINEAR;
-                break;
-            }
-            case TextureFilter::LinearMipmapLinear:{
-                glSpecs.minFilter = GL_LINEAR_MIPMAP_LINEAR;
-                break;
-            }
-            case TextureFilter::LinearMipmapNearest:{
-                glSpecs.minFilter = GL_LINEAR_MIPMAP_NEAREST;
-                break;
-            }
-            case TextureFilter::Nearest:{
-                glSpecs.minFilter = GL_NEAREST;
-                break;
-            }
-            case TextureFilter::NearestMipmapNearest:{
-                glSpecs.minFilter = GL_NEAREST_MIPMAP_NEAREST;
-                break;
-            }
-            case TextureFilter::NearestMipmapLinear:{
-                glSpecs.minFilter = GL_NEAREST_MIPMAP_LINEAR;
-                break;
-            }
+
+        switch (spec.minFilter)
+        {
+            case TextureFilter::Linear:                 glSpecs.minFilter = GL_LINEAR; break;
+            case TextureFilter::LinearMipmapLinear:     glSpecs.minFilter = GL_LINEAR_MIPMAP_LINEAR; break;
+            case TextureFilter::LinearMipmapNearest:    glSpecs.minFilter = GL_LINEAR_MIPMAP_NEAREST; break;
+            case TextureFilter::Nearest:                glSpecs.minFilter = GL_NEAREST; break;
+            case TextureFilter::NearestMipmapNearest:   glSpecs.minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
+            case TextureFilter::NearestMipmapLinear:    glSpecs.minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
+            default:                                    glSpecs.minFilter = GL_LINEAR; break;
         }
 
-        switch(spec.wrapS){
-            case TextureWrap::ClampEdge:{
-                glSpecs.wrapModeS = GL_CLAMP_TO_EDGE;
-                break;
+        // Wrapping
+        auto WrapToGL = [](TextureWrap wrap)
+        {
+            switch (wrap)
+            {
+                case TextureWrap::ClampEdge:   return GL_CLAMP_TO_EDGE;
+                case TextureWrap::ClampBorder: return GL_CLAMP_TO_BORDER;
+                case TextureWrap::Mirror:      return GL_MIRRORED_REPEAT; // fixed
+                case TextureWrap::Repeat:      return GL_REPEAT;
             }
-            case TextureWrap::ClampBorder:{
-                glSpecs.wrapModeS = GL_CLAMP_TO_BORDER;
-                break;
-            }
-            case TextureWrap::Mirror:{
-                glSpecs.wrapModeS =  GL_MIRROR_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Repeat:{
-                glSpecs.wrapModeS = GL_REPEAT;
-                break;
-            }
-        }
+            return GL_REPEAT;
+        };
 
-        switch(spec.wrapT){
-            case TextureWrap::ClampEdge:{
-                glSpecs.wrapModeT = GL_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::ClampBorder:{
-                glSpecs.wrapModeT = GL_CLAMP_TO_BORDER;
-                break;
-            }
-            case TextureWrap::Mirror:{
-                glSpecs.wrapModeT =  GL_MIRROR_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Repeat:{
-                glSpecs.wrapModeT = GL_REPEAT;
-                break;
-            }
-        }
+        glSpecs.wrapModeS = WrapToGL(spec.wrapS);
+        glSpecs.wrapModeT = WrapToGL(spec.wrapT);
+        glSpecs.wrapModeR = WrapToGL(spec.wrapR);
 
-        switch(spec.wrapR){
-            case TextureWrap::ClampEdge:{
-                glSpecs.wrapModeR = GL_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::ClampBorder:{
-                glSpecs.wrapModeR = GL_CLAMP_TO_BORDER;
-                break;
-            }
-            case TextureWrap::Mirror:{
-                glSpecs.wrapModeR =  GL_MIRROR_CLAMP_TO_EDGE;
-                break;
-            }
-            case TextureWrap::Repeat:{
-                glSpecs.wrapModeR = GL_REPEAT;
-                break;
-            }
-        }
-      
-        switch(spec.internalFormat){
-            /// R
-            case TextureInternalFormat::RED:{
-                glSpecs.internalFormat = GL_RED;
-                break;
-            }
-            case TextureInternalFormat::R16F:{
-                glSpecs.internalFormat = GL_R16F;
-                break;
-            }
-            /// RG
-            case TextureInternalFormat::RG:{
-                glSpecs.internalFormat = GL_RG;
-                break;
-            }
-            case TextureInternalFormat::RG16F:{
-                glSpecs.internalFormat = GL_RG16F;
-                break;
-            }
-            /// RGB
-            case TextureInternalFormat::RGB:{
-                glSpecs.internalFormat = GL_RGB;
-                break;
-            }
-            case TextureInternalFormat::RGB16F:{
-                glSpecs.internalFormat = GL_RGB16F;
-                break;
-            }
-            case TextureInternalFormat::RGB32I:{
-                glSpecs.internalFormat = GL_RGB32I;
-                break;
-            }
-            case TextureInternalFormat::RGB32F:{
-                glSpecs.internalFormat = GL_RGB32F;
-                break;
-            }
-            /// RGBA
-            case TextureInternalFormat::RGBA8:{
-                glSpecs.internalFormat = GL_RGBA8;
-                break;
-            }
-            case TextureInternalFormat::RGBA:{
-                glSpecs.internalFormat = GL_RGBA;
-                break;
-            }
-            case TextureInternalFormat::RGBA32I:{
-                glSpecs.internalFormat = GL_RGBA32I;
-                break;
-            }
-            case TextureInternalFormat::RGBA32F:{
-                glSpecs.internalFormat = GL_RGBA32F;
-                break;
-            }
-            /// Depth
-            case TextureInternalFormat::Depth16:{
-                glSpecs.internalFormat = GL_DEPTH_COMPONENT16;
-                break;
-            }
-            case TextureInternalFormat::Depth24Stencil8:{
-                glSpecs.internalFormat = GL_DEPTH24_STENCIL8;
-                break;
-            }
-            case TextureInternalFormat::Depth24:{
-                glSpecs.internalFormat = GL_DEPTH_COMPONENT24;
-                break;
-            }
-            case TextureInternalFormat::Depth32:{
-                glSpecs.internalFormat = GL_DEPTH_COMPONENT32;
-                break;
-            }
-            case TextureInternalFormat::Depth32F:{
-                glSpecs.internalFormat = GL_DEPTH_COMPONENT32F;
-                break;
-            }
-            default:{
-                glSpecs.internalFormat = GL_RGB;
-                break;
-            }
-        }
-
-        switch(spec.format){
-            case TextureFormat::RED:{
+        // Internal Format + Format + Type
+        switch (spec.internalFormat)
+        {
+            // R 
+            case TextureInternalFormat::RED:
+                glSpecs.internalFormat = GL_R8;
                 glSpecs.format = GL_RED;
+                glSpecs.type = GL_UNSIGNED_BYTE;
                 break;
-            }
-            case TextureFormat::RG:{
+
+            case TextureInternalFormat::R16F:
+                glSpecs.internalFormat = GL_R16F;
+                glSpecs.format = GL_RED;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            // RG
+            case TextureInternalFormat::RG:
+                glSpecs.internalFormat = GL_RG8;
                 glSpecs.format = GL_RG;
+                glSpecs.type = GL_UNSIGNED_BYTE;
                 break;
-            }
-            case TextureFormat::RGB:{
+
+            case TextureInternalFormat::RG16F:
+                glSpecs.internalFormat = GL_RG16F;
+                glSpecs.format = GL_RG;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            // RGB
+            case TextureInternalFormat::RGB:
+            case TextureInternalFormat::RGB8:
+                glSpecs.internalFormat = GL_RGB8;
                 glSpecs.format = GL_RGB;
+                glSpecs.type = GL_UNSIGNED_BYTE;
                 break;
-            }
-            case TextureFormat::RGBA:{
+
+            case TextureInternalFormat::RGB16F:
+                glSpecs.internalFormat = GL_RGB16F;
+                glSpecs.format = GL_RGB;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::RGB32F:
+                glSpecs.internalFormat = GL_RGB32F;
+                glSpecs.format = GL_RGB;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::RGB32I:
+                glSpecs.internalFormat = GL_RGB32I;
+                glSpecs.format = GL_RGB_INTEGER;
+                glSpecs.type = GL_INT;
+                break;
+
+            // RGBA
+            case TextureInternalFormat::RGBA:
+            case TextureInternalFormat::RGBA8:
+                glSpecs.internalFormat = GL_RGBA8;
                 glSpecs.format = GL_RGBA;
+                glSpecs.type = GL_UNSIGNED_BYTE;
                 break;
-            }
-            case TextureFormat::Depth:{
+
+            case TextureInternalFormat::RGBA16F:
+                glSpecs.internalFormat = GL_RGBA16F;
+                glSpecs.format = GL_RGBA;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::RGBA32F:
+                glSpecs.internalFormat = GL_RGBA32F;
+                glSpecs.format = GL_RGBA;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::RGBA32I:
+                glSpecs.internalFormat = GL_RGBA32I;
+                glSpecs.format = GL_RGBA_INTEGER;
+                glSpecs.type = GL_INT;
+                break;
+
+            // Depth
+            case TextureInternalFormat::Depth16:
+                glSpecs.internalFormat = GL_DEPTH_COMPONENT16;
                 glSpecs.format = GL_DEPTH_COMPONENT;
+                glSpecs.type = GL_UNSIGNED_SHORT;
                 break;
-            }
-            default:{
-                glSpecs.format = GL_RGB;
+
+            case TextureInternalFormat::Depth24:
+                glSpecs.internalFormat = GL_DEPTH_COMPONENT24;
+                glSpecs.format = GL_DEPTH_COMPONENT;
+                glSpecs.type = GL_UNSIGNED_INT;
                 break;
-            }
+
+            case TextureInternalFormat::Depth32:
+                glSpecs.internalFormat = GL_DEPTH_COMPONENT32;
+                glSpecs.format = GL_DEPTH_COMPONENT;
+                glSpecs.type = GL_UNSIGNED_INT;
+                break;
+
+            case TextureInternalFormat::Depth32F:
+                glSpecs.internalFormat = GL_DEPTH_COMPONENT32F;
+                glSpecs.format = GL_DEPTH_COMPONENT;
+                glSpecs.type = GL_FLOAT;
+                break;
+
+            case TextureInternalFormat::Depth24Stencil8:
+                glSpecs.internalFormat = GL_DEPTH24_STENCIL8;
+                glSpecs.format = GL_DEPTH_STENCIL;
+                glSpecs.type = GL_UNSIGNED_INT_24_8;
+                break;
+
+            default:
+                glSpecs.internalFormat = GL_RGBA8;
+                glSpecs.format = GL_RGBA;
+                glSpecs.type = GL_UNSIGNED_BYTE;
+                break;
         }
 
-        switch(spec.compareFunc){
+        // Compare func (for shadow maps)
+        switch (spec.compareFunc)
+        {
             case TextureCompareFunc::Always:      glSpecs.compareFunc = GL_ALWAYS; break;
             case TextureCompareFunc::Greater:     glSpecs.compareFunc = GL_GREATER; break;
             case TextureCompareFunc::Less:        glSpecs.compareFunc = GL_LESS; break;
             case TextureCompareFunc::LessOrEqual: glSpecs.compareFunc = GL_LEQUAL; break;
             case TextureCompareFunc::Never:       glSpecs.compareFunc = GL_NEVER; break;
-            default:                              glSpecs.compareFunc = GL_LESS; break;
-        }
-
-        switch(spec.internalFormat)
-        {
-            case TextureInternalFormat::R16F:
-            case TextureInternalFormat::RG16F:
-            case TextureInternalFormat::RGB16F:
-            case TextureInternalFormat::RGBAF:
-            case TextureInternalFormat::RGBA32F:
-            case TextureInternalFormat::RGB32F:
-            case TextureInternalFormat::Depth32F:
-                glSpecs.type = GL_FLOAT;
-                break;
-
-            case TextureInternalFormat::RGB32I:
-            case TextureInternalFormat::RGBA32I:
-                glSpecs.type = GL_INT;
-                break;
-
-            case TextureInternalFormat::Depth24Stencil8:
-                glSpecs.type = GL_UNSIGNED_INT_24_8;
-                break;
-
-            case TextureInternalFormat::Depth16:
-                glSpecs.type = GL_UNSIGNED_SHORT;
-                break;
-
-            case TextureInternalFormat::Depth24:
-            case TextureInternalFormat::Depth32:
-                glSpecs.type = GL_UNSIGNED_INT;
-                break;
-
-            default:
-                glSpecs.type = GL_UNSIGNED_BYTE;
-                break;
+            default:                             glSpecs.compareFunc = GL_LESS; break;
         }
 
         return glSpecs;

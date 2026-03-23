@@ -140,50 +140,52 @@ namespace Pulse::Engine::Rendering{
                 center += glm::vec3(v);
             center /= corners.size();
 
-            glm::vec3 up(0, 1, 0);
-            if (fabs(glm::dot(direction, up)) > 0.99f)
-                up = glm::vec3(1, 0, 0);
-            const auto lightView = glm::lookAt(center + direction, center, up);
-
-            float minX = std::numeric_limits<float>::max();
-            float maxX = std::numeric_limits<float>::lowest();
-            float minY = std::numeric_limits<float>::max();
-            float maxY = std::numeric_limits<float>::lowest();
-            float minZ = std::numeric_limits<float>::max();
-            float maxZ = std::numeric_limits<float>::lowest();
+            
+            float radius = 0.0f;
             for (const auto& v : corners)
-            {
-                const auto trf = lightView * v;
-                minX = std::min(minX, trf.x);
-                maxX = std::max(maxX, trf.x);
-                minY = std::min(minY, trf.y);
-                maxY = std::max(maxY, trf.y);
-                minZ = std::min(minZ, trf.z);
-                maxZ = std::max(maxZ, trf.z);
-            }
+                radius = std::max(radius, glm::length(glm::vec3(v) - center));
 
-            // Tune this parameter according to the scene
-            constexpr float zMult = 10.0f;
-            if (minZ < 0)
-            {
-                minZ *= zMult;
-            }
-            else
-            {
-                minZ /= zMult;
-            }
-            if (maxZ < 0)
-            {
-                maxZ /= zMult;
-            }
-            else
-            {
-                maxZ *= zMult;
-            }
+            // snap radius to reduce flicker
+            radius = std::ceil(radius * 16.0f) / 16.0f;
 
-            const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, maxZ, minZ);
+            // ight direction
+            glm::vec3 lightDir = glm::normalize(direction);
 
-            return lightProjection * lightView;
+            // robust up vector
+            glm::vec3 up = fabs(glm::dot(lightDir, glm::vec3(0,1,0))) > 0.99f
+                ? glm::vec3(1,0,0)
+                : glm::vec3(0,1,0);
+
+            // Build light view
+            glm::vec3 lightPos = center - lightDir * radius;
+            glm::mat4 lightView = glm::lookAt(lightPos, center, up);
+
+            // Build symmetric ortho projection (NO AABB)
+            float extent = radius;
+            float nearPlane = 0.0f;
+            float farPlane  = radius * 2.0f;
+
+            glm::mat4 lightProj = glm::ortho(
+                -extent, extent,
+                -extent, extent,
+                nearPlane, farPlane
+            );
+
+            // Projection-space texel snapping
+            glm::mat4 lightVP = lightProj * lightView;
+
+            glm::vec4 origin = lightVP * glm::vec4(0, 0, 0, 1);
+            origin /= origin.w;
+
+            glm::vec2 shadowOrigin = glm::vec2(origin) * (shadowRes * 0.5f);
+            glm::vec2 roundedOrigin = glm::round(shadowOrigin);
+            glm::vec2 offset = (roundedOrigin - shadowOrigin) * (2.0f / shadowRes);
+
+            lightProj[3][0] += offset.x;
+            lightProj[3][1] += offset.y;
+
+            // Final matrix
+            return lightProj * lightView;
         }
         else if (type == static_cast<int>(LightType::Spot))
         {

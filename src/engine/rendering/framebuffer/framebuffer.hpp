@@ -19,14 +19,12 @@ namespace Pulse::Engine::Rendering {
 
         TextureSpecifications colorSpecs = []{
             TextureSpecifications s;
-            s.format = TextureFormat::RGBA;
             s.internalFormat = TextureInternalFormat::RGBA8;
             return s;
         }();
 
         TextureSpecifications depthSpecs = []{
             TextureSpecifications s;
-            s.format = TextureFormat::Depth;
             s.internalFormat = TextureInternalFormat::Depth24;
             s.minFilter = TextureFilter::Nearest;
             s.magFilter = TextureFilter::Nearest;

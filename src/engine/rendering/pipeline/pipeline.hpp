@@ -168,7 +168,7 @@ namespace Pulse::Engine::Rendering{
 
             virtual ~Pipeline() = default;
 
-            const PipelineSpecifications& GetSpecifications() const
+            PipelineSpecifications& GetSpecifications()
             {
                 return m_Specifications;
             };

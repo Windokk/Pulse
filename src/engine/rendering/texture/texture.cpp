@@ -38,7 +38,7 @@ namespace Pulse::Engine::Rendering{
         void* data = nullptr;
 
         int width, height, nrChannels;
-        TextureFormat format;
+        TextureInternalFormat format;
 
         if (filepath.Exists()) {
             std::string file = filepath.ReadFile();
@@ -55,26 +55,26 @@ namespace Pulse::Engine::Rendering{
 
         if (data) {
             if (nrChannels == 1){
-                format = TextureFormat::RED;
+                format = TextureInternalFormat::RED;
             }
             else if (nrChannels == 2){
-                format = TextureFormat::RG;
+                format = TextureInternalFormat::RG;
             }
             else if (nrChannels == 3){
-                format = TextureFormat::RGB;
+                format = TextureInternalFormat::RGB;
             }
             else if (nrChannels == 4){
-                format = TextureFormat::RGBA;
+                format = TextureInternalFormat::RGBA;
             }
             else{
-                format = TextureFormat::RGB; // Default to RGB
+                format = TextureInternalFormat::RGB; // Default to RGB
             }
 
         } else {
             DEBUG_ERROR("Couldn't load texture : " + filepath.full);   
         }
 
-        spec.format = format;
+        spec.internalFormat = format;
         spec.width = width;
         spec.height = height;
 
