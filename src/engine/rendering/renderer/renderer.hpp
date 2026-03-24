@@ -129,6 +129,7 @@ namespace Pulse::Engine::Rendering {
             bool m_MultisamplingEnabled = false;
 
             std::shared_ptr<RendererSettings> m_Settings;
-    };
 
+            bool m_NeedExecutionOrderRebuild = false;
+    };
 }

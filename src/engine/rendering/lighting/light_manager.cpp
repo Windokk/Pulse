@@ -46,12 +46,7 @@ namespace Pulse::Engine::Rendering{
         if(index == -1)
             return;
 
-        if(m_Lights.at(index)->castShadow){
-            Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterLight(index, m_Lights[index]);
-        }
-        else{
-            Core::GetEngine().GetRenderer()->GetShadowManager()->UnregisterLight(index);
-        }
+        Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterLight(index, m_Lights[index]);
     }
 
     void LightManager::AddLight(int index, std::shared_ptr<LightData> data)

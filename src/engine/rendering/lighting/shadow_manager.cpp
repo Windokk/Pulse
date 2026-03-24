@@ -44,157 +44,150 @@ namespace Pulse::Engine::Rendering{
         m_ShadowMaps.clear();
         m_PointLightCount = 0;
         m_CurrentPointLightCapacity = 0;
+
+        EnsureCubeArrayCapacity(0);
     }
 
     void ShadowManager::UpdatePassUniforms()
     {
-        int passesCount = 0;
-
         std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
         for(auto& sm : m_ShadowMaps){
-            if (sm.light.type == static_cast<int>(LightType::Point))
-            {
-                passesCount++;
-            }
-            else if(sm.light.type == static_cast<int>(LightType::Spot))
-            {
-                passesCount++;
-            }
-            else if(sm.light.type == static_cast<int>(LightType::Directional))
+            if(sm.second.light.type == static_cast<int>(LightType::Directional))
             {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
-                    std::string currentPassName = "ShadowPass"+std::to_string(passesCount);
+                    auto pass = Core::GetEngine().GetRenderer()->GetRenderPass(sm.second.passes[c]);
 
-                    auto pass = Core::GetEngine().GetRenderer()->GetRenderPass(currentPassName);
+                    float splitNear = c == 0 ? cam->nearPlane : sm.second.cascadeSplits[c - 1];
+                    float splitFar  = sm.second.cascadeSplits[c];
+                    sm.second.lightMatrix[c] = sm.second.light.GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, m_DirShadowsResolution);
 
-                    float splitNear = c == 0 ? cam->nearPlane : sm.cascadeSplits[c - 1];
-                    float splitFar  = sm.cascadeSplits[c];
-                    sm.lightMatrix[c] = sm.light.GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, m_DirShadowsResolution);
-
-                    pass->customUniforms["lightSpaceMatrix"] = sm.lightMatrix[c];
-
-                    passesCount++;
+                    pass->customUniforms["lightSpaceMatrix"] = sm.second.lightMatrix[c];
                 }
             }
         }
     }
 
-    void ShadowManager::SubmitPasses()
+    void ShadowManager::SubmitPasses(int lightIndex)
     {
+        if (m_ShadowMaps.find(lightIndex) == m_ShadowMaps.end()){
+            DEBUG_ERROR("Tried submitting shadow passes for a light, but this light was never registered.");
+            return;
+        }
+
         std::vector<std::shared_ptr<RenderPass>> passes = {};
-        
-        PipelineSpecifications pointSpecs;
-        pointSpecs.blending = false;
-        pointSpecs.cullMode = CullMode::None;
-        pointSpecs.depthTest = true;
-        pointSpecs.polygonMode = PolygonMode::Fill;
-        pointSpecs.topology = PrimitiveTopology::Triangles;
-        pointSpecs.shader = m_PointShader;
-        pointSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
 
-        PipelineSpecifications spotSpecs;
-        spotSpecs.blending = false;
-        spotSpecs.cullMode = CullMode::None;
-        spotSpecs.depthTest = true;
-        spotSpecs.polygonMode = PolygonMode::Fill;
-        spotSpecs.topology = PrimitiveTopology::Triangles;
-        spotSpecs.shader = m_SpotShader;
-        spotSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
-
-        PipelineSpecifications dirSpecs;
-        dirSpecs.blending = false;
-        dirSpecs.cullMode = CullMode::None;
-        dirSpecs.depthTest = true;
-        dirSpecs.polygonMode = PolygonMode::Fill;
-        dirSpecs.topology = PrimitiveTopology::Triangles;
-        dirSpecs.shader = m_DirShader;
-        dirSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
-
-        std::shared_ptr<Pipeline> pointShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(pointSpecs);
-        std::shared_ptr<Pipeline> spotShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(spotSpecs);
-        std::shared_ptr<Pipeline> dirShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(dirSpecs);
-        
         std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
-        for (auto& sm : m_ShadowMaps)
+        ShadowMap* sm = &m_ShadowMaps.at(lightIndex);
+        LightData light = sm->light;
+
+        if (light.type == static_cast<int>(LightType::Point))
         {
-            LightData* light = &sm.light;
+            PipelineSpecifications pointSpecs;
+            pointSpecs.blending = false;
+            pointSpecs.cullMode = CullMode::None;
+            pointSpecs.depthTest = true;
+            pointSpecs.polygonMode = PolygonMode::Fill;
+            pointSpecs.topology = PrimitiveTopology::Triangles;
+            pointSpecs.shader = m_PointShader;
+            pointSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
+            std::shared_ptr<Pipeline> pointShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(pointSpecs);
+            
+            std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
+            pass->target = sm->framebuffer[0];
+            pass->clearColor = false;
+            pass->clearDepth = true;
+            pass->customPipeline = pointShadowPassPipeline;
+            pass->overridePipeline = true;
 
-            if (!light->castShadow)
-                continue;
+            for(int i = 0; i < 6; i++)
+                pass->customUniforms.emplace("shadowMatrices[" + std::to_string(i) + "]", sm->shadowMatrices[i]);
 
-            if (light->type == static_cast<int>(LightType::Point))
+            pass->customUniforms.emplace("farPlane", light.radius);
+            pass->customUniforms.emplace("lightPos", light.position);
+            pass->customUniforms.emplace("cubeIndex", sm->cubeArrayLayer);
+
+            pass->allowResize = false;
+            pass->allowCulling = false;
+
+            std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_" + std::to_string(passes.size());
+            sm->passes.push_back(passName);
+
+            passes.push_back(pass);
+        }
+        else if(light.type == static_cast<int>(LightType::Spot))
+        {
+            PipelineSpecifications spotSpecs;
+            spotSpecs.blending = false;
+            spotSpecs.cullMode = CullMode::None;
+            spotSpecs.depthTest = true;
+            spotSpecs.polygonMode = PolygonMode::Fill;
+            spotSpecs.topology = PrimitiveTopology::Triangles;
+            spotSpecs.shader = m_SpotShader;
+            spotSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
+            std::shared_ptr<Pipeline> spotShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(spotSpecs);
+
+            std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
+            pass->target = sm->framebuffer[0];
+            pass->clearColor = false;
+            pass->clearDepth = true;
+            pass->customPipeline = spotShadowPassPipeline;
+            pass->overridePipeline = true;
+            pass->customUniforms.emplace("lightSpaceMatrix", sm->lightMatrix[0]);
+            pass->allowResize = false;
+            pass->allowCulling = false;
+            
+            std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_" + std::to_string(passes.size());
+            
+            passes.push_back(pass);
+        }
+        else if(light.type == static_cast<int>(LightType::Directional))
+        {
+            PipelineSpecifications dirSpecs;
+            dirSpecs.blending = false;
+            dirSpecs.cullMode = CullMode::None;
+            dirSpecs.depthTest = true;
+            dirSpecs.polygonMode = PolygonMode::Fill;
+            dirSpecs.topology = PrimitiveTopology::Triangles;
+            dirSpecs.shader = m_DirShader;
+            dirSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
+
+            std::shared_ptr<Pipeline> dirShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(dirSpecs);
+
+            for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
+                sm->cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
+
+            for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
             {
                 std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
-                pass->target = sm.framebuffer[0];
+                pass->target = sm->framebuffer[c];
                 pass->clearColor = false;
                 pass->clearDepth = true;
-                pass->customPipeline = pointShadowPassPipeline;
+                pass->customPipeline = dirShadowPassPipeline;
                 pass->overridePipeline = true;
 
-                for(int i = 0; i < 6; i++)
-                    pass->customUniforms.emplace("shadowMatrices[" + std::to_string(i) + "]", sm.shadowMatrices[i]);
+                float splitNear = c == 0 ? cam->nearPlane : sm->cascadeSplits[c - 1];
+                float splitFar  = sm->cascadeSplits[c];
+                sm->lightMatrix[c] = light.GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, m_DirShadowsResolution);
 
-                pass->customUniforms.emplace("farPlane", light->radius);
-                pass->customUniforms.emplace("lightPos", light->position);
-                pass->customUniforms.emplace("cubeIndex", sm.cubeArrayLayer);
+                pass->customUniforms.emplace("lightSpaceMatrix", sm->lightMatrix[c]);
 
                 pass->allowResize = false;
                 pass->allowCulling = false;
+                
+                std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_" + std::to_string(passes.size());
+                sm->passes.push_back(passName); 
 
                 passes.push_back(pass);
-            }
-            else if(light->type == static_cast<int>(LightType::Spot))
-            {
-                std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
-                pass->target = sm.framebuffer[0];
-                pass->clearColor = false;
-                pass->clearDepth = true;
-                pass->customPipeline = spotShadowPassPipeline;
-                pass->overridePipeline = true;
-                pass->customUniforms.emplace("lightSpaceMatrix", sm.lightMatrix[0]);
-                pass->allowResize = false;
-                pass->allowCulling = false;
-                passes.push_back(pass);
-            }
-            else if(light->type == static_cast<int>(LightType::Directional))
-            {
-                for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
-                    sm.cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
-
-                for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
-                {
-                    std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
-                    pass->target = sm.framebuffer[c];
-                    pass->clearColor = false;
-                    pass->clearDepth = true;
-                    pass->customPipeline = dirShadowPassPipeline;
-                    pass->overridePipeline = true;
-
-                    float splitNear = c == 0 ? cam->nearPlane : sm.cascadeSplits[c - 1];
-                    float splitFar  = sm.cascadeSplits[c];
-                    sm.lightMatrix[c] = light->GetLightMatrix(cam->GetView(), *cam->GetFOV(), cam->GetSize().x/cam->GetSize().y, splitNear, splitFar, m_DirShadowsResolution);
-
-                    pass->customUniforms.emplace("lightSpaceMatrix", sm.lightMatrix[c]);
-
-                    pass->allowResize = false;
-                    pass->allowCulling = false;
-
-                    passes.push_back(pass);
-                }
             }
         }
 
         for(int i = 0; i < passes.size(); i++){
-            if(i == 0)
-            {
-                Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], "ShadowPass"+std::to_string(i), {});
-                continue;
-            }
-            
-            Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], "ShadowPass"+std::to_string(i), {"ShadowPass"+std::to_string(i-1)});
+            std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_" + std::to_string(i);
+
+            Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], passName, {});
         }
     }
 
@@ -204,8 +197,10 @@ namespace Pulse::Engine::Rendering{
             return; // we already have enough layers
 
         // Delete old array if it exists
-        if (m_CubeArrayTex->IsValid())
-           m_CubeArrayTex->~CubemapArray();
+        if(m_CubeArrayTex){
+            if (m_CubeArrayTex->IsValid())
+               m_CubeArrayTex.reset();
+        }
 
         m_CurrentPointLightCapacity = requiredPointLights;
 
@@ -232,8 +227,48 @@ namespace Pulse::Engine::Rendering{
 
     void ShadowManager::RegisterLight(int lightIndex, std::shared_ptr<LightData> light)
     {
-        if (!light->castShadow)
+        if (!light->castShadow){
+            if(m_ShadowMaps.find(lightIndex) != m_ShadowMaps.end()){
+                UnregisterLight(lightIndex);
+            }
             return;
+        }
+
+        if (m_ShadowMaps.find(lightIndex) != m_ShadowMaps.end())
+        {
+            
+            ShadowMap* oldSM = &m_ShadowMaps.at(lightIndex);
+
+            // ---- Clean up Directional Light Resources (multiple cascades) ----
+            if (oldSM->light.type == static_cast<int>(LightType::Directional)) {
+                for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
+                    if (oldSM->framebuffer[c]->IsValid())
+                        oldSM->framebuffer[c]->Destroy();
+                }
+            }
+
+            // ---- Clean up Spot Light Resources (single map) ----
+            else if (oldSM->light.type == static_cast<int>(LightType::Spot)) {
+                if (oldSM->framebuffer[0]->IsValid())
+                        oldSM->framebuffer[0]->Destroy();
+            }
+
+            // ---- Special Case: Point Light (cube map layer) ----
+            else if (oldSM->light.type == static_cast<int>(LightType::Point)) {
+                int removedLayer = oldSM->cubeArrayLayer;
+                // Shift down cube array layer indices for other point lights
+                for (auto& oldSM : m_ShadowMaps) {
+                    if (oldSM.second.light.type == static_cast<int>(LightType::Point) &&
+                        oldSM.second.cubeArrayLayer > removedLayer) {
+                        --oldSM.second.cubeArrayLayer;
+                    }
+                }
+
+                --m_PointLightCount;
+
+                TryShrinkCubeArray();
+            }
+        }
 
         ShadowMap sm;
         sm.light = *light;
@@ -328,25 +363,11 @@ namespace Pulse::Engine::Rendering{
         }
 
 
-        // --- Replace or append the shadow map ---
-        if (lightIndex < m_ShadowMaps.size()) {
-            ShadowMap& old = m_ShadowMaps[lightIndex];
-
-            // Clean up resources (if necessary)
-            if (old.light.type == int(LightType::Directional) || old.light.type == int(LightType::Spot)) {
-                for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
-                    if (old.framebuffer[c]->IsValid()) old.framebuffer[c]->Destroy();
-                }
-            }
-
-            m_ShadowMaps[lightIndex] = sm;
-        } else {
-            m_ShadowMaps.push_back(sm);
-            if (sm.light.type == int(LightType::Point))
-                ++m_PointLightCount;
-        }
-    
-        SubmitPasses();
+        m_ShadowMaps[lightIndex] = sm;
+        if (sm.light.type == int(LightType::Point))
+            ++m_PointLightCount;
+        
+        SubmitPasses(lightIndex);
     }
 
     void ShadowManager::TryShrinkCubeArray()
@@ -356,8 +377,10 @@ namespace Pulse::Engine::Rendering{
             return;
 
         // Delete old array
-        if(m_CubeArrayTex->IsValid())
-            m_CubeArrayTex->~CubemapArray();
+        if(m_CubeArrayTex){
+            if(m_CubeArrayTex->IsValid())
+                m_CubeArrayTex.reset();
+        }
 
         m_CurrentPointLightCapacity = std::max(4, m_PointLightCount); // never shrink below 4 layers
 
@@ -384,23 +407,29 @@ namespace Pulse::Engine::Rendering{
 
     void ShadowManager::UnregisterLight(int lightIndex)
     {
-        if (lightIndex < 0 || lightIndex >= static_cast<int>(m_ShadowMaps.size()))
+        if (m_ShadowMaps.find(lightIndex) == m_ShadowMaps.end()){
+            DEBUG_ERROR("Tried unregistering a light from shadow mappings, but this light was never registered.");
             return;
+        }
 
         ShadowMap& removedSM = m_ShadowMaps[lightIndex];
 
         // ---- Clean up Directional Light Resources (multiple cascades) ----
         if (removedSM.light.type == static_cast<int>(LightType::Directional)) {
             for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
-                if (removedSM.framebuffer[c]->IsValid())
+                if (removedSM.framebuffer[c]->IsValid()){
                     removedSM.framebuffer[c]->Destroy();
+                    removedSM.framebuffer[c].reset();
+                }
             }
         }
 
         // ---- Clean up Spot Light Resources (single map) ----
         else if (removedSM.light.type == static_cast<int>(LightType::Spot)) {
-            if (removedSM.framebuffer[0]->IsValid())
-                    removedSM.framebuffer[0]->Destroy();
+            if (removedSM.framebuffer[0]->IsValid()){
+                removedSM.framebuffer[0]->Destroy();
+                removedSM.framebuffer[0].reset();
+            }
         }
 
         // ---- Special Case: Point Light (cube map layer) ----
@@ -409,9 +438,9 @@ namespace Pulse::Engine::Rendering{
 
             // Shift down cube array layer indices for other point lights
             for (auto& sm : m_ShadowMaps) {
-                if (sm.light.type == static_cast<int>(LightType::Point) &&
-                    sm.cubeArrayLayer > removedLayer) {
-                    --sm.cubeArrayLayer;
+                if (sm.second.light.type == static_cast<int>(LightType::Point) &&
+                    sm.second.cubeArrayLayer > removedLayer) {
+                    --sm.second.cubeArrayLayer;
                 }
             }
 
@@ -420,8 +449,12 @@ namespace Pulse::Engine::Rendering{
             TryShrinkCubeArray();
         }
 
+        for(std::string passName : removedSM.passes){
+            Core::GetEngine().GetRenderer()->RemoveRenderPass(passName);
+        }
+
         // ---- Remove from list ----
-        m_ShadowMaps.erase(m_ShadowMaps.begin() + lightIndex);
+        m_ShadowMaps.erase(lightIndex);
     }
 
     void ShadowManager::BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material)
@@ -434,7 +467,7 @@ namespace Pulse::Engine::Rendering{
 
         for (const auto& sm : m_ShadowMaps)
         {
-            const LightData& light = sm.light;
+            const LightData& light = sm.second.light;
 
             if (!light.castShadow)
                 continue;
@@ -447,17 +480,17 @@ namespace Pulse::Engine::Rendering{
                 {
                     material->SetTextureParameter(
                         "shadow_dirShadowMaps[" + std::to_string(dirCascadeIndex) + "]",
-                        sm.framebuffer[c]->GetDepthAttachment()
+                        sm.second.framebuffer[c]->GetDepthAttachment()
                     );
 
                     material->SetScalarParameter(
                         "shadow_dirLightSpaceMatrices[" + std::to_string(dirCascadeIndex) + "]",
-                        sm.lightMatrix[c]
+                        sm.second.lightMatrix[c]
                     );
 
                     material->SetScalarParameter(
                         "shadow_cascadeSplits[" + std::to_string(dirCascadeIndex) + "]",
-                        sm.cascadeSplits[c]
+                        sm.second.cascadeSplits[c]
                     );
 
                     dirCascadeIndex++;
@@ -469,17 +502,15 @@ namespace Pulse::Engine::Rendering{
                 if (spotIndex >= MAX_SPOT_LIGHTS)
                     continue;
 
-                int unit = SPOT_SHADOW_BASE_UNIT + spotIndex;
-
                 // Set sampler uniform
                 material->SetTextureParameter(
                     "shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]",
-                    sm.framebuffer[0]->GetDepthAttachment()
+                    sm.second.framebuffer[0]->GetDepthAttachment()
                 );
 
                 material->SetScalarParameter(
                     "shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]",
-                    sm.lightMatrix[0]
+                    sm.second.lightMatrix[0]
                 );
 
                 ++spotIndex;
@@ -487,11 +518,11 @@ namespace Pulse::Engine::Rendering{
             // Point lights
             else if (light.type == static_cast<int>(LightType::Point))
             {
-                if (sm.cubeArrayLayer >= MAX_POINT_LIGHTS)
+                if (sm.second.cubeArrayLayer >= MAX_POINT_LIGHTS)
                     continue;
 
                 material->SetScalarParameter(
-                    "shadow_pointLightFarPlanes[" + std::to_string(sm.cubeArrayLayer) + "]",
+                    "shadow_pointLightFarPlanes[" + std::to_string(sm.second.cubeArrayLayer) + "]",
                     light.radius
                 );
             }

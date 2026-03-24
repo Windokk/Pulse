@@ -122,7 +122,14 @@ namespace Pulse::Engine::Rendering{
         forwardPass->clearColor = true;
         forwardPass->clearDepth = true;
         forwardPass->overridePipeline = false;
-        AddRenderPass(forwardPass, "ForwardPass", {"ShadowPass0", "ShadowPass1", "ShadowPass2"});
+        std::vector<std::string> passDependencies;
+        for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
+        {   
+            for(int j = 0; j < Rendering::CASCADES_PER_LIGHT; j++){
+                passDependencies.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
+            }
+        }
+        AddRenderPass(forwardPass, "ForwardPass", {passDependencies});
         m_RendererAPI->SetClearColor(0,0,0,1);
     }
 
@@ -147,10 +154,35 @@ namespace Pulse::Engine::Rendering{
                 dependents[dep].push_back(name);
             }
         }
+ 
+        auto getCategory = [&](const std::string& name) {
+            auto it = m_RenderPassDependencies.find(name);
+            bool hasDeps = (it != m_RenderPassDependencies.end() && !it->second.empty());
+            bool hasDependents = !dependents[name].empty();
 
-        std::queue<std::string> q;
+            if (!hasDeps && !hasDependents) return 0;
+            if (!hasDeps && hasDependents)  return 1;
+            if (hasDeps && hasDependents)   return 2;
+            return 3; // hasDeps && !hasDependents
+        };
 
-        for (const auto& name : m_PassInsertionOrder)
+        auto cmp = [&](const std::string& a, const std::string& b) {
+            int ca = getCategory(a);
+            int cb = getCategory(b);
+
+            if (ca != cb)
+                return ca > cb; // lower category first
+
+            return a > b;
+        };
+
+        std::priority_queue<
+            std::string,
+            std::vector<std::string>,
+            decltype(cmp)
+        > q(cmp);
+
+        for (const auto& [name, _] : m_RenderPasses)
         {
             if (inDegree[name] == 0)
                 q.push(name);
@@ -160,7 +192,7 @@ namespace Pulse::Engine::Rendering{
 
         while (!q.empty())
         {
-            auto current = q.front();
+            auto current = q.top();
             q.pop();
 
             topo.push_back(current);
@@ -178,32 +210,12 @@ namespace Pulse::Engine::Rendering{
             DEBUG_ERROR("RenderPass cycle detected!");
             return;
         }
+        
+        m_ExecutionOrder = topo;
 
-        // Categorize
-        std::vector<std::string> cat1, cat2, cat3, cat4;
-
-        for (const auto& name : topo)
-        {
-            auto it = m_RenderPassDependencies.find(name);
-            bool hasDeps = (it != m_RenderPassDependencies.end() && !it->second.empty());
-            bool hasDependents = !dependents[name].empty();
-
-            if (!hasDeps && !hasDependents)
-                cat1.push_back(name);
-            else if (!hasDeps && hasDependents)
-                cat2.push_back(name);
-            else if (hasDeps && hasDependents)
-                cat3.push_back(name);
-            else
-                cat4.push_back(name);
+        for(int i = 0; i < m_ExecutionOrder.size(); i++){
+            DEBUG_LOG(m_ExecutionOrder[i]);
         }
-
-        // Merge everything
-        m_ExecutionOrder.clear();
-        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat1.begin(), cat1.end());
-        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat2.begin(), cat2.end());
-        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat3.begin(), cat3.end());
-        m_ExecutionOrder.insert(m_ExecutionOrder.end(), cat4.begin(), cat4.end());
     }
 
     void Renderer::Render()
@@ -253,7 +265,7 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::ReorderDrawList()
     {
-        
+        //TODO : Sorting based on sort key for each passes, if rebuild is neeeded
     }
 
     void Renderer::AddCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes)
@@ -358,7 +370,7 @@ namespace Pulse::Engine::Rendering{
         // Set dependencies
         m_RenderPassDependencies[name] = dependencies;
 
-        BuildExecutionOrder();
+        m_NeedExecutionOrderRebuild = true;
     }
 
     void Renderer::RemoveRenderPass(const std::string &name)
@@ -371,6 +383,8 @@ namespace Pulse::Engine::Rendering{
         else{
             DEBUG_ERROR("Tried removing non-registered render pass");
         }
+        
+        m_NeedExecutionOrderRebuild = true;
     }
 
     void Renderer::RescaleFramebuffers(int newWidth, int newHeight)
@@ -410,6 +424,10 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetCameraManager()->Tick();
         ReorderDrawList();
         m_ShadowManager->UpdatePassUniforms();
+        if(m_NeedExecutionOrderRebuild){
+            BuildExecutionOrder();
+            m_NeedExecutionOrderRebuild = false;
+        }
     }
 
     void Renderer::DrawFrame()

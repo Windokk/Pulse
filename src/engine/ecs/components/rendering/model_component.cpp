@@ -155,7 +155,9 @@ namespace Pulse::Engine::ECS::Components{
 
             for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
             {   
-                passesName.push_back("ShadowPass"+std::to_string(i));
+                for(int j = 0; j < Rendering::CASCADES_PER_LIGHT; j++){
+                    passesName.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
+                }
             }
 
             Core::GetEngine().GetRenderer()->AddCommands(cmds, passesName);
