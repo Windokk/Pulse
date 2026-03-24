@@ -40,18 +40,27 @@ namespace Pulse::Engine::ECS::Components
 
             void OnFieldChanged(const FieldChangedEvent &event) override;
 
+            void UpdateEditorValues();
+
+            FIELD(Editable)
             Rendering::LightType type;
 
+            FIELD(Editable)
             float intensity;
 
+            FIELD(Editable)
             float radius;
 
+            FIELD(Editable)
             COL_RGB color;
 
+            FIELD(Editable)
             float outerCutoff;
 
+            FIELD(Editable)
             float innerCutoff;
 
+            FIELD(Editable)
             bool castShadows;
 
         private:

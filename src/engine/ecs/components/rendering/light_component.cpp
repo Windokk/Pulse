@@ -13,6 +13,17 @@
 using namespace Pulse::Engine::Core;
 
 namespace Pulse::Engine::ECS::Components{
+
+    void Light::UpdateEditorValues(){
+        type = (Rendering::LightType)lightData->type;
+        radius = lightData->radius;
+        intensity = lightData->intensity;
+        outerCutoff = glm::degrees(glm::acos(lightData->outerCutoff));
+        innerCutoff = glm::degrees(glm::acos(lightData->innerCutoff));
+        color = lightData->color;
+        castShadows = lightData->castShadow;
+    }
+
     Light::Light(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
         lightData = std::make_shared<Rendering::LightData>();
@@ -21,6 +32,8 @@ namespace Pulse::Engine::ECS::Components{
 
         lightData->position = glm::vec3(tr->GetPosition().x, tr->GetPosition().y, tr->GetPosition().z);
         lightData->direction = tr->GetForward();
+        
+        UpdateEditorValues();
     }
 
     /// @brief Set the light's type
@@ -34,6 +47,8 @@ namespace Pulse::Engine::ECS::Components{
 
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
     }
 
     /// @brief Set the light's intensity
@@ -47,6 +62,8 @@ namespace Pulse::Engine::ECS::Components{
 
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+        
+        UpdateEditorValues();
     }
 
     /// @brief Set the light's position in the world
@@ -86,6 +103,8 @@ namespace Pulse::Engine::ECS::Components{
         
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
     }
 
     /// @brief Sets the color of the light
@@ -99,6 +118,8 @@ namespace Pulse::Engine::ECS::Components{
         
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
     }
 
     /// @brief Set the outer cuttof (Only for spot lights)
@@ -112,6 +133,8 @@ namespace Pulse::Engine::ECS::Components{
         
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
     }
 
     /// @brief Set the inner cuttof (Only for spot lights)
@@ -125,6 +148,8 @@ namespace Pulse::Engine::ECS::Components{
         
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
     }
 
     /// @brief Set the light's index in the scene
@@ -152,6 +177,8 @@ namespace Pulse::Engine::ECS::Components{
         
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            
+        UpdateEditorValues();
     }
 
     void Light::Deserialize(json componentData)
