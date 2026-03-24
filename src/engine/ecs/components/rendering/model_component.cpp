@@ -155,7 +155,7 @@ namespace Pulse::Engine::ECS::Components{
 
             for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
             {   
-                passesName.push_back("ShadowPass"+std::to_string(i));    
+                passesName.push_back("ShadowPass"+std::to_string(i));
             }
 
             Core::GetEngine().GetRenderer()->AddCommands(cmds, passesName);
@@ -198,6 +198,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void Model::OnFieldChanged(const FieldChangedEvent &event)
     {
+        //Materials
         if(event.field->type == TypeID::Vector && event.field->container){
             Update();
             std::vector<std::shared_ptr<Rendering::Material>> mats = {};
@@ -207,6 +208,7 @@ namespace Pulse::Engine::ECS::Components{
             SetMaterials(std::move(mats));
         }
         
+        //Mesh
         else if(event.field->type == TypeID::Asset){
             SetMesh(meshID);
         }

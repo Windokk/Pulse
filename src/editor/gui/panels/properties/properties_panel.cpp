@@ -487,9 +487,10 @@ namespace Pulse::Editor::GUI{
 
                 static char buffer[256] = "";
 
+                auto* manager = Engine::Core::GetEngine().GetAssetIDManager();
+
                 if (asset)
                 {
-                    auto* manager = Engine::Core::GetEngine().GetAssetIDManager();
                     if (manager)
                     {
                         auto assetPtr = manager->GetAssetFromID(*asset);
@@ -506,8 +507,12 @@ namespace Pulse::Editor::GUI{
                     }
                 }
 
-                if (asset && ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
+                if (asset && ImGui::InputText(id.c_str(), buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
                 {
+                    if(manager)
+                    {
+                        *static_cast<Filesystem::AssetID*>(value) = manager->GetIDFromNameInProject(buffer);
+                    }
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }
