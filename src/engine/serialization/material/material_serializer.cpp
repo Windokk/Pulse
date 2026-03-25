@@ -10,6 +10,8 @@
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/material/material.hpp"
 
+#include "engine/rendering/renderer/renderer.hpp"
+
 using namespace nlohmann;
 
 namespace Pulse::Engine::Serialization{

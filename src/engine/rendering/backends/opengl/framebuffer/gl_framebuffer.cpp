@@ -332,11 +332,17 @@ namespace Pulse::Engine::Rendering{
     
     uint32_t GLFramebuffer::GetResolveColorAttachment() const
     {
-        return m_ResolveColorAttachment;
+        if (m_ResolveColorAttachment != 0)
+            return m_ResolveColorAttachment;
+
+        return m_ColorAttachment;
     }
 
     uint32_t GLFramebuffer::GetResolveDepthAttachment() const
     {
-        return m_ResolveDepthAttachment;
+        if (m_ResolveDepthAttachment != 0)
+            return m_ResolveDepthAttachment;
+
+        return m_DepthAttachment;
     }
 }

@@ -9,6 +9,7 @@
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/filesystem/assetID.hpp"
+#include "engine/rendering/renderer/renderer.hpp"
 
 namespace Pulse::Engine::Rendering{
 

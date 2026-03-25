@@ -80,19 +80,21 @@ namespace Pulse::Engine::Rendering{
             {
                 int layer = cube * 6 + face;
 
-                glTexSubImage3D(
-                    GL_TEXTURE_CUBE_MAP_ARRAY,
-                    0,
-                    0,
-                    0,
-                    layer,
-                    specs.width,
-                    specs.height,
-                    1,
-                    glSpecs.format,
-                    glSpecs.type,
-                    data[cube][face]
-                );
+                if(data[cube][face]){
+                    glTexSubImage3D(
+                        GL_TEXTURE_CUBE_MAP_ARRAY,
+                        0,
+                        0,
+                        0,
+                        layer,
+                        specs.width,
+                        specs.height,
+                        1,
+                        glSpecs.format,
+                        glSpecs.type,
+                        data[cube][face]
+                    );
+                }
             }
         }
 
@@ -120,7 +122,7 @@ namespace Pulse::Engine::Rendering{
     void GLCubemapArray::Bind(uint32_t slot) const
     {
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_ID);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_ID);
     }
 
     bool GLCubemapArray::IsValid() const

@@ -5,9 +5,9 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/levels/level.hpp"
-#include "engine/rendering/renderer/renderer.hpp"
 
 namespace Pulse::Engine::Rendering{
+    class Renderer;
     class Mesh;
     class Texture2D;
     class Shader;

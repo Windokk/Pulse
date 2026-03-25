@@ -16,6 +16,8 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
+#include "engine/rendering/renderer/renderer.hpp"
+
 namespace Pulse::Engine::Rendering{
 
     float ComputeCascadeSplitDistance(int cascadeIndex, float nearPlane, float farPlane, int totalCascades)
@@ -44,8 +46,6 @@ namespace Pulse::Engine::Rendering{
         m_ShadowMaps.clear();
         m_PointLightCount = 0;
         m_CurrentPointLightCapacity = 0;
-
-        EnsureCubeArrayCapacity(0);
     }
 
     void ShadowManager::UpdatePassUniforms()
@@ -188,6 +188,9 @@ namespace Pulse::Engine::Rendering{
             std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_" + std::to_string(i);
 
             Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], passName, {});
+            
+            // Add dependency: ForwardPass depends on this shadow pass
+            Core::GetEngine().GetRenderer()->AddDependencyToPass("ForwardPass", passName);
         }
     }
 
@@ -206,7 +209,7 @@ namespace Pulse::Engine::Rendering{
 
         TextureSpecifications texSpecs;
 
-        texSpecs.internalFormat = TextureInternalFormat::Depth16;
+        texSpecs.internalFormat = TextureInternalFormat::Depth32F;
         texSpecs.compareMode = TextureCompareMode::CompareRefToTexture;
         texSpecs.compareFunc = TextureCompareFunc::LessOrEqual;
         texSpecs.width = m_PointShadowsResolution;
@@ -238,6 +241,13 @@ namespace Pulse::Engine::Rendering{
         {
             
             ShadowMap* oldSM = &m_ShadowMaps.at(lightIndex);
+
+            // Remove stale render passes from renderer before reconfiguring this light
+            for (const auto& passName : oldSM->passes)
+            {
+                Core::GetEngine().GetRenderer()->RemoveRenderPass(passName);
+            }
+            oldSM->passes.clear();
 
             // ---- Clean up Directional Light Resources (multiple cascades) ----
             if (oldSM->light.type == static_cast<int>(LightType::Directional)) {
@@ -372,6 +382,14 @@ namespace Pulse::Engine::Rendering{
 
     void ShadowManager::TryShrinkCubeArray()
     {
+        if (m_PointLightCount == 0) {
+            m_CurrentPointLightCapacity = 0;
+            if (m_CubeArrayTex) {
+                m_CubeArrayTex.reset();
+            }
+            return;
+        }
+
         // Only shrink if capacity is significantly larger than usage
         if (m_PointLightCount >= m_CurrentPointLightCapacity / 2 || m_CurrentPointLightCapacity <= 4)
             return;
@@ -386,7 +404,7 @@ namespace Pulse::Engine::Rendering{
 
         TextureSpecifications texSpecs;
 
-        texSpecs.internalFormat = TextureInternalFormat::Depth16;
+        texSpecs.internalFormat = TextureInternalFormat::Depth32F;
         texSpecs.format = TextureFormat::Depth;
         texSpecs.compareMode = TextureCompareMode::CompareRefToTexture;
         texSpecs.compareFunc = TextureCompareFunc::LessOrEqual;
@@ -529,7 +547,7 @@ namespace Pulse::Engine::Rendering{
         }
 
         // Bind point light cube map array
-        if(m_CurrentPointLightCapacity)
+        if(m_CurrentPointLightCapacity && m_CubeArrayTex)
             material->SetTextureParameter("shadow_pointShadowMapArray", m_CubeArrayTex->GetHandle());
     }
 

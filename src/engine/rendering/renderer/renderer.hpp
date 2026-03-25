@@ -58,7 +58,9 @@ namespace Pulse::Engine::Rendering {
 
             void AddRenderPass(const std::shared_ptr<RenderPass> pass, const std::string& name, const std::vector<std::string>& dependencies);
             void RemoveRenderPass(const std::string& name);
-            
+            void AddDependencyToPass(const std::string& passName, const std::string& dependencyName);
+            void RemoveDependencyFromPass(const std::string &passName, const std::string &dependencyName);
+
             std::shared_ptr<RenderPass> GetRenderPass(const std::string& name) const
             {
                 auto it = m_RenderPasses.find(name);
@@ -94,6 +96,8 @@ namespace Pulse::Engine::Rendering {
             const std::shared_ptr<LightManager> GetLightManager() { return m_LightManager; }
 
 
+            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependencies;
+            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependents;
 
         private:
 
@@ -111,7 +115,6 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<RendererAPI> m_RendererAPI;
 
             std::unordered_map<std::string, std::shared_ptr<RenderPass>> m_RenderPasses;
-            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependencies;
             std::vector<std::string> m_ExecutionOrder;
             std::shared_ptr<RenderPass> m_CurrentPass;
             std::vector<std::string> m_PassInsertionOrder;

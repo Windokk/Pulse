@@ -65,6 +65,10 @@ namespace Pulse::Engine::Rendering {
             return m_ShadowMaps.size();
         }
 
+        const int GetMaxShadowMapsCount() const {
+            return 128;
+        }
+
         void UpdatePassUniforms();
         
     private:

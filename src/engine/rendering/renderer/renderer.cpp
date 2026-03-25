@@ -122,14 +122,8 @@ namespace Pulse::Engine::Rendering{
         forwardPass->clearColor = true;
         forwardPass->clearDepth = true;
         forwardPass->overridePipeline = false;
-        std::vector<std::string> passDependencies;
-        for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
-        {   
-            for(int j = 0; j < Rendering::CASCADES_PER_LIGHT; j++){
-                passDependencies.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
-            }
-        }
-        AddRenderPass(forwardPass, "ForwardPass", {passDependencies});
+        // Initially no dependencies for forward pass
+        AddRenderPass(forwardPass, "ForwardPass", {});
         m_RendererAPI->SetClearColor(0,0,0,1);
     }
 
@@ -155,20 +149,20 @@ namespace Pulse::Engine::Rendering{
             }
         }
  
-        auto getCategory = [&](const std::string& name) {
-            auto it = m_RenderPassDependencies.find(name);
-            bool hasDeps = (it != m_RenderPassDependencies.end() && !it->second.empty());
-            bool hasDependents = !dependents[name].empty();
-
+        auto getCategory = [](const std::string& name, const std::unordered_map<std::string, std::vector<std::string>>& dependencies, const std::unordered_map<std::string, std::vector<std::string>>& dependents) {
+            auto it = dependencies.find(name);
+            bool hasDeps = (it != dependencies.end() && !it->second.empty());
+            bool hasDependents = !dependents.at(name).empty();
+        
             if (!hasDeps && !hasDependents) return 0;
             if (!hasDeps && hasDependents)  return 1;
             if (hasDeps && hasDependents)   return 2;
             return 3; // hasDeps && !hasDependents
         };
 
-        auto cmp = [&](const std::string& a, const std::string& b) {
-            int ca = getCategory(a);
-            int cb = getCategory(b);
+        auto cmp = [getCategory, this, &dependents](const std::string& a, const std::string& b) {
+            int ca = getCategory(a, this->m_RenderPassDependencies, dependents);
+            int cb = getCategory(b, this->m_RenderPassDependencies, dependents);
 
             if (ca != cb)
                 return ca > cb; // lower category first
@@ -212,10 +206,7 @@ namespace Pulse::Engine::Rendering{
         }
         
         m_ExecutionOrder = topo;
-
-        for(int i = 0; i < m_ExecutionOrder.size(); i++){
-            DEBUG_LOG(m_ExecutionOrder[i]);
-        }
+            
     }
 
     void Renderer::Render()
@@ -383,7 +374,45 @@ namespace Pulse::Engine::Rendering{
         else{
             DEBUG_ERROR("Tried removing non-registered render pass");
         }
+
+        for(auto& r : m_RenderPasses)
+        {
+            RemoveDependencyFromPass(r.first, name);
+        }
         
+        m_NeedExecutionOrderRebuild = true;
+    }
+
+    void Renderer::AddDependencyToPass(const std::string& passName, const std::string& dependencyName)
+    {
+        auto passIt = m_RenderPasses.find(passName);
+        if (passIt == m_RenderPasses.end())
+        {
+            DEBUG_ERROR("Tried adding dependency to non-existent pass: " + passName);
+            return;
+        }
+
+        // Add the dependency
+        m_RenderPassDependencies[passName].push_back(dependencyName);
+        m_NeedExecutionOrderRebuild = true;
+    }
+
+    void Renderer::RemoveDependencyFromPass(const std::string& passName, const std::string& dependencyName)
+    {
+        auto passIt = m_RenderPasses.find(passName);
+        if (passIt == m_RenderPasses.end())
+        {
+            DEBUG_ERROR("Tried removing dependency from non-existent pass: " + passName);
+            return;
+        }
+
+        // Remove the dependency
+        for(int i = 0; i < m_RenderPassDependencies[passName].size(); i++){
+            if(m_RenderPassDependencies[passName][i] == dependencyName)
+            {
+                m_RenderPassDependencies[passName].erase(m_RenderPassDependencies[passName].begin() + i);
+            }
+        }
         m_NeedExecutionOrderRebuild = true;
     }
 
