@@ -94,6 +94,9 @@
                     },
                     "innerCutoff": 0,
                     "outerCutoff": 0,
+                    "constant": 1.0,
+                    "linear": 0.09,
+                    "quadratic": 0.032,
                     "castShadow": true
                 }
             ]
@@ -133,6 +136,9 @@
                     },
                     "innerCutoff": 4,
                     "outerCutoff": 8,
+                    "constant": 1.0,
+                    "linear": 0.09,
+                    "quadratic": 0.032,
                     "castShadow": true
                 }
             ]
@@ -172,6 +178,9 @@
                     },
                     "innerCutoff": 0,
                     "outerCutoff": 0,
+                    "constant": 1.0,
+                    "linear": 0.09,
+                    "quadratic": 0.032,
                     "castShadow": true
                 }
             ]

@@ -154,32 +154,68 @@ namespace Pulse::Engine::ECS::Components{
             passesName.push_back("EditorOutlineMaskPass");
 
             for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
-            {   
-                for(int j = 0; j < Rendering::CASCADES_PER_LIGHT; j++){
-                    passesName.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
+            {
+                std::pair<int, Rendering::ShadowMap> sm = Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMap(i);
+
+                int passesCount = 0;
+
+                switch((Rendering::LightType)sm.second.light.type){
+                    case Rendering::Directional:{
+                        passesCount = Rendering::CASCADES_PER_LIGHT;
+                    }
+                    case Rendering::Spot:{
+                        passesCount = 1;
+                    }
+                    case Rendering::Point:{
+                        passesCount = 1;
+                    }
                 }
+
+                for(int j = 0; j < passesCount; j++)
+                    passesName.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
             }
 
-            Core::GetEngine().GetRenderer()->AddCommands(cmds, passesName);
+            Core::GetEngine().GetRenderer()->AddOrUpdateCommands(cmds, passesName);
         }
     }
 
     void Model::RemoveFromDrawList()
     {
         if (materials.size() > 0 && mesh != nullptr && parent->level->IsLoaded()){
+            
             std::shared_ptr<Transform> tr = parent->transform;
-            std::vector<uint32_t> cmdsID;
+            std::vector<uint64_t> cmdsID;
             for(int i = 0; i < mesh->GetSubMeshes().size(); i++){
-                cmdsID.push_back(parent->GetComponentIDInLevel(local_id) + i);
+                cmdsID.push_back(
+                            ((uint64_t)(mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
+                            ((uint64_t)(parent->GetComponentIDInLevel(local_id) & 0xFFFFFFFF) << 16) |
+                            ((uint64_t)(i & 0xFFFF)));
             }
 
-            
             std::vector<std::string> passesName;
             passesName.push_back("ForwardPass");
+            passesName.push_back("EditorOutlineMaskPass");
 
             for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
-            {   
-                passesName.push_back("ShadowPass"+std::to_string(i));    
+            {
+                std::pair<int, Rendering::ShadowMap> sm = Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMap(i);
+
+                int passesCount = 0;
+
+                switch((Rendering::LightType)sm.second.light.type){
+                    case Rendering::Directional:{
+                        passesCount = Rendering::CASCADES_PER_LIGHT;
+                    }
+                    case Rendering::Spot:{
+                        passesCount = 1;
+                    }
+                    case Rendering::Point:{
+                        passesCount = 1;
+                    }
+                }
+
+                for(int j = 0; j < passesCount; j++)
+                    passesName.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
             }
 
             Core::GetEngine().GetRenderer()->RemoveCommands(cmdsID, passesName);

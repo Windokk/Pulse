@@ -99,6 +99,48 @@ inline FieldInfo Light_innerCutoff_info = {
     &Equals<float>
 };
 
+inline FieldInfo Light_constant_info = {
+    "constant",
+    TypeID::Float,
+    offsetof(Pulse::Engine::ECS::Components::Light, constant),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo Light_linear_info = {
+    "linear",
+    TypeID::Float,
+    offsetof(Pulse::Engine::ECS::Components::Light, linear),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo Light_quadratic_info = {
+    "quadratic",
+    TypeID::Float,
+    offsetof(Pulse::Engine::ECS::Components::Light, quadratic),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
 inline FieldInfo Light_castShadows_info = {
     "castShadows",
     TypeID::Bool,
@@ -122,6 +164,10 @@ inline ClassDescriptor Pulse::Engine::ECS::Components::Light::descriptor = {
         &Light_color_info,
         &Light_outerCutoff_info,
         &Light_innerCutoff_info,
+        &Light_constant_info,
+        &Light_linear_info,
+        &Light_quadratic_info,
         &Light_castShadows_info,
     }
 };
+

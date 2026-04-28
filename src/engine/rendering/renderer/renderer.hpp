@@ -29,11 +29,9 @@ namespace Pulse::Engine::Rendering {
         std::shared_ptr<Pipeline> customPipeline = nullptr;
         bool allowResize = true;
         bool allowCulling = true;
-        private:
-            std::vector<DrawCommand> drawList = {};
-            bool drawListDirty = false;
-            std::unordered_map<uint32_t, size_t> drawCommandsLookup;
-        friend class Renderer;
+        std::vector<DrawCommand> drawList = {};
+        bool drawListDirty = false;
+        std::unordered_map<uint32_t, size_t> drawCommandsLookup;
     };
 
 
@@ -52,8 +50,8 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<Pipeline> GetOrAdd(const PipelineSpecifications &specs);
             void Render();
             void Shutdown();
-            void AddCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes);
-            void RemoveCommands(const std::vector<uint32_t> commandsID, const std::vector<std::string>& passes);
+            void AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes);
+            void RemoveCommands(const std::vector<uint64_t> commandsID, const std::vector<std::string>& passes);
             void ForceDrawlistUpdate(const std::vector<std::string>& passes);
 
             void AddRenderPass(const std::shared_ptr<RenderPass> pass, const std::string& name, const std::vector<std::string>& dependencies);
@@ -82,6 +80,10 @@ namespace Pulse::Engine::Rendering {
             std::string GetDeviceVendor();
             std::string GetRendererName();
             std::string GetDriverVersion();
+            const uint32_t GetPassesCount() const { return m_RenderPasses.size(); }
+            const uint32_t GetDrawCallsCount() const { return m_DrawCallsCount; }
+            const uint32_t GetPrimitivesCount() const { return m_PrimitivesCount; }
+            const uint32_t GetVerticesCount() const { return m_VerticesCount; }
             
             RendererAPI* GetRendererAPI() const 
             {
@@ -94,10 +96,6 @@ namespace Pulse::Engine::Rendering {
             const std::shared_ptr<Mesh> GetUnitQuad() { return m_UnitQuad; }
             const std::shared_ptr<ShadowManager> GetShadowManager() { return m_ShadowManager; }
             const std::shared_ptr<LightManager> GetLightManager() { return m_LightManager; }
-
-
-            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependencies;
-            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependents;
 
         private:
 
@@ -118,6 +116,9 @@ namespace Pulse::Engine::Rendering {
             std::vector<std::string> m_ExecutionOrder;
             std::shared_ptr<RenderPass> m_CurrentPass;
             std::vector<std::string> m_PassInsertionOrder;
+            
+            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependencies;
+            std::unordered_map<std::string, std::vector<std::string>> m_RenderPassDependents;
 
             std::shared_ptr<Mesh> m_UnitCube = nullptr;
             std::shared_ptr<Mesh> m_UnitQuad = nullptr;
@@ -134,5 +135,10 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<RendererSettings> m_Settings;
 
             bool m_NeedExecutionOrderRebuild = false;
+
+            uint32_t m_DrawCallsCount = 0;
+            uint32_t m_PrimitivesCount = 0;
+            uint32_t m_VerticesCount = 0;
+            std::unordered_map<uint64_t, uint32_t> m_CommandRefCount;
     };
 }

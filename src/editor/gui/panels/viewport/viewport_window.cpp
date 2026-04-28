@@ -366,8 +366,8 @@ namespace Pulse::Editor::GUI {
 
         // Rendering stats
         ImGui::Text("Frame Time: %.2f ms (%.1f FPS)", stats.frameTimeMs, stats.fps);
-        ImGui::Text("Draw Commands: %d", stats.cmds);
-        ImGui::Text("Triangles: %d", stats.triangles);
+        ImGui::Text("Draw Calls: %d", stats.cmds);
+        ImGui::Text("Primitives: %d", stats.primitives);
         ImGui::Text("Vertices: %d", stats.vertices);
         ImGui::Text("GPU Memory: %.1f MB", stats.gpuMemoryMB);
 

@@ -20,6 +20,9 @@ namespace Pulse::Engine::ECS::Components{
         intensity = lightData->intensity;
         outerCutoff = glm::degrees(glm::acos(lightData->outerCutoff));
         innerCutoff = glm::degrees(glm::acos(lightData->innerCutoff));
+        constant = lightData->constant;
+        linear = lightData->linear;
+        quadratic = lightData->quadratic;
         color = lightData->color;
         castShadows = lightData->castShadow;
     }
@@ -139,12 +142,57 @@ namespace Pulse::Engine::ECS::Components{
 
     /// @brief Set the inner cuttof (Only for spot lights)
     /// @param cutoff The new cutoff, in degrees
-    void Light::SetInnerCuttof(float cutoff)
+    void Light::SetInnerCuttoff(float cutoff)
     {
         if(!activated)
             return;
 
         lightData->innerCutoff = glm::cos(glm::radians(cutoff));
+        
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
+    }
+
+    /// @brief Set the constant term of the attenuation equation (point and spot lights only)
+    /// @param constant
+    void Light::SetConstant(float constant)
+    {
+        if(!activated)
+            return;
+
+        lightData->constant = constant;
+        
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
+    }
+
+    /// @brief Set the linear term of the attenuation equation (point and spot lights only)
+    /// @param linear
+    void Light::SetLinear(float linear)
+    {
+        if(!activated)
+            return;
+
+        lightData->linear = linear;
+        
+        if(parent && parent->level && parent->level->IsLoaded())
+            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+
+        UpdateEditorValues();
+    }
+
+    /// @brief Set the quadratic term of the attenuation equation (point and spot lights only)
+    /// @param quadratic
+    void Light::SetQuadratic(float quadratic)
+    {
+        if(!activated)
+            return;
+
+        lightData->quadratic = quadratic;
         
         if(parent && parent->level && parent->level->IsLoaded())
             Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
@@ -201,9 +249,12 @@ namespace Pulse::Engine::ECS::Components{
         SetIntensity(componentData["intensity"]);
         SetRadius(componentData["radius"]);
         SetColor(COL_RGB(componentData["color"]["r"], componentData["color"]["g"], componentData["color"]["b"]));
-        SetInnerCuttof(componentData["innerCutoff"]);
+        SetInnerCuttoff(componentData["innerCutoff"]);
         SetOuterCutoff(componentData["outerCutoff"]);
         SetCastShadow(componentData["castShadow"]);
+        SetConstant(componentData["constant"]);
+        SetLinear(componentData["linear"]);
+        SetQuadratic(componentData["quadratic"]);
         
         if(componentData.contains("active") && componentData["active"].get<bool>())
             Activate();
@@ -241,6 +292,9 @@ namespace Pulse::Engine::ECS::Components{
         comp["color"]["b"] = lightData->color.b;
         comp["innerCutoff"] = lightData->innerCutoff;
         comp["outerCutoff"] = lightData->outerCutoff;
+        comp["constant"] = lightData->constant;
+        comp["linear"] = lightData->linear;
+        comp["quadratic"] = lightData->quadratic;
         comp["castShadow"] = lightData->castShadow;
 
         return comp;
@@ -287,11 +341,24 @@ namespace Pulse::Engine::ECS::Components{
         }
         if(event.field->name == "innerCutoff")
         {
-            SetInnerCuttof(innerCutoff);
+            SetInnerCuttoff(innerCutoff);
         }
         if(event.field->name == "castShadows")
         {
             SetCastShadow(castShadows);
         }
+        if(event.field->name == "constant")
+        {
+            SetConstant(constant);
+        }
+        if(event.field->name == "linear")
+        {
+            SetLinear(linear);
+        }
+        if(event.field->name == "quadratic")
+        {
+            SetQuadratic(quadratic);
+        }
     }
+
 }

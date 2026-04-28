@@ -15,6 +15,7 @@ namespace Pulse::Engine::Rendering {
     class Cubemap;
     class CubemapArray;
     class Framebuffer;
+    struct DrawCommand;
     
     static constexpr uint32_t CASCADES_PER_LIGHT = 3;
     static constexpr uint32_t NUM_CASCADES = (LightManager::MAX_DIRECTIONAL_LIGHTS * CASCADES_PER_LIGHT);
@@ -49,7 +50,7 @@ namespace Pulse::Engine::Rendering {
         /// @brief Register/Update a light for shadow mappings
         /// @param lightIndex The light's global index in the scene
         /// @param light The shared pointer to the light's data
-        void RegisterLight(int lightIndex, std::shared_ptr<LightData> light);
+        void RegisterOrUpdateLight(int lightIndex, std::shared_ptr<LightData> light);
 
         /// @brief Remove a light from shadow mappings
         /// @param lightIndex The light's global index in the scene
@@ -58,6 +59,10 @@ namespace Pulse::Engine::Rendering {
         /// @brief Bind the shadow maps to a material
         /// @param material The material to bind shadow maps to
         void BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material);
+
+        const ShadowMap& GetShadowMapFromLightIndex(int lightIndex) { return m_ShadowMaps[m_LightToSMIndex.at(lightIndex)].second; }
+
+        const std::pair<int, ShadowMap>& GetShadowMap(int shadowMapIndex) { return m_ShadowMaps[shadowMapIndex]; }
 
         void ClearAll();
 
@@ -73,19 +78,21 @@ namespace Pulse::Engine::Rendering {
         
     private:
 
-        void SubmitPasses(int lightIndex);
+        void SubmitPasses(int lightIndex, std::vector<DrawCommand> cachedDrawList);
         void EnsureCubeArrayCapacity(int requiredPointLights);
         void TryShrinkCubeArray();
 
-        std::unordered_map<int, ShadowMap> m_ShadowMaps;
+        std::vector<std::pair<int, ShadowMap>> m_ShadowMaps;
+        std::shared_ptr<CubemapArray> m_CubeArrayTex; 
+        std::unordered_map<int, size_t> m_LightToSMIndex;
         std::shared_ptr<Shader> m_DirShader;
         std::shared_ptr<Shader> m_SpotShader;
         std::shared_ptr<Shader> m_PointShader; 
         int m_PointShadowsResolution = 0;
         int m_SpotShadowsResolution = 0;
         int m_DirShadowsResolution = 0;
-        std::shared_ptr<CubemapArray> m_CubeArrayTex; 
         int m_PointLightCount = 0;
         int m_CurrentPointLightCapacity = 0;
+        std::unordered_map<int, int> m_PreviousLightTypes;
     };
 }

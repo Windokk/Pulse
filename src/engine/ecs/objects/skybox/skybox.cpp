@@ -61,6 +61,6 @@ namespace Pulse::Engine::ECS::Objects{
         cmd.vertexCount = unitCube->GetVertexCount();
         cmd.material = m_Material;
 
-        Core::GetEngine().GetRenderer()->AddCommands({cmd}, {"ForwardPass"});
+        Core::GetEngine().GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"});
     }
 }

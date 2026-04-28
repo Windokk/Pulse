@@ -46,7 +46,11 @@ namespace Pulse::Engine::Rendering{
         if(index == -1)
             return;
 
-        Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterLight(index, m_Lights[index]);
+        auto& light = m_Lights[index];
+        if (!light)
+            return;
+
+        Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterOrUpdateLight(index, light);
     }
 
     void LightManager::AddLight(int index, std::shared_ptr<LightData> data)
@@ -88,7 +92,7 @@ namespace Pulse::Engine::Rendering{
         {
             if (m_Lights[i] && m_Lights[i]->castShadow)
             {
-                shadowMan->RegisterLight(static_cast<int>(i), m_Lights[i]);
+                shadowMan->RegisterOrUpdateLight(static_cast<int>(i), m_Lights[i]);
             }
         }
     }

@@ -18,6 +18,10 @@ namespace Pulse::Engine::Rendering{
 
             void ResolveMultisampled() override;
 
+            void AttachCubemapArray(uint32_t texture) override;
+
+            void DetachCubemapArray() override;
+
             uint32_t GetHandle() const override;
 
             void Resize(uint32_t width, uint32_t height) override;

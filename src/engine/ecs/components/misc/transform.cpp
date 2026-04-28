@@ -12,6 +12,8 @@
 
 #include "transform.reflection.hpp"
 
+#include "glm/gtx/string_cast.hpp"
+
 namespace Pulse::Engine::ECS::Components{
 
 	bool Transform::IsDirty(DirtyFlags flag) const
@@ -290,13 +292,13 @@ namespace Pulse::Engine::ECS::Components{
 
     void Transform::OnFieldChanged(const FieldChangedEvent &event)
     {
-		if(event.field->name == "position"){
+		if(std::string(event.field->name) == "position"){
 			SetPosition(position);
 		}
-		else if(event.field->name == "rotation"){
+		else if(std::string(event.field->name) == "rotation"){
 			SetRotation(rotation);
 		}
-		else if(event.field->name == "scale"){
+		else if(std::string(event.field->name) == "scale"){
 			SetScale(scale);
 		}
     }

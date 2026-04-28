@@ -21,7 +21,7 @@ namespace Pulse::Engine::Debugging{
 
         ////// Draw list
         int cmds = 0;
-        int triangles = 0;
+        int primitives = 0;
         int vertices = 0;
 
         ////// Memory usage

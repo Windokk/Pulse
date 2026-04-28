@@ -18,14 +18,23 @@ namespace Pulse::Engine::ECS::Components
             void SetType(Rendering::LightType type);
             void SetIntensity(float intensity);
             void SetPosition(glm::vec3 postion);
-            void SetDirection(glm::vec3 direction);
-            void SetRadius(float radius);
-            void SetColor(glm::vec3 color);
-            void SetOuterCutoff(float cutoff);
-            void SetInnerCuttof(float cutoff);
             void SetLightIndex(int index);
             void SetCastShadow(bool castShadows);
+            void SetColor(glm::vec3 color);
 
+            // Directional / Spot light
+            void SetDirection(glm::vec3 direction);
+
+            // Spot light
+            void SetOuterCutoff(float cutoff);
+            void SetInnerCuttoff(float cutoff);
+
+            // Point light / Spot light
+            void SetConstant(float constant);
+            void SetLinear(float linear);
+            void SetQuadratic(float quadratic);
+            void SetRadius(float radius);
+            
             int GetLightIndex() { return lightIndex; }
 
             void Deserialize(json componentData) override;
@@ -59,6 +68,15 @@ namespace Pulse::Engine::ECS::Components
 
             FIELD(Editable)
             float innerCutoff;
+
+            FIELD(Editable)
+            float constant;
+
+            FIELD(Editable)
+            float linear;
+
+            FIELD(Editable)
+            float quadratic;
 
             FIELD(Editable)
             bool castShadows;

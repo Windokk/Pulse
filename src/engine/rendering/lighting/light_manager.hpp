@@ -23,6 +23,9 @@ namespace Pulse::Engine::Rendering {
         alignas(16) glm::vec3 color = COL_RGB(1.0f);
         alignas(4) float innerCutoff = glm::cos(glm::radians(1.5f));
         alignas(4) float outerCutoff = glm::cos(glm::radians(7.5f));
+        alignas(4) float constant = 1.0f;
+        alignas(4) float linear = 0.09f;
+        alignas(4) float quadratic = 0.032f;
         alignas(4) bool castShadow = true;
 
         /// @brief Getter for lights matrices
@@ -64,7 +67,6 @@ namespace Pulse::Engine::Rendering {
 
         private:
             std::vector<std::shared_ptr<LightData>> m_Lights;
-
             std::shared_ptr<StorageBuffer> m_SSBO;
     };
 }

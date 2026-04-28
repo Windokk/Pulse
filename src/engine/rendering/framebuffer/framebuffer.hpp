@@ -47,6 +47,10 @@ namespace Pulse::Engine::Rendering {
 
             virtual void Resize(uint32_t width, uint32_t height) = 0;
 
+            virtual void AttachCubemapArray(uint32_t texture) = 0;
+
+            virtual void DetachCubemapArray() = 0;
+
             virtual void CopyFrom(std::shared_ptr<Framebuffer> src) = 0;
 
             virtual uint32_t GetColorAttachment() const = 0;

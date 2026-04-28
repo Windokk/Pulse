@@ -113,7 +113,7 @@ namespace Pulse::Engine::Rendering{
         // Init lighting
         m_LightManager = std::make_shared<LightManager>();
         m_ShadowManager = std::make_shared<ShadowManager>();
-        m_ShadowManager->Init(512, 1024, 2048);
+        m_ShadowManager->Init(1024, 1024, 2048);
 
         //Init built-in passes
         /// Forward pass
@@ -259,7 +259,7 @@ namespace Pulse::Engine::Rendering{
         //TODO : Sorting based on sort key for each passes, if rebuild is neeeded
     }
 
-    void Renderer::AddCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes)
+    void Renderer::AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes)
     {
         for(const auto& passName : passes){
             auto pass = m_RenderPasses.find(passName);
@@ -277,6 +277,36 @@ namespace Pulse::Engine::Rendering{
                             ((uint64_t)(submeshID & 0xFFFF));
                         cmd.commandID = cmdID;
                         cmd.sortKey = GenerateSortKey(cmd, submeshID);
+
+                        auto& refCount = m_CommandRefCount[cmd.commandID];
+
+                        if (refCount == 0)
+                        {
+                            switch(cmd.material->GetPipeline()->GetSpecifications().topology){
+                                case PrimitiveTopology::Points:
+                                    m_PrimitivesCount += cmd.indexCount;
+                                    break;
+                                case PrimitiveTopology::Lines:
+                                    m_PrimitivesCount += cmd.indexCount / 2;
+                                    break;
+                                case PrimitiveTopology::LineStrip:
+                                    m_PrimitivesCount += (cmd.indexCount >= 2) ? cmd.indexCount - 1 : 0;
+                                    break;
+                                case PrimitiveTopology::TriangleFan:
+                                    m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                    break;
+                                case PrimitiveTopology::Triangles:
+                                    m_PrimitivesCount += cmd.indexCount / 3;
+                                    break;
+                                case PrimitiveTopology::TriangleStrip:
+                                    m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                    break;
+                            }
+
+                            m_VerticesCount += cmd.vertexCount;
+                        }
+
+                        refCount++;
                     }
 
                     auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
@@ -298,20 +328,21 @@ namespace Pulse::Engine::Rendering{
                 DEBUG_WARNING("Tried adding a draw command to a non-registered draw pass. Always register the pass before the draw commands ! passName : ", passName);
             }
         }
+        m_DrawCallsCount += commands.size() * passes.size();
     }
 
-    void Renderer::RemoveCommands(const std::vector<uint32_t> commandsID, const std::vector<std::string>& passes)
+    void Renderer::RemoveCommands(const std::vector<uint64_t> commandIDs, const std::vector<std::string>& passes)
     {
         for(auto passName : passes){
 
             auto pass = m_RenderPasses.find(passName);
 
             if(pass != m_RenderPasses.end()){
-                for(uint32_t id : commandsID)
+                for(uint64_t id : commandIDs)
                 {
                     auto it = pass->second->drawCommandsLookup.find(id);
                     if (it == pass->second->drawCommandsLookup.end())
-                        return;
+                        continue;
 
                     size_t index = it->second;
                     size_t lastIndex = pass->second->drawList.size() - 1;
@@ -322,15 +353,54 @@ namespace Pulse::Engine::Rendering{
                         pass->second->drawCommandsLookup[pass->second->drawList[index].commandID] = index;
                     }
 
+                    auto refIt = m_CommandRefCount.find(id);
+                    if (refIt != m_CommandRefCount.end())
+                    {
+                        refIt->second--;
+
+                        if (refIt->second == 0)
+                        {
+                            const DrawCommand& cmd = pass->second->drawList[lastIndex];
+
+                            switch(cmd.material->GetPipeline()->GetSpecifications().topology){
+                                case PrimitiveTopology::Points:
+                                    m_PrimitivesCount -= cmd.indexCount;
+                                    break;
+                                case PrimitiveTopology::Lines:
+                                    m_PrimitivesCount -= cmd.indexCount / 2;
+                                    break;
+                                case PrimitiveTopology::LineStrip:
+                                    m_PrimitivesCount -= (cmd.indexCount >= 2) ? cmd.indexCount - 1 : 0;
+                                    break;
+                                case PrimitiveTopology::TriangleFan:
+                                    m_PrimitivesCount -= (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                    break;
+                                case PrimitiveTopology::Triangles:
+                                    m_PrimitivesCount -= cmd.indexCount / 3;
+                                    break;
+                                case PrimitiveTopology::TriangleStrip:
+                                    m_PrimitivesCount -= (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                    break;
+                            }
+
+                            m_VerticesCount -= cmd.vertexCount;
+
+                            m_CommandRefCount.erase(refIt);
+                        }
+                    }
+
                     pass->second->drawList.pop_back();
                     pass->second->drawCommandsLookup.erase(it);
+
                 }
             }
             else{
-                DEBUG_WARNING("Tried removing a draw command to a non-registered draw pass. Always register the pass before removing the draw commands !");
+                DEBUG_WARNING("Tried removing a draw command to a non-registered draw pass. Always register the pass before removing the draw commands : passName : ", passName);
             }
 
         }
+    
+        m_DrawCallsCount = glm::max((uint32_t)0, (uint32_t)(m_DrawCallsCount - (commandIDs.size() * passes.size())));
     }
 
     void Renderer::ForceDrawlistUpdate(const std::vector<std::string>& passes)
@@ -480,6 +550,7 @@ namespace Pulse::Engine::Rendering{
     {
         m_CurrentPass = pass;
         pass->target->Bind();
+
         m_RendererAPI->SetViewport(0, 0, pass->target->GetWidth(), pass->target->GetHeight());
         ClearBit clearMask = ClearBit::None;
         if(pass->clearColor)

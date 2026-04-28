@@ -367,7 +367,7 @@ namespace Pulse::Editor::Core{
             cmd.fullscreenTri = true;
             cmd.material = outlineMaterial;
 
-            renderer->AddCommands({cmd}, {"EditorOutlinePass"});
+            renderer->AddOrUpdateCommands({cmd}, {"EditorOutlinePass"});
 
             for(auto model : Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->models)
                 model.second->Update();

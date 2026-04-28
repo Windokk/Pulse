@@ -12,7 +12,7 @@ namespace Pulse::Engine::Rendering{
     void GLFramebuffer::CheckFBStatus(){
 
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        if (status != GL_FRAMEBUFFER_COMPLETE) {
+        if (status != GL_FRAMEBUFFER_COMPLETE && (m_Specifications.hasColor || m_Specifications.hasDepth)) {
             std::string errorString;
 
             switch (status) {
@@ -247,6 +247,33 @@ namespace Pulse::Engine::Rendering{
             GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST
         );
         glBindFramebuffer(GL_FRAMEBUFFER, 0);    
+    }
+
+    void GLFramebuffer::AttachCubemapArray(uint32_t texture)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+
+        glFramebufferTexture(
+            GL_FRAMEBUFFER,
+            GL_DEPTH_ATTACHMENT,
+            texture,
+            0
+        );
+
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+    }
+
+    void GLFramebuffer::DetachCubemapArray()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, 0, 0);
+
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     uint32_t GLFramebuffer::GetHandle() const

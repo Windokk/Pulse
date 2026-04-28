@@ -124,7 +124,13 @@ namespace Pulse::Engine::Debugging{
         ret.fps = 1000 / ret.frameTimeMs;
 
         ret.actors = Core::GetEngine().GetLevelManager()->GetLevelAt(0)->transforms.size();
-        ret.lights = Core::GetEngine().GetRenderer()->GetLightManager()->GetLightsCount();
+
+        Rendering::Renderer* renderer = Core::GetEngine().GetRenderer();
+
+        ret.lights = renderer->GetLightManager()->GetLightsCount();
+        ret.cmds = renderer->GetDrawCallsCount();
+        ret.primitives = renderer->GetPrimitivesCount();
+        ret.vertices = renderer->GetVerticesCount();
 
         ret.sounds = Core::GetEngine().GetAudioManager()->GetSoundsCount();
 
@@ -144,7 +150,7 @@ namespace Pulse::Engine::Debugging{
 
         #elif defined(__unix__)
         {
-
+            /// @todo
         }
         #endif
 
