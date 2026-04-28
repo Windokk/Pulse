@@ -8,6 +8,12 @@
 #include <glm/glm.hpp>
 #include <type_traits>
 
+#include "engine/ecs/components/audio/audio_source.hpp"
+#include "engine/ecs/components/rendering/camera.hpp"
+#include "engine/ecs/components/rendering/model_component.hpp"
+#include "engine/ecs/components/rendering/light_component.hpp"
+#include "engine/ecs/components/physics/physics_body.hpp"
+
 using namespace Pulse::Engine::ECS::Objects;
 using namespace Pulse::Engine::ECS::Components;
 
@@ -258,6 +264,47 @@ namespace Pulse::Editor::GUI{
                 ImGui::PushID(i);
                 DrawComponent(actor->GetComponents()[i]);
                 ImGui::PopID();
+            }
+
+            ImGui::Separator();
+
+            ImGuiStyle& style = ImGui::GetStyle();
+
+            float size = ImGui::CalcTextSize("Add Component...").x + style.FramePadding.x * 2.0f;
+            float avail = ImGui::GetContentRegionAvail().x;
+
+            float off = (avail - size) * .5f;
+            if (off > 0.0f)
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + off);
+
+
+            if (ImGui::Button("Add Component...")) {
+                ImGui::OpenPopup("AddComponentPopup");
+            }
+
+            if (ImGui::BeginPopup("AddComponentPopup")) {
+
+                if (ImGui::MenuItem("Light")) {
+                    actor->AddComponent<Engine::ECS::Components::Light>();
+                }
+
+                if (ImGui::MenuItem("Camera")) {
+                    actor->AddComponent<Engine::ECS::Components::Camera>();
+                }
+
+                if (ImGui::MenuItem("Audio Source")) {
+                    actor->AddComponent<Engine::ECS::Components::AudioSource>();
+                }
+
+                if (ImGui::MenuItem("Physics Body")) {
+                    actor->AddComponent<Engine::ECS::Components::PhysicsBody>();
+                }
+
+                if (ImGui::MenuItem("Model")) {
+                    actor->AddComponent<Engine::ECS::Components::Model>();
+                }
+
+                ImGui::EndPopup();
             }
         }
 

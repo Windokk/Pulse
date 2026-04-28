@@ -131,7 +131,7 @@ namespace Pulse::Engine::ECS::Components
             InstancedStruct params;
 
             FIELD(Editable) 
-            Physics::PhysicsShape shapeType;
+            Physics::PhysicsShape shapeType = Physics::PhysicsShape::BOX;
             
             FIELD(Editable)
             EMotionType motionType = EMotionType::Static;
@@ -165,12 +165,3 @@ namespace Pulse::Engine::ECS::Components
 }
 
 using namespace Pulse::Engine;
-
-inline void ReadPhysicsShape(void* object, void* outValue) {
-    ECS::Components::PhysicsBody* comp = static_cast<ECS::Components::PhysicsBody*>(object);
-    *static_cast<int*>(outValue) = static_cast<int>(comp->GetShapeType());
-}
-
-inline void WritePhysicsShape(void* object, const void* value);
-
-inline void WriteShapeParams(void* object, const void* value);
