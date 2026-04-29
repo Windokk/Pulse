@@ -30,9 +30,6 @@ namespace Pulse::Engine::ECS::Components
             void SetInnerCuttoff(float cutoff);
 
             // Point light / Spot light
-            void SetConstant(float constant);
-            void SetLinear(float linear);
-            void SetQuadratic(float quadratic);
             void SetRadius(float radius);
             
             int GetLightIndex() { return lightIndex; }
@@ -68,15 +65,6 @@ namespace Pulse::Engine::ECS::Components
 
             FIELD(Editable)
             float innerCutoff;
-
-            FIELD(Editable)
-            float constant;
-
-            FIELD(Editable)
-            float linear;
-
-            FIELD(Editable)
-            float quadratic;
 
             FIELD(Editable)
             bool castShadows;

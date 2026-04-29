@@ -16,7 +16,7 @@ REM PulseReflect --clang C:/msys64/mingw64/lib/clang/21 --cpp C:/msys64/mingw64/
 cd ..
 
 REM Build the project
-cmake --build .
+cmake --build . -j 8
 IF %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed.
     exit /b %ERRORLEVEL%

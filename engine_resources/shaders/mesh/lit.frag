@@ -9,9 +9,6 @@ struct Light {
     vec3 color;
     float innerCutoff;
     float outerCutoff;
-    float constant;
-    float linear;
-    float quadratic;
     bool castShadow;
 };
 
@@ -46,7 +43,7 @@ uniform float shadow_cascadeSplits[NUM_CASCADES];
 
 uniform mat4 shadow_spotLightSpaceMatrices[10];
 
-uniform float shadow_pointLightFarPlanes[10];
+uniform float pointLightFarPlanes[10];
 
 layout(binding = 0) uniform sampler2D albedo;
 layout(binding = 1) uniform sampler2D metallicMap;
@@ -60,7 +57,7 @@ layout(binding = 6) uniform sampler2D ibl_brdfLUT;
 layout(binding = 10) uniform sampler2DShadow shadow_dirShadowMaps[NUM_CASCADES];
 layout(binding = 20) uniform sampler2DShadow shadow_spotShadowMaps[10];
 
-layout(binding = 30) uniform samplerCubeArrayShadow shadow_pointShadowMapArray;
+layout(binding = 30) uniform samplerCubeArray pointShadowMapArray;
 
 // PBR values
 const float PI = 3.141592653589793;
@@ -152,27 +149,42 @@ float ShadowCalculationSpot(sampler2DShadow shadowMap, vec3 lightDir, mat4 light
     return visibility / 25.0;
 }
 
-float ShadowCalculationPoint(int index, vec3 lightPos, vec3 fragPos, float farPlane, vec3 worldNormal) {
+float ShadowCalculationPoint(
+    int index,
+    vec3 lightPos,
+    vec3 fragPos,
+    float farPlane,
+    vec3 worldNormal)
+{
     vec3 fragToLight = fragPos - lightPos;
-    float currentDepth = length(fragToLight) / farPlane;  // Normalize depth to [0..1]
+    float currentDepth = length(fragToLight);
+
+    float bias = 0.15; // comme shader de référence
 
     float shadow = 0.0;
-    float bias = max(0.002 * (1.0 - dot(normalize(fragToLight), normalize(worldNormal))), 0.0002);
+    int samples = 20;
 
-    // Calculate viewDistance for adaptive radius
     float viewDistance = length(camPos - fragPos);
-    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
+    float diskRadius = (1.0 + viewDistance / farPlane) / 25.0;
 
-    for (int i = 0; i < 8; ++i) {
-        vec3 sampleOffset = normalize(fragToLight + gridSamplingDisk[i] * diskRadius);
+    for (int i = 0; i < samples; ++i)
+    {
+        vec3 sampleVec = fragToLight + gridSamplingDisk[i] * diskRadius;
 
-        // The vec4: xyz = direction vector (normalized), w = layer index
-        float visibility = texture(shadow_pointShadowMapArray, vec4(sampleOffset, float(index)), currentDepth - bias);
+        float closestDepth = texture(
+            pointShadowMapArray,
+            vec4(sampleVec, float(index))
+        ).r;
 
-        shadow += visibility;
+        closestDepth *= farPlane;
+
+        if (currentDepth - bias > closestDepth)
+            shadow += 1.0;
     }
 
-    return shadow / 20.0;
+    shadow /= float(samples);
+
+    return 1.0 - shadow;
 }
 
 ///////// Lighting /////////
@@ -292,10 +304,13 @@ void main() {
 
             L = normalize(toLight);
 
-            attenuation = 1.0 / (l.constant + l.linear * dist + l.quadratic * dist * dist);
+            attenuation = 1.0 / (dist * dist);
+
+            float falloff = clamp(1.0 - dist / l.radius, 0.0, 1.0);
+            attenuation *= falloff * falloff;
 
             if (l.castShadow){
-                visibility = ShadowCalculationPoint(pointIdx, l.position, worldPos, shadow_pointLightFarPlanes[pointIdx], worldNormal);
+                visibility = ShadowCalculationPoint(pointIdx, l.position, worldPos, pointLightFarPlanes[pointIdx], worldNormal);
             }                
             pointIdx++;
         }
@@ -304,18 +319,23 @@ void main() {
 
             float dist = length(toFrag);
             
-            if (dist > l.radius)
-                continue;
-
             L = normalize(l.position - worldPos);
             
-            float theta = dot(L, normalize(-l.direction)); 
-            float epsilon = (l.innerCutoff - l.outerCutoff);
-            float intensity = clamp((theta - l.outerCutoff) / epsilon, 0.0, 1.0);
-            attenuation = 1.0 / (l.constant + l.linear * dist + 
-                            l.quadratic * (dist * dist));
-                            
-            attenuation *= intensity;
+            // distance attenuation
+            attenuation = 1.0 / (dist * dist);
+
+            float falloff = clamp(1.0 - dist / l.radius, 0.0, 1.0);
+            attenuation *= falloff * falloff;
+
+            // cone attenuation
+            vec3 Ld = normalize(l.position - worldPos);
+            float cosTheta = dot(Ld, normalize(-l.direction));
+
+            float epsilon = l.innerCutoff - l.outerCutoff;
+            float spotIntensity = clamp((cosTheta - l.outerCutoff) / epsilon, 0.0, 1.0);
+
+            attenuation *= spotIntensity;
+
 
             if (l.castShadow) {
                 visibility = ShadowCalculationSpot(shadow_spotShadowMaps[spotIdx], l.direction, shadow_spotLightSpaceMatrices[spotIdx], worldNormal);
