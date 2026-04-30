@@ -48,7 +48,7 @@ namespace Pulse::Engine::ECS::Objects{
         specs.topology = Rendering::PrimitiveTopology::Triangles;
         specs.debugName = "SkyboxPipeline";
 
-        std::shared_ptr<Rendering::Pipeline> pipeline = Core::GetEngine().GetRenderer()->GetOrAdd(specs);
+        std::shared_ptr<Rendering::Pipeline> pipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(specs);
         m_Material->SetPipeline(pipeline);
         m_Material->SetTextureParameter("gCubemapTexture", m_EnvMap->GetCubemap()->GetHandle());
 
@@ -61,6 +61,6 @@ namespace Pulse::Engine::ECS::Objects{
         cmd.vertexCount = unitCube->GetVertexCount();
         cmd.material = m_Material;
 
-        Core::GetEngine().GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"});
+        Core::GetEngine().GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
     }
 }

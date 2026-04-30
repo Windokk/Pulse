@@ -124,7 +124,7 @@ namespace Pulse::Engine::Rendering{
 
     /// @brief Getter for lights matrices
     /// @return The view-projection matrix from the light's point of view
-    glm::mat4 LightData::GetLightMatrix(const glm::mat4& cameraView, const float fov, const float aspectRatio, const float cascadeNear, const float cascadeFar, const float shadowRes)
+    glm::mat4 LightData::GetLightMatrix(const glm::mat4& cameraView, const float fov, const float aspectRatio, const float cascadeNear, const float cascadeFar, const float shadowRes, const float outerCutoff)
     {
         if (type == static_cast<int>(LightType::Directional) && cascadeFar != -1 && fov != -1 && aspectRatio != -1 && cascadeFar != -1)
         {
@@ -189,7 +189,11 @@ namespace Pulse::Engine::Rendering{
         else if (type == static_cast<int>(LightType::Spot))
         {
             float orthoSize = 10.0f;
-            glm::mat4 proj = glm::perspective(glm::radians(60.0f), static_cast<float>(Core::GetEngine().GetWindow()->GetFramebufferWidth()/Core::GetEngine().GetWindow()->GetFramebufferHeight()), 0.1f, radius);
+            float fov = glm::degrees(acos(outerCutoff)) * 2.0f;
+            fov = glm::clamp(fov, 1.0f, 179.0f);
+            float aspect = static_cast<float>(Core::GetEngine().GetWindow()->GetFramebufferWidth()) /
+               static_cast<float>(Core::GetEngine().GetWindow()->GetFramebufferHeight());
+            glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, 0.1f, radius);
 
             glm::vec3 lightDir = glm::normalize(direction);
             glm::vec3 lightPos = position;

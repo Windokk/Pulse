@@ -32,7 +32,7 @@ namespace Pulse::Engine::Rendering {
             s.wrapT = TextureWrap::ClampEdge;
             return s;
         }();
-        };
+    };
 
     class Framebuffer
     {

@@ -37,7 +37,7 @@ namespace Pulse::Engine::ECS{
                 /// @brief Deactivates this component
                 virtual void DeActivate() { activated = false; }
 
-                virtual void Deserialize(json componentData) {};
+                virtual void Deserialize(const json componentData) {};
                 virtual ordered_json Serialize() { ordered_json dummy; return dummy; };
 
                 template<typename T>

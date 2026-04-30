@@ -36,12 +36,35 @@ namespace Pulse::Engine::ECS::Components{
         this->scale = glm::vec3(1,1,1);
     }
 
-    void Transform::Deserialize(json componentData)
+    void Transform::Deserialize(const json componentData)
     {
-		SetPosition(glm::vec3(componentData["position"]["x"], componentData["position"]["y"], componentData["position"]["z"]));
-        SetRotation(glm::vec3(componentData["rotation"]["x"], componentData["rotation"]["y"], componentData["rotation"]["z"]));
-        SetScale(glm::vec3(componentData["scale"]["x"], componentData["scale"]["y"], componentData["scale"]["z"]));
-    }
+		auto safeGetVec3 = [&](const char* key) -> glm::vec3
+		{
+			glm::vec3 result(0.0f);
+
+			if (!componentData.contains(key) || !componentData[key].is_object())
+				return result;
+
+			const auto& obj = componentData[key];
+
+			auto getFloat = [&](const char* axis) -> float
+			{
+				if (obj.contains(axis) && obj[axis].is_number())
+					return obj[axis].get<float>();
+				return 0.0f;
+			};
+
+			return glm::vec3(
+				getFloat("x"),
+				getFloat("y"),
+				getFloat("z")
+			);
+		};
+
+		SetPosition(safeGetVec3("position"));
+		SetRotation(safeGetVec3("rotation"));
+		SetScale(safeGetVec3("scale"));
+	}
 
     ordered_json Transform::Serialize()
     {

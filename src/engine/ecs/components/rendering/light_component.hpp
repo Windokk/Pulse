@@ -20,7 +20,7 @@ namespace Pulse::Engine::ECS::Components
             void SetPosition(glm::vec3 postion);
             void SetLightIndex(int index);
             void SetCastShadow(bool castShadows);
-            void SetColor(glm::vec3 color);
+            void SetColor(COL_RGB color);
 
             // Directional / Spot light
             void SetDirection(glm::vec3 direction);
@@ -34,7 +34,7 @@ namespace Pulse::Engine::ECS::Components
             
             int GetLightIndex() { return lightIndex; }
 
-            void Deserialize(json componentData) override;
+            void Deserialize(const json componentData) override;
 
             ordered_json Serialize() override;
             
@@ -46,7 +46,7 @@ namespace Pulse::Engine::ECS::Components
 
             void OnFieldChanged(const FieldChangedEvent &event) override;
 
-            void UpdateEditorValues();
+            void UpdateExposedValues();
 
             FIELD(Editable)
             Rendering::LightType type;
@@ -60,10 +60,10 @@ namespace Pulse::Engine::ECS::Components
             FIELD(Editable)
             COL_RGB color;
 
-            FIELD(Editable)
+            FIELD(Editable, range=0.0f|90.0f)
             float outerCutoff;
 
-            FIELD(Editable)
+            FIELD(Editable, range=0.0f|90.0f)
             float innerCutoff;
 
             FIELD(Editable)

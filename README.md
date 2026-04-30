@@ -12,7 +12,7 @@
   Yet another game engine<br>
 </p>
 
-## ScreenShot
+## Screenshots
 
 <img src=".github/ScreenShot0.png"/>
 <img src=".github/ScreenShot1.png"/>
@@ -34,11 +34,22 @@
 
 ## How to build :
 
-Build jolt inside its submodule folder, place the fonts inside their folder
+Place the fonts (.ttf) inside their folder (editor_resources/fonts/)
 
 Run build.bat or build.sh (depending on your OS)
 
-This will compile everything from root : submodules, the engine, the editor app, the editor module, and the game module (loaded with the game app)
+This will compile everything from root : submodules, the engine, the editor, and the game module (loaded with the game app)
+
+Drop fmod.dll and glfw3.dll inside the build folder
+
+Drop engine_resources folder and editor_resources folder inside build directory
+
+## How to run :
+
+This runs the editor, loads the game module, opens the project at "project path" and uses open gl core as the rendering api
+```bash
+./PulseEditor.exe --game libGameModule.dll --project ..\\test_project\\test_project.json --api opengl
+```
 
 ## Credits/Dependencies
 

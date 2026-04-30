@@ -19,46 +19,110 @@ namespace Pulse::Engine::ECS::Components{
     {
     }
 
-    void Model::Deserialize(json componentData)
+    void Model::Deserialize(const json componentData)
     {
         if (!parent)
             return;
 
-        if (componentData.contains("mesh") && componentData["mesh"].is_string()) {
-            const std::string& mesh_path = componentData["mesh"];
-            SetMesh(mesh_path);
+        auto getBool = [&](const char* key, bool fallback = false) -> bool
+        {
+            if (!componentData.contains(key) || !componentData[key].is_boolean())
+                return fallback;
+            return componentData[key].get<bool>();
+        };
+
+        auto getString = [&](const char* key) -> std::optional<std::string>
+        {
+            if (!componentData.contains(key) || !componentData[key].is_string())
+                return std::nullopt;
+            return componentData[key].get<std::string>();
+        };
+
+        // ---------------- MESH ----------------
+        if (auto mesh = getString("mesh"))
+        {
+            SetMesh(*mesh);
         }
 
-        // Load materials directly from componentData
-        const auto& localMaterials = componentData["materials"];
-        int maxSlot = -1;
-        for (auto it = localMaterials.begin(); it != localMaterials.end(); ++it) {
-            int slot = std::stoi(it.key());
-            if (slot > maxSlot) maxSlot = slot;
+        // ---------------- MATERIALS ----------------
+        std::vector<std::shared_ptr<Rendering::Material>> materials;
+
+        if (!componentData.contains("materials") || !componentData["materials"].is_object())
+        {
+            DEBUG_ERROR("Model missing or invalid 'materials' block");
         }
+        else
+        {
+            const auto& localMaterials = componentData["materials"];
 
-        std::vector<std::shared_ptr<Rendering::Material>> materials(maxSlot + 1, nullptr);
+            int maxSlot = -1;
+            std::vector<std::pair<int, std::string>> parsed;
 
-        for (auto it = localMaterials.begin(); it != localMaterials.end(); ++it) {
-            int slot = std::stoi(it.key());
-            const std::string& materialPath = it.value();
+            // First pass: validate + collect safely
+            for (auto it = localMaterials.begin(); it != localMaterials.end(); ++it)
+            {
+                int slot = 0;
 
-            auto material = Core::GetEngine().GetResourcesManager()->GetMaterial(materialPath);
-            if (!material) {
-                DEBUG_ERROR("Failed to load material at path: " + materialPath + ". Using fallback.");
-                material = Core::GetEngine().GetResourcesManager()->GetMaterial("materials/default.mat");
-
-                if (!material) {
-                    DEBUG_ERROR("Failed to load fallback material: materials/default.mat");
+                try
+                {
+                    slot = std::stoi(it.key());
                 }
+                catch (...)
+                {
+                    DEBUG_ERROR("Invalid material slot key (not integer): " + it.key());
+                    continue;
+                }
+
+                if (slot < 0)
+                {
+                    DEBUG_ERROR("Negative material slot ignored: " + it.key());
+                    continue;
+                }
+
+                if (!it.value().is_string())
+                {
+                    DEBUG_ERROR("Material path is not a string at slot: " + it.key());
+                    continue;
+                }
+
+                std::string path = it.value().get<std::string>();
+
+                parsed.emplace_back(slot, std::move(path));
+                if (slot > maxSlot)
+                    maxSlot = slot;
             }
 
-            materials[slot] = material;
+            if (maxSlot >= 0)
+                materials.resize(maxSlot + 1, nullptr);
+
+            // Second pass: load materials
+            for (auto& [slot, path] : parsed)
+            {
+                auto material =
+                    Core::GetEngine().GetResourcesManager()->GetMaterial(path);
+
+                if (!material)
+                {
+                    DEBUG_ERROR("Failed to load material: " + path + ", using fallback");
+
+                    material =
+                        Core::GetEngine().GetResourcesManager()->GetMaterial("materials/default.mat");
+
+                    if (!material)
+                    {
+                        DEBUG_ERROR("Critical: fallback material missing (materials/default.mat)");
+                        continue;
+                    }
+                }
+
+                materials[slot] = material;
+            }
         }
 
         SetMaterials(std::move(materials));
 
-        if (componentData.contains("active") && componentData["active"].get<bool>())
+        // ---------------- ACTIVE ----------------
+        if (getBool("active", false))
             Activate();
         else
             DeActivate();
@@ -87,10 +151,16 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
         
-        this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(meshPath);
-        this->Update();
-        UpdateReferenceInLevel();
-        this->meshID = mesh->GetAssetID();
+        std::shared_ptr<Rendering::Mesh> newMesh = Core::GetEngine().GetResourcesManager()->GetMesh(meshPath);
+
+        if(newMesh){
+            this->mesh = newMesh;
+            UpdateReferenceInLevel();
+            this->meshID = mesh->GetAssetID();
+        }
+        else{
+            DEBUG_ERROR("Specified mesh path doesn't exist in project");
+        }
     }
 
     void Model::SetMesh(Filesystem::AssetID meshID)
@@ -153,29 +223,7 @@ namespace Pulse::Engine::ECS::Components{
             passesName.push_back("ForwardPass");
             passesName.push_back("EditorOutlineMaskPass");
 
-            for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
-            {
-                std::pair<int, Rendering::ShadowMap> sm = Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMap(i);
-
-                int passesCount = 0;
-
-                switch((Rendering::LightType)sm.second.light.type){
-                    case Rendering::Directional:{
-                        passesCount = Rendering::CASCADES_PER_LIGHT;
-                    }
-                    case Rendering::Spot:{
-                        passesCount = 1;
-                    }
-                    case Rendering::Point:{
-                        passesCount = 1;
-                    }
-                }
-
-                for(int j = 0; j < passesCount; j++)
-                    passesName.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
-            }
-
-            Core::GetEngine().GetRenderer()->AddOrUpdateCommands(cmds, passesName);
+            Core::GetEngine().GetRenderer()->AddOrUpdateCommands(cmds, passesName, true);
         }
     }
 
@@ -196,29 +244,7 @@ namespace Pulse::Engine::ECS::Components{
             passesName.push_back("ForwardPass");
             passesName.push_back("EditorOutlineMaskPass");
 
-            for(int i = 0; i < Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMapsCount(); i++)
-            {
-                std::pair<int, Rendering::ShadowMap> sm = Core::GetEngine().GetRenderer()->GetShadowManager()->GetShadowMap(i);
-
-                int passesCount = 0;
-
-                switch((Rendering::LightType)sm.second.light.type){
-                    case Rendering::Directional:{
-                        passesCount = Rendering::CASCADES_PER_LIGHT;
-                    }
-                    case Rendering::Spot:{
-                        passesCount = 1;
-                    }
-                    case Rendering::Point:{
-                        passesCount = 1;
-                    }
-                }
-
-                for(int j = 0; j < passesCount; j++)
-                    passesName.push_back("ShadowPass_" + std::to_string(i) + "_" + std::to_string(j));
-            }
-
-            Core::GetEngine().GetRenderer()->RemoveCommands(cmdsID, passesName);
+            Core::GetEngine().GetRenderer()->RemoveCommands(cmdsID, passesName, true);
         }
     }
 

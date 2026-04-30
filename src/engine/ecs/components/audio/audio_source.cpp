@@ -26,16 +26,39 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
-    void AudioSource::Deserialize(json componentData)
+    void AudioSource::Deserialize(const json componentData)
     {
-        float volume = componentData["volume"];
-        std::string path = componentData["path"];
+        auto getFloat = [&](const char* key, float defaultValue = 0.0f) -> float
+        {
+            if (!componentData.contains(key) || !componentData[key].is_number())
+                return defaultValue;
+            return componentData[key].get<float>();
+        };
 
-        SetPath(Filesystem::Path(path, false));
+        auto getString = [&](const char* key, const std::string& defaultValue = "") -> std::optional<std::string>
+        {
+            if (!componentData.contains(key) || !componentData[key].is_string())
+                return std::nullopt;
+            return componentData[key].get<std::string>();
+        };
 
+        auto volume = getFloat("volume", 1.0f);
+
+        auto pathOpt = getString("path");
+        if (!pathOpt)
+        {
+            DEBUG_ERROR("AudioSource missing or invalid 'path'");
+            return;
+        }
+
+        SetPath(Filesystem::Path(*pathOpt, false));
         SetVolume(volume);
 
-        if(componentData.contains("active") && componentData["active"].get<bool>())
+        bool active = false;
+        if (componentData.contains("active") && componentData["active"].is_boolean())
+            active = componentData["active"].get<bool>();
+
+        if (active)
             Activate();
         else
             DeActivate();

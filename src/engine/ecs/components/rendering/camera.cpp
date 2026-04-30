@@ -113,14 +113,49 @@ namespace Pulse::Engine::ECS::Components {
         return glm::vec3(world);
     }
 
-    void Camera::Deserialize(json componentData)
+    void Camera::Deserialize(const json componentData)
     {
-        int width = Core::GetEngine().GetWindow()->GetFramebufferWidth();
+        auto getFloat = [&](const char* key, std::optional<float> fallback = std::nullopt) -> std::optional<float>
+        {
+            if (!componentData.contains(key) || !componentData[key].is_number())
+                return fallback;
+            return componentData[key].get<float>();
+        };
+
+        auto getBool = [&](const char* key, bool fallback = false) -> bool
+        {
+            if (!componentData.contains(key) || !componentData[key].is_boolean())
+                return fallback;
+            return componentData[key].get<bool>();
+        };
+
+        int width  = Core::GetEngine().GetWindow()->GetFramebufferWidth();
         int height = Core::GetEngine().GetWindow()->GetFramebufferHeight();
 
-        Init(width, height, componentData["near"], componentData["far"], componentData["fov"], componentData["orthographic"], componentData["orthoSize"]);
-        
-        if(componentData.contains("active") && componentData["active"].get<bool>())
+        // Required fields validation
+        auto nearOpt = getFloat("near");
+        auto farOpt  = getFloat("far");
+        auto fovOpt  = getFloat("fov");
+
+        if (!nearOpt || !farOpt || !fovOpt)
+        {
+            DEBUG_ERROR("Camera missing required projection parameters");
+            return;
+        }
+
+        // Optional fields (safe defaults)
+        bool isOrtho = getBool("orthographic", false);
+
+        float orthoSize = 1.0f;
+        if (componentData.contains("orthoSize") && componentData["orthoSize"].is_number())
+            orthoSize = componentData["orthoSize"].get<float>();
+
+        Init(width, height, *nearOpt, *farOpt, *fovOpt, isOrtho, orthoSize);
+
+        // Active state
+        bool active = getBool("active", false);
+
+        if (active)
             Activate();
         else
             DeActivate();

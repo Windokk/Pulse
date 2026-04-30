@@ -47,7 +47,7 @@ namespace Pulse::Engine::ECS::Components
         public:
             Transform(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
 
-            void Deserialize(json componentData) override;
+            void Deserialize(const json componentData) override;
 
             ordered_json Serialize() override;
 

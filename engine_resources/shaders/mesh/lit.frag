@@ -1,15 +1,18 @@
 #version 430 core
 
 struct Light {
-    int type;
+    vec4 position;
+    vec4 direction;
+    vec4 color;
+
     float intensity;
-    vec3 position;
-    vec3 direction;
     float radius;
-    vec3 color;
     float innerCutoff;
     float outerCutoff;
-    bool castShadow;
+
+    int type;
+    int castShadow;
+    vec2 padding;
 };
 
 layout(std430, binding = 0) buffer LightBuffer {
@@ -41,7 +44,7 @@ uniform bool masked;
 uniform mat4 shadow_dirLightSpaceMatrices[NUM_CASCADES];
 uniform float shadow_cascadeSplits[NUM_CASCADES];
 
-uniform mat4 shadow_spotLightSpaceMatrices[10];
+uniform mat4 spotLightSpaceMatrices[10];
 
 uniform float pointLightFarPlanes[10];
 
@@ -55,7 +58,7 @@ layout(binding = 5) uniform samplerCube ibl_prefilteredEnvMap;
 layout(binding = 6) uniform sampler2D ibl_brdfLUT;
 
 layout(binding = 10) uniform sampler2DShadow shadow_dirShadowMaps[NUM_CASCADES];
-layout(binding = 20) uniform sampler2DShadow shadow_spotShadowMaps[10];
+layout(binding = 20) uniform sampler2D spotShadowMaps[10];
 
 layout(binding = 30) uniform samplerCubeArray pointShadowMapArray;
 
@@ -65,14 +68,13 @@ uniform float metallic;
 uniform float roughness;
 uniform float ambientIntensity;
 
-vec3 gridSamplingDisk[20] = vec3[](
-    vec3( 0.5381,  0.1856, -0.4319),vec3( 0.1379,  0.2486,  0.4430),
-    vec3( 0.3371,  0.5679, -0.0057),vec3(-0.6999, -0.0451, -0.0019),vec3( 0.0689, -0.1598, -0.8547),
-    vec3( 0.0560,  0.0069, -0.1843),vec3(-0.0146,  0.1402,  0.0762),vec3( 0.0100, -0.1924, -0.0344),
-    vec3(-0.3577, -0.5301, -0.4358),vec3(-0.3169,  0.1063,  0.0158),vec3( 0.0103, -0.5869,  0.0046),
-    vec3(-0.0897, -0.4940,  0.3287),vec3( 0.7119, -0.0154, -0.0918),vec3(-0.0533,  0.0596, -0.5411),
-    vec3( 0.0352, -0.0631,  0.5460),vec3(-0.4776,  0.2847, -0.0271),vec3(-0.0887, -0.0289, -0.3282),
-    vec3( 0.2937, -0.2371,  0.2579),vec3( 0.3513,  0.0589, -0.2810),vec3(-0.1042, -0.1470,  0.1180)
+vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
 uniform bool useEnvReflections;
@@ -125,7 +127,7 @@ float ShadowCalculationDir(sampler2DShadow shadowMap,mat4 lightSpaceMatrix,vec3 
     return visibility / 25.0;
 }
 
-float ShadowCalculationSpot(sampler2DShadow shadowMap, vec3 lightDir, mat4 lightSpaceMatrix, vec3 worldNormal) {
+float ShadowCalculationSpot(sampler2D shadowMap, vec3 lightDir, mat4 lightSpaceMatrix, vec3 worldNormal) {
     vec4 fragPosLightSpace = lightSpaceMatrix * vec4(worldPos, 1.0);
 
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -142,46 +144,34 @@ float ShadowCalculationSpot(sampler2DShadow shadowMap, vec3 lightDir, mat4 light
     for (int x = -2; x <= 2; ++x) {
         for (int y = -2; y <= 2; ++y) {
             vec2 offset = vec2(x, y) * texelSize;
-            visibility += texture(shadowMap, vec3(projCoords.xy + offset, projCoords.z - bias));
+
+            float closestDepth = texture(shadowMap, projCoords.xy + offset).r;
+            float currentDepth = projCoords.z - bias;
+
+            visibility += currentDepth < closestDepth ? 1.0 : 0.0;
         }
     }
 
     return visibility / 25.0;
 }
 
-float ShadowCalculationPoint(
-    int index,
-    vec3 lightPos,
-    vec3 fragPos,
-    float farPlane,
-    vec3 worldNormal)
+float ShadowCalculationPoint(int index,vec3 lightPos,vec3 fragPos,float farPlane,vec3 worldNormal)
 {
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
 
-    float bias = 0.15; // comme shader de référence
-
     float shadow = 0.0;
-    int samples = 20;
-
+    float bias   = 0.15;
+    int samples  = 20;
     float viewDistance = length(camPos - fragPos);
-    float diskRadius = (1.0 + viewDistance / farPlane) / 25.0;
-
-    for (int i = 0; i < samples; ++i)
+    float diskRadius = 0.05;
+    for(int i = 0; i < samples; ++i)
     {
-        vec3 sampleVec = fragToLight + gridSamplingDisk[i] * diskRadius;
-
-        float closestDepth = texture(
-            pointShadowMapArray,
-            vec4(sampleVec, float(index))
-        ).r;
-
-        closestDepth *= farPlane;
-
-        if (currentDepth - bias > closestDepth)
+        float closestDepth = texture(pointShadowMapArray, vec4(fragToLight + sampleOffsetDirections[i] * diskRadius, index)).r;
+        closestDepth *= farPlane;   // undo mapping [0;1]
+        if(currentDepth - bias > closestDepth)
             shadow += 1.0;
     }
-
     shadow /= float(samples);
 
     return 1.0 - shadow;
@@ -206,7 +196,7 @@ vec3 IBL_Specular(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness){
     vec2 brdf = texture(ibl_brdfLUT, vec2(NdotV, roughness)).rg;
 
     // Sample prefiltered env map using roughness mip level
-    const float MAX_REFLECTION_LOD = 5.0;   // depends on your cube map mip count
+    const float MAX_REFLECTION_LOD = 5.0;
     vec3 prefilteredColor = textureLod(ibl_prefilteredEnvMap, R, roughness * MAX_REFLECTION_LOD).rgb;
 
     // Fresnel-Schlick for IBL  
@@ -256,7 +246,7 @@ vec3 ComputeLightDisney(Light light, vec3 L, vec3 V, vec3 N, vec3 baseColor, flo
     vec3 diffuse = kD * baseColor / 3.14159265359;
 
     // Combine with light color, intensity, NdotL, shadow, attenuation
-    vec3 Lo = (diffuse + specular) * NdotL * light.color * light.intensity * visibility * attenuation;
+    vec3 Lo = (diffuse + specular) * NdotL * light.color.xyz * light.intensity * visibility * attenuation;
 
     return Lo;
 }
@@ -289,16 +279,16 @@ void main() {
         vec3 L = vec3(0.0);
 
         if (l.type == 0) { // Directional
-            L = -normalize(l.direction);
-            if (l.castShadow) {
+            L = -normalize(l.direction.xyz);
+            if (l.castShadow == 1) {
                 int cascadeIdx = selectCascade(dirIdx);
                 visibility = ShadowCalculationDir(shadow_dirShadowMaps[cascadeIdx], shadow_dirLightSpaceMatrices[cascadeIdx], L, worldPos, worldNormal);
-            }                
+            }
             
             dirIdx++;
         }
         else if (l.type == 1) { // Point
-            vec3 toLight = l.position - worldPos;
+            vec3 toLight = l.position.xyz - worldPos;
             
             float dist = length(toLight);
 
@@ -309,17 +299,17 @@ void main() {
             float falloff = clamp(1.0 - dist / l.radius, 0.0, 1.0);
             attenuation *= falloff * falloff;
 
-            if (l.castShadow){
-                visibility = ShadowCalculationPoint(pointIdx, l.position, worldPos, pointLightFarPlanes[pointIdx], worldNormal);
-            }                
+            if (l.castShadow == 1){
+                visibility = ShadowCalculationPoint(pointIdx, l.position.xyz, worldPos, pointLightFarPlanes[pointIdx], worldNormal);
+            }
             pointIdx++;
         }
         else if (l.type == 2) { // Spot
-            vec3 toFrag = worldPos - l.position;
+            vec3 toFrag = worldPos - l.position.xyz;
 
             float dist = length(toFrag);
             
-            L = normalize(l.position - worldPos);
+            L = normalize(l.position.xyz - worldPos);
             
             // distance attenuation
             attenuation = 1.0 / (dist * dist);
@@ -328,17 +318,16 @@ void main() {
             attenuation *= falloff * falloff;
 
             // cone attenuation
-            vec3 Ld = normalize(l.position - worldPos);
-            float cosTheta = dot(Ld, normalize(-l.direction));
+            vec3 Ld = normalize(l.position.xyz - worldPos);
+            float cosTheta = dot(Ld, normalize(-l.direction.xyz));
 
             float epsilon = l.innerCutoff - l.outerCutoff;
             float spotIntensity = clamp((cosTheta - l.outerCutoff) / epsilon, 0.0, 1.0);
 
             attenuation *= spotIntensity;
 
-
-            if (l.castShadow) {
-                visibility = ShadowCalculationSpot(shadow_spotShadowMaps[spotIdx], l.direction, shadow_spotLightSpaceMatrices[spotIdx], worldNormal);
+            if (l.castShadow == 1) {
+                visibility = ShadowCalculationSpot(spotShadowMaps[spotIdx], l.direction.xyz, spotLightSpaceMatrices[spotIdx], worldNormal);
             }
                 
             spotIdx++;

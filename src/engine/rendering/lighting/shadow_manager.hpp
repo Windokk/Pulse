@@ -2,6 +2,8 @@
 
 #include "light_manager.hpp"
 
+#include <engine/debugging/logger.hpp>
+
 namespace Pulse::Engine::ECS::Components{
     class Camera;
 }
@@ -60,9 +62,22 @@ namespace Pulse::Engine::Rendering {
         /// @param material The material to bind shadow maps to
         void BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material);
 
-        const ShadowMap& GetShadowMapFromLightIndex(int lightIndex) { return m_ShadowMaps[m_LightToSMIndex.at(lightIndex)].second; }
+        std::vector<std::string> GetAllShadowPasses() {
+            std::vector<std::string> passes;
+            for(const auto& sm : m_ShadowMaps){
+                passes.insert(passes.end(), sm.second.passes.begin(), sm.second.passes.end());
+            }
+            return passes;
+        }
 
-        const std::pair<int, ShadowMap>& GetShadowMap(int shadowMapIndex) { return m_ShadowMaps[shadowMapIndex]; }
+        const ShadowMap* GetShadowMapFromLightIndex(int lightIndex) const {
+            auto it = m_ShadowMaps.find(lightIndex);
+            if (it != m_ShadowMaps.end())
+                return &it->second;
+
+            DEBUG_ERROR("Couldn't find shadow map for light : %d", lightIndex);
+            return nullptr;
+        }
 
         void ClearAll();
 
@@ -78,13 +93,12 @@ namespace Pulse::Engine::Rendering {
         
     private:
 
-        void SubmitPasses(int lightIndex, std::vector<DrawCommand> cachedDrawList);
+        void SubmitPasses(int lightIndex);
         void EnsureCubeArrayCapacity(int requiredPointLights);
         void TryShrinkCubeArray();
 
-        std::vector<std::pair<int, ShadowMap>> m_ShadowMaps;
-        std::shared_ptr<CubemapArray> m_CubeArrayTex; 
-        std::unordered_map<int, size_t> m_LightToSMIndex;
+        std::unordered_map<int, ShadowMap> m_ShadowMaps;
+        std::shared_ptr<CubemapArray> m_CubeArrayTex;
         std::shared_ptr<Shader> m_DirShader;
         std::shared_ptr<Shader> m_SpotShader;
         std::shared_ptr<Shader> m_PointShader; 

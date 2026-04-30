@@ -96,7 +96,6 @@ int main(int argc, char* argv[]) {
 
     //Module loader init
     auto& loader = Pulse::Editor::ModuleLoader::GetInstance();
-    const std::string mainModuleName = "editor";
     const std::string gameModuleName = "game";
 
     //Game module loading

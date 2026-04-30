@@ -113,7 +113,7 @@ namespace Pulse::Engine::Levels{
                     specs.topology = Rendering::PrimitiveTopology::Triangles;
                     specs.debugName = "SkyboxPipeline";
 
-                    std::shared_ptr<Rendering::Pipeline> skyboxPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(specs);
+                    std::shared_ptr<Rendering::Pipeline> skyboxPipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(specs);
 
                     std::shared_ptr<Rendering::Material> skyboxMat = Rendering::Material::Create(shader, skyboxPipeline, false, Rendering::Opacity::Opaque);
 

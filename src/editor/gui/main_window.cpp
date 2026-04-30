@@ -310,7 +310,7 @@ namespace Pulse::Editor::Core{
             Rendering::PipelineSpecifications outlineMaskPipelineSpecs;
             outlineMaskPipelineSpecs.shader = outlineMaskShader;
             outlineMaskPipelineSpecs.debugName = "OutlineMaskPipeline";
-            std::shared_ptr<Rendering::Pipeline> outlineMaskPipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAdd(outlineMaskPipelineSpecs);
+            std::shared_ptr<Rendering::Pipeline> outlineMaskPipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAddPipeline(outlineMaskPipelineSpecs);
 
             std::shared_ptr<Rendering::Material> outlineMaskMaterial = Rendering::Material::Create(outlineMaskShader, outlineMaskPipeline, false, Rendering::Opacity::Opaque);
 
@@ -346,7 +346,7 @@ namespace Pulse::Editor::Core{
             outlinePipelineSpecs.shader = outlineShader;
             outlinePipelineSpecs.debugName = "FullscreenOutlinePipeline";
             outlinePipelineSpecs.vertexLayout = {};
-            std::shared_ptr<Rendering::Pipeline> outlinePipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAdd(outlinePipelineSpecs);
+            std::shared_ptr<Rendering::Pipeline> outlinePipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAddPipeline(outlinePipelineSpecs);
              
             std::shared_ptr<Rendering::Material> outlineMaterial = Rendering::Material::Create(outlineShader, outlinePipeline, false, Rendering::Opacity::Opaque);
             
@@ -367,7 +367,7 @@ namespace Pulse::Editor::Core{
             cmd.fullscreenTri = true;
             cmd.material = outlineMaterial;
 
-            renderer->AddOrUpdateCommands({cmd}, {"EditorOutlinePass"});
+            renderer->AddOrUpdateCommands({cmd}, {"EditorOutlinePass"}, false);
 
             for(auto model : Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->models)
                 model.second->Update();

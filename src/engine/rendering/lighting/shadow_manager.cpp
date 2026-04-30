@@ -18,6 +18,8 @@
 
 #include "engine/rendering/renderer/renderer.hpp"
 
+#include "glm/gtx/string_cast.hpp"
+
 namespace Pulse::Engine::Rendering{
 
     float ComputeCascadeSplitDistance(int cascadeIndex, float nearPlane, float farPlane, int totalCascades)
@@ -53,6 +55,10 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
         for(auto& sm : m_ShadowMaps){
+
+            if(sm.second.passes.empty())
+                continue;
+
             if(sm.second.light.type == static_cast<int>(LightType::Directional))
             {
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
@@ -65,6 +71,11 @@ namespace Pulse::Engine::Rendering{
 
                     pass->customUniforms["lightSpaceMatrix"] = sm.second.lightMatrix[c];
                 }
+            }
+            else if(sm.second.light.type == static_cast<int>(LightType::Spot)){
+                auto pass = Core::GetEngine().GetRenderer()->GetRenderPass(sm.second.passes[0]);
+                sm.second.lightMatrix[0] = sm.second.light.GetLightMatrix(cam->GetView(), -1, -1, -1, -1, -1, sm.second.light.outerCutoff);
+                pass->customUniforms["lightSpaceMatrix"] = sm.second.lightMatrix[0];
             }
             else if(sm.second.light.type == static_cast<int>(LightType::Point)){
                 float near = 0.1f;
@@ -90,9 +101,9 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    void ShadowManager::SubmitPasses(int lightIndex, std::vector<DrawCommand> cachedDrawList)
+    void ShadowManager::SubmitPasses(int lightIndex)
     {
-        if (m_LightToSMIndex.find(lightIndex) == m_LightToSMIndex.end()){
+        if (m_ShadowMaps.find(lightIndex) == m_ShadowMaps.end()){
             DEBUG_ERROR("Tried submitting shadow passes for a light, but this light was never registered.");
             return;
         }
@@ -101,20 +112,20 @@ namespace Pulse::Engine::Rendering{
 
         std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
-        ShadowMap* sm = &m_ShadowMaps[m_LightToSMIndex.at(lightIndex)].second;
+        ShadowMap* sm = &m_ShadowMaps[lightIndex];
         LightData light = sm->light;
 
         if (light.type == static_cast<int>(LightType::Point))
         {
             PipelineSpecifications pointSpecs;
             pointSpecs.blending = false;
-            pointSpecs.cullMode = CullMode::None;
+            pointSpecs.cullMode = CullMode::Back;
             pointSpecs.depthTest = true;
             pointSpecs.polygonMode = PolygonMode::Fill;
             pointSpecs.topology = PrimitiveTopology::Triangles;
             pointSpecs.shader = m_PointShader;
             pointSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
-            std::shared_ptr<Pipeline> pointShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(pointSpecs);
+            std::shared_ptr<Pipeline> pointShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(pointSpecs);
             
             std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
             pass->target = sm->framebuffer[0];
@@ -150,7 +161,7 @@ namespace Pulse::Engine::Rendering{
             spotSpecs.topology = PrimitiveTopology::Triangles;
             spotSpecs.shader = m_SpotShader;
             spotSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
-            std::shared_ptr<Pipeline> spotShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(spotSpecs);
+            std::shared_ptr<Pipeline> spotShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(spotSpecs);
 
             std::shared_ptr<RenderPass> pass = std::make_shared<RenderPass>();
             pass->target = sm->framebuffer[0];
@@ -163,7 +174,7 @@ namespace Pulse::Engine::Rendering{
             pass->allowCulling = false;
             
             std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_0";
-            
+            sm->passes.push_back(passName);
             passes.push_back(pass);
         }
         else if(light.type == static_cast<int>(LightType::Directional))
@@ -177,7 +188,7 @@ namespace Pulse::Engine::Rendering{
             dirSpecs.shader = m_DirShader;
             dirSpecs.vertexLayout = {{{"aPos", ShaderDataType::Vec3, 0}}, sizeof(glm::vec3)};
 
-            std::shared_ptr<Pipeline> dirShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAdd(dirSpecs);
+            std::shared_ptr<Pipeline> dirShadowPassPipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(dirSpecs);
 
             for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 sm->cascadeSplits[c] = ComputeCascadeSplitDistance(c, cam->nearPlane, cam->farPlane, CASCADES_PER_LIGHT);
@@ -210,8 +221,7 @@ namespace Pulse::Engine::Rendering{
         for(int i = 0; i < passes.size(); i++){
             std::string passName = "ShadowPass_" + std::to_string(lightIndex) + "_" + std::to_string(i);
 
-            if(!cachedDrawList.empty())
-                passes[i]->drawList = cachedDrawList;
+            passes[i]->externalDrawList = Core::GetEngine().GetRenderer()->GetShadowDrawList();
 
             Core::GetEngine().GetRenderer()->AddRenderPass(passes[i], passName, {});
             
@@ -236,7 +246,7 @@ namespace Pulse::Engine::Rendering{
         TextureSpecifications texSpecs;
 
         texSpecs.internalFormat = TextureInternalFormat::Depth32F;
-        texSpecs.compareMode = TextureCompareMode::CompareRefToTexture;
+        texSpecs.compareMode = TextureCompareMode::None;
         texSpecs.compareFunc = TextureCompareFunc::Less;
         texSpecs.width = m_PointShadowsResolution;
         texSpecs.height = m_PointShadowsResolution;
@@ -258,24 +268,14 @@ namespace Pulse::Engine::Rendering{
     {
         // Early exit: no shadow
         if (!light->castShadow) {
-            if (m_LightToSMIndex.find(lightIndex) != m_LightToSMIndex.end())
+            if (m_ShadowMaps.find(lightIndex) != m_ShadowMaps.end())
                 UnregisterLight(lightIndex);
             return;
         }
 
         // Ensure ShadowMap exists
-        ShadowMap* smPtr = nullptr;
-
-        auto it = m_LightToSMIndex.find(lightIndex);
-        if (it != m_LightToSMIndex.end()) {
-            smPtr = &m_ShadowMaps[it->second].second;
-        } else {
-            m_LightToSMIndex.emplace(lightIndex, m_ShadowMaps.size());
-            m_ShadowMaps.emplace_back(lightIndex, ShadowMap{});
-            smPtr = &m_ShadowMaps.back().second;
-        }
-
-        ShadowMap& sm = *smPtr;
+        auto [it, inserted] = m_ShadowMaps.try_emplace(lightIndex);
+        ShadowMap& sm = it->second;
 
         // Type tracking
         int currentType  = light->type;
@@ -285,16 +285,12 @@ namespace Pulse::Engine::Rendering{
         sm.light = *light;
 
         bool needsRebuild = (previousType != currentType);
-        std::vector<DrawCommand> cachedDrawList;
 
         // Rebuilding of shadow maps (only if type changed)
         if (needsRebuild)
         {
             // Cleanup of old passes
             if (!sm.passes.empty()) {
-                cachedDrawList = Core::GetEngine()
-                    .GetRenderer()
-                    ->GetRenderPass(sm.passes[0])->drawList;
 
                 for (const auto& passName : sm.passes)
                     Core::GetEngine().GetRenderer()->RemoveRenderPass(passName);
@@ -353,12 +349,12 @@ namespace Pulse::Engine::Rendering{
                     glm::mat4 proj = glm::perspective(glm::radians(90.0f), 1.0f, near, far);
                     glm::vec3 pos  = light->position;
 
-                    sm.shadowMatrices[0] = proj * glm::lookAt(pos, pos + glm::vec3( 1, 0, 0), glm::vec3(0,-1, 0));
-                    sm.shadowMatrices[1] = proj * glm::lookAt(pos, pos + glm::vec3(-1, 0, 0), glm::vec3(0,-1, 0));
-                    sm.shadowMatrices[2] = proj * glm::lookAt(pos, pos + glm::vec3( 0, 1, 0), glm::vec3(0, 0, 1));
-                    sm.shadowMatrices[3] = proj * glm::lookAt(pos, pos + glm::vec3( 0,-1, 0), glm::vec3(0, 0,-1));
-                    sm.shadowMatrices[4] = proj * glm::lookAt(pos, pos + glm::vec3( 0, 0, 1), glm::vec3(0,-1, 0));
-                    sm.shadowMatrices[5] = proj * glm::lookAt(pos, pos + glm::vec3( 0, 0,-1), glm::vec3(0,-1, 0));
+                    sm.shadowMatrices[0] = proj * glm::lookAt(pos, pos + glm::vec3( 1,  0,  0), glm::vec3(0,  -1,  0)); // +X
+                    sm.shadowMatrices[1] = proj * glm::lookAt(pos, pos + glm::vec3(-1,  0,  0), glm::vec3(0,  -1,  0)); // -X
+                    sm.shadowMatrices[2] = proj * glm::lookAt(pos, pos + glm::vec3( 0,  1,  0), glm::vec3(0,  0,  1)); // +Y
+                    sm.shadowMatrices[3] = proj * glm::lookAt(pos, pos + glm::vec3( 0, -1,  0), glm::vec3(0,  0, -1)); // -Y
+                    sm.shadowMatrices[4] = proj * glm::lookAt(pos, pos + glm::vec3( 0,  0,  1), glm::vec3(0,  -1,  0)); // +Z
+                    sm.shadowMatrices[5] = proj * glm::lookAt(pos, pos + glm::vec3( 0,  0, -1), glm::vec3(0,  -1,  0)); // -Z
 
                     FramebufferSpecifications specs{};
                     specs.width  = m_PointShadowsResolution;
@@ -400,7 +396,7 @@ namespace Pulse::Engine::Rendering{
                     specs.hasDepth = true;
 
                     sm.framebuffer[0] = Framebuffer::Create(specs);
-                    sm.lightMatrix[0] = light->GetLightMatrix();
+                    sm.lightMatrix[0] = light->GetLightMatrix(glm::mat4(1.0f), -1, -1, -1, -1, -1, sm.light.outerCutoff);
                     break;
                 }
             }
@@ -410,7 +406,7 @@ namespace Pulse::Engine::Rendering{
 
         // If we did rebuilt gpu resources, re-submit passes
         if (needsRebuild)
-            SubmitPasses(lightIndex, cachedDrawList);
+            SubmitPasses(lightIndex);
     }
 
     void ShadowManager::TryShrinkCubeArray()
@@ -439,7 +435,7 @@ namespace Pulse::Engine::Rendering{
 
         texSpecs.internalFormat = TextureInternalFormat::Depth32F;
         texSpecs.format = TextureFormat::Depth;
-        texSpecs.compareMode = TextureCompareMode::CompareRefToTexture;
+        texSpecs.compareMode = TextureCompareMode::None;
         texSpecs.compareFunc = TextureCompareFunc::Less;
         texSpecs.width = m_PointShadowsResolution;
         texSpecs.height = m_PointShadowsResolution;
@@ -458,12 +454,12 @@ namespace Pulse::Engine::Rendering{
 
     void ShadowManager::UnregisterLight(int lightIndex)
     {
-        if (m_LightToSMIndex.find(lightIndex) == m_LightToSMIndex.end()){
+        if (m_ShadowMaps.find(lightIndex) == m_ShadowMaps.end()){
             DEBUG_ERROR("Tried unregistering a light from shadow mappings, but this light was never registered.");
             return;
         }
 
-        ShadowMap& removedSM = m_ShadowMaps[m_LightToSMIndex.at(lightIndex)].second;
+        ShadowMap& removedSM = m_ShadowMaps[lightIndex];
 
         // ---- Clean up Directional Light Resources (multiple cascades) ----
         if (removedSM.light.type == static_cast<int>(LightType::Directional)) {
@@ -505,8 +501,8 @@ namespace Pulse::Engine::Rendering{
         }
 
         // ---- Remove from list ----
-        m_ShadowMaps.erase(m_ShadowMaps.begin() + m_LightToSMIndex.at(lightIndex));
-        m_LightToSMIndex.erase(lightIndex);
+        m_ShadowMaps.erase(lightIndex);
+        m_PreviousLightTypes.erase(lightIndex);
     }
 
     void ShadowManager::BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material)
@@ -556,12 +552,12 @@ namespace Pulse::Engine::Rendering{
 
                 // Set sampler uniform
                 material->SetTextureParameter(
-                    "shadow_spotShadowMaps[" + std::to_string(spotIndex) + "]",
+                    "spotShadowMaps[" + std::to_string(spotIndex) + "]",
                     sm.second.framebuffer[0]->GetDepthAttachment()
                 );
 
                 material->SetScalarParameter(
-                    "shadow_spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]",
+                    "spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]",
                     sm.second.lightMatrix[0]
                 );
 

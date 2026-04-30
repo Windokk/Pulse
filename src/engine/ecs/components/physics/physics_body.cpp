@@ -319,134 +319,159 @@ namespace Pulse::Engine::ECS::Components{
         }
     }
 
-    void PhysicsBody::Deserialize(json componentData)
+    void PhysicsBody::Deserialize(const json componentData)
     {
+        auto getString = [&](const char* key) -> std::optional<std::string>
+        {
+            if (!componentData.contains(key) || !componentData[key].is_string())
+                return std::nullopt;
+            return componentData[key].get<std::string>();
+        };
+
+        auto getBool = [&](const char* key, bool defaultValue = false) -> bool
+        {
+            if (!componentData.contains(key) || !componentData[key].is_boolean())
+                return defaultValue;
+            return componentData[key].get<bool>();
+        };
+
+        const auto& parentName = parent ? parent->GetName() : "UNKNOWN";
+
+        // ---------------- SHAPE ----------------
+        auto shapeStr = getString("shape");
+        if (!shapeStr)
+        {
+            DEBUG_ERROR("Missing physics shape for actor: " + (std::string)parentName);
+            return;
+        }
+
         Physics::PhysicsShape shape;
 
-        if(componentData.contains("shape")){
-            if(componentData["shape"] == "box"){
-                shape = Physics::PhysicsShape::BOX;
-            }
-            else if(componentData["shape"] == "sphere"){
-                shape = Physics::PhysicsShape::SPHERE;
-            }
-            else if(componentData["shape"] == "capsule"){
-                shape = Physics::PhysicsShape::CAPSULE;
-            }
-            else if(componentData["shape"] == "cylinder"){
-                shape = Physics::PhysicsShape::CYLINDER;
-            }
-            else{
-                DEBUG_ERROR("Physics shape not recognized : " + (std::string)componentData["shape"]);
-                return;
-            }
-        }
-        else{
-            DEBUG_ERROR("Physics shape type not specified for physics body on actor : " + (std::string)parent->GetName());
+        if (*shapeStr == "box") shape = Physics::PhysicsShape::BOX;
+        else if (*shapeStr == "sphere") shape = Physics::PhysicsShape::SPHERE;
+        else if (*shapeStr == "capsule") shape = Physics::PhysicsShape::CAPSULE;
+        else if (*shapeStr == "cylinder") shape = Physics::PhysicsShape::CYLINDER;
+        else
+        {
+            DEBUG_ERROR("Unknown physics shape: " + *shapeStr);
             return;
         }
-        
-        JPH::EMotionType motion;
-        if(componentData.contains("motion_type")){
-            if(componentData["motion_type"] == "dynamic"){
-                motion = JPH::EMotionType::Dynamic;
-            }
-            else if(componentData["motion_type"] == "kinematic"){
-                motion = JPH::EMotionType::Kinematic;
-            }
-            else if(componentData["motion_type"] == "static"){
-                motion = JPH::EMotionType::Static;
-            }
-            else{
-                DEBUG_ERROR("Physics motion type not recognized : " + (std::string)componentData["motion_type"]);
-                return;
-            }
-        }
-        else{
-            DEBUG_ERROR("Physics motion type not specified for physics body on actor : " + (std::string)parent->GetName());
-            return;
-        }
-        
 
+        // ---------------- MOTION ----------------
+        auto motionStr = getString("motion_type");
+        if (!motionStr)
+        {
+            DEBUG_ERROR("Missing motion type for actor: " + (std::string)parentName);
+            return;
+        }
+
+        JPH::EMotionType motion;
+
+        if (*motionStr == "dynamic") motion = JPH::EMotionType::Dynamic;
+        else if (*motionStr == "kinematic") motion = JPH::EMotionType::Kinematic;
+        else if (*motionStr == "static") motion = JPH::EMotionType::Static;
+        else
+        {
+            DEBUG_ERROR("Unknown motion type: " + *motionStr);
+            return;
+        }
+
+        // ---------------- PARAMS ----------------
+        if (!componentData.contains("params") || !componentData["params"].is_object())
+        {
+            DEBUG_ERROR("Missing physics params for actor: " + (std::string)parentName);
+            return;
+        }
+
+        const auto& p = componentData["params"];
         InstancedStruct params;
 
-        if (componentData.contains("params")) {
-            switch (shape) {
-                case Physics::PhysicsShape::BOX: {
-                    if (componentData["params"].contains("x") && componentData["params"]["x"].is_number_float() &&
-                        componentData["params"].contains("y") && componentData["params"]["y"].is_number_float() &&
-                        componentData["params"].contains("z") && componentData["params"]["z"].is_number_float()) {
+        auto requireFloat = [&](const char* key, std::optional<float>& out) -> bool
+        {
+            if (!p.contains(key) || !p[key].is_number())
+                return false;
+            out = p[key].get<float>();
+            return true;
+        };
 
-                        params.Initialize(&BoxParams_descriptor);
-                        auto& vec = *reinterpret_cast<glm::vec3*>(params.data);
-                        vec.x = componentData["params"]["x"].get<float>();
-                        vec.y = componentData["params"]["y"].get<float>();
-                        vec.z = componentData["params"]["z"].get<float>();
-                    } else {
-                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
-                        return;
-                    }
-                    break;
-                }
-
-                case Physics::PhysicsShape::SPHERE: {
-                    if (componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float()) {
-                        params.Initialize(&SphereParams_descriptor);
-                        *reinterpret_cast<float*>(params.data) = componentData["params"]["radius"].get<float>();
-                    } else {
-                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
-                        return;
-                    }
-                    break;
-                }
-
-                case Physics::PhysicsShape::CAPSULE: {
-                    if (componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() &&
-                        componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float()) {
-
-                        params.Initialize(&CapsuleParams_descriptor);
-                        auto* dataPtr = reinterpret_cast<CapsuleParams*>(params.data);
-                        dataPtr->radius = componentData["params"]["radius"].get<float>();
-                        dataPtr->halfHeight = componentData["params"]["halfHeight"].get<float>();
-                    } else {
-                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
-                        return;
-                    }
-                    break;
-                }
-
-                case Physics::PhysicsShape::CYLINDER: {
-                    if (componentData["params"].contains("radius") && componentData["params"]["radius"].is_number_float() &&
-                        componentData["params"].contains("halfHeight") && componentData["params"]["halfHeight"].is_number_float()) {
-
-                        params.Initialize(&CylinderParams_descriptor);
-                        auto* dataPtr = reinterpret_cast<CylinderParams*>(params.data);
-                        dataPtr->radius = componentData["params"]["radius"].get<float>();
-                        dataPtr->halfHeight = componentData["params"]["halfHeight"].get<float>();
-                    } else {
-                        DEBUG_ERROR("Physics shape params are not valid for physics body on actor : " + (std::string)parent->GetName());
-                        return;
-                    }
-                    break;
-                }
-
-                default:
-                    DEBUG_ERROR("Unknown physics shape for actor: " + (std::string)parent->GetName());
+        switch (shape)
+        {
+            case Physics::PhysicsShape::BOX:
+            {
+                std::optional<float> x, y, z;
+                if (!requireFloat("x", x) || !requireFloat("y", y) || !requireFloat("z", z))
+                {
+                    DEBUG_ERROR("Invalid BOX params for actor: " + (std::string)parentName);
                     return;
+                }
+
+                params.Initialize(&BoxParams_descriptor);
+                auto& vec = *reinterpret_cast<glm::vec3*>(params.data);
+                vec = glm::vec3(*x, *y, *z);
+                break;
             }
-        } else {
-            DEBUG_ERROR("Physics shape parameters not specified for physics body on actor : " + (std::string)parent->GetName());
-            return;
+
+            case Physics::PhysicsShape::SPHERE:
+            {
+                std::optional<float> radius;
+                if (!requireFloat("radius", radius))
+                {
+                    DEBUG_ERROR("Invalid SPHERE params for actor: " + (std::string)parentName);
+                    return;
+                }
+
+                params.Initialize(&SphereParams_descriptor);
+                *reinterpret_cast<float*>(params.data) = *radius;
+                break;
+            }
+
+            case Physics::PhysicsShape::CAPSULE:
+            {
+                std::optional<float> radius, halfHeight;
+                if (!requireFloat("radius", radius) || !requireFloat("halfHeight", halfHeight))
+                {
+                    DEBUG_ERROR("Invalid CAPSULE params for actor: " + (std::string)parentName);
+                    return;
+                }
+
+                params.Initialize(&CapsuleParams_descriptor);
+                auto* dataPtr = reinterpret_cast<CapsuleParams*>(params.data);
+                dataPtr->radius = *radius;
+                dataPtr->halfHeight = *halfHeight;
+                break;
+            }
+
+            case Physics::PhysicsShape::CYLINDER:
+            {
+                std::optional<float> radius, halfHeight;
+                if (!requireFloat("radius", radius) || !requireFloat("halfHeight", halfHeight))
+                {
+                    DEBUG_ERROR("Invalid CYLINDER params for actor: " + (std::string)parentName);
+                    return;
+                }
+
+                params.Initialize(&CylinderParams_descriptor);
+                auto* dataPtr = reinterpret_cast<CylinderParams*>(params.data);
+                dataPtr->radius = *radius;
+                dataPtr->halfHeight = *halfHeight;
+                break;
+            }
+
+            default:
+                DEBUG_ERROR("Unhandled physics shape for actor: " + (std::string)parentName);
+                return;
         }
 
-        // Now pass InstancedStruct to CreateBody
+        // ---------------- CREATE BODY ----------------
         CreateBody(shape, params, motion);
 
-
-        if(componentData.contains("active") && componentData["active"].get<bool>())
-            Activate();
-        else
-            DeActivate();
+        // ---------------- ACTIVE STATE ----------------
+        Activate();
+        if (componentData.contains("active") && componentData["active"].is_boolean())
+        {
+            if (!componentData["active"].get<bool>())
+                DeActivate();
+        }
     }
 
     ordered_json PhysicsBody::Serialize()

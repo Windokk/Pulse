@@ -242,7 +242,7 @@ namespace Pulse::Engine::Rendering{
         return key;
     }
 
-    std::shared_ptr<Pipeline> Renderer::GetOrAdd(const PipelineSpecifications& specs)
+    std::shared_ptr<Pipeline> Renderer::GetOrAddPipeline(const PipelineSpecifications& specs)
     {
         auto [it, inserted] = m_Pipelines.try_emplace(specs, nullptr);
 
@@ -259,7 +259,7 @@ namespace Pulse::Engine::Rendering{
         //TODO : Sorting based on sort key for each passes, if rebuild is neeeded
     }
 
-    void Renderer::AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes)
+    void Renderer::AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes, bool addToShadowDrawList)
     {
         for(const auto& passName : passes){
             auto pass = m_RenderPasses.find(passName);
@@ -307,31 +307,61 @@ namespace Pulse::Engine::Rendering{
                         }
 
                         refCount++;
-                    }
+                    
+                        auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
 
-                    auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
-
-                    if (it != pass->second->drawCommandsLookup.end())
-                    {
-                        pass->second->drawList[it->second] = cmd;
-                    }
-                    else
-                    {
-                        pass->second->drawCommandsLookup[cmd.commandID] = pass->second->drawList.size();
-                        pass->second->drawList.push_back(cmd);
+                        if (it != pass->second->drawCommandsLookup.end())
+                        {
+                            pass->second->drawList[it->second] = cmd;
+                        }
+                        else
+                        {
+                            pass->second->drawCommandsLookup[cmd.commandID] = pass->second->drawList.size();
+                            pass->second->drawList.push_back(cmd);
+                        }
                     }
                 }
 
-                pass->second->drawListDirty = true;
             }
             else{
                 DEBUG_WARNING("Tried adding a draw command to a non-registered draw pass. Always register the pass before the draw commands ! passName : ", passName);
             }
         }
         m_DrawCallsCount += commands.size() * passes.size();
+
+        if(addToShadowDrawList)
+        {
+            for(int submeshID = 0; submeshID < commands.size(); submeshID++)
+            {
+                auto cmd = commands[submeshID];
+                
+                if(!cmd.fullscreenTri)
+                {
+                    uint64_t cmdID =
+                        ((uint64_t)(cmd.mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
+                        ((uint64_t)(cmd.modelID & 0xFFFFFFFF) << 16) |
+                        ((uint64_t)(submeshID & 0xFFFF));
+                    cmd.commandID = cmdID;
+                    cmd.sortKey = GenerateSortKey(cmd, submeshID);
+                
+
+                    auto it = shadowDrawCommandsLookup.find(cmd.commandID);
+
+                    if (it != shadowDrawCommandsLookup.end())
+                    {
+                        shadowDrawList[it->second] = cmd;
+                    }
+                    else
+                    {
+                        shadowDrawCommandsLookup[cmd.commandID] = shadowDrawList.size();
+                        shadowDrawList.push_back(cmd);
+                    }
+                }
+            }
+        }
     }
 
-    void Renderer::RemoveCommands(const std::vector<uint64_t> commandIDs, const std::vector<std::string>& passes)
+    void Renderer::RemoveCommands(const std::vector<uint64_t> commandIDs, const std::vector<std::string>& passes, bool removeFromShadowDrawList)
     {
         for(auto passName : passes){
 
@@ -401,15 +431,27 @@ namespace Pulse::Engine::Rendering{
         }
     
         m_DrawCallsCount = glm::max((uint32_t)0, (uint32_t)(m_DrawCallsCount - (commandIDs.size() * passes.size())));
-    }
 
-    void Renderer::ForceDrawlistUpdate(const std::vector<std::string>& passes)
-    {
-        for(auto passName : passes){
-            auto it = m_RenderPasses.find(passName);
-            if(it != m_RenderPasses.end()){
-                it->second->drawListDirty = true;
-            }
+        if(removeFromShadowDrawList)
+        {
+            for(uint64_t id : commandIDs)
+                {
+                    auto it = shadowDrawCommandsLookup.find(id);
+                    if (it == shadowDrawCommandsLookup.end())
+                        continue;
+
+                    size_t index = it->second;
+                    size_t lastIndex = shadowDrawList.size() - 1;
+
+                    if (index != lastIndex)
+                    {
+                        shadowDrawList[index] = shadowDrawList[lastIndex];
+                        shadowDrawCommandsLookup[shadowDrawList[index].commandID] = index;
+                    }
+
+                    shadowDrawList.pop_back();
+                    shadowDrawCommandsLookup.erase(it);
+                }
         }
     }
 
@@ -561,11 +603,8 @@ namespace Pulse::Engine::Rendering{
     }
 
     void Renderer::ExecuteRenderPass()
-    { 
-        if (m_CurrentPass->drawList.empty())
-            return;
-
-        for(auto& drawCmd : m_CurrentPass->drawList){
+    {
+        for(auto& drawCmd : (m_CurrentPass->externalDrawList ? *m_CurrentPass->externalDrawList : m_CurrentPass->drawList)){
             
             glm::vec3 center = (drawCmd.boundsMin + drawCmd.boundsMax) * 0.5f;
             glm::vec3 extents = (drawCmd.boundsMax - drawCmd.boundsMin) * 0.5f;

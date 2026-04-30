@@ -60,7 +60,7 @@ namespace Pulse::Engine::Serialization{
             else if(mode == "masked")
                 renderMode = Opacity::Masked;
                 
-            std::shared_ptr<Material> mat = Material::Create(shader, Core::GetEngine().GetRenderer()->GetOrAdd({shader}), data["recievesShadows"], renderMode);
+            std::shared_ptr<Material> mat = Material::Create(shader, Core::GetEngine().GetRenderer()->GetOrAddPipeline({shader}), data["recievesShadows"], renderMode);
 
             for(auto& uniform : data["uniforms"]){
                 for (auto it = uniform.begin(); it != uniform.end(); ++it) {

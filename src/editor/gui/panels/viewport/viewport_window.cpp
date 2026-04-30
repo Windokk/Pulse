@@ -461,7 +461,6 @@ namespace Pulse::Editor::GUI {
         
         if (input->IsMouseDown(Engine::Input::MouseButton::Left))
         {
-
             double mouseX, mouseY;
             input->GetCursorPos(&mouseX, &mouseY);
 
@@ -480,7 +479,7 @@ namespace Pulse::Editor::GUI {
             yaw   -= deltaX * mouseSensitivity;
 
             // Clamp pitch to avoid flipping
-            pitch = glm::clamp(pitch, -89.0f, 89.0f);
+            pitch = glm::clamp(pitch, -90.0f, 90.0f);
 
             // Build quaternion from yaw * pitch
             glm::quat qPitch = glm::angleAxis(glm::radians(pitch), glm::vec3(1, 0, 0));

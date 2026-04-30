@@ -15,22 +15,28 @@ namespace Pulse::Engine::Rendering {
     };
 
     struct LightData {
-        alignas(4) int type = 0;
-        alignas(4) float intensity= 1.0f;
-        alignas(16) glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-        alignas(16) glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
-        alignas(4) float radius = 100;
-        alignas(16) glm::vec3 color = COL_RGB(1.0f);
-        alignas(4) float innerCutoff = glm::cos(glm::radians(1.5f));
-        alignas(4) float outerCutoff = glm::cos(glm::radians(7.5f));
-        alignas(4) float constant = 1.0f;
-        alignas(4) float linear = 0.09f;
-        alignas(4) float quadratic = 0.032f;
-        alignas(4) bool castShadow = true;
+        glm::vec4 position = glm::vec4(0);   // xyz + padding
+        glm::vec4 direction = glm::vec4(0);  // xyz + padding
+        glm::vec4 color = glm::vec4(0);      // rgb + padding
+
+        float intensity = 0.0f;
+
+        // max distance at which geometry is lit by this light
+        float radius = 0.0f;
+
+        // in radians
+        float innerCutoff = 0.0f;
+
+        // in radians
+        float outerCutoff = 0.0f;
+
+        int type = 0;
+        int castShadow = 0;
+        glm::vec2 padding = glm::vec2(0); // align to 16
 
         /// @brief Getter for lights matrices
         /// @return The view-projection matrix from the light's point of view
-        glm::mat4 GetLightMatrix(const glm::mat4 &cameraView = glm::mat4(1.0f), const float fov = -1.0f, const float aspectRatio = -1.0f, const float cascadeNear = -1.0f, const float cascadeFar = -1.0f, const float shadowRes = -1.0);
+        glm::mat4 GetLightMatrix(const glm::mat4 &cameraView = glm::mat4(1.0f), const float fov = -1.0f, const float aspectRatio = -1.0f, const float cascadeNear = -1.0f, const float cascadeFar = -1.0f, const float shadowRes = -1.0, const float outerCutoff = -1.0);
     };
 
     class LightManager {

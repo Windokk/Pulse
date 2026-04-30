@@ -13,7 +13,7 @@
 
 using namespace Pulse::Engine;
 
-void Character::Deserialize(json componentData) {
+void Character::Deserialize(const json componentData) {
     // Deserialize fields
     if(componentData.contains("active") && componentData["active"].is_boolean() && componentData["active"]){
         Activate();

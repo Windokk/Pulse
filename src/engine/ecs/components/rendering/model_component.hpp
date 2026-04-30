@@ -17,7 +17,7 @@ namespace Pulse::Engine::ECS::Components
 
             public:
 
-            void Deserialize(json componentData) override;
+            void Deserialize(const json componentData) override;
 
             ordered_json Serialize() override;
             

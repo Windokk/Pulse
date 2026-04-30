@@ -10,7 +10,7 @@ class CLASS() Character : public Pulse::Engine::ECS::Components::Script{
     public:
         Character(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Script(parent, local_id){};
 
-        void Deserialize(json componentData) override;
+        void Deserialize(const json componentData) override;
         ordered_json Serialize() override;
 
         void OnPlay() override;

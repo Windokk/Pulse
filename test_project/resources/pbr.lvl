@@ -3,6 +3,47 @@
     "actors": [
         {
             "name": "plane",
+            "children": [
+                {
+                    "name": "point_light",
+                    "components": [
+                        {
+                            "type": "transform",
+                            "active": true,
+                            "position": {
+                                "x": 7.984999179840088,
+                                "y": 9.376923561096191,
+                                "z": 2.1105144023895264
+                            },
+                            "rotation": {
+                                "x": -84.64969635009766,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "scale": {
+                                "x": 1.0,
+                                "y": 1.000000238418579,
+                                "z": 1.000000238418579
+                            }
+                        },
+                        {
+                            "type": "light",
+                            "active": true,
+                            "light_type": "spot",
+                            "intensity": 107.9000015258789,
+                            "radius": 100.0,
+                            "color": {
+                                "r": 1.0,
+                                "g": 1.0,
+                                "b": 1.0
+                            },
+                            "innerCutoff": 1.9000158309936523,
+                            "outerCutoff": 23.5,
+                            "castShadow": true
+                        }
+                    ]
+                }
+            ],
             "components": [
                 {
                     "type": "transform",
@@ -30,48 +71,6 @@
                     "materials": {
                         "0": "materials/lit_mat1.mat"
                     }
-                }
-            ]
-        },
-        {
-            "name": "dir",
-            "components": [
-                {
-                    "type": "transform",
-                    "active": true,
-                    "position": {
-                        "x": 1.0,
-                        "y": 10.0,
-                        "z": 1.0
-                    },
-                    "rotation": {
-                        "x": -46.45747756958008,
-                        "y": 24.75185203552246,
-                        "z": -17.197254180908203
-                    },
-                    "scale": {
-                        "x": 1.0000038146972656,
-                        "y": 0.9999998807907104,
-                        "z": 0.9999998807907104
-                    }
-                },
-                {
-                    "type": "light",
-                    "active": true,
-                    "light_type": "directional",
-                    "intensity": 3.0,
-                    "radius": 100.0,
-                    "color": {
-                        "r": 1.0,
-                        "g": 1.0,
-                        "b": 1.0
-                    },
-                    "innerCutoff": 0.9998477697372437,
-                    "outerCutoff": 0.9998477697372437,
-                    "constant": 1.0,
-                    "linear": 0.09,
-                    "quadratic": 0.032,
-                    "castShadow": true
                 }
             ]
         },
@@ -375,9 +374,9 @@
                         "z": 6.504029750823975
                     },
                     "rotation": {
-                        "x": -89.9997787475586,
-                        "y": 50.346683502197266,
-                        "z": 6.421958823921159e-05
+                        "x": -89.99978637695313,
+                        "y": 50.346702575683594,
+                        "z": 6.42195955151692e-05
                     },
                     "scale": {
                         "x": 5.999999523162842,
