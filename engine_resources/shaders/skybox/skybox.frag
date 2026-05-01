@@ -8,6 +8,7 @@ uniform samplerCube uSkybox;
 // Inverse matrices
 uniform mat4 uProjection;
 uniform mat4 uView;
+uniform bool uIsOrtho;
 
 void main()
 {
@@ -16,19 +17,27 @@ void main()
 
     invView = mat4(mat3(invView));
 
-    // Convert UV --> NDC (-1 to 1)
     vec2 ndc = UV * 2.0 - 1.0;
 
-    // Clip space ray
-    vec4 clip = vec4(ndc, 1.0, 1.0);
+    vec3 dir;
 
-    // View space ray
-    vec4 view = invProj * clip;
-    view = vec4(view.xy, -1.0, 0.0);
+    if (!uIsOrtho)
+    {
+        vec4 clip = vec4(ndc, 1.0, 1.0);
+        vec4 view = invProj * clip;
+        view = vec4(view.xy, -1.0, 0.0);
 
-    // World space direction
-    vec3 dir = normalize((invView * view).xyz);
+        dir = normalize((invView * view).xyz);
+    }
+    else
+    {
+        // In ortho, direction is constant (camera forward)
+        vec3 forward = normalize((invView * vec4(0, 0, -1, 0)).xyz);
+        vec3 right   = normalize((invView * vec4(1, 0, 0, 0)).xyz);
+        vec3 up      = normalize((invView * vec4(0, 1, 0, 0)).xyz);
 
-    // Sample cubemap
+        dir = normalize(forward + ndc.x * right + ndc.y * up);
+    }
+
     FragColor = texture(uSkybox, dir);
 }

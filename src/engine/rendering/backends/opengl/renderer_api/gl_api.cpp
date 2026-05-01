@@ -221,6 +221,7 @@ namespace Pulse::Engine::Rendering{
         if(command.bindCameraState){
             pipeline->GetSpecifications().shader->SetMat4("uProjection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
             pipeline->GetSpecifications().shader->SetMat4("uView", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+            pipeline->GetSpecifications().shader->SetBool("uIsOrtho", Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsOrthographic());
         }
 
         if(pass->overridePipeline){
