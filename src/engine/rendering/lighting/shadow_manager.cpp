@@ -238,7 +238,7 @@ namespace Pulse::Engine::Rendering{
         // Delete old array if it exists
         if(m_CubeArrayTex){
             if (m_CubeArrayTex->IsValid())
-               m_CubeArrayTex.reset();
+                m_CubeArrayTex.reset();
         }
 
         m_CurrentPointLightCapacity = requiredPointLights;
@@ -413,7 +413,19 @@ namespace Pulse::Engine::Rendering{
     {
         if (m_PointLightCount == 0) {
             m_CurrentPointLightCapacity = 0;
-            if (m_CubeArrayTex) {
+            if (m_CubeArrayTex && m_CubeArrayTex->IsValid()) {
+
+                for (auto& sm : m_ShadowMaps)
+                {
+                    if (sm.second.light.type == (int)LightType::Point)
+                    {
+                        if (sm.second.framebuffer[0])
+                        {
+                            sm.second.framebuffer[0]->AttachCubemapArray(0);
+                        }
+                    }
+                }
+
                 m_CubeArrayTex.reset();
             }
             return;
