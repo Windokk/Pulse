@@ -269,7 +269,7 @@ namespace Pulse::Engine::Rendering{
                 {
                     auto cmd = commands[submeshID];
                     
-                    if(!cmd.fullscreenTri)
+                    if(!cmd.fullscreenTri && cmd.mesh)
                     {
                         uint64_t cmdID =
                             ((uint64_t)(cmd.mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
@@ -277,48 +277,48 @@ namespace Pulse::Engine::Rendering{
                             ((uint64_t)(submeshID & 0xFFFF));
                         cmd.commandID = cmdID;
                         cmd.sortKey = GenerateSortKey(cmd, submeshID);
+                    }
 
-                        auto& refCount = m_CommandRefCount[cmd.commandID];
+                    auto& refCount = m_CommandRefCount[cmd.commandID];
 
-                        if (refCount == 0)
-                        {
-                            switch(cmd.material->GetPipeline()->GetSpecifications().topology){
-                                case PrimitiveTopology::Points:
-                                    m_PrimitivesCount += cmd.indexCount;
-                                    break;
-                                case PrimitiveTopology::Lines:
-                                    m_PrimitivesCount += cmd.indexCount / 2;
-                                    break;
-                                case PrimitiveTopology::LineStrip:
-                                    m_PrimitivesCount += (cmd.indexCount >= 2) ? cmd.indexCount - 1 : 0;
-                                    break;
-                                case PrimitiveTopology::TriangleFan:
-                                    m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
-                                    break;
-                                case PrimitiveTopology::Triangles:
-                                    m_PrimitivesCount += cmd.indexCount / 3;
-                                    break;
-                                case PrimitiveTopology::TriangleStrip:
-                                    m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
-                                    break;
-                            }
-
-                            m_VerticesCount += cmd.vertexCount;
+                    if (refCount == 0)
+                    {
+                        switch(cmd.material->GetPipeline()->GetSpecifications().topology){
+                            case PrimitiveTopology::Points:
+                                m_PrimitivesCount += cmd.indexCount;
+                                break;
+                            case PrimitiveTopology::Lines:
+                                m_PrimitivesCount += cmd.indexCount / 2;
+                                break;
+                            case PrimitiveTopology::LineStrip:
+                                m_PrimitivesCount += (cmd.indexCount >= 2) ? cmd.indexCount - 1 : 0;
+                                break;
+                            case PrimitiveTopology::TriangleFan:
+                                m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                break;
+                            case PrimitiveTopology::Triangles:
+                                m_PrimitivesCount += cmd.indexCount / 3;
+                                break;
+                            case PrimitiveTopology::TriangleStrip:
+                                m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                break;
                         }
 
-                        refCount++;
-                    
-                        auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
+                        m_VerticesCount += cmd.vertexCount;
+                    }
 
-                        if (it != pass->second->drawCommandsLookup.end())
-                        {
-                            pass->second->drawList[it->second] = cmd;
-                        }
-                        else
-                        {
-                            pass->second->drawCommandsLookup[cmd.commandID] = pass->second->drawList.size();
-                            pass->second->drawList.push_back(cmd);
-                        }
+                    refCount++;
+                
+                    auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
+
+                    if (it != pass->second->drawCommandsLookup.end())
+                    {
+                        pass->second->drawList[it->second] = cmd;
+                    }
+                    else
+                    {
+                        pass->second->drawCommandsLookup[cmd.commandID] = pass->second->drawList.size();
+                        pass->second->drawList.push_back(cmd);
                     }
                 }
 

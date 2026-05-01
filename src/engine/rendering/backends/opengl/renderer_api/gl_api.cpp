@@ -182,11 +182,8 @@ namespace Pulse::Engine::Rendering{
         }
 
         shader->SetMat4("model", modelMatrix);
-        shader->SetMat4("projection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
-        shader->SetMat4("view", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
         shader->SetInt("lightNB", Core::GetEngine().GetRenderer()->GetLightManager()->GetLightsCount());
         shader->SetVec3("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
-        shader->SetFloat("ambientIntensity", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->ambientIntensity);
         shader->SetFloat("ambientIntensity", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->ambientIntensity);
         shader->SetInt("objID", objectID);
     }
@@ -203,7 +200,6 @@ namespace Pulse::Engine::Rendering{
 
     void GLRendererAPI::DrawFullScreenTriangle()
     {
-        glBindVertexArray(0);
         glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 
@@ -221,6 +217,11 @@ namespace Pulse::Engine::Rendering{
 
         if(!command.fullscreenTri)
             BindLevelState(pipeline->GetSpecifications().shader, command.modelMatrix, command.objectID);
+
+        if(command.bindCameraState){
+            pipeline->GetSpecifications().shader->SetMat4("uProjection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+            pipeline->GetSpecifications().shader->SetMat4("uView", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+        }
 
         if(pass->overridePipeline){
             BindPassData(pass, pipeline);

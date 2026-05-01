@@ -7,8 +7,8 @@ layout (location = 3) in vec4 aColor;
 layout (location = 4) in vec3 aTangent;
 
 uniform mat4 model;
-uniform mat4 projection;
-uniform mat4 view;
+uniform mat4 uProjection;
+uniform mat4 uView;
 
 out vec2 texCoord;
 out vec4 color;
@@ -20,5 +20,5 @@ void main()
     
     vec4 world = model * vec4(aPos, 1.0);
 
-    gl_Position = projection * vec4(aPos.xy, 0.0, 1.0);
+    gl_Position = uProjection * vec4(aPos.xy, 0.0, 1.0);
 }

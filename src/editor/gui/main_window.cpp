@@ -365,6 +365,7 @@ namespace Pulse::Editor::Core{
 
             Rendering::DrawCommand cmd;
             cmd.fullscreenTri = true;
+            cmd.bindCameraState = false;
             cmd.material = outlineMaterial;
 
             renderer->AddOrUpdateCommands({cmd}, {"EditorOutlinePass"}, false);

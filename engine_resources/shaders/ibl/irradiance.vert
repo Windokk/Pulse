@@ -3,11 +3,11 @@ layout (location = 0) in vec3 aPos;
 
 out vec3 WorldPos;
 
-uniform mat4 projection;
-uniform mat4 view;
+uniform mat4 uProjection;
+uniform mat4 uView;
 
 void main()
 {
     WorldPos = aPos;  
-    gl_Position =  projection * view * vec4(WorldPos, 1.0);
+    gl_Position =  uProjection * uView * vec4(WorldPos, 1.0);
 }

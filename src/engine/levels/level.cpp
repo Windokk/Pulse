@@ -104,7 +104,7 @@ namespace Pulse::Engine::Levels{
             if(data.contains("skybox")){
                 auto& skybox_folder = data["skybox"];
                 if(skybox_folder.is_string()){
-                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/cubemap/cubemap");
+                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/skybox/skybox");
                     std::shared_ptr<Rendering::EnvironmentMap> envMap = Core::GetEngine().GetResourcesManager()->GetEnvMap(data["skybox"]);
                     Rendering::PipelineSpecifications specs;
                     specs.depthCompare = Rendering::DepthCompareOp::LessOrEqual;

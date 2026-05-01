@@ -6,8 +6,8 @@ layout (location = 2) in vec4 aColor;
 layout (location = 3) in vec2 aTexCoord;
 
 uniform mat4 model;
-uniform mat4 projection;
-uniform mat4 view;
+uniform mat4 uProjection;
+uniform mat4 uView;
 
 out vec2 texCoord;
 out vec4 color;
@@ -24,5 +24,5 @@ void main()
 
     worldNormal = normalize(mat3(model) * aNormal);
 
-    gl_Position = projection * view * world;
+    gl_Position = uProjection * uView * world;
 }

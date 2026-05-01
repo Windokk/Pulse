@@ -45,6 +45,8 @@ namespace Pulse::Engine::Rendering {
         uint32_t modelID;
 
         bool fullscreenTri = false;
+
+        bool bindCameraState = true;
         
         /// @note Automatically filled by the renderer. Any content will be overriden.
         uint64_t sortKey = 0;

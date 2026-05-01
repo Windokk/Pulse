@@ -167,8 +167,8 @@ namespace Pulse::Engine::Rendering{
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 
             equirectangularToCubemapShader->Bind();
-            equirectangularToCubemapShader->SetInt("equirectangularMap", 0);
-            equirectangularToCubemapShader->SetMat4("projection", captureProjection);
+            equirectangularToCubemapShader->SetInt("uEquirectangularMap", 0);
+            equirectangularToCubemapShader->SetMat4("uProjection", captureProjection);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, hdrTex->GetHandle());
 
@@ -176,7 +176,7 @@ namespace Pulse::Engine::Rendering{
             glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
             for (unsigned int i = 0; i < 6; ++i)
             {
-                equirectangularToCubemapShader->SetMat4("view", glm::mat4(glm::mat3(captureViews[i])));
+                equirectangularToCubemapShader->SetMat4("uView", glm::mat4(glm::mat3(captureViews[i])));
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
                                     GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubemap->GetHandle(), 0);
                 if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -340,8 +340,8 @@ namespace Pulse::Engine::Rendering{
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
 
         irradianceShader->Bind();
-        irradianceShader->SetInt("environmentMap", 0);
-        irradianceShader->SetMat4("projection", captureProjection);
+        irradianceShader->SetInt("uEnvironmentMap", 0);
+        irradianceShader->SetMat4("uProjection", captureProjection);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetHandle());
 
@@ -349,7 +349,7 @@ namespace Pulse::Engine::Rendering{
         glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
         for (unsigned int i = 0; i < 6; ++i)
         {
-            irradianceShader->SetMat4("view", captureViews[i]);
+            irradianceShader->SetMat4("uView", captureViews[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap->GetHandle(), 0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -371,8 +371,8 @@ namespace Pulse::Engine::Rendering{
         }
 
         prefilterShader->Bind();
-        prefilterShader->SetInt("environmentMap", 0);
-        prefilterShader->SetMat4("projection", captureProjection);
+        prefilterShader->SetInt("uEnvironmentMap", 0);
+        prefilterShader->SetMat4("uProjection", captureProjection);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->GetHandle());
 
@@ -391,7 +391,7 @@ namespace Pulse::Engine::Rendering{
             prefilterShader->SetFloat("roughness", roughness);
             for (unsigned int i = 0; i < 6; ++i)
             {
-                prefilterShader->SetMat4("view", captureViews[i]);
+                prefilterShader->SetMat4("uView", captureViews[i]);
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap->GetHandle(), mip);
 
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

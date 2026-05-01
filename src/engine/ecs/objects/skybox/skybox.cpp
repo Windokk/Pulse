@@ -38,9 +38,8 @@ namespace Pulse::Engine::ECS::Objects{
 
     void Skybox::CreateDrawCommands()
     {
-        std::shared_ptr<Rendering::Mesh> unitCube = Core::GetEngine().GetRenderer()->GetUnitCube();
         Rendering::PipelineSpecifications specs;
-        specs.vertexLayout = unitCube->GetVertexLayout();
+        specs.vertexLayout = {};
         specs.depthCompare = Rendering::DepthCompareOp::LessOrEqual;
         specs.depthWrite = false;
         specs.cullMode = Rendering::CullMode::Front;
@@ -50,16 +49,17 @@ namespace Pulse::Engine::ECS::Objects{
 
         std::shared_ptr<Rendering::Pipeline> pipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(specs);
         m_Material->SetPipeline(pipeline);
-        m_Material->SetTextureParameter("gCubemapTexture", m_EnvMap->GetCubemap()->GetHandle());
+        m_Material->SetTextureParameter("uSkybox", m_EnvMap->GetCubemap()->GetHandle());
 
         Rendering::DrawCommand cmd;
         cmd.objectID = id.GetAsInt();
         cmd.modelMatrix = glm::mat4(1.0f);
-        cmd.mesh = unitCube;
-        cmd.indexCount = unitCube->GetIndexCount();
+        cmd.mesh = nullptr;
+        cmd.indexCount = 3;
         cmd.indexOffset = 0;
-        cmd.vertexCount = unitCube->GetVertexCount();
+        cmd.vertexCount = 3;
         cmd.material = m_Material;
+        cmd.fullscreenTri = true;
 
         Core::GetEngine().GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
     }
