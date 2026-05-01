@@ -50,6 +50,7 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<Pipeline> GetOrAddPipeline(const PipelineSpecifications &specs);
             void Render();
             void Shutdown();
+            void ClearPassesContent();
             void AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes, bool addToShadowDrawList);
             void RemoveCommands(const std::vector<uint64_t> commandsID, const std::vector<std::string>& passes, bool removeFromShadowDrawList);
 

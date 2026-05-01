@@ -79,6 +79,7 @@ namespace Pulse::Engine::Rendering {
             return nullptr;
         }
 
+        // DO NOT USE
         void ClearAll();
 
         const int GetShadowMapsCount() const {

@@ -50,7 +50,7 @@ namespace Pulse::Engine::ECS::Objects{
 
             Core::ObjectID GetID() { return id; }
 
-            virtual void Destroy();
+            void Destroy() override;
         
         protected:
             std::vector<Core::ObjectID> children;

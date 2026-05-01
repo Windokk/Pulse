@@ -27,7 +27,8 @@ namespace Pulse::Engine::ECS::Objects{
             GetChild(child)->Destroy(); 
         }
         children.clear();
-        Core::GetEngine().GetObjectIDManager()->DestroyID(id); 
+
+        Object::Destroy();
     }
 
     LevelObject::~LevelObject()

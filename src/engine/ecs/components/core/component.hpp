@@ -28,7 +28,6 @@ namespace Pulse::Engine::ECS{
             public:
                 Component(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
                 virtual ~Component();
-                virtual void Destroy();
                 std::shared_ptr<Objects::Actor> parent = nullptr;
 
                 /// @brief Activates this component
@@ -67,7 +66,6 @@ namespace Pulse::Engine::ECS{
                 void SetParent(std::shared_ptr<Objects::Actor> newParent){
                     parent = newParent;
                 }
-
 
                 virtual const ClassDescriptor* GetDescriptor() const = 0;
 

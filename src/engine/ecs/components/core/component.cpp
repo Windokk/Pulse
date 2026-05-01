@@ -13,8 +13,4 @@ namespace Pulse::Engine::ECS::Components {
     Component::~Component()
     {
     }
-
-    void Component::Destroy() {
-        
-    }
 }

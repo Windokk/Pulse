@@ -41,6 +41,14 @@ namespace Pulse::Engine::Core
     class ObjectIDManager {
         public:
 
+            // WARNING: Invalidates all existing ObjectIDs.
+            // Must not be used while IDs are still referenced externally.
+            void Reset() {
+                ObjectIDMap.clear();
+                availableIDs.clear();
+                nextId = 1;
+            }
+
             void DestroyID(const ObjectID& id) {
                 availableIDs.insert(id.GetAsInt());
                 ObjectIDMap.erase(id);

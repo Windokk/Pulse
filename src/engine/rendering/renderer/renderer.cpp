@@ -222,6 +222,17 @@ namespace Pulse::Engine::Rendering{
         m_LightManager->Clear();
     }
 
+    void Renderer::ClearPassesContent()
+    {
+        for(auto& [name, pass] : m_RenderPasses){
+            pass->drawList.clear();
+            pass->drawCommandsLookup.clear();
+        }
+
+        shadowDrawCommandsLookup.clear();
+        shadowDrawList.clear();
+    }
+
     uint64_t Renderer::GenerateSortKey(const DrawCommand& cmd, const uint32_t submeshID)
     {
         uint64_t key = 0;

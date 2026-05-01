@@ -210,9 +210,13 @@ namespace Pulse::Engine{
                 std::string levelNameInProject = GetAssetIDManager()->GetAssetFromID(GetLevelManager()->GetLevelAt(0)->GetAssetID())->baseInfos.nameInProject;
                 GetLevelManager()->UnloadLevel(0);
                 GetResourcesManager()->UnloadLevel(levelNameInProject);
+                GetRenderer()->ClearPassesContent();
+                GetObjectIDManager()->Reset();
                 auto level = GetResourcesManager()->GetLevel(levelNameInProject);
                 if(level)
+                {
                     GetLevelManager()->LoadLevel(level);
+                }
                 else
                     DEBUG_ERROR("Error re-loading level !");
                 m_ReloadCurrentLevel = false;
