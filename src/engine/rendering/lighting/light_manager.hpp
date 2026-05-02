@@ -36,7 +36,7 @@ namespace Pulse::Engine::Rendering {
 
         /// @brief Getter for lights matrices
         /// @return The view-projection matrix from the light's point of view
-        glm::mat4 GetLightMatrix(const glm::mat4 &cameraView = glm::mat4(1.0f), const float fov = -1.0f, const float aspectRatio = -1.0f, const float cascadeNear = -1.0f, const float cascadeFar = -1.0f, const float shadowRes = -1.0, const float outerCutoff = -1.0);
+        glm::mat4 GetLightMatrix(const glm::mat4 &cameraView = glm::mat4(1.0f), const float fov = -1.0f, const float aspectRatio = -1.0f, const float cascadeNear = -1.0f, const float cascadeFar = -1.0f, const float dirShadowRes = -1.0, const float outerCutoff = -1.0);
     };
 
     class LightManager {

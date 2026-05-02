@@ -124,7 +124,7 @@ namespace Pulse::Engine::Rendering{
 
     /// @brief Getter for lights matrices
     /// @return The view-projection matrix from the light's point of view
-    glm::mat4 LightData::GetLightMatrix(const glm::mat4& cameraView, const float fov, const float aspectRatio, const float cascadeNear, const float cascadeFar, const float shadowRes, const float outerCutoff)
+    glm::mat4 LightData::GetLightMatrix(const glm::mat4& cameraView, const float fov, const float aspectRatio, const float cascadeNear, const float cascadeFar, const float dirShadowRes, const float outerCutoff)
     {
         if (type == static_cast<int>(LightType::Directional) && cascadeFar != -1 && fov != -1 && aspectRatio != -1 && cascadeFar != -1)
         {
@@ -147,8 +147,8 @@ namespace Pulse::Engine::Rendering{
             // snap radius to reduce flicker
             radius = std::ceil(radius * 16.0f) / 16.0f;
 
-            // ight direction
-            glm::vec3 lightDir = glm::normalize(direction);
+            // light direction
+            glm::vec3 lightDir = glm::normalize(glm::vec3(direction));
 
             // robust up vector
             glm::vec3 up = fabs(glm::dot(lightDir, glm::vec3(0,1,0))) > 0.99f
@@ -176,9 +176,9 @@ namespace Pulse::Engine::Rendering{
             glm::vec4 origin = lightVP * glm::vec4(0, 0, 0, 1);
             origin /= origin.w;
 
-            glm::vec2 shadowOrigin = glm::vec2(origin) * (shadowRes * 0.5f);
+            glm::vec2 shadowOrigin = glm::vec2(origin) * (dirShadowRes * 0.5f);
             glm::vec2 roundedOrigin = glm::round(shadowOrigin);
-            glm::vec2 offset = (roundedOrigin - shadowOrigin) * (2.0f / shadowRes);
+            glm::vec2 offset = (roundedOrigin - shadowOrigin) * (2.0f / dirShadowRes);
 
             lightProj[3][0] += offset.x;
             lightProj[3][1] += offset.y;
@@ -191,11 +191,10 @@ namespace Pulse::Engine::Rendering{
             float orthoSize = 10.0f;
             float fov = glm::degrees(acos(outerCutoff)) * 2.0f;
             fov = glm::clamp(fov, 1.0f, 179.0f);
-            float aspect = static_cast<float>(Core::GetEngine().GetWindow()->GetFramebufferWidth()) /
-               static_cast<float>(Core::GetEngine().GetWindow()->GetFramebufferHeight());
+            float aspect = 1.0f;
             glm::mat4 proj = glm::perspective(glm::radians(fov), aspect, 0.1f, radius);
 
-            glm::vec3 lightDir = glm::normalize(direction);
+            glm::vec3 lightDir = glm::normalize(glm::vec3(direction));
             glm::vec3 lightPos = position;
 
             glm::vec3 up = glm::abs(glm::dot(lightDir, glm::vec3(0, 1, 0))) > 0.99f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
@@ -207,5 +206,4 @@ namespace Pulse::Engine::Rendering{
         // For point lights : returns identity matrix
         return glm::mat4(1.0f);
     }
-
 }

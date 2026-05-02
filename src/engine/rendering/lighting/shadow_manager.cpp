@@ -181,7 +181,7 @@ namespace Pulse::Engine::Rendering{
         {
             PipelineSpecifications dirSpecs;
             dirSpecs.blending = false;
-            dirSpecs.cullMode = CullMode::None;
+            dirSpecs.cullMode = CullMode::Front;
             dirSpecs.depthTest = true;
             dirSpecs.polygonMode = PolygonMode::Fill;
             dirSpecs.topology = PrimitiveTopology::Triangles;
@@ -333,6 +333,17 @@ namespace Pulse::Engine::Rendering{
                 }
             }
 
+            TextureSpecifications textureSpecs;
+            textureSpecs.borderColor = COL_RGBA(1.0f);
+            textureSpecs.compareMode = TextureCompareMode::None;
+            textureSpecs.minFilter = TextureFilter::Linear;
+            textureSpecs.magFilter = TextureFilter::Linear;
+            textureSpecs.wrapS = TextureWrap::ClampBorder;
+            textureSpecs.wrapT = TextureWrap::ClampBorder;
+            textureSpecs.wrapR = TextureWrap::ClampBorder;
+            textureSpecs.internalFormat = TextureInternalFormat::Depth32F;
+            textureSpecs.format = TextureFormat::Depth;
+
             // New resources creation
             switch (currentType)
             {
@@ -375,12 +386,14 @@ namespace Pulse::Engine::Rendering{
                 {
                     sm.resolution = m_DirShadowsResolution;
 
-                    for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
-                        FramebufferSpecifications specs{};
-                        specs.width  = m_DirShadowsResolution;
-                        specs.height = m_DirShadowsResolution;
-                        specs.hasDepth = true;
+                    FramebufferSpecifications specs{};
+                    specs.width  = m_DirShadowsResolution;
+                    specs.height = m_DirShadowsResolution;
+                    specs.hasDepth = true;
+                    specs.hasColor = false;
+                    specs.depthSpecs = textureSpecs;
 
+                    for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
                         sm.framebuffer[c] = Framebuffer::Create(specs);
                     }
                     break;
@@ -394,6 +407,8 @@ namespace Pulse::Engine::Rendering{
                     specs.width  = m_SpotShadowsResolution;
                     specs.height = m_SpotShadowsResolution;
                     specs.hasDepth = true;
+                    specs.hasColor = false;
+                    specs.depthSpecs = textureSpecs;
 
                     sm.framebuffer[0] = Framebuffer::Create(specs);
                     sm.lightMatrix[0] = light->GetLightMatrix(glm::mat4(1.0f), -1, -1, -1, -1, -1, sm.light.outerCutoff);
@@ -539,17 +554,17 @@ namespace Pulse::Engine::Rendering{
                 for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                 {
                     material->SetTextureParameter(
-                        "shadow_dirShadowMaps[" + std::to_string(dirCascadeIndex) + "]",
+                        "dirShadowMaps[" + std::to_string(dirCascadeIndex) + "]",
                         sm.second.framebuffer[c]->GetDepthAttachment()
                     );
 
                     material->SetScalarParameter(
-                        "shadow_dirLightSpaceMatrices[" + std::to_string(dirCascadeIndex) + "]",
+                        "dirLightSpaceMatrices[" + std::to_string(dirCascadeIndex) + "]",
                         sm.second.lightMatrix[c]
                     );
 
                     material->SetScalarParameter(
-                        "shadow_cascadeSplits[" + std::to_string(dirCascadeIndex) + "]",
+                        "dirCascadeSplits[" + std::to_string(dirCascadeIndex) + "]",
                         sm.second.cascadeSplits[c]
                     );
 
