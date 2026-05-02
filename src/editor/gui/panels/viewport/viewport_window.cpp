@@ -249,12 +249,12 @@ namespace Pulse::Editor::GUI {
             glm::vec3 euler;
             switch(axis)
             {
-                case 0: euler = glm::vec3(0, -90, 0); break;
-                case 1: euler = glm::vec3(90, 0, 0); break;
-                case 2: euler = glm::vec3(0, 0, 0); break;
-                case 3: euler = glm::vec3(0, 90, 0); break;
-                case 4: euler = glm::vec3(-90, 0, 0); break;
-                case 5: euler = glm::vec3(0, 180, 0); break;
+                case 0: euler = glm::vec3(0, 90, 0); break;
+                case 1: euler = glm::vec3(-90, 0, 0); break;
+                case 2: euler = glm::vec3(0, 180, 0); break;
+                case 3: euler = glm::vec3(0, -90, 0); break;
+                case 4: euler = glm::vec3(90, 0, 0); break;
+                case 5: euler = glm::vec3(0, 0, 0); break;
             }
             cameraActor->transform->SetRotation(glm::quat(glm::radians(euler)));
 
