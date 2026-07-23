@@ -313,11 +313,18 @@ namespace Pulse::Engine::Rendering{
 
     void GLMesh::GenerateGLBuffers()
     {
+        GLint previousVAO = 0;
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+
         if (m_VAO)
         {
             glDeleteVertexArrays(1, &m_VAO);
             glDeleteBuffers(1, &m_VBO);
             glDeleteBuffers(1, &m_EBO);
+
+            m_VAO = 0;
+            m_VBO = 0;
+            m_EBO = 0;
         }
 
         glGenVertexArrays(1, &m_VAO);
@@ -366,7 +373,7 @@ namespace Pulse::Engine::Rendering{
 
         }
 
-        glBindVertexArray(0);
+        glBindVertexArray(previousVAO);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }

@@ -8,6 +8,7 @@ using namespace nlohmann;
 namespace Pulse::Engine::Serialization{
 
     void DeserializeAssetDataBase(const Filesystem::Path resourcesPath, const Filesystem::Path databasePath){
+
         if(!databasePath.Exists()){
             DEBUG_ERROR("Database at path : \"" + databasePath.full +"\" doesn't exist !");
             return; 
@@ -23,6 +24,8 @@ namespace Pulse::Engine::Serialization{
         try {
             json data = json::parse(src);
 
+            int maxID = 0;
+
             for(auto [key, value] : data.items()){
                 std::shared_ptr<Filesystem::AssetInfos> assetInfos = std::make_shared<Filesystem::AssetInfos>();
                 std::vector<Filesystem::AssetID> dependencies;
@@ -36,10 +39,14 @@ namespace Pulse::Engine::Serialization{
                 }
                 assetInfos->dependencies = dependencies;
 
-                if (value.is_object() && value.size() >= 1 && value.contains("id")) {
-                    Core::GetEngine().GetAssetIDManager()->AssignID(Filesystem::AssetIDBuilder().WithValue(value["id"].get<int>()).Build(), assetInfos);
+                if (value.contains("id")) {
+                    int currentID = value["id"].get<int>();
+                    maxID = std::max(maxID, currentID);
+                    Core::GetEngine().GetAssetIDManager()->AssignID(Core::GetEngine().GetAssetIDManager()->GenerateNewIDWithValue(currentID), assetInfos);
                 }
             }
+
+            Core::GetEngine().GetAssetIDManager()->InitCounter(maxID+1);
 
         } catch (const json::parse_error& e) {
             DEBUG_ERROR("JSON parse error for : ", databasePath.full , ", error : " , (std::string)e.what());

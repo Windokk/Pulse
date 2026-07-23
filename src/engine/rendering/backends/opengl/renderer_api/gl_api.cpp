@@ -85,6 +85,7 @@ namespace Pulse::Engine::Rendering{
     void GLRendererAPI::BindMesh(std::shared_ptr<Mesh> mesh)
     {
         std::shared_ptr<GLMesh> glMesh = std::static_pointer_cast<GLMesh>(mesh);
+        assert(glMesh && glMesh->GetVAO() != 0 && "Invalid GLMesh");
         glBindVertexArray(glMesh->GetVAO());
     }
 
@@ -238,6 +239,7 @@ namespace Pulse::Engine::Rendering{
             DrawFullScreenTriangle();
         }
         else{
+            if (command.indexCount == 0) return;
             DrawIndexed(pipeline, command.indexCount, command.indexOffset);
         }
     }

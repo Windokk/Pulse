@@ -8,6 +8,7 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
+#include "engine/core/resources/resources_manager.hpp"
 #include <queue>
 #include <glm/gtx/string_cast.hpp>
 
@@ -31,18 +32,17 @@ namespace Pulse::Engine::Rendering{
 
         //Init base geometry
         /// Unit cube
-        
-        struct Vertex {
+        struct BasicVertex {
             glm::vec3 position;
             glm::vec2 texCoord;
         };
 
         VertexLayout basicVertexLayout{
-            {{"aPos",       ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
-            {"aTexCoord", ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)}},
-            sizeof(Vertex)
+            {{"aPos",       ShaderDataType::Vec3, 0, offsetof(BasicVertex, position)},
+            {"aTexCoord", ShaderDataType::Vec2, 1, offsetof(BasicVertex, texCoord)}},
+            sizeof(BasicVertex)
         };
-        std::vector<Vertex> cubeVertices = {
+        std::vector<BasicVertex> cubeVertices = {
             // Front
             {{-0.5f,-0.5f, 0.5f}, {0.0f,0.0f}},
             {{ 0.5f,-0.5f, 0.5f}, {1.0f,0.0f}},
@@ -89,12 +89,12 @@ namespace Pulse::Engine::Rendering{
         };
         m_UnitCube = Mesh::Create();
         std::vector<uint8_t> cubeVertexBuffer;
-        cubeVertexBuffer.resize(cubeVertices.size() * sizeof(Vertex));
+        cubeVertexBuffer.resize(cubeVertices.size() * sizeof(BasicVertex));
         memcpy(cubeVertexBuffer.data(), cubeVertices.data(), cubeVertexBuffer.size());
         m_UnitCube->Create(cubeVertexBuffer, cubeIndices, basicVertexLayout);
 
         /// Unit quad
-        std::vector<Vertex> quadVertices = {
+        std::vector<BasicVertex> quadVertices = {
             {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}}, // top-left
             {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}}, // bottom-left
             {{ 1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}}, // bottom-right
@@ -106,7 +106,7 @@ namespace Pulse::Engine::Rendering{
         };
         m_UnitQuad = Mesh::Create();
         std::vector<uint8_t> quadVertexBuffer;
-        quadVertexBuffer.resize(quadVertices.size() * sizeof(Vertex));
+        quadVertexBuffer.resize(quadVertices.size() * sizeof(BasicVertex));
         memcpy(quadVertexBuffer.data(), quadVertices.data(), quadVertexBuffer.size());
         m_UnitQuad->Create(quadVertexBuffer, quadIndices, basicVertexLayout);
 
@@ -115,7 +115,7 @@ namespace Pulse::Engine::Rendering{
         m_ShadowManager = std::make_shared<ShadowManager>();
         m_ShadowManager->Init(1024, 1024, 2048);
 
-        //Init built-in passes
+        // Init built-in passes
         /// Forward pass
         std::shared_ptr<RenderPass> forwardPass = std::make_shared<RenderPass>();
         forwardPass->target = m_ViewportBuffer;
@@ -125,6 +125,32 @@ namespace Pulse::Engine::Rendering{
         // Initially no dependencies for forward pass
         AddRenderPass(forwardPass, "ForwardPass", {});
         m_RendererAPI->SetClearColor(0,0,0,1);
+
+        struct Vertex {
+            glm::vec3 position;
+            glm::vec2 texCoord;
+            glm::vec3 normal;
+            glm::vec4 color;
+        };
+
+        // Init debug shapes pipeline
+        Rendering::VertexLayout vertexLayout = {{{"aPos", Rendering::ShaderDataType::Vec3, 0, offsetof(Vertex, position)},{"aTexCoord", Rendering::ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)},
+                                                {"aNormal", Rendering::ShaderDataType::Vec3, 2, offsetof(Vertex, normal)}, {"aColor", Rendering::ShaderDataType::Vec4, 3, offsetof(Vertex, color)}}, 
+                                                    sizeof(Vertex)};
+
+        Rendering::PipelineSpecifications pipelineSpecs;
+        pipelineSpecs.blending = false;
+        pipelineSpecs.cullMode = Rendering::CullMode::None;
+        pipelineSpecs.debugName = "PhysicsDebug";
+        pipelineSpecs.polygonMode = Rendering::PolygonMode::Line;
+        pipelineSpecs.topology = Rendering::PrimitiveTopology::Lines;
+        pipelineSpecs.shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit");
+        pipelineSpecs.vertexLayout = vertexLayout;
+
+        std::shared_ptr<Rendering::Pipeline> pipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(pipelineSpecs);
+
+        m_DebugMat = Rendering::Material::Create(Core::GetEngine().GetResourcesManager()->GetShader("shaders/mesh/unlit"), pipeline, false, Rendering::Opacity::Opaque);
+        m_DebugMat->SetScalarParameter("useTexture", false);
     }
 
     void Renderer::BuildExecutionOrder()
@@ -282,6 +308,10 @@ namespace Pulse::Engine::Rendering{
                     
                     if(!cmd.fullscreenTri && cmd.mesh)
                     {
+                        assert((cmd.mesh->GetAssetID().GetAsInt() & ~0xFFFF) == 0 && "MeshID exceeds 16 bits");
+                        assert((cmd.modelID & ~0xFFFFFFFFULL)       == 0 && "ModelID exceeds 32 bits");
+                        assert((submeshID & ~0xFFFF)                == 0 && "SubmeshID exceeds 16 bits");
+                        
                         uint64_t cmdID =
                             ((uint64_t)(cmd.mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
                             ((uint64_t)(cmd.modelID & 0xFFFFFFFF) << 16) |

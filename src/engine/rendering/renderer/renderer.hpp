@@ -98,6 +98,7 @@ namespace Pulse::Engine::Rendering {
             const std::shared_ptr<Mesh> GetUnitQuad() { return m_UnitQuad; }
             const std::shared_ptr<ShadowManager> GetShadowManager() { return m_ShadowManager; }
             const std::shared_ptr<LightManager> GetLightManager() { return m_LightManager; }
+            const std::shared_ptr<Material> GetDebugMaterial() { return m_DebugMat; }
 
         private:
 
@@ -144,5 +145,7 @@ namespace Pulse::Engine::Rendering {
             uint32_t m_PrimitivesCount = 0;
             uint32_t m_VerticesCount = 0;
             std::unordered_map<uint64_t, uint32_t> m_CommandRefCount;
+
+            std::shared_ptr<Material> m_DebugMat = nullptr;
     };
 }

@@ -45,7 +45,7 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<Pipeline> GetPipeline() const { return m_Pipeline; }
 
             void SetAssetID(Filesystem::AssetID assetID) {
-                this->m_AssetID = assetID;
+                m_AssetID = assetID;
             }
 
             Filesystem::AssetID GetAssetID() {

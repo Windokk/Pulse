@@ -286,4 +286,9 @@ namespace Pulse::Engine::Rendering {
         }, sizeof(Vertex)});
     }
 
+    DebugShape::~DebugShape()
+    {
+        
+    }
+
 }

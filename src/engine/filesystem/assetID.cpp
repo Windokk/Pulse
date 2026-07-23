@@ -10,16 +10,6 @@ namespace Pulse::Engine::Filesystem{
         AssetIDMap.erase(id);
     }
 
-    AssetID AssetIDManager::GenerateNewID()
-    {
-        if (!availableIDs.empty()) {
-            int id = *availableIDs.begin();
-            availableIDs.erase(availableIDs.begin());
-            return AssetID(id);
-        }
-        return AssetID(AssetIDBuilder().Generate().Build().GetAsInt());
-    }
-
     void AssetIDManager::AssignID(AssetID id, std::shared_ptr<AssetInfos> info)
     {
         AssetIDMap[id] = info;

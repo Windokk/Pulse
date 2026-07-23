@@ -13,7 +13,7 @@ namespace Pulse::Engine::Rendering {
         public:
 
             DebugShape() = default;
-            virtual ~DebugShape() = default;
+            virtual ~DebugShape();
 
             std::shared_ptr<Mesh> m_Mesh;
     };

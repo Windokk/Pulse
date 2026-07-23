@@ -18,7 +18,7 @@ namespace Pulse::Engine::ECS::Components{
     void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const InstancedStruct& newParams, EMotionType newMotionType, bool forceRecreation)
     {
         auto physics = Core::GetEngine().GetPhysicsManager();
-        if (!physics || mBodyID.IsInvalid())
+        if (!physics || m_BodyID.IsInvalid())
             return;
 
         auto& bi = physics->GetBodyInterface();
@@ -26,18 +26,28 @@ namespace Pulse::Engine::ECS::Components{
         // --- Shape update ---
         if (newShape != shapeType || newParams != params || forceRecreation)
         {
+            
+            Filesystem::AssetID previousDebugMeshID;
+            if (m_DebugShape && m_DebugShape->m_Mesh)
+                previousDebugMeshID = m_DebugShape->m_Mesh->GetAssetID();
+
             JPH::ShapeRefC newShapeRef = CreateJoltShape(newShape, newParams);
             if (!newShapeRef)
                 return;
 
+            if (previousDebugMeshID.GetAsInt() != 0)
+                m_DebugShape->m_Mesh->SetAssetID(previousDebugMeshID);
+            else
+                m_DebugShape->m_Mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GenerateNewID());
+
             bi.SetShape(
-                mBodyID,
+                m_BodyID,
                 newShapeRef,
                 /*updateMassProperties=*/newMotionType == EMotionType::Dynamic,
                 JPH::EActivation::Activate
             );
 
-            mShape = newShapeRef;
+            m_Shape = newShapeRef;
             shapeType = newShape;
             params = newParams;
         }
@@ -46,7 +56,7 @@ namespace Pulse::Engine::ECS::Components{
         if (newMotionType != motionType)
         {
             bi.SetMotionType(
-                mBodyID,
+                m_BodyID,
                 newMotionType,
                 JPH::EActivation::Activate
             );
@@ -59,9 +69,19 @@ namespace Pulse::Engine::ECS::Components{
     {
         glm::vec3 scale = parent->transform->GetScale();
 
-        if(debugShape) {
-            delete debugShape;
-            debugShape = nullptr;
+        if(m_DebugShape) {
+            if(m_DebugShape->m_Mesh)
+            {
+                uint64_t cmdID =
+                    ((uint64_t)(m_DebugShape->m_Mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
+                    ((uint64_t)(parent->GetComponentIDInLevel(local_id) & 0xFFFFFFFF) << 16) |
+                    ((uint64_t)(0 & 0xFFFF));
+
+                Core::GetEngine().GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
+            }
+
+            delete m_DebugShape;
+            m_DebugShape = nullptr;
         }
 
         switch (shape)
@@ -75,7 +95,7 @@ namespace Pulse::Engine::ECS::Components{
 
                 JPH::SphereShapeSettings s(p->radius * size);
 
-                debugShape = new Rendering::DebugSphere(p->radius, COL_RGBA(0, 1, 1, 1));
+                m_DebugShape = new Rendering::DebugSphere(p->radius, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -90,7 +110,7 @@ namespace Pulse::Engine::ECS::Components{
                     JPH::Vec3(p->halfExtent.x * scale.x, p->halfExtent.y * scale.y, p->halfExtent.z * scale.z)
                 );
 
-                debugShape = new Rendering::DebugBox(p->halfExtent, COL_RGBA(0, 1, 1, 1));
+                m_DebugShape = new Rendering::DebugBox(p->halfExtent, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -103,7 +123,7 @@ namespace Pulse::Engine::ECS::Components{
 
                 JPH::CapsuleShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
 
-                debugShape = new Rendering::DebugCapsule(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
+                m_DebugShape = new Rendering::DebugCapsule(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -116,7 +136,7 @@ namespace Pulse::Engine::ECS::Components{
 
                 JPH::CylinderShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
 
-                debugShape = new Rendering::DebugCylinder(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
+                m_DebugShape = new Rendering::DebugCylinder(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
                 return r.HasError() ? nullptr : r.Get();
@@ -129,12 +149,16 @@ namespace Pulse::Engine::ECS::Components{
 
     void PhysicsBody::CreateBody(Physics::PhysicsShape shape, const InstancedStruct& params, EMotionType motionType)
     {
+        Filesystem::AssetID previousDebugMeshID;
+        if (m_DebugShape && m_DebugShape->m_Mesh)
+            previousDebugMeshID = m_DebugShape->m_Mesh->GetAssetID();
+
         RemoveBody();
 
-        mShape = nullptr;
+        m_Shape = nullptr;
 
-        mShape = CreateJoltShape(shape, params);
-        if (!mShape)
+        m_Shape = CreateJoltShape(shape, params);
+        if (!m_Shape)
             return;
 
         this->shapeType = shape;
@@ -142,7 +166,7 @@ namespace Pulse::Engine::ECS::Components{
         this->motionType = motionType;
 
         JPH::BodyCreationSettings settings(
-            mShape,
+            m_Shape,
             ToJolt(parent->transform->GetPosition()),
             ToJolt(parent->transform->GetRotationQuat()),
             motionType,
@@ -151,7 +175,12 @@ namespace Pulse::Engine::ECS::Components{
                 : Physics::Layers::MOVING
         );
 
-        mBodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
+        m_BodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
+        
+        if (previousDebugMeshID.GetAsInt() != 0)
+            m_DebugShape->m_Mesh->SetAssetID(previousDebugMeshID);
+        else
+            m_DebugShape->m_Mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GenerateNewID());
     }
 
     void PhysicsBody::ApplyTransformToPhysics(float dt)
@@ -166,7 +195,7 @@ namespace Pulse::Engine::ECS::Components{
         else if (motionType == EMotionType::Kinematic)
         {
             bi.MoveKinematic(
-                mBodyID,
+                m_BodyID,
                 ToJolt(parent->transform->GetPosition()),
                 ToJolt(parent->transform->GetRotationQuat()),
                 dt
@@ -175,7 +204,7 @@ namespace Pulse::Engine::ECS::Components{
         else // Dynamic (editor only)
         {
             bi.SetPositionAndRotation(
-                mBodyID,
+                m_BodyID,
                 ToJolt(parent->transform->GetPosition()),
                 ToJolt(parent->transform->GetRotationQuat()),
                 JPH::EActivation::Activate
@@ -187,8 +216,8 @@ namespace Pulse::Engine::ECS::Components{
     {
         auto& bi = Core::GetEngine().GetPhysicsManager()->GetBodyInterface();
 
-        auto pos = bi.GetCenterOfMassPosition(mBodyID);
-        auto rot = bi.GetRotation(mBodyID);
+        auto pos = bi.GetCenterOfMassPosition(m_BodyID);
+        auto rot = bi.GetRotation(m_BodyID);
 
         parent->transform->SetPosition(ToGLM(pos), false);
         parent->transform->SetRotation(ToGLM(rot), false);
@@ -204,10 +233,13 @@ namespace Pulse::Engine::ECS::Components{
         const bool rotDirty   = parent->transform->IsDirty(DirtyFlags::Rotation);
         const bool scaleDirty = parent->transform->IsDirty(DirtyFlags::Scale);
 
+        bool shouldUpdateDrawCmd = false;
+
         if(shouldUpdateShape)
         {
             Update(shapeType, params, motionType, true);
             shouldUpdateShape = false;
+            shouldUpdateDrawCmd = true;
         }
 
         if (!playing)
@@ -217,11 +249,13 @@ namespace Pulse::Engine::ECS::Components{
             if (scaleDirty)
             {
                 Update(shapeType, params, motionType, /*forceRecreation=*/true);
+                shouldUpdateDrawCmd = true;
             }
 
             if (posDirty || rotDirty)
             {
                 ApplyTransformToPhysics(dt);
+                shouldUpdateDrawCmd = true;
             }
         }
         else
@@ -230,11 +264,30 @@ namespace Pulse::Engine::ECS::Components{
             if (motionType == EMotionType::Dynamic)
             {
                 SyncTransformFromPhysics();
+                shouldUpdateDrawCmd = true;
             }
             else if (motionType == EMotionType::Kinematic && (posDirty || rotDirty))
             {
                 ApplyTransformToPhysics(dt);
+                shouldUpdateDrawCmd = true;
             }
+        }
+
+        if(shouldUpdateDrawCmd && m_DebugShape && m_DebugShape->m_Mesh){
+            Rendering::DrawCommand cmd = {};
+
+            cmd.boundsMax = m_DebugShape->m_Mesh->GetBoundsMax();
+            cmd.boundsMin = m_DebugShape->m_Mesh->GetBoundsMin();
+            cmd.indexCount = m_DebugShape->m_Mesh->GetIndexCount();
+            cmd.indexOffset = 0;
+            cmd.material = Core::GetEngine().GetRenderer()->GetDebugMaterial();
+            cmd.mesh = m_DebugShape->m_Mesh;
+            cmd.modelID = parent->GetComponentIDInLevel(local_id);
+            cmd.modelMatrix = parent->transform->GetTransformMatrix();
+            cmd.objectID = parent->GetID().GetAsInt();
+            cmd.vertexCount = m_DebugShape->m_Mesh->GetVertexCount();
+
+            Core::GetEngine().GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
         }
 
         parent->transform->ClearDirty(DirtyFlags::All);
@@ -242,7 +295,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void PhysicsBody::SetPosition(glm::vec3 newPos)
     {
-        if (mBodyID.IsInvalid() || !activated)
+        if (m_BodyID.IsInvalid() || !activated)
             return;
 
         auto physics = Core::GetEngine().GetPhysicsManager();
@@ -257,7 +310,7 @@ namespace Pulse::Engine::ECS::Components{
         if(motionType == EMotionType::Dynamic || motionType == EMotionType::Kinematic){
             // Teleport dynamic/kinematic body
             bi.SetPosition(
-                mBodyID,
+                m_BodyID,
                 newPosition,
                 JPH::EActivation::Activate
             );
@@ -279,7 +332,7 @@ namespace Pulse::Engine::ECS::Components{
     void PhysicsBody::SetRotation(glm::quat newRot)
     {
         
-        if (mBodyID.IsInvalid() || !activated)
+        if (m_BodyID.IsInvalid() || !activated)
             return;
 
         auto physics = Core::GetEngine().GetPhysicsManager();
@@ -291,7 +344,7 @@ namespace Pulse::Engine::ECS::Components{
         JPH::Quat joltRot = ToJolt(newRot);
 
         bi.SetRotation(
-            mBodyID,
+            m_BodyID,
             joltRot,
             JPH::EActivation::Activate
         );
@@ -301,21 +354,37 @@ namespace Pulse::Engine::ECS::Components{
     {
         Component::Activate();
 
-        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().ActivateBody(mBodyID);
+        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().ActivateBody(m_BodyID);
     }
 
     void PhysicsBody::DeActivate()
     {
         Component::DeActivate();
 
-        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().DeactivateBody(mBodyID);
+        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().DeactivateBody(m_BodyID);
     }
 
     void PhysicsBody::RemoveBody()
     {
-        if (!mBodyID.IsInvalid()) {
-            Core::GetEngine().GetPhysicsManager()->RemoveBody(mBodyID);
-            mBodyID = JPH::BodyID();
+        if (!m_BodyID.IsInvalid()) {
+            Core::GetEngine().GetPhysicsManager()->RemoveBody(m_BodyID);
+            m_BodyID = JPH::BodyID();
+        
+            if(m_DebugShape)
+            {
+                if(m_DebugShape->m_Mesh)
+                {
+                    uint64_t cmdID =
+                        ((uint64_t)(m_DebugShape->m_Mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
+                        ((uint64_t)(parent->GetComponentIDInLevel(local_id) & 0xFFFFFFFF) << 16) |
+                        ((uint64_t)(0 & 0xFFFF));
+
+                    Core::GetEngine().GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
+                }
+
+                delete m_DebugShape;
+                m_DebugShape = nullptr;
+            }
         }
     }
 
@@ -542,8 +611,7 @@ namespace Pulse::Engine::ECS::Components{
     std::shared_ptr<Component> PhysicsBody::Clone() const
     {
         auto cloned = Object::Create<PhysicsBody>(*this);
-        cloned->mBodyID = JPH::BodyID();
-        cloned->debugShape = nullptr;
+        cloned->m_BodyID = JPH::BodyID();
         cloned->CreateBody(shapeType, params, motionType);
         return cloned;
     }

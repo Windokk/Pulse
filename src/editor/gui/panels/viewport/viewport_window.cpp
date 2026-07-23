@@ -241,7 +241,9 @@ namespace Pulse::Editor::GUI {
 
         static glm::mat4 gizmoProj = glm::perspective(glm::radians(90.0f), 4/3.0f, 0.01f, 1000.0f);
 
-        glm::mat4 view = camera->GetView();
+        auto cam = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera();
+
+        glm::mat4 view = cam->GetView();
 
         int axis = ImOGuizmo::DrawGizmo(glm::value_ptr(view), glm::value_ptr(gizmoProj), 0.1f);
         if(axis != -1 && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -256,7 +258,7 @@ namespace Pulse::Editor::GUI {
                 case 4: euler = glm::vec3(90, 0, 0); break;
                 case 5: euler = glm::vec3(0, 0, 0); break;
             }
-            cameraActor->transform->SetRotation(glm::quat(glm::radians(euler)));
+            cam->parent->transform->SetRotation(glm::quat(glm::radians(euler)));
 
             pitch = euler.x;
             yaw = euler.y;
@@ -280,10 +282,10 @@ namespace Pulse::Editor::GUI {
         if (!selected)
             return;
             
-        camera->UpdateMatrix();
+        auto cam = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
         ImGuizmo::SetDrawlist();
-        ImGuizmo::SetOrthographic(camera->IsOrthographic());
+        ImGuizmo::SetOrthographic(cam->IsOrthographic());
 
         ImVec2 imageSize = ImVec2(
             viewportImageMax.x - viewportImageMin.x,
@@ -296,8 +298,8 @@ namespace Pulse::Editor::GUI {
             imageSize.x,
             imageSize.y
         );
-        glm::mat4 view = camera->GetView();
-        glm::mat4 proj = camera->GetProjection();
+        glm::mat4 view = cam->GetView();
+        glm::mat4 proj = cam->GetProjection();
 
         glm::mat4 transform = selected->transform->GetTransformMatrix();
 

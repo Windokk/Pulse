@@ -119,8 +119,8 @@ namespace Pulse::Engine::ECS::Components
             template<typename T>
             T& GetShapeParams();
 
-            Rendering::DebugShape* GetDebugShape() { return debugShape; }
-            JPH::BodyID GetBodyID() const { return mBodyID; }
+            Rendering::DebugShape* GetDebugShape() { return m_DebugShape; }
+            JPH::BodyID GetBodyID() const { return m_BodyID; }
             EMotionType GetMotionType() { return motionType; } 
 
             void ForceShapeUpdate(const Physics::PhysicsShape& shape, const InstancedStruct& params, EMotionType motionType);
@@ -144,11 +144,11 @@ namespace Pulse::Engine::ECS::Components
 
             JPH::ShapeRefC CreateJoltShape(Physics::PhysicsShape shape, const InstancedStruct& params);
 
-            JPH::BodyID mBodyID = JPH::BodyID();
+            JPH::BodyID m_BodyID = JPH::BodyID();
 
-            Rendering::DebugShape* debugShape = nullptr;
+            Rendering::DebugShape* m_DebugShape = nullptr;
 
-            JPH::ShapeRefC mShape;
+            JPH::ShapeRefC m_Shape;
             
             DECLARE_DESCRIPTOR(PhysicsBody)
     };

@@ -38,7 +38,9 @@ namespace Pulse::Engine::Rendering {
         std::shared_ptr<Material> material;
         glm::mat4 modelMatrix;
 
+        // Local min bounds
         glm::vec3 boundsMin = glm::vec3(0);
+        // Local max bounds
         glm::vec3 boundsMax = glm::vec3(0);
 
         uint32_t objectID;
@@ -75,6 +77,9 @@ namespace Pulse::Engine::Rendering {
 
             const size_t GetVertexCount() const { return m_VertexCount; }
             const std::vector<uint8_t>& GetVertices() const { return m_Vertices; }
+
+            const glm::vec3 GetBoundsMax() const { return m_BoundsMax; }
+            const glm::vec3 GetBoundsMin() const { return m_BoundsMin; }
 
             std::vector<DrawCommand> CreateDrawCommands(std::shared_ptr<ECS::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats);
 
