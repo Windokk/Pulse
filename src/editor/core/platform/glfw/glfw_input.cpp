@@ -145,9 +145,15 @@ namespace Pulse::Editor::Core {
         return prev && !curr;
     }
     
-    void GLFWInput::SetCursorVisibility(bool visible) const
+    void GLFWInput::SetCursorVisibility(Engine::Core::Platform::CursorVisibility visibility) const
     {
-        glfwSetInputMode(win, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(win, GLFW_CURSOR, visibility == Engine::Core::Platform::CursorVisibility::Visible ? GLFW_CURSOR_NORMAL : (visibility == Engine::Core::Platform::CursorVisibility::Hidden ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_DISABLED));
+        if (visibility == Engine::Core::Platform::CursorVisibility::Disabled && glfwRawMouseMotionSupported()){
+            glfwSetInputMode(win, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
+        else if(glfwRawMouseMotionSupported()){
+            glfwSetInputMode(win, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+        }
     }
 
     void GLFWInput::GetCursorPos(double *x, double *y) const

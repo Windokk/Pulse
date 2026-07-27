@@ -16,6 +16,8 @@ namespace Pulse::Engine::Rendering{
 
             void CopyFrom(std::shared_ptr<Framebuffer> src) override;
 
+            void BlitToScreen(uint32_t screenWidth, uint32_t screenHeight) override;
+
             void ResolveMultisampled() override;
 
             void AttachCubemapArray(uint32_t texture) override;

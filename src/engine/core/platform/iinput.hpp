@@ -7,6 +7,12 @@
 
 namespace Pulse::Engine::Core::Platform {
 
+    enum CursorVisibility{
+        Visible,
+        Hidden,
+        Disabled
+    };
+
     class IInput {
     public:
         virtual ~IInput() = default;
@@ -58,7 +64,7 @@ namespace Pulse::Engine::Core::Platform {
         /// @return True for exactly one tick when the button is initially released; false if held or already released.
         virtual bool WasMouseReleased(Input::MouseButton button) const = 0;
 
-        virtual void SetCursorVisibility(bool visible) const = 0;
+        virtual void SetCursorVisibility(CursorVisibility visible) const = 0;
         virtual void GetCursorPos(double* x, double* y) const = 0;
         virtual void SetCursorPos(double x, double y) const = 0;
     };

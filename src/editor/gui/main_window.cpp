@@ -363,7 +363,7 @@ namespace Pulse::Editor::Core{
 
             renderer->AddRenderPass(outlinePass, "EditorOutlinePass", {});
 
-            Rendering::DrawCommand cmd;
+            Rendering::DrawCommand cmd{};
             cmd.fullscreenTri = true;
             cmd.bindCameraState = false;
             cmd.material = outlineMaterial;
@@ -481,9 +481,7 @@ namespace Pulse::Editor::Core{
             }
         }
 
-        if(viewport->IsHovered()){
-            viewport->ProcessInputs();
-        }
+        viewport->ProcessInputs();
     }
 
     int EditorMainWindow::GetBytesPerPixel() const

@@ -42,6 +42,11 @@ namespace Pulse::Editor::GUI {
 
             std::shared_ptr<IconAtlas> GetIconAtlas() { return iconAtlas; }
 
+            void Shutdown()
+            {
+                iconAtlas.reset();
+            }
+
         private:
             EditorResources() = default;
             ~EditorResources() = default;

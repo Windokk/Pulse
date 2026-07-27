@@ -234,6 +234,23 @@ namespace Pulse::Engine::Rendering{
         );
     }
 
+    void GLFramebuffer::BlitToScreen(uint32_t screenWidth, uint32_t screenHeight)
+    {
+        uint32_t readFBO = m_Specifications.multisampled ? m_ResolveFBO : m_FBO;
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+        glBlitFramebuffer(
+            0, 0, m_Specifications.width, m_Specifications.height,
+            0, 0, screenWidth, screenHeight,
+            GL_COLOR_BUFFER_BIT,
+            GL_LINEAR
+        );
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     void GLFramebuffer::ResolveMultisampled()
     {
         if (!m_Specifications.multisampled) return;

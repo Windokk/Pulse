@@ -12,7 +12,7 @@ file(GLOB_RECURSE EDITOR_SOURCES
 
 add_executable(PulseEditor ${EDITOR_SOURCES})
 
-target_compile_definitions(PulseEditor PRIVATE BUILD_ENGINE)
+target_compile_definitions(PulseEditor PRIVATE BUILD_ENGINE BUILD_EDITOR)
 
 target_include_directories(PulseEditor PRIVATE
   ${CMAKE_SOURCE_DIR}/src/

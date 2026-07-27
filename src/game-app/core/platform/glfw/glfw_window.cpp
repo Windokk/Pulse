@@ -64,6 +64,10 @@ namespace Pulse::Game::Core::Platform{
 
     void Platform::GLFWWindow::SwapBuffers()
     {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        Engine::Core::GetEngine().GetRenderer()->PresentToScreen(width, height);
+
         glfwSwapBuffers(window);
     }
 

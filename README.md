@@ -17,22 +17,25 @@
 <img src=".github/ScreenShot0.png"/>
 <img src=".github/ScreenShot1.png"/>
 
-## Build Requirements (Windows)
-## Build Requirements (Linux)
+## How to use (Linux)
 
-## Build tools :
+// WIP
+
+## How to use (Windows)
+
+### Build tools :
 - CMake 3.28.2 or later
 - C++ 17 Compiler (GCC MinGW recommended)
 
-## Proprietary Dependencies :
-- FMOD API 2.03
+### Proprietary Dependencies :
+- FMOD Core API 2.03.14
 
-## Editor Fonts : (Place both in src/editor/gui/fonts/)
+### Editor Fonts : (Place both in src/editor/gui/fonts/)
 - [OpenSans-Regular.ttf](https://github.com/googlefonts/opensans)
 - [lucide.ttf](https://unpkg.com/lucide-static@latest/font/lucide.ttf)
 
 
-## How to build :
+### How to build :
 
 Place the fonts (.ttf) inside their folder (editor_resources/fonts/)
 
@@ -44,7 +47,7 @@ Drop fmod.dll and glfw3.dll inside the build folder
 
 Drop engine_resources folder and editor_resources folder inside build directory
 
-## How to run :
+### How to run :
 
 This runs the editor, loads the game module, opens the project at "project path" and uses open gl core as the rendering api
 ```bash

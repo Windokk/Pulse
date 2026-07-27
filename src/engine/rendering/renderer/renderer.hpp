@@ -30,7 +30,7 @@ namespace Pulse::Engine::Rendering {
         bool allowResize = true;
         bool allowCulling = true;
         std::vector<DrawCommand> drawList = {};
-        std::unordered_map<uint32_t, size_t> drawCommandsLookup;
+        std::unordered_map<uint64_t, size_t> drawCommandsLookup;
         std::vector<DrawCommand>* externalDrawList = nullptr;
     };
 
@@ -76,6 +76,8 @@ namespace Pulse::Engine::Rendering {
             void RescaleFramebuffers(int newWidth, int newHeight);
 
             uint32_t GetViewportTextureHandle() const { return m_ViewportBuffer->GetResolveColorAttachment(); }
+
+            void PresentToScreen(int screenWidth, int screenHeight) { m_ViewportBuffer->BlitToScreen(screenWidth, screenHeight); }
 
             void ToggleMultisampling(const bool on);
 
@@ -130,7 +132,7 @@ namespace Pulse::Engine::Rendering {
 
             std::shared_ptr<ShadowManager> m_ShadowManager;
             std::vector<DrawCommand> shadowDrawList = {};
-            std::unordered_map<uint32_t, size_t> shadowDrawCommandsLookup;
+            std::unordered_map<uint64_t, size_t> shadowDrawCommandsLookup;
             std::shared_ptr<LightManager> m_LightManager;
 
             std::unordered_map<PipelineSpecifications,std::shared_ptr<Pipeline>,PipelineSpecsHash> m_Pipelines;

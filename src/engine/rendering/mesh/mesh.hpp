@@ -56,6 +56,22 @@ namespace Pulse::Engine::Rendering {
         uint64_t commandID;
     };
 
+    /// @note Combines a mesh asset ID, a component ID and a submesh index into a collision-resistant
+    /// 64-bit key. Do not pack/truncate these values manually - use this everywhere a commandID is built.
+    inline uint64_t MakeCommandID(uint64_t meshAssetID, uint64_t componentID, uint64_t submeshID)
+    {
+        auto hashCombine = [](uint64_t seed, uint64_t v) {
+            seed ^= v + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+            return seed;
+        };
+
+        uint64_t h = 1469598103934665603ULL; // FNV offset basis
+        h = hashCombine(h, meshAssetID);
+        h = hashCombine(h, componentID);
+        h = hashCombine(h, submeshID);
+        return h;
+    }
+
     class Mesh : public std::enable_shared_from_this<Mesh>
     {
         public:

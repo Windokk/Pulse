@@ -2,6 +2,7 @@
 
 #include "engine/ecs/objects/actors/actor.hpp"
 #include "engine/core/engine.hpp"
+#include "engine/rendering/mesh/mesh.hpp"
 
 #include "physics_body.reflection.hpp"
 
@@ -72,10 +73,7 @@ namespace Pulse::Engine::ECS::Components{
         if(m_DebugShape) {
             if(m_DebugShape->m_Mesh)
             {
-                uint64_t cmdID =
-                    ((uint64_t)(m_DebugShape->m_Mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
-                    ((uint64_t)(parent->GetComponentIDInLevel(local_id) & 0xFFFFFFFF) << 16) |
-                    ((uint64_t)(0 & 0xFFFF));
+                uint64_t cmdID = Rendering::MakeCommandID(m_DebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
 
                 Core::GetEngine().GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
             }
@@ -374,10 +372,7 @@ namespace Pulse::Engine::ECS::Components{
             {
                 if(m_DebugShape->m_Mesh)
                 {
-                    uint64_t cmdID =
-                        ((uint64_t)(m_DebugShape->m_Mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
-                        ((uint64_t)(parent->GetComponentIDInLevel(local_id) & 0xFFFFFFFF) << 16) |
-                        ((uint64_t)(0 & 0xFFFF));
+                    uint64_t cmdID = Rendering::MakeCommandID(m_DebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
 
                     Core::GetEngine().GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
                 }

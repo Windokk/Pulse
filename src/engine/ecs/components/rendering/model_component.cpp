@@ -154,6 +154,8 @@ namespace Pulse::Engine::ECS::Components{
         std::shared_ptr<Rendering::Mesh> newMesh = Core::GetEngine().GetResourcesManager()->GetMesh(meshPath);
 
         if(newMesh){
+            if(mesh)
+                RemoveFromDrawList();
             this->mesh = newMesh;
             UpdateReferenceInLevel();
             this->meshID = mesh->GetAssetID();
@@ -173,6 +175,8 @@ namespace Pulse::Engine::ECS::Components{
         if(asset){
             std::string name = asset->baseInfos.nameInProject;
 
+            if(mesh)
+                RemoveFromDrawList();
             this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(name);
             this->Update();
             UpdateReferenceInLevel();
@@ -221,7 +225,9 @@ namespace Pulse::Engine::ECS::Components{
 
             std::vector<std::string> passesName;
             passesName.push_back("ForwardPass");
+#ifdef  BUILD_EDITOR
             passesName.push_back("EditorOutlineMaskPass");
+#endif
 
             Core::GetEngine().GetRenderer()->AddOrUpdateCommands(cmds, passesName, true);
         }
@@ -234,16 +240,14 @@ namespace Pulse::Engine::ECS::Components{
             std::shared_ptr<Transform> tr = parent->transform;
             std::vector<uint64_t> cmdsID;
             for(int i = 0; i < mesh->GetSubMeshes().size(); i++){
-                cmdsID.push_back(
-                            ((uint64_t)(mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
-                            ((uint64_t)(parent->GetComponentIDInLevel(local_id) & 0xFFFFFFFF) << 16) |
-                            ((uint64_t)(i & 0xFFFF)));
+                cmdsID.push_back(Rendering::MakeCommandID(mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), i));
             }
 
             std::vector<std::string> passesName;
             passesName.push_back("ForwardPass");
+#ifdef  BUILD_EDITOR
             passesName.push_back("EditorOutlineMaskPass");
-
+#endif
             Core::GetEngine().GetRenderer()->RemoveCommands(cmdsID, passesName, true);
         }
     }

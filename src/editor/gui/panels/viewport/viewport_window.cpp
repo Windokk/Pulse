@@ -356,7 +356,7 @@ namespace Pulse::Editor::GUI {
         // Display frame metrics
         Engine::Debugging::MinimalStatistics stats = Engine::Core::GetEngine().GetProfiler()->GetStats();
         static Engine::Core::Platform::SystemInfos system;
-
+        
         if(ImGui::GetFrameCount() % 5 == 0)
         {
             system = Engine::Core::GetEngine().GetWindow()->GetSystemInfos();
@@ -435,16 +435,21 @@ namespace Pulse::Editor::GUI {
     }
 
     void ViewportWindow::ProcessInputs()
-    {   
-        if (!viewportFocused && !firstClick) {
-            Engine::Core::GetEngine().GetInputManager()->SetCursorVisibility(true);
+    {
+        Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
+
+        bool isDragging = !firstClick;
+
+        if (!viewportFocused && isDragging) {
+            input->SetCursorVisibility(Engine::Core::Platform::CursorVisibility::Visible);
             firstClick = true;
+            isDragging = false;
         }
 
-        if(!cameraActor || !viewportHovered || uiHovered || ImGuizmo::IsUsing() || isUsingViewGizmo)
-            return;
+        bool canStartInteraction = cameraActor && viewportHovered && !uiHovered && !ImGuizmo::IsUsing() && !isUsingViewGizmo;
 
-        Engine::Core::Platform::IInput* input = Engine::Core::GetEngine().GetInputManager();
+        if (!cameraActor || (!isDragging && !canStartInteraction))
+            return;
 
         Engine::Time::TimeManager* time = Engine::Core::GetEngine().GetTimeManager();
 
@@ -463,19 +468,22 @@ namespace Pulse::Editor::GUI {
         
         if (input->IsMouseDown(Engine::Input::MouseButton::Left))
         {
-            double mouseX, mouseY;
-            input->GetCursorPos(&mouseX, &mouseY);
-
             if (firstClick)
             {
-                lockedMouseX = mouseX;
-                lockedMouseY = mouseY;
+                input->SetCursorVisibility(Engine::Core::Platform::CursorVisibility::Disabled);
+                input->GetCursorPos(&lockedMouseX, &lockedMouseY);
                 firstClickTime = Engine::Core::GetEngine().GetTimeManager()->CurrentAppTime().seconds;
                 firstClick = false;
             }
 
+            double mouseX, mouseY;
+            input->GetCursorPos(&mouseX, &mouseY);
+
             double deltaX = mouseX - lockedMouseX;
-            double deltaY = lockedMouseY - mouseY; // reversed Y
+            double deltaY = lockedMouseY - mouseY;
+
+            lockedMouseX = mouseX;
+            lockedMouseY = mouseY;
 
             pitch += deltaY * mouseSensitivity;
             yaw   -= deltaX * mouseSensitivity;
@@ -489,12 +497,11 @@ namespace Pulse::Editor::GUI {
             glm::quat rotation = qYaw * qPitch;
             
             cameraActor->transform->SetRotation(rotation);
-    
-            // Reset cursor back to locked position every frame
-            input->SetCursorPos(lockedMouseX, lockedMouseY);
         }
         if(input->IsMouseUp(Engine::Input::MouseButton::Left))
         {
+            if (!firstClick)
+                input->SetCursorVisibility(Engine::Core::Platform::CursorVisibility::Visible);
             firstClick = true;
         }
     

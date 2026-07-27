@@ -35,6 +35,9 @@ ordered_json Character::Serialize() {
 }
 
 void Character::OnPlay() {
+    glm::vec3 forward = parent->transform->GetForward();
+    pitch = glm::degrees(asinf(glm::clamp(forward.y, -1.0f, 1.0f)));
+    yaw = glm::degrees(atan2f(-forward.x, -forward.z));
 }
 
 void Character::OnTick() {
@@ -55,7 +58,7 @@ void Character::OnTick() {
 
     if (input->IsMouseDown(Input::MouseButton::Left))
     {
-        input->SetCursorVisibility(false);
+        input->SetCursorVisibility(Pulse::Engine::Core::Platform::CursorVisibility::Disabled);
 
         double mouseX, mouseY;
         input->GetCursorPos(&mouseX, &mouseY);
@@ -89,13 +92,13 @@ void Character::OnTick() {
     if(input->IsMouseUp(Input::MouseButton::Left))
     {
         firstClick = true;
-        input->SetCursorVisibility(true);
+        input->SetCursorVisibility(Pulse::Engine::Core::Platform::CursorVisibility::Visible);
     }
 }
 
 void Character::OnStop()
 {
-    Core::GetEngine().GetInputManager()->SetCursorVisibility(true);
+    Core::GetEngine().GetInputManager()->SetCursorVisibility(Pulse::Engine::Core::Platform::CursorVisibility::Visible);
 }
 
 REGISTER_COMPONENT(Character);

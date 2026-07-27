@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <type_traits>
+#include <unordered_map>
 
 #include "engine/ecs/components/audio/audio_source.hpp"
 #include "engine/ecs/components/rendering/camera.hpp"
@@ -586,9 +587,15 @@ namespace Pulse::Editor::GUI{
             case TypeID::Quat:
             {
                 glm::quat* quat = static_cast<glm::quat*>(value);
-                
-                glm::vec3 vec = glm::degrees(glm::eulerAngles(*quat));
-                
+
+                // Avoid re-decomposing the quat every frame (unstable near gimbal lock); only resync from external changes.
+                static std::unordered_map<void*, glm::vec3> cachedEuler;
+                glm::vec3& vec = cachedEuler[value];
+
+                glm::quat cachedQuat = glm::quat(glm::radians(vec));
+                if (glm::abs(glm::dot(cachedQuat, *quat)) < 0.9999f)
+                    vec = glm::degrees(glm::eulerAngles(*quat));
+
                 if (InputVector3<float>(fieldName, &vec.x, 0.1f, field->min, field->max))
                 {
                     *quat = glm::quat(glm::radians(vec));

@@ -43,8 +43,9 @@ namespace Pulse::Engine::Rendering{
 
             /// @brief Update the active camera
             void Tick(){
-                if(activeCamera != nullptr)
+                if(activeCamera != nullptr){
                     activeCamera->UpdateMatrix();
+                }
             }
 
             /// @brief Get a camera by name

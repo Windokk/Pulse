@@ -257,6 +257,11 @@ namespace Pulse::Engine::Rendering{
 
         shadowDrawCommandsLookup.clear();
         shadowDrawList.clear();
+
+        m_CommandRefCount.clear();
+        m_VerticesCount = 0;
+        m_PrimitivesCount = 0;
+        m_DrawCallsCount = 0;
     }
 
     uint64_t Renderer::GenerateSortKey(const DrawCommand& cmd, const uint32_t submeshID)
@@ -298,6 +303,8 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes, bool addToShadowDrawList)
     {
+        uint32_t newDrawCallsCount = 0;
+
         for(const auto& passName : passes){
             auto pass = m_RenderPasses.find(passName);
 
@@ -308,48 +315,10 @@ namespace Pulse::Engine::Rendering{
                     
                     if(!cmd.fullscreenTri && cmd.mesh)
                     {
-                        assert((cmd.mesh->GetAssetID().GetAsInt() & ~0xFFFF) == 0 && "MeshID exceeds 16 bits");
-                        assert((cmd.modelID & ~0xFFFFFFFFULL)       == 0 && "ModelID exceeds 32 bits");
-                        assert((submeshID & ~0xFFFF)                == 0 && "SubmeshID exceeds 16 bits");
-                        
-                        uint64_t cmdID =
-                            ((uint64_t)(cmd.mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
-                            ((uint64_t)(cmd.modelID & 0xFFFFFFFF) << 16) |
-                            ((uint64_t)(submeshID & 0xFFFF));
-                        cmd.commandID = cmdID;
+                        cmd.commandID = MakeCommandID(cmd.mesh->GetAssetID().GetAsInt(), cmd.modelID, submeshID);
                         cmd.sortKey = GenerateSortKey(cmd, submeshID);
                     }
 
-                    auto& refCount = m_CommandRefCount[cmd.commandID];
-
-                    if (refCount == 0)
-                    {
-                        switch(cmd.material->GetPipeline()->GetSpecifications().topology){
-                            case PrimitiveTopology::Points:
-                                m_PrimitivesCount += cmd.indexCount;
-                                break;
-                            case PrimitiveTopology::Lines:
-                                m_PrimitivesCount += cmd.indexCount / 2;
-                                break;
-                            case PrimitiveTopology::LineStrip:
-                                m_PrimitivesCount += (cmd.indexCount >= 2) ? cmd.indexCount - 1 : 0;
-                                break;
-                            case PrimitiveTopology::TriangleFan:
-                                m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
-                                break;
-                            case PrimitiveTopology::Triangles:
-                                m_PrimitivesCount += cmd.indexCount / 3;
-                                break;
-                            case PrimitiveTopology::TriangleStrip:
-                                m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
-                                break;
-                        }
-
-                        m_VerticesCount += cmd.vertexCount;
-                    }
-
-                    refCount++;
-                
                     auto it = pass->second->drawCommandsLookup.find(cmd.commandID);
 
                     if (it != pass->second->drawCommandsLookup.end())
@@ -358,8 +327,39 @@ namespace Pulse::Engine::Rendering{
                     }
                     else
                     {
+                        auto& refCount = m_CommandRefCount[cmd.commandID];
+
+                        if (refCount == 0)
+                        {
+                            switch(cmd.material->GetPipeline()->GetSpecifications().topology){
+                                case PrimitiveTopology::Points:
+                                    m_PrimitivesCount += cmd.indexCount;
+                                    break;
+                                case PrimitiveTopology::Lines:
+                                    m_PrimitivesCount += cmd.indexCount / 2;
+                                    break;
+                                case PrimitiveTopology::LineStrip:
+                                    m_PrimitivesCount += (cmd.indexCount >= 2) ? cmd.indexCount - 1 : 0;
+                                    break;
+                                case PrimitiveTopology::TriangleFan:
+                                    m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                    break;
+                                case PrimitiveTopology::Triangles:
+                                    m_PrimitivesCount += cmd.indexCount / 3;
+                                    break;
+                                case PrimitiveTopology::TriangleStrip:
+                                    m_PrimitivesCount += (cmd.indexCount >= 3) ? cmd.indexCount - 2 : 0;
+                                    break;
+                            }
+
+                            m_VerticesCount += cmd.vertexCount;
+                        }
+
+                        refCount++;
+
                         pass->second->drawCommandsLookup[cmd.commandID] = pass->second->drawList.size();
                         pass->second->drawList.push_back(cmd);
+                        newDrawCallsCount++;
                     }
                 }
 
@@ -368,7 +368,7 @@ namespace Pulse::Engine::Rendering{
                 DEBUG_WARNING("Tried adding a draw command to a non-registered draw pass. Always register the pass before the draw commands ! passName : ", passName);
             }
         }
-        m_DrawCallsCount += commands.size() * passes.size();
+        m_DrawCallsCount += newDrawCallsCount;
 
         if(addToShadowDrawList)
         {
@@ -378,13 +378,9 @@ namespace Pulse::Engine::Rendering{
                 
                 if(!cmd.fullscreenTri)
                 {
-                    uint64_t cmdID =
-                        ((uint64_t)(cmd.mesh->GetAssetID().GetAsInt() & 0xFFFF) << 48) |
-                        ((uint64_t)(cmd.modelID & 0xFFFFFFFF) << 16) |
-                        ((uint64_t)(submeshID & 0xFFFF));
-                    cmd.commandID = cmdID;
+                    cmd.commandID = MakeCommandID(cmd.mesh->GetAssetID().GetAsInt(), cmd.modelID, submeshID);
                     cmd.sortKey = GenerateSortKey(cmd, submeshID);
-                
+
 
                     auto it = shadowDrawCommandsLookup.find(cmd.commandID);
 
@@ -418,6 +414,8 @@ namespace Pulse::Engine::Rendering{
                     size_t index = it->second;
                     size_t lastIndex = pass->second->drawList.size() - 1;
 
+                    DrawCommand removedCmd = pass->second->drawList[index];
+
                     if (index != lastIndex)
                     {
                         pass->second->drawList[index] = pass->second->drawList[lastIndex];
@@ -431,7 +429,7 @@ namespace Pulse::Engine::Rendering{
 
                         if (refIt->second == 0)
                         {
-                            const DrawCommand& cmd = pass->second->drawList[lastIndex];
+                            const DrawCommand& cmd = removedCmd;
 
                             switch(cmd.material->GetPipeline()->GetSpecifications().topology){
                                 case PrimitiveTopology::Points:
@@ -667,13 +665,20 @@ namespace Pulse::Engine::Rendering{
 
             auto camera = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
+            if(!camera)
+            {
+                DEBUG_ERROR("Failed to find a valid active camera");
+                return;
+            }
+
             if (!drawCmd.material || drawCmd.indexCount <= 0)
                 continue;
 
             if (camera->frustumCulling && worldMin != worldMax && m_CurrentPass->allowCulling)
             {
-                if (!camera->IsInFrustum(worldMin, worldMax))
+                if (!camera->IsInFrustum(worldMin, worldMax)){
                     continue;
+                }
             }
 
             m_RendererAPI->ExecuteDrawCommand(drawCmd, m_CurrentPass);

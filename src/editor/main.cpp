@@ -150,6 +150,8 @@ int main(int argc, char* argv[]) {
 
     //Cleaning
 
+    Pulse::Editor::GUI::EditorResources::Instance().Shutdown();
+
     Core::GetEngine().Destroy();
 
     std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;

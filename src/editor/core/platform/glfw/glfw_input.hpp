@@ -33,7 +33,7 @@ namespace Pulse::Editor::Core
             bool WasMousePressed(Engine::Input::MouseButton button) const override;
             bool WasMouseReleased(Engine::Input::MouseButton button) const override;
 
-            void SetCursorVisibility(bool visible) const override;
+            void SetCursorVisibility(Engine::Core::Platform::CursorVisibility visibility) const override;
             void GetCursorPos(double* x, double* y) const override;
             void SetCursorPos(double x, double y) const override;
 

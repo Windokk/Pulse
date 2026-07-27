@@ -10,7 +10,7 @@ add_executable(PulseGame
 
 set(GLFW_LIB_DIR ${CMAKE_BINARY_DIR})
 
-target_compile_definitions(PulseGame PRIVATE BUILD_ENGINE GLFW_STATIC GLFW_INCLUDE_NONE)
+target_compile_definitions(PulseGame PRIVATE BUILD_ENGINE BUILD_GAME GLFW_STATIC GLFW_INCLUDE_NONE)
 
 target_include_directories(PulseGame PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/third-party/include/

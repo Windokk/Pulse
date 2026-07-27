@@ -53,6 +53,8 @@ namespace Pulse::Engine::Rendering {
 
             virtual void CopyFrom(std::shared_ptr<Framebuffer> src) = 0;
 
+            virtual void BlitToScreen(uint32_t screenWidth, uint32_t screenHeight) = 0;
+
             virtual uint32_t GetColorAttachment() const = 0;
             virtual uint32_t GetDepthAttachment() const = 0;
             virtual uint32_t GetResolveColorAttachment() const = 0;
