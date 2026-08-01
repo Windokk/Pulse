@@ -75,8 +75,9 @@ namespace Pulse::Engine::Levels{
     void DeserializeActor(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
 
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
+            Core::IEngineContext* engine = &Core::GetEngine();
             for (auto& child : actor["children"]) {
-                std::shared_ptr<ECS::Objects::Actor> b = Core::Object::Create<ECS::Objects::Actor>(child["name"]);
+                std::shared_ptr<ECS::Objects::Actor> b = Core::Object::CreateWithContext<ECS::Objects::Actor>(engine, child["name"], engine);
                 a->AddChild(b);
                 DeserializeActor(b, data, child);
             }
@@ -94,9 +95,10 @@ namespace Pulse::Engine::Levels{
 
             name = data["name"];
 
+            Core::IEngineContext* engine = &Core::GetEngine();
             for(auto& actor : data["actors"])
             {
-                std::shared_ptr<ECS::Objects::Actor> a = Core::Object::Create<ECS::Objects::Actor>(actor["name"]);
+                std::shared_ptr<ECS::Objects::Actor> a = Core::Object::CreateWithContext<ECS::Objects::Actor>(engine, actor["name"], engine);
                 AddActor(a);
                 DeserializeActor(a, data, actor);
             }

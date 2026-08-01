@@ -116,7 +116,7 @@ namespace Pulse::Editor::GUI{
 
             if (ImGui::MenuItem("Create Actor"))
             {
-                auto child = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("New Actor");
+                auto child = Engine::Core::Object::CreateWithContext<Engine::ECS::Objects::Actor>(&Engine::Core::GetEngine(), "New Actor", &Engine::Core::GetEngine());
                 actor->AddChild(child);
             }
 

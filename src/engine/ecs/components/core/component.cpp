@@ -1,6 +1,7 @@
 #include "component.hpp"
 
 #include "engine/debugging/logger.hpp"
+#include "engine/ecs/objects/actors/actor.hpp"
 
 namespace Pulse::Engine::ECS::Components {
 
@@ -12,5 +13,10 @@ namespace Pulse::Engine::ECS::Components {
 
     Component::~Component()
     {
+    }
+
+    Core::IEngineContext* Component::GetEngineContext() const
+    {
+        return parent ? parent->GetEngineContext() : nullptr;
     }
 }

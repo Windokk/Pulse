@@ -6,8 +6,13 @@ namespace Pulse::Engine::Core{
 
     void Object::AssignObjectID(std::shared_ptr<Object> obj)
     {
-        obj->id = Core::GetEngine().GetObjectIDManager()->GenerateNewID(); 
-        GetEngine().GetObjectIDManager()->AssignID(obj->id, obj);
+        AssignObjectID(obj, &Core::GetEngine());
+    }
+
+    void Object::AssignObjectID(std::shared_ptr<Object> obj, IEngineContext* engine)
+    {
+        obj->id = engine->GetObjectIDManager()->GenerateNewID();
+        engine->GetObjectIDManager()->AssignID(obj->id, obj);
     }
 
     void Object::Destroy()

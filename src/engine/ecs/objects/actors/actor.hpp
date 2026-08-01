@@ -2,6 +2,8 @@
 
 #include "engine/ecs/objects/level_object.hpp"
 
+#include "engine/core/engine.hpp"
+
 #include "engine/ecs/components/misc/transform.hpp"
 #include "engine/ecs/components/rendering/light_component.hpp"
 #include "engine/ecs/components/physics/physics_body.hpp"
@@ -21,10 +23,13 @@ namespace Pulse::Engine::ECS::Objects{
 
     class Actor : public LevelObject{
         
-        std::vector<std::shared_ptr<Component>> components;        
+        std::vector<std::shared_ptr<Component>> components;
         std::string name;
+        Core::IEngineContext* engine = nullptr;
         public:
-            Actor(std::string name);
+            Actor(std::string name, Core::IEngineContext* engine);
+
+            Core::IEngineContext* GetEngineContext() const { return engine; }
 
             void Init();
 
@@ -149,12 +154,12 @@ namespace Pulse::Engine::ECS::Objects{
             return nullptr;
         }
 
-        std::shared_ptr<T> component = Object::Create<T>(AsShared<Actor>(), components.size());
-
         if (transform != nullptr && IsSubclassOf<Transform, T>()) {
             DEBUG_ERROR("An actor can only have one transform component.");
             return nullptr;
         }
+
+        std::shared_ptr<T> component = Object::CreateWithContext<T>(engine, AsShared<Actor>(), components.size());
 
         components.push_back(component);
 

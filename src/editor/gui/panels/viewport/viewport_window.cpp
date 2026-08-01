@@ -90,7 +90,7 @@ namespace Pulse::Editor::GUI {
     {
         this->parent = parent;
 
-        cameraActor = Engine::Core::Object::Create<Engine::ECS::Objects::Actor>("[EDITOR] Camera");
+        cameraActor = Engine::Core::Object::CreateWithContext<Engine::ECS::Objects::Actor>(&Engine::Core::GetEngine(), "[EDITOR] Camera", &Engine::Core::GetEngine());
         cameraActor->AddComponent<Engine::ECS::Components::Camera>();
         int width = Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth();
         int height = Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight();
@@ -512,7 +512,7 @@ namespace Pulse::Editor::GUI {
                 return;
             }
 
-            Engine::Core::EngineInstance* engine = &Engine::Core::GetEngine();
+            Engine::Core::IEngineContext* engine = &Engine::Core::GetEngine();
 
             ImVec2 mouse = ImGui::GetMousePos();
 

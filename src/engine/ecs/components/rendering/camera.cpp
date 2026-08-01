@@ -31,13 +31,13 @@ namespace Pulse::Engine::ECS::Components {
     void Camera::Destroy()
     {
         if(parent)
-            Core::GetEngine().GetCameraManager()->RemoveCamera(parent->GetID());
+            GetEngineContext()->GetCameraManager()->RemoveCamera(parent->GetID());
     }
 
     void Camera::AddToCameraManager()
     {
         if(parent)
-            Core::GetEngine().GetCameraManager()->AddCamera(parent->GetID(), static_pointer_cast<Camera>(shared_from_this()));
+            GetEngineContext()->GetCameraManager()->AddCamera(parent->GetID(), static_pointer_cast<Camera>(shared_from_this()));
     }
 
     void Camera::UpdateSize(int new_width, int new_height)
@@ -129,8 +129,8 @@ namespace Pulse::Engine::ECS::Components {
             return componentData[key].get<bool>();
         };
 
-        int width  = Core::GetEngine().GetWindow()->GetFramebufferWidth();
-        int height = Core::GetEngine().GetWindow()->GetFramebufferHeight();
+        int width  = GetEngineContext()->GetWindow()->GetFramebufferWidth();
+        int height = GetEngineContext()->GetWindow()->GetFramebufferHeight();
 
         // Required fields validation
         auto nearOpt = getFloat("near");

@@ -88,10 +88,7 @@ namespace Pulse::Engine::Debugging{
         }
 
         inline Logger& GetLogger() {
-            if (!gSharedLoggerPtr){
-                exit(2);
-            }
-            return *gSharedLoggerPtr;
+            return gSharedLoggerPtr ? *gSharedLoggerPtr : Logger::GetInstance();
         }
 
     #elif defined(BUILD_GAME)
@@ -104,10 +101,7 @@ namespace Pulse::Engine::Debugging{
         }
 
         inline Logger& GetLogger() {
-            if (!gSharedLoggerPtr){
-                exit(2);
-            }
-            return *gSharedLoggerPtr;
+            return gSharedLoggerPtr ? *gSharedLoggerPtr : Logger::GetInstance();
         }
     #endif
 

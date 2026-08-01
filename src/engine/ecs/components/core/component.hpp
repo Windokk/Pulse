@@ -11,6 +11,10 @@ using ordered_json = nlohmann::ordered_json;
 
 struct ClassDescriptor;
 
+namespace Pulse::Engine::Core{
+    class IEngineContext;
+}
+
 namespace Pulse::Engine::ECS{
     namespace Objects{
         class Actor;
@@ -29,6 +33,8 @@ namespace Pulse::Engine::ECS{
                 Component(std::shared_ptr<Objects::Actor> parent, uint32_t local_id);
                 virtual ~Component();
                 std::shared_ptr<Objects::Actor> parent = nullptr;
+
+                Core::IEngineContext* GetEngineContext() const;
 
                 /// @brief Activates this component
                 virtual void Activate() { activated = true; }

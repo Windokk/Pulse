@@ -46,7 +46,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->type = (int)type;
 
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
 
         UpdateExposedValues();
     }
@@ -61,7 +61,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->intensity = intensity;
 
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
         
         UpdateExposedValues();
     }
@@ -76,7 +76,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->position = glm::vec4(postion, 0);
 
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
     }
 
     /// @brief Set the light's direction (Only for spot and directionnal lights)
@@ -89,7 +89,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->direction = glm::vec4(glm::normalize(direction), 0);
             
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
     }
     
     /// @brief Set the radius of the light (Only for spot and point lights)
@@ -102,7 +102,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->radius = radius;
         
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
 
         UpdateExposedValues();
     }
@@ -117,7 +117,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->color = glm::vec4((glm::vec3)color, 0);
         
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
 
         UpdateExposedValues();
     }
@@ -132,7 +132,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->outerCutoff = glm::cos(glm::radians(cutoff));
         
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
 
         UpdateExposedValues();
     }
@@ -147,7 +147,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->innerCutoff = glm::cos(glm::radians(cutoff));
         
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
 
         UpdateExposedValues();
     }
@@ -160,8 +160,8 @@ namespace Pulse::Engine::ECS::Components{
             return;
         
         if(parent && parent->level && parent->level->IsLoaded()){
-            Core::GetEngine().GetRenderer()->GetLightManager()->AddLight(index, lightData);
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(index);
+            GetEngineContext()->GetRenderer()->GetLightManager()->AddLight(index, lightData);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(index);
             lightIndex = index;
         }
     }
@@ -176,7 +176,7 @@ namespace Pulse::Engine::ECS::Components{
         lightData->castShadow = castShadows;
         
         if(parent && parent->level && parent->level->IsLoaded())
-            Core::GetEngine().GetRenderer()->GetLightManager()->Update(lightIndex);
+            GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
             
         UpdateExposedValues();
     }
@@ -329,7 +329,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void Light::Destroy()
     {
-        Core::GetEngine().GetRenderer()->GetLightManager()->RemoveLight(lightIndex);
+        GetEngineContext()->GetRenderer()->GetLightManager()->RemoveLight(lightIndex);
     }
 
     std::shared_ptr<Component> Light::Clone() const

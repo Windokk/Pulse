@@ -26,7 +26,7 @@ using namespace Pulse::Engine::Debugging;
 namespace Pulse::Editor {
 
     // GAME MODULE
-    using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*);
+    using GameInitFn = void(*)(IEngineContext*, ECS::Components::ComponentRegistry*);
     using GameRegisterComponentsFn = void(*)();
 
     // PLUGIN MODULE

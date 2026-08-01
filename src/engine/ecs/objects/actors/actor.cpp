@@ -9,7 +9,7 @@ namespace Pulse::Engine::ECS::Objects{
     
     using namespace Components;
 
-    Actor::Actor(std::string name)
+    Actor::Actor(std::string name, Core::IEngineContext* engine) : engine(engine)
     {
         SetName(name);
     }
@@ -67,7 +67,7 @@ namespace Pulse::Engine::ECS::Objects{
 
         if (auto cam = std::dynamic_pointer_cast<Camera>(component)) {
             level->cameras.emplace(GetComponentIDInLevel(cam->GetLocalId()), cam);
-            Core::GetEngine().GetCameraManager()->AddCamera(GetID(), cam);
+            engine->GetCameraManager()->AddCamera(GetID(), cam);
         }
 
         return component;
@@ -89,9 +89,9 @@ namespace Pulse::Engine::ECS::Objects{
             
             if(level->IsLoaded()){
                 int levelBuildIndex = level->GetBuildIndex();
-                int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
+                int levelAssetID = engine->GetAssetIDManager()->GetIDFromNameInProject(engine->GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
-                Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
+                engine->GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                         levelAssetID, Events::DESTROYED, name, GetID()));
             }
         }
@@ -117,22 +117,22 @@ namespace Pulse::Engine::ECS::Objects{
 
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
+            int levelAssetID = engine->GetAssetIDManager()->GetIDFromNameInProject(engine->GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
+            engine->GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::CREATED, name, GetID()));
         }
     }
 
     void Actor::RegisterComponentEvents(const std::shared_ptr<Script>& component){
         
-        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactAddedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactAddedEvent& event) {
+        engine->GetEventDispatcher()->subscribeToComponent<Events::ContactAddedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactAddedEvent& event) {
             component->OnContactAdded(event);
         });
-        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactPersistedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactPersistedEvent& event) {
+        engine->GetEventDispatcher()->subscribeToComponent<Events::ContactPersistedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactPersistedEvent& event) {
             component->OnContactPersisted(event);
         });
-        Core::GetEngine().GetEventDispatcher()->subscribeToComponent<Events::ContactRemovedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactRemovedEvent& event) {
+        engine->GetEventDispatcher()->subscribeToComponent<Events::ContactRemovedEvent>(GetComponentIDInLevel(components.size()-1), [component](const Events::ContactRemovedEvent& event) {
             component->OnContactEnded(event);
         });
     }
@@ -145,9 +145,9 @@ namespace Pulse::Engine::ECS::Objects{
         }
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
+            int levelAssetID = engine->GetAssetIDManager()->GetIDFromNameInProject(engine->GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
+            engine->GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::ACTIVATED, name, GetID()));
         }
     }
@@ -160,16 +160,16 @@ namespace Pulse::Engine::ECS::Objects{
         }
         if(level->IsLoaded()){
             int levelBuildIndex = level->GetBuildIndex();
-            int levelAssetID = Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(Core::GetEngine().GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
+            int levelAssetID = engine->GetAssetIDManager()->GetIDFromNameInProject(engine->GetBuildSettings()->buildIndex[levelBuildIndex].full).GetAsInt();
 
-            Core::GetEngine().GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
+            engine->GetEventDispatcher()->emitGlobal(Events::LevelStructureChangedEvent(
                                                     levelAssetID, Events::DEACTIVATED, name, GetID()));
         }
     }
     
     std::shared_ptr<Actor> Actor::Clone()
     {
-        std::shared_ptr<Actor> copy = Core::Object::Create<Actor>("Copy of "+name);
+        std::shared_ptr<Actor> copy = Core::Object::CreateWithContext<Actor>(engine, "Copy of "+name, engine);
 
         if(level)
             level->transforms.erase(GetComponentIDInLevel(copy->transform->GetLocalId()));
@@ -229,7 +229,7 @@ namespace Pulse::Engine::ECS::Objects{
             }
             else if(std::shared_ptr<Components::Camera> camera = std::dynamic_pointer_cast<Components::Camera>(cloneComp)){
                 level->cameras.emplace(copy->GetComponentIDInLevel(camera->GetLocalId()), camera);
-                Core::GetEngine().GetCameraManager()->AddCamera(copy->GetID(), camera);
+                engine->GetCameraManager()->AddCamera(copy->GetID(), camera);
             }
             else if(std::shared_ptr<Components::Light> light = std::dynamic_pointer_cast<Components::Light>(cloneComp)){
                 light->SetLightIndex(level->lights.size());

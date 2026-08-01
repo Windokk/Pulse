@@ -49,3 +49,6 @@ add_subdirectory(src/engine)
 add_subdirectory(src/game)
 add_subdirectory(src/editor)
 add_subdirectory(src/game-app)
+
+enable_testing()
+add_subdirectory(tests)

@@ -14,7 +14,7 @@ using namespace Pulse::Engine::Debugging;
 #   define API_EXPORT __attribute__((visibility("default")))
 #endif
 
-extern "C" API_EXPORT void InitializeSingletons(Core::EngineInstance* engine, 
+extern "C" API_EXPORT void InitializeSingletons(Core::IEngineContext* engine,
                                                             ComponentRegistry* compReg, Logger* logger) {
     SetEngine(engine);
     SetComponentRegistry(compReg);

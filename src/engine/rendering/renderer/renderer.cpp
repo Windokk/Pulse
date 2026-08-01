@@ -400,6 +400,8 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::RemoveCommands(const std::vector<uint64_t> commandIDs, const std::vector<std::string>& passes, bool removeFromShadowDrawList)
     {
+        size_t removedCount = 0;
+
         for(auto passName : passes){
 
             auto pass = m_RenderPasses.find(passName);
@@ -461,6 +463,8 @@ namespace Pulse::Engine::Rendering{
                     pass->second->drawList.pop_back();
                     pass->second->drawCommandsLookup.erase(it);
 
+                    removedCount++;
+
                 }
             }
             else{
@@ -468,8 +472,8 @@ namespace Pulse::Engine::Rendering{
             }
 
         }
-    
-        m_DrawCallsCount = glm::max((uint32_t)0, (uint32_t)(m_DrawCallsCount - (commandIDs.size() * passes.size())));
+
+        m_DrawCallsCount = (removedCount > m_DrawCallsCount) ? 0 : (m_DrawCallsCount - (uint32_t)removedCount);
 
         if(removeFromShadowDrawList)
         {

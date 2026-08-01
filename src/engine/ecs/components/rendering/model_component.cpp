@@ -99,14 +99,14 @@ namespace Pulse::Engine::ECS::Components{
             for (auto& [slot, path] : parsed)
             {
                 auto material =
-                    Core::GetEngine().GetResourcesManager()->GetMaterial(path);
+                    GetEngineContext()->GetResourcesManager()->GetMaterial(path);
 
                 if (!material)
                 {
                     DEBUG_ERROR("Failed to load material: " + path + ", using fallback");
 
                     material =
-                        Core::GetEngine().GetResourcesManager()->GetMaterial("materials/default.mat");
+                        GetEngineContext()->GetResourcesManager()->GetMaterial("materials/default.mat");
 
                     if (!material)
                     {
@@ -136,10 +136,10 @@ namespace Pulse::Engine::ECS::Components{
 
         comp["active"] = activated;
 
-        comp["mesh"] = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
+        comp["mesh"] = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
 
         for(int i = 0; i < materials.size(); i++){
-            std::string matNameInProject = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.nameInProject;
+            std::string matNameInProject = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.nameInProject;
             comp["materials"][std::to_string(i)] = matNameInProject;
         }
 
@@ -151,7 +151,7 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
         
-        std::shared_ptr<Rendering::Mesh> newMesh = Core::GetEngine().GetResourcesManager()->GetMesh(meshPath);
+        std::shared_ptr<Rendering::Mesh> newMesh = GetEngineContext()->GetResourcesManager()->GetMesh(meshPath);
 
         if(newMesh){
             if(mesh)
@@ -170,14 +170,14 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
 
-        std::shared_ptr<Filesystem::AssetInfos> asset = Core::GetEngine().GetAssetIDManager()->GetAssetFromID(meshID);
+        std::shared_ptr<Filesystem::AssetInfos> asset = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(meshID);
         
         if(asset){
             std::string name = asset->baseInfos.nameInProject;
 
             if(mesh)
                 RemoveFromDrawList();
-            this->mesh = Core::GetEngine().GetResourcesManager()->GetMesh(name);
+            this->mesh = GetEngineContext()->GetResourcesManager()->GetMesh(name);
             this->Update();
             UpdateReferenceInLevel();
             this->meshID = mesh->GetAssetID();
@@ -229,7 +229,7 @@ namespace Pulse::Engine::ECS::Components{
             passesName.push_back("EditorOutlineMaskPass");
 #endif
 
-            Core::GetEngine().GetRenderer()->AddOrUpdateCommands(cmds, passesName, true);
+            GetEngineContext()->GetRenderer()->AddOrUpdateCommands(cmds, passesName, true);
         }
     }
 
@@ -248,7 +248,7 @@ namespace Pulse::Engine::ECS::Components{
 #ifdef  BUILD_EDITOR
             passesName.push_back("EditorOutlineMaskPass");
 #endif
-            Core::GetEngine().GetRenderer()->RemoveCommands(cmdsID, passesName, true);
+            GetEngineContext()->GetRenderer()->RemoveCommands(cmdsID, passesName, true);
         }
     }
 
@@ -271,7 +271,7 @@ namespace Pulse::Engine::ECS::Components{
             Update();
             std::vector<std::shared_ptr<Rendering::Material>> mats = {};
             for(auto matID : materialsID){
-                mats.push_back(Core::GetEngine().GetResourcesManager()->GetMaterial(Core::GetEngine().GetAssetIDManager()->GetAssetFromID(matID)->baseInfos.nameInProject));
+                mats.push_back(GetEngineContext()->GetResourcesManager()->GetMaterial(GetEngineContext()->GetAssetIDManager()->GetAssetFromID(matID)->baseInfos.nameInProject));
             }
             SetMaterials(std::move(mats));
         }

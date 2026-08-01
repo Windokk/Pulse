@@ -15,12 +15,12 @@ namespace Pulse::Engine::ECS::Components{
     void AudioSource::Update()
     {
         if(audioID.IsValid() && activated){
-            Core::GetEngine().GetAudioManager()->UpdateSound(audioID, parent->transform->GetPosition(), volume);
+            GetEngineContext()->GetAudioManager()->UpdateSound(audioID, parent->transform->GetPosition(), volume);
         }
         else{
             if(!path.full.empty() && volume != -1.0f){
-                audioID = Core::GetEngine().GetAudioIDManager()->GenerateNewID();
-                Core::GetEngine().GetAudioManager()->CreateSound(audioID, path, parent->transform->GetPosition());
+                audioID = GetEngineContext()->GetAudioIDManager()->GenerateNewID();
+                GetEngineContext()->GetAudioManager()->CreateSound(audioID, path, parent->transform->GetPosition());
 
             }
         }
@@ -108,17 +108,17 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
 
-        Core::GetEngine().GetAudioManager()->PlaySound(this->audioID, this->volume);
+        GetEngineContext()->GetAudioManager()->PlaySound(this->audioID, this->volume);
     }
 
     void AudioSource::Pause()
     {
-        Core::GetEngine().GetAudioManager()->PauseSound(this->audioID);
+        GetEngineContext()->GetAudioManager()->PauseSound(this->audioID);
     }
 
     void AudioSource::RemoveSound()
     {
-        Core::GetEngine().GetAudioManager()->RemoveSound(this->audioID);
+        GetEngineContext()->GetAudioManager()->RemoveSound(this->audioID);
     }
 
     void AudioSource::OnFieldChanged(const FieldChangedEvent &event)

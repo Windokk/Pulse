@@ -18,7 +18,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const InstancedStruct& newParams, EMotionType newMotionType, bool forceRecreation)
     {
-        auto physics = Core::GetEngine().GetPhysicsManager();
+        auto physics = GetEngineContext()->GetPhysicsManager();
         if (!physics || m_BodyID.IsInvalid())
             return;
 
@@ -39,7 +39,7 @@ namespace Pulse::Engine::ECS::Components{
             if (previousDebugMeshID.GetAsInt() != 0)
                 m_DebugShape->m_Mesh->SetAssetID(previousDebugMeshID);
             else
-                m_DebugShape->m_Mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GenerateNewID());
+                m_DebugShape->m_Mesh->SetAssetID(GetEngineContext()->GetAssetIDManager()->GenerateNewID());
 
             bi.SetShape(
                 m_BodyID,
@@ -75,7 +75,7 @@ namespace Pulse::Engine::ECS::Components{
             {
                 uint64_t cmdID = Rendering::MakeCommandID(m_DebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
 
-                Core::GetEngine().GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
+                GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
             }
 
             delete m_DebugShape;
@@ -173,17 +173,17 @@ namespace Pulse::Engine::ECS::Components{
                 : Physics::Layers::MOVING
         );
 
-        m_BodyID = Core::GetEngine().GetPhysicsManager()->CreateBody(settings, this);
+        m_BodyID = GetEngineContext()->GetPhysicsManager()->CreateBody(settings, this);
         
         if (previousDebugMeshID.GetAsInt() != 0)
             m_DebugShape->m_Mesh->SetAssetID(previousDebugMeshID);
         else
-            m_DebugShape->m_Mesh->SetAssetID(Core::GetEngine().GetAssetIDManager()->GenerateNewID());
+            m_DebugShape->m_Mesh->SetAssetID(GetEngineContext()->GetAssetIDManager()->GenerateNewID());
     }
 
     void PhysicsBody::ApplyTransformToPhysics(float dt)
     {
-        auto& bi = Core::GetEngine().GetPhysicsManager()->GetBodyInterface();
+        auto& bi = GetEngineContext()->GetPhysicsManager()->GetBodyInterface();
 
         if (motionType == EMotionType::Static)
         {
@@ -212,7 +212,7 @@ namespace Pulse::Engine::ECS::Components{
 
     void PhysicsBody::SyncTransformFromPhysics()
     {
-        auto& bi = Core::GetEngine().GetPhysicsManager()->GetBodyInterface();
+        auto& bi = GetEngineContext()->GetPhysicsManager()->GetBodyInterface();
 
         auto pos = bi.GetCenterOfMassPosition(m_BodyID);
         auto rot = bi.GetRotation(m_BodyID);
@@ -226,7 +226,7 @@ namespace Pulse::Engine::ECS::Components{
         if(!activated)
             return;
 
-        const bool playing = Core::GetEngine().IsInPlayMode();
+        const bool playing = GetEngineContext()->IsInPlayMode();
         const bool posDirty   = parent->transform->IsDirty(DirtyFlags::Position);
         const bool rotDirty   = parent->transform->IsDirty(DirtyFlags::Rotation);
         const bool scaleDirty = parent->transform->IsDirty(DirtyFlags::Scale);
@@ -278,14 +278,14 @@ namespace Pulse::Engine::ECS::Components{
             cmd.boundsMin = m_DebugShape->m_Mesh->GetBoundsMin();
             cmd.indexCount = m_DebugShape->m_Mesh->GetIndexCount();
             cmd.indexOffset = 0;
-            cmd.material = Core::GetEngine().GetRenderer()->GetDebugMaterial();
+            cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
             cmd.mesh = m_DebugShape->m_Mesh;
             cmd.modelID = parent->GetComponentIDInLevel(local_id);
             cmd.modelMatrix = parent->transform->GetTransformMatrix();
             cmd.objectID = parent->GetID().GetAsInt();
             cmd.vertexCount = m_DebugShape->m_Mesh->GetVertexCount();
 
-            Core::GetEngine().GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
+            GetEngineContext()->GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
         }
 
         parent->transform->ClearDirty(DirtyFlags::All);
@@ -296,7 +296,7 @@ namespace Pulse::Engine::ECS::Components{
         if (m_BodyID.IsInvalid() || !activated)
             return;
 
-        auto physics = Core::GetEngine().GetPhysicsManager();
+        auto physics = GetEngineContext()->GetPhysicsManager();
         if (!physics)
             return;
 
@@ -333,7 +333,7 @@ namespace Pulse::Engine::ECS::Components{
         if (m_BodyID.IsInvalid() || !activated)
             return;
 
-        auto physics = Core::GetEngine().GetPhysicsManager();
+        auto physics = GetEngineContext()->GetPhysicsManager();
         if (!physics)
             return;
 
@@ -352,20 +352,20 @@ namespace Pulse::Engine::ECS::Components{
     {
         Component::Activate();
 
-        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().ActivateBody(m_BodyID);
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().ActivateBody(m_BodyID);
     }
 
     void PhysicsBody::DeActivate()
     {
         Component::DeActivate();
 
-        Core::GetEngine().GetPhysicsManager()->GetBodyInterface().DeactivateBody(m_BodyID);
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().DeactivateBody(m_BodyID);
     }
 
     void PhysicsBody::RemoveBody()
     {
         if (!m_BodyID.IsInvalid()) {
-            Core::GetEngine().GetPhysicsManager()->RemoveBody(m_BodyID);
+            GetEngineContext()->GetPhysicsManager()->RemoveBody(m_BodyID);
             m_BodyID = JPH::BodyID();
         
             if(m_DebugShape)
@@ -374,7 +374,7 @@ namespace Pulse::Engine::ECS::Components{
                 {
                     uint64_t cmdID = Rendering::MakeCommandID(m_DebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
 
-                    Core::GetEngine().GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
+                    GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
                 }
 
                 delete m_DebugShape;

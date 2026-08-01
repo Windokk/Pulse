@@ -24,7 +24,7 @@ using namespace Pulse::Engine::Debugging;
 namespace Pulse::Game {
 
     //GAME
-    using GameInitFn = void(*)(EngineInstance*, ECS::Components::ComponentRegistry*, Logger*);
+    using GameInitFn = void(*)(IEngineContext*, ECS::Components::ComponentRegistry*, Logger*);
     using GameRegisterComponentsFn = void(*)();
 
     class ModuleLoader {
