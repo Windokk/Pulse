@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-#include "engine/ecs/components/core/registry/component_registry.hpp"
+#include "engine/objects/components/core/registry/component_registry.hpp"
 
 #include "engine/core/engine.hpp"
 
@@ -24,7 +24,7 @@ using namespace Pulse::Engine::Debugging;
 namespace Pulse::Game {
 
     //GAME
-    using GameInitFn = void(*)(IEngineContext*, ECS::Components::ComponentRegistry*, Logger*);
+    using GameInitFn = void(*)(IEngineContext*, Objects::Components::ComponentRegistry*, Logger*);
     using GameRegisterComponentsFn = void(*)();
 
     class ModuleLoader {

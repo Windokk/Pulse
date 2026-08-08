@@ -35,7 +35,7 @@ using namespace JPH::literals;
 
 using namespace std;
 
-namespace Pulse::Engine::ECS::Components{
+namespace Pulse::Engine::Objects::Components{
     class PhysicsBody;
 }
 
@@ -289,7 +289,7 @@ namespace Pulse::Engine::Physics
     struct RaycastResult
     {
         bool hit = false;
-        ECS::Components::PhysicsBody* hitBody = nullptr;
+        Objects::Components::PhysicsBody* hitBody = nullptr;
         float hitDistance = -1.0f;
     };
 
@@ -305,7 +305,7 @@ namespace Pulse::Engine::Physics
 
         void TickBodies(float deltaTime);
 
-        JPH::BodyID CreateBody(const JPH::BodyCreationSettings& settings, ECS::Components::PhysicsBody* component, JPH::EActivation activation = JPH::EActivation::Activate);
+        JPH::BodyID CreateBody(const JPH::BodyCreationSettings& settings, Objects::Components::PhysicsBody* component, JPH::EActivation activation = JPH::EActivation::Activate);
         void RemoveBody(JPH::BodyID id);
 
         JPH::BodyInterface& GetBodyInterface() {
@@ -326,7 +326,7 @@ namespace Pulse::Engine::Physics
         void OnContactPersisted(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings);
         void OnContactRemoved(const SubShapeIDPair &pair);
 
-        std::unordered_map<JPH::BodyID, ECS::Components::PhysicsBody*> bodyIDToComponentMap;
+        std::unordered_map<JPH::BodyID, Objects::Components::PhysicsBody*> bodyIDToComponentMap;
 
         JPH::TempAllocatorImpl* m_tempAllocator;
         JPH::JobSystem* m_jobSystem;

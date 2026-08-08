@@ -3,7 +3,7 @@
 #include "engine/core/platform/iwindow.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/debugging/logger.hpp"
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 
 #include "editor/core/platform/glfw/glfw_input.hpp"
 #include "editor/gui/panels/viewport/viewport_window.hpp"
@@ -76,14 +76,14 @@ namespace Pulse::Editor::Core {
 
         int GetBytesPerPixel() const override;
 
-        void SetSelectedActor(std::shared_ptr<Engine::ECS::Objects::Actor> newPtr){
+        void SetSelectedActor(std::shared_ptr<Engine::Objects::Actor> newPtr){
             this->selectedActor = newPtr;
 
             if(levelTree)
                 levelTree->SetSelection(newPtr);
         }
 
-        std::shared_ptr<Engine::ECS::Objects::Actor> GetSelectedActor(){
+        std::shared_ptr<Engine::Objects::Actor> GetSelectedActor(){
             return selectedActor;
         }
 
@@ -113,6 +113,6 @@ namespace Pulse::Editor::Core {
         GUI::Console* console = nullptr;
         
         // User data
-        std::shared_ptr<Engine::ECS::Objects::Actor> selectedActor = nullptr;
+        std::shared_ptr<Engine::Objects::Actor> selectedActor = nullptr;
     };
 }

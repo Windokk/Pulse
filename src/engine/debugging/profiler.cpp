@@ -10,6 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstring>
 
 #ifdef byte
 #undef byte
@@ -34,28 +35,26 @@ namespace Pulse::Engine::Debugging{
     Profiler::Profiler(){
 
         #ifdef _WIN32
-            std::string counterMBPath = std::string("\\GPU Process Memory(pid_") +
+            // Wildcarded on the "phys_N" suffix so we pick up every physical
+            // adapter (e.g. integrated + discrete) this process has memory on.
+            gpuCounterPathPattern = std::string("\\GPU Process Memory(pid_") +
                                     std::to_string(getpid()) +
-                                    "*)\\Dedicated Usage";
+                                    "_*)\\Dedicated Usage";
 
             fmtValue = new PDH_FMT_COUNTERVALUE;
 
             pdhStatus = PdhOpenQuery(NULL, 0, &hQuery);
             if (pdhStatus != ERROR_SUCCESS)
             {
-                DEBUG_ERROR(L"PdhOpenQuery failed with 0x%x", pdhStatus);
+                DEBUG_ERROR("PdhOpenQuery failed with 0x", std::hex, pdhStatus);
             }
 
-            // Add counters
-            pdhStatus = PdhAddEnglishCounterA(hQuery,
-                counterMBPath.c_str(),
-                0,
-                &hCounter);
-
-            if (pdhStatus != ERROR_SUCCESS)
-            {
-                DEBUG_ERROR(L"PdhAddCounter failed with 0x%x", pdhStatus);
-            }
+            // The "GPU Process Memory" instance for this pid is only created once
+            // this process has actually allocated GPU memory, which hasn't happened
+            // yet at engine startup. Resolving the counter is therefore deferred to
+            // GetGPUMem(), which retries PdhExpandWildCardPath until the instance
+            // shows up (a wildcard passed straight to PdhAddCounter only binds
+            // whatever instance exists at that exact call and is never re-resolved).
         #endif
     }
 
@@ -63,11 +62,60 @@ namespace Pulse::Engine::Debugging{
     {
         #ifdef __WIN32__
             // Windows (PDH)
-            pdhStatus = PdhGetFormattedCounterValue(hCounter, PDH_FMT_DOUBLE, NULL, fmtValue);
-            if (pdhStatus != ERROR_SUCCESS || fmtValue->CStatus != ERROR_SUCCESS)
-                DEBUG_ERROR("PdhGetFormattedCounterValue failed.");
+            if (!gpuCountersBound)
+            {
+                char expandedPaths[4096];
+                DWORD expandedSize = sizeof(expandedPaths);
 
-            return static_cast<float>(fmtValue->doubleValue);
+                PDH_STATUS expandStatus = PdhExpandWildCardPathA(
+                    NULL,
+                    gpuCounterPathPattern.c_str(),
+                    expandedPaths,
+                    &expandedSize,
+                    0);
+
+                if (expandStatus == ERROR_SUCCESS)
+                {
+                    for (const char* path = expandedPaths; *path != '\0'; path += strlen(path) + 1)
+                    {
+                        void* counter = nullptr;
+                        if (PdhAddEnglishCounterA(hQuery, path, 0, &counter) == ERROR_SUCCESS)
+                            gpuCounters.push_back(counter);
+                    }
+
+                    gpuCountersBound = !gpuCounters.empty();
+                }
+
+                // No matching instance yet (process hasn't allocated GPU memory):
+                // report 0 and retry expansion on the next call.
+                if (!gpuCountersBound)
+                    return 0.0f;
+            }
+
+            pdhStatus = PdhCollectQueryData(hQuery);
+            if (pdhStatus != ERROR_SUCCESS)
+            {
+                DEBUG_ERROR("PdhCollectQueryData failed with 0x", std::hex, pdhStatus);
+                return 0.0f;
+            }
+
+            double totalBytes = 0.0;
+            for (void* counter : gpuCounters)
+            {
+                pdhStatus = PdhGetFormattedCounterValue(counter, PDH_FMT_DOUBLE, NULL, fmtValue);
+                if (pdhStatus != ERROR_SUCCESS || fmtValue->CStatus != ERROR_SUCCESS)
+                {
+                    // The instance can disappear (e.g. the app drops all GPU
+                    // allocations); rebind from scratch on the next call.
+                    gpuCountersBound = false;
+                    gpuCounters.clear();
+                    continue;
+                }
+
+                totalBytes += fmtValue->doubleValue;
+            }
+
+            return static_cast<float>(totalBytes);
 
         #elif defined(__unix__)
 
@@ -136,15 +184,8 @@ namespace Pulse::Engine::Debugging{
 
         Core::Platform::SystemInfos infos = Core::GetEngine().GetWindow()->GetSystemInfos();
 
-        #ifdef __WIN32__
+        #if defined(_WIN64) || defined(_WIN32)
         {
-            // Initial sample.
-            pdhStatus = PdhCollectQueryData(hQuery);
-            if (pdhStatus != ERROR_SUCCESS)
-            {
-                DEBUG_ERROR("PdhCollectQueryData (initial) failed with 0x%08x", pdhStatus);
-            }
-
             ret.gpuMemoryMB = GetGPUMem() / (1024 * 1024);
         }
 

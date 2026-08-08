@@ -3,12 +3,12 @@
 #include <iostream>
 #include <algorithm>
 
-#include "engine/ecs/objects/actors/actor.hpp"
-#include "engine/ecs/components/core/registry/component_registry.hpp"
-#include "engine/ecs/components/audio/audio_source.hpp"
+#include "engine/objects/actors/actor.hpp"
+#include "engine/objects/components/core/registry/component_registry.hpp"
+#include "engine/objects/components/audio/audio_source.hpp"
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
-#include "engine/ecs/objects/skybox/skybox.hpp"
+#include "engine/objects/skybox/skybox.hpp"
 #include "engine/rendering/texture/cubemap/envmap.hpp"
 #include "engine/rendering/material/material.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
@@ -22,7 +22,7 @@ namespace Pulse::Engine::Levels{
         this->path = path;
     }
 
-    void DeserializeComponents(std::shared_ptr<ECS::Objects::Actor> a, json actorData){
+    void DeserializeComponents(std::shared_ptr<Objects::Actor> a, json actorData){
         if(!actorData["components"].is_array()){
             DEBUG_ERROR("Couldn't deserialize actor's components as actor[components] is not an array");
             return; 
@@ -35,32 +35,32 @@ namespace Pulse::Engine::Levels{
             const std::string& type = component["type"];
 
             if(type == "transform"){
-                a->GetComponent<ECS::Components::Transform>()->Deserialize(component);
+                a->GetComponent<Objects::Components::Transform>()->Deserialize(component);
             }
             else if(type == "model"){
-                std::shared_ptr<ECS::Components::Model> model = a->AddComponent<ECS::Components::Model>();
+                std::shared_ptr<Objects::Components::Model> model = a->AddComponent<Objects::Components::Model>();
                 model->Deserialize(component);
             }
             else if(type == "light"){
-                std::shared_ptr<ECS::Components::Light> light = a->AddComponent<ECS::Components::Light>();
+                std::shared_ptr<Objects::Components::Light> light = a->AddComponent<Objects::Components::Light>();
                 light->Deserialize(component);
             }
             else if(type == "physics_body"){
-                std::shared_ptr<ECS::Components::PhysicsBody> body = a->AddComponent<ECS::Components::PhysicsBody>();
+                std::shared_ptr<Objects::Components::PhysicsBody> body = a->AddComponent<Objects::Components::PhysicsBody>();
                 body->Deserialize(component);
             }
             else if(type == "camera"){
-                std::shared_ptr<ECS::Components::Camera> cam = a->AddComponent<ECS::Components::Camera>();
+                std::shared_ptr<Objects::Components::Camera> cam = a->AddComponent<Objects::Components::Camera>();
                 cam->Deserialize(component);
             }
             else if(type == "audio"){
-                std::shared_ptr<ECS::Components::AudioSource> audio = a->AddComponent<ECS::Components::AudioSource>();
+                std::shared_ptr<Objects::Components::AudioSource> audio = a->AddComponent<Objects::Components::AudioSource>();
                 audio->Deserialize(component);
             }
             else{
                 //Custom component/Inherited component case
                 //Note : The custom component has to be already registered
-                std::shared_ptr<ECS::Components::Component> rawComponent = Pulse::Engine::ECS::Components::GetComponentRegistry().CreateComponentByName(type);
+                std::shared_ptr<Objects::Components::Component> rawComponent = Pulse::Engine::Objects::Components::GetComponentRegistry().CreateComponentByName(type);
                 if (!rawComponent) {
                     DEBUG_WARNING("Unknown component type: " + type);
                     continue;
@@ -72,12 +72,12 @@ namespace Pulse::Engine::Levels{
         }
     }
 
-    void DeserializeActor(std::shared_ptr<ECS::Objects::Actor> a, json data, json actor){
+    void DeserializeActor(std::shared_ptr<Objects::Actor> a, json data, json actor){
 
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
             Core::IEngineContext* engine = &Core::GetEngine();
             for (auto& child : actor["children"]) {
-                std::shared_ptr<ECS::Objects::Actor> b = Core::Object::CreateWithContext<ECS::Objects::Actor>(engine, child["name"], engine);
+                std::shared_ptr<Objects::Actor> b = Core::Object::CreateWithContext<Objects::Actor>(engine, child["name"], engine);
                 a->AddChild(b);
                 DeserializeActor(b, data, child);
             }
@@ -98,7 +98,7 @@ namespace Pulse::Engine::Levels{
             Core::IEngineContext* engine = &Core::GetEngine();
             for(auto& actor : data["actors"])
             {
-                std::shared_ptr<ECS::Objects::Actor> a = Core::Object::CreateWithContext<ECS::Objects::Actor>(engine, actor["name"], engine);
+                std::shared_ptr<Objects::Actor> a = Core::Object::CreateWithContext<Objects::Actor>(engine, actor["name"], engine);
                 AddActor(a);
                 DeserializeActor(a, data, actor);
             }
@@ -121,7 +121,7 @@ namespace Pulse::Engine::Levels{
 
                     if(shader != nullptr && envMap != nullptr)
                     {
-                        std::shared_ptr<ECS::Objects::Skybox> sb = Core::Object::Create<ECS::Objects::Skybox>(envMap, skyboxMat);
+                        std::shared_ptr<Objects::Skybox> sb = Core::Object::Create<Objects::Skybox>(envMap, skyboxMat);
                         this->skybox = sb;
                     }
                     else{
@@ -136,7 +136,7 @@ namespace Pulse::Engine::Levels{
         }
     }
 
-    void SerializeActor(std::shared_ptr<Pulse::Engine::ECS::Objects::Actor> a, ordered_json* actorsArray){
+    void SerializeActor(std::shared_ptr<Pulse::Engine::Objects::Actor> a, ordered_json* actorsArray){
         
         ordered_json actor;
 
@@ -144,7 +144,7 @@ namespace Pulse::Engine::Levels{
 
         for(auto& childrenID : a->GetChildrenID(false)){
             auto child = a->GetChild(childrenID);
-            SerializeActor(std::dynamic_pointer_cast<ECS::Objects::Actor>(child), &actor["children"]);
+            SerializeActor(std::dynamic_pointer_cast<Objects::Actor>(child), &actor["children"]);
         }
 
         for(auto& comp : a->GetComponents()){
@@ -167,7 +167,7 @@ namespace Pulse::Engine::Levels{
 
         full["name"] = name;
 
-        std::vector<std::pair<Core::ObjectID, std::shared_ptr<ECS::Objects::Actor>>> sortedActors(
+        std::vector<std::pair<Core::ObjectID, std::shared_ptr<Objects::Actor>>> sortedActors(
             rootActors.begin(), rootActors.end()
         );
 
@@ -197,10 +197,10 @@ namespace Pulse::Engine::Levels{
     void Level::RemoveActorRecursive(Core::ObjectID actorID)
     {
         auto objPtr = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(actorID);
-        if (!objPtr && !dynamic_pointer_cast<ECS::Objects::LevelObject>(objPtr))
+        if (!objPtr && !dynamic_pointer_cast<Objects::LevelObject>(objPtr))
             return;
 
-        auto lvlObjPtr = dynamic_pointer_cast<ECS::Objects::LevelObject>(objPtr);
+        auto lvlObjPtr = dynamic_pointer_cast<Objects::LevelObject>(objPtr);
 
         // Copy children IDs FIRST
         std::vector<Core::ObjectID> children;
@@ -214,7 +214,7 @@ namespace Pulse::Engine::Levels{
             RemoveActorRecursive(childID);
 
         // Finally remove this actor
-        auto actorPtr = std::dynamic_pointer_cast<ECS::Objects::Actor>(objPtr);
+        auto actorPtr = std::dynamic_pointer_cast<Objects::Actor>(objPtr);
         if (!actorPtr)
             return;
 
@@ -289,7 +289,7 @@ namespace Pulse::Engine::Levels{
         }
     }
 
-    void Level::AddActor(std::shared_ptr<ECS::Objects::Actor> a)
+    void Level::AddActor(std::shared_ptr<Objects::Actor> a)
     {
         rootActors.emplace(a->GetID(), a);
         a->SetLevel(this);
@@ -301,7 +301,7 @@ namespace Pulse::Engine::Levels{
             rootActors.erase(id);
     }
 
-    std::shared_ptr<ECS::Objects::Actor> Level::GetActor(Core::ObjectID id, bool recursive)
+    std::shared_ptr<Objects::Actor> Level::GetActor(Core::ObjectID id, bool recursive)
     {
         for (auto& [id, actorPtr] : rootActors)
         {
@@ -312,7 +312,7 @@ namespace Pulse::Engine::Levels{
                 std::vector<Core::ObjectID> children = actorPtr->GetChildrenID(true);
 
                 for(auto& _id : children){
-                    std::shared_ptr<ECS::Objects::Actor> child = std::dynamic_pointer_cast<ECS::Objects::Actor>(Core::GetEngine().GetObjectIDManager()->GetObjectFromID(_id));
+                    std::shared_ptr<Objects::Actor> child = std::dynamic_pointer_cast<Objects::Actor>(Core::GetEngine().GetObjectIDManager()->GetObjectFromID(_id));
                     if(_id == id && child){
                         return child;
                     }
@@ -350,31 +350,31 @@ namespace Pulse::Engine::Levels{
         this->name = name;
     }
 
-    void Level::RemoveComponent(const int idInLevel, const std::shared_ptr<ECS::Components::Component> compPtr)
+    void Level::RemoveComponent(const int idInLevel, const std::shared_ptr<Objects::Components::Component> compPtr)
     {
         compPtr->Destroy();
-        if(compPtr->IsInstanceOf<ECS::Components::AudioSource>()){
+        if(compPtr->IsInstanceOf<Objects::Components::AudioSource>()){
             audioSources.erase(idInLevel);
         }
-        else if(compPtr->IsInstanceOf<ECS::Components::Transform>()){
+        else if(compPtr->IsInstanceOf<Objects::Components::Transform>()){
             transforms.erase(idInLevel);
         }
-        else if(compPtr->IsInstanceOf<ECS::Components::PhysicsBody>()){
+        else if(compPtr->IsInstanceOf<Objects::Components::PhysicsBody>()){
             physicsBodies.erase(idInLevel);
         }
-        else if(compPtr->IsInstanceOf<ECS::Components::Camera>()){
+        else if(compPtr->IsInstanceOf<Objects::Components::Camera>()){
             cameras.erase(idInLevel);
         }
-        else if(compPtr->IsInstanceOf<ECS::Components::Script>()){
+        else if(compPtr->IsInstanceOf<Objects::Components::Script>()){
             scripts.erase(idInLevel);
         }
-        else if(compPtr->IsInstanceOf<ECS::Components::Light>()){
+        else if(compPtr->IsInstanceOf<Objects::Components::Light>()){
             int index = lightComps.at(idInLevel)->GetLightIndex();
             std::rotate(lights.begin() + index, lights.begin() + index + 1, lights.end());
             lights.pop_back();
             lightComps.erase(idInLevel);
         }
-        else if(compPtr->IsInstanceOf<ECS::Components::Model>()){
+        else if(compPtr->IsInstanceOf<Objects::Components::Model>()){
             meshes.erase(idInLevel);
         }
         else{

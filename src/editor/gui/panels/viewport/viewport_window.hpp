@@ -1,7 +1,7 @@
 #pragma once
 
 #include "editor/core/platform/glfw/glfw_input.hpp"
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 #include "engine/events/event_system.hpp"
 
 #include "editor/commands/command_stack.hpp"
@@ -50,9 +50,9 @@ namespace Pulse::Editor::GUI {
             bool viewportFocused = false;
 
             // Camera
-            std::shared_ptr<Engine::ECS::Objects::Actor> cameraActor;
+            std::shared_ptr<Engine::Objects::Actor> cameraActor;
 
-            std::shared_ptr<Engine::ECS::Components::Camera> camera;
+            std::shared_ptr<Engine::Objects::Components::Camera> camera;
 
             float speed = 20.0f;
             float pitch = 0.0f;

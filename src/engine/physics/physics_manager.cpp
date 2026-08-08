@@ -2,9 +2,9 @@
 
 #include "engine/levels/level_manager.hpp"
 
-#include "engine/ecs/components/physics/physics_body.hpp"
+#include "engine/objects/components/physics/physics_body.hpp"
 
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 
 #include "engine/core/engine.hpp"
 
@@ -106,20 +106,20 @@ namespace Pulse::Engine::Physics {
 
     void PhysicsManager::OnContactAdded(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings)
     {   
-        ECS::Components::PhysicsBody* comp1 = bodyIDToComponentMap[body1.GetID()];
-        ECS::Components::PhysicsBody* comp2 = bodyIDToComponentMap[body2.GetID()];
+        Objects::Components::PhysicsBody* comp1 = bodyIDToComponentMap[body1.GetID()];
+        Objects::Components::PhysicsBody* comp2 = bodyIDToComponentMap[body2.GetID()];
 
         if(!comp1 || !comp2)
             return;
 
-        for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
+        for(auto& script : comp1->parent->GetComponents<Objects::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInLevel(script->GetLocalId()),
                 Events::ContactAddedEvent(*comp2, contactManifold, contactSettings, Core::ObjectID(0))
             );
         }
 
-        for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
+        for(auto& script : comp2->parent->GetComponents<Objects::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInLevel(script->GetLocalId()),
                 Events::ContactAddedEvent(*comp1, contactManifold, contactSettings, Core::ObjectID(0))
@@ -129,20 +129,20 @@ namespace Pulse::Engine::Physics {
 
     void PhysicsManager::OnContactPersisted(const Body &body1, const Body &body2, const ContactManifold &contactManifold, ContactSettings &contactSettings)
     {
-        ECS::Components::PhysicsBody* comp1 = bodyIDToComponentMap[body1.GetID()];
-        ECS::Components::PhysicsBody* comp2 = bodyIDToComponentMap[body2.GetID()];
+        Objects::Components::PhysicsBody* comp1 = bodyIDToComponentMap[body1.GetID()];
+        Objects::Components::PhysicsBody* comp2 = bodyIDToComponentMap[body2.GetID()];
 
         if(!comp1 || !comp2)
             return;
 
-        for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
+        for(auto& script : comp1->parent->GetComponents<Objects::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInLevel(script->GetLocalId()),
                 Events::ContactPersistedEvent(*comp2, contactManifold, contactSettings, Core::ObjectID(0))
             );
         }
 
-        for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
+        for(auto& script : comp2->parent->GetComponents<Objects::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInLevel(script->GetLocalId()),
                 Events::ContactPersistedEvent(*comp1, contactManifold, contactSettings, Core::ObjectID(0))
@@ -152,20 +152,20 @@ namespace Pulse::Engine::Physics {
     
     void PhysicsManager::OnContactRemoved(const SubShapeIDPair &pair)
     {
-        ECS::Components::PhysicsBody* comp1 = bodyIDToComponentMap[pair.GetBody1ID()];
-        ECS::Components::PhysicsBody* comp2 = bodyIDToComponentMap[pair.GetBody2ID()];
+        Objects::Components::PhysicsBody* comp1 = bodyIDToComponentMap[pair.GetBody1ID()];
+        Objects::Components::PhysicsBody* comp2 = bodyIDToComponentMap[pair.GetBody2ID()];
 
         if(!comp1 || !comp2)
             return;
 
-        for(auto& script : comp1->parent->GetComponents<ECS::Components::Script>()){
+        for(auto& script : comp1->parent->GetComponents<Objects::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInLevel(script->GetLocalId()),
                 Events::ContactRemovedEvent(*comp2, Core::ObjectID(0))
             );
         }
 
-        for(auto& script : comp2->parent->GetComponents<ECS::Components::Script>()){
+        for(auto& script : comp2->parent->GetComponents<Objects::Components::Script>()){
             Core::GetEngine().GetEventDispatcher()->emitToComponent(
                 script->parent->GetComponentIDInLevel(script->GetLocalId()),
                 Events::ContactRemovedEvent(*comp1, Core::ObjectID(0))
@@ -197,7 +197,7 @@ namespace Pulse::Engine::Physics {
         }
     }
 
-    JPH::BodyID PhysicsManager::CreateBody(const JPH::BodyCreationSettings &settings, ECS::Components::PhysicsBody *component, JPH::EActivation activation)
+    JPH::BodyID PhysicsManager::CreateBody(const JPH::BodyCreationSettings &settings, Objects::Components::PhysicsBody *component, JPH::EActivation activation)
     {
         JPH::BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
 
@@ -211,7 +211,7 @@ namespace Pulse::Engine::Physics {
 
         // Add to worlds
         bodyInterface.AddBody(body->GetID(), activation);
-        bodyIDToComponentMap.emplace(body->GetID(), component);
+        bodyIDToComponentMap[body->GetID()] = component;
         return body->GetID();
     }
 
@@ -220,6 +220,7 @@ namespace Pulse::Engine::Physics {
         JPH::BodyInterface& bodyInterface = m_physicsSystem.GetBodyInterface();
         bodyInterface.RemoveBody(id);
         bodyInterface.DestroyBody(id);
+        bodyIDToComponentMap.erase(id);
     }
 
     ValidateResult PhysicsContactListener::OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult)

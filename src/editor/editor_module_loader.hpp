@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-#include "engine/ecs/components/core/registry/component_registry.hpp"
+#include "engine/objects/components/core/registry/component_registry.hpp"
 
 #include "engine/core/engine.hpp"
 
@@ -26,7 +26,7 @@ using namespace Pulse::Engine::Debugging;
 namespace Pulse::Editor {
 
     // GAME MODULE
-    using GameInitFn = void(*)(IEngineContext*, ECS::Components::ComponentRegistry*);
+    using GameInitFn = void(*)(IEngineContext*, Objects::Components::ComponentRegistry*);
     using GameRegisterComponentsFn = void(*)();
 
     // PLUGIN MODULE

@@ -12,7 +12,7 @@
 #include "engine/rendering/texture/cubemap/envmap.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
 
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 
 #include "engine/rendering/backends/opengl/shader/gl_shader.hpp"
 

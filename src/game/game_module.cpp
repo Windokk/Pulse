@@ -1,11 +1,11 @@
-#include "engine/ecs/components/core/registry/component_registration.hpp"
+#include "engine/objects/components/core/registry/component_registration.hpp"
 #include "engine/core/engine.hpp"
 
 #include "character.reflection.hpp"
 
 using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::ECS::Components;
+using namespace Pulse::Engine::Objects::Components;
 using namespace Pulse::Engine::Debugging;
 
 #if defined(_WIN32) || defined(_WIN64)

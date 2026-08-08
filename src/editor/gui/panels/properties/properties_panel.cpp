@@ -9,14 +9,14 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "engine/ecs/components/audio/audio_source.hpp"
-#include "engine/ecs/components/rendering/camera.hpp"
-#include "engine/ecs/components/rendering/model_component.hpp"
-#include "engine/ecs/components/rendering/light_component.hpp"
-#include "engine/ecs/components/physics/physics_body.hpp"
+#include "engine/objects/components/audio/audio_source.hpp"
+#include "engine/objects/components/rendering/camera.hpp"
+#include "engine/objects/components/rendering/model_component.hpp"
+#include "engine/objects/components/rendering/light_component.hpp"
+#include "engine/objects/components/physics/physics_body.hpp"
 
-using namespace Pulse::Engine::ECS::Objects;
-using namespace Pulse::Engine::ECS::Components;
+using namespace Pulse::Engine::Objects;
+using namespace Pulse::Engine::Objects::Components;
 
 namespace Pulse::Editor::GUI{
 
@@ -28,7 +28,7 @@ namespace Pulse::Editor::GUI{
         ImGui::PushID(label);
 
         float lineHeight = ImGui::GetFrameHeight();
-        ImVec2 fieldSize = ImVec2(ImGui::CalcItemWidth() / 4.0f - 4.0f, 0);
+        ImVec2 fieldSize = ImVec2(ImGui::GetContentRegionAvail().x / 4.0f - 4.0f, 0);
 
         const ImU32 colors[4] = {
             IM_COL32(220, 50, 50, 255),   // X - Red
@@ -88,7 +88,7 @@ namespace Pulse::Editor::GUI{
         ImGui::PushID(label);
 
         float lineHeight = ImGui::GetFrameHeight();
-        ImVec2 fieldSize = ImVec2(ImGui::CalcItemWidth() / 3.0f - 4.0f, 0);
+        ImVec2 fieldSize = ImVec2(ImGui::GetContentRegionAvail().x / 3.0f - 4.0f, 0);
 
         const ImU32 colors[3] = {
             IM_COL32(220, 50, 50, 255),   // X - Red
@@ -146,7 +146,7 @@ namespace Pulse::Editor::GUI{
         ImGui::PushID(label);
 
         float lineHeight = ImGui::GetFrameHeight();
-        ImVec2 fieldSize = ImVec2(ImGui::CalcItemWidth() / 2.0f - 4.0f, 0);
+        ImVec2 fieldSize = ImVec2(ImGui::GetContentRegionAvail().x / 2.0f - 4.0f, 0);
 
         const ImU32 colors[2] = {
             IM_COL32(220, 50, 50, 255),   // X - Red
@@ -208,7 +208,7 @@ namespace Pulse::Editor::GUI{
 
         ImGui::PushID(label);
 
-        float cellWidth = ImGui::CalcItemWidth() / C;
+        float cellWidth = ImGui::GetContentRegionAvail().x / C;
         float lineHeight = ImGui::GetFrameHeight();
 
         ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -286,23 +286,23 @@ namespace Pulse::Editor::GUI{
             if (ImGui::BeginPopup("AddComponentPopup")) {
 
                 if (ImGui::MenuItem("Light")) {
-                    actor->AddComponent<Engine::ECS::Components::Light>();
+                    actor->AddComponent<Engine::Objects::Components::Light>();
                 }
 
                 if (ImGui::MenuItem("Camera")) {
-                    actor->AddComponent<Engine::ECS::Components::Camera>();
+                    actor->AddComponent<Engine::Objects::Components::Camera>();
                 }
 
                 if (ImGui::MenuItem("Audio Source")) {
-                    actor->AddComponent<Engine::ECS::Components::AudioSource>();
+                    actor->AddComponent<Engine::Objects::Components::AudioSource>();
                 }
 
                 if (ImGui::MenuItem("Physics Body")) {
-                    actor->AddComponent<Engine::ECS::Components::PhysicsBody>();
+                    actor->AddComponent<Engine::Objects::Components::PhysicsBody>();
                 }
 
                 if (ImGui::MenuItem("Model")) {
-                    actor->AddComponent<Engine::ECS::Components::Model>();
+                    actor->AddComponent<Engine::Objects::Components::Model>();
                 }
 
                 ImGui::EndPopup();
@@ -357,8 +357,8 @@ namespace Pulse::Editor::GUI{
         {
             if (ImGui::BeginTable("##PropertiesTable", 2, ImGuiTableFlags_SizingStretchProp))
             {
-                ImGui::TableSetupColumn("##Property", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-                ImGui::TableSetupColumn("##Value", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("##Property", ImGuiTableColumnFlags_WidthStretch, 90.0f);
+                ImGui::TableSetupColumn("##Value", ImGuiTableColumnFlags_WidthStretch, 90.0f);
 
                 for (FieldInfo* field : desc->fields)
                 {
@@ -385,7 +385,7 @@ namespace Pulse::Editor::GUI{
         }
     }
 
-    void PropertiesPanel::DrawField(const FieldInfo *field, void *value, std::shared_ptr<Engine::ECS::Components::Component> comp, const Container *container, const int valueIndexInContainer)
+    void PropertiesPanel::DrawField(const FieldInfo *field, void *value, std::shared_ptr<Engine::Objects::Components::Component> comp, const Container *container, const int valueIndexInContainer)
     {
         const char * fieldName = field->name;
 
@@ -414,6 +414,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Float:
             {
                 float* v = static_cast<float*>(value);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragFloat(id.c_str(), v, 0.05f, field->min, field->max))
                 {
                     FieldChangedEvent evt{ field };
@@ -424,6 +425,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Double:
             {
                 double* v = static_cast<double*>(value);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragScalar(id.c_str(), ImGuiDataType_Double, v, 0.05f, &field->min, &field->max))
                 {
                     FieldChangedEvent evt{ field };
@@ -435,6 +437,7 @@ namespace Pulse::Editor::GUI{
             {
                 int8_t* v = static_cast<int8_t*>(value);
                 int tmp = static_cast<int>(*v);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragInt(id.c_str(), &tmp, 0.05f, (int8_t)field->min, (int8_t)field->max))
                 {
                     *v = static_cast<int8_t>(tmp);
@@ -447,6 +450,7 @@ namespace Pulse::Editor::GUI{
             {
                 int16_t* v = static_cast<int16_t*>(value);
                 int tmp = static_cast<int>(*v);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, (int16_t)field->min, (int16_t)field->max))
                 {
                     *v = static_cast<int16_t>(tmp);
@@ -458,6 +462,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Int32:
             {
                 int* v = static_cast<int*>(value);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragInt(id.c_str(), v, 0.05f, (int32_t)field->min, (int32_t)field->max))
                 {
                     FieldChangedEvent evt{ field };
@@ -468,6 +473,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::Int64:
             {
                 int64_t* v = static_cast<int64_t*>(value);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragScalar(id.c_str(), ImGuiDataType_S64, v, 0.05f, (int64_t*)&field->min, (int64_t*)&field->max))
                 {
                     FieldChangedEvent evt{ field };
@@ -479,6 +485,7 @@ namespace Pulse::Editor::GUI{
             {
                 uint8_t* v = static_cast<uint8_t*>(value);
                 int tmp = static_cast<int>(*v);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, (uint8_t)field->max))
                 {
                     *v = static_cast<uint8_t>(tmp);
@@ -491,6 +498,7 @@ namespace Pulse::Editor::GUI{
             {
                 uint16_t* v = static_cast<uint16_t*>(value);
                 int tmp = static_cast<int>(*v);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragInt(id.c_str(), &tmp, 1.0f, 0, (uint16_t)field->max))
                 {
                     *v = static_cast<uint16_t>(tmp);
@@ -502,6 +510,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::UInt32:
             {
                 uint32_t* v = static_cast<uint32_t*>(value);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U32, v, 0, (uint32_t*)&field->max))
                 {
                     FieldChangedEvent evt{ field };
@@ -512,6 +521,7 @@ namespace Pulse::Editor::GUI{
             case TypeID::UInt64:
             {
                 uint64_t* v = static_cast<uint64_t*>(value);
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, v, 0, (uint64_t*)&field->max))
                 {
                     FieldChangedEvent evt{ field };
@@ -555,14 +565,18 @@ namespace Pulse::Editor::GUI{
                     }
                 }
 
-                if (asset && ImGui::InputText(id.c_str(), buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+                if (asset)
                 {
-                    if(manager)
+                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
                     {
-                        *static_cast<Filesystem::AssetID*>(value) = manager->GetIDFromNameInProject(buffer);
+                        if(manager)
+                        {
+                            *static_cast<Filesystem::AssetID*>(value) = manager->GetIDFromNameInProject(buffer);
+                        }
+                        FieldChangedEvent evt{ field };
+                        comp->OnFieldChanged(evt);
                     }
-                    FieldChangedEvent evt{ field };
-                    comp->OnFieldChanged(evt);
                 }
                 break;
             }
@@ -576,6 +590,7 @@ namespace Pulse::Editor::GUI{
                     buffer[sizeof(buffer) - 1] = '\0';
                 }
 
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
                 {
                     *str = std::string(buffer);
@@ -613,6 +628,7 @@ namespace Pulse::Editor::GUI{
                 for (auto& e : field->enumDesc->values)
                     items.push_back(e.name);
 
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::Combo(id.c_str(), &current,
                                 items.data(), items.size()))
                 {
@@ -781,6 +797,7 @@ namespace Pulse::Editor::GUI{
             {
                 COL_RGB* v = static_cast<COL_RGB*>(value);
                 static float value[3] = {v->r(), v->g(), v->b()};
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if(ImGui::ColorEdit3(id.c_str(), value)){
 
                     *v = COL_RGB(value[0], value[1], value[2]);
@@ -794,6 +811,7 @@ namespace Pulse::Editor::GUI{
             {
                 COL_RGBA* v = static_cast<COL_RGBA*>(value);
                 static float value[4] = {v->r(), v->g(), v->b(), v->a()};
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if(ImGui::ColorEdit4(id.c_str(), value)){
 
                     *v = COL_RGBA(value[0], value[1], value[2], value[3]);
@@ -812,6 +830,7 @@ namespace Pulse::Editor::GUI{
                 strncpy(buffer, str, sizeof(buffer) - 1);
                 buffer[sizeof(buffer) - 1] = '\0';
 
+                ImGui::SetNextItemWidth(-FLT_MIN);
                 if (ImGui::InputText(id.c_str(), buffer, sizeof(buffer)))
                 {
                     strncpy(str, buffer, 255);

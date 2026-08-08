@@ -8,7 +8,7 @@
 
 // Minimal IEngineContext usable from tests without a real window/GL/audio/physics
 // bootstrap. Only ObjectIDManager and EventDispatcher are backed by real instances,
-// since those are the only subsystems ECS object/component construction depends on
+// since those are the only subsystems Objects object/component construction depends on
 // when no Level is attached. Every other accessor aborts the test loudly instead of
 // silently returning nullptr, so a test that reaches into an unsupported subsystem
 // fails fast with a clear message rather than crashing on a null deref.

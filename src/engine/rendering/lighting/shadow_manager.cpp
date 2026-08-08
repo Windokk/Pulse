@@ -1,6 +1,6 @@
 #include "shadow_manager.hpp"
 
-#include "engine/ecs/components/rendering/camera.hpp"
+#include "engine/objects/components/rendering/camera.hpp"
 
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/material/material.hpp"
@@ -52,7 +52,7 @@ namespace Pulse::Engine::Rendering{
 
     void ShadowManager::UpdatePassUniforms()
     {
-        std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
+        std::shared_ptr<Objects::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
         for(auto& sm : m_ShadowMaps){
 
@@ -110,7 +110,7 @@ namespace Pulse::Engine::Rendering{
 
         std::vector<std::shared_ptr<RenderPass>> passes = {};
 
-        std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
+        std::shared_ptr<Objects::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
         ShadowMap* sm = &m_ShadowMaps[lightIndex];
         LightData light = sm->light;
@@ -386,12 +386,16 @@ namespace Pulse::Engine::Rendering{
                 {
                     sm.resolution = m_DirShadowsResolution;
 
+                    TextureSpecifications dirTextureSpecs = textureSpecs;
+                    dirTextureSpecs.compareMode = TextureCompareMode::CompareRefToTexture;
+                    dirTextureSpecs.compareFunc = TextureCompareFunc::LessOrEqual;
+
                     FramebufferSpecifications specs{};
                     specs.width  = m_DirShadowsResolution;
                     specs.height = m_DirShadowsResolution;
                     specs.hasDepth = true;
                     specs.hasColor = false;
-                    specs.depthSpecs = textureSpecs;
+                    specs.depthSpecs = dirTextureSpecs;
 
                     for (int c = 0; c < CASCADES_PER_LIGHT; ++c) {
                         sm.framebuffer[c] = Framebuffer::Create(specs);
@@ -521,6 +525,11 @@ namespace Pulse::Engine::Rendering{
             --m_PointLightCount;
 
             TryShrinkCubeArray();
+
+            if (removedSM.framebuffer[0] && removedSM.framebuffer[0]->IsValid()) {
+                removedSM.framebuffer[0]->Destroy();
+                removedSM.framebuffer[0].reset();
+            }
         }
 
         for(std::string passName : removedSM.passes){
@@ -538,8 +547,12 @@ namespace Pulse::Engine::Rendering{
         constexpr int MAX_POINT_LIGHTS = 10;
 
         // Bind shadow textures
-        int spotIndex    = 0;
+        int spotIndex = 0;
+        int dirIndex  = 0;
 
+        // NOTE: m_ShadowMaps is an ordered map (keyed by light index), so this iterates
+        // lights in the same ascending order as the light SSBO. The shader's selectCascade()
+        // relies on that to compute "lightIndex * CASCADES_PER_LIGHT" for the correct light.
         for (const auto& sm : m_ShadowMaps)
         {
             const LightData& light = sm.second.light;
@@ -548,28 +561,32 @@ namespace Pulse::Engine::Rendering{
                 continue;
 
             // Directional lights
-            int dirCascadeIndex = 0;
             if (light.type == Directional)
             {
-                for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
+                if (!sm.second.passes.empty())
                 {
-                    material->SetTextureParameter(
-                        "dirShadowMaps[" + std::to_string(dirCascadeIndex) + "]",
-                        sm.second.framebuffer[c]->GetDepthAttachment()
-                    );
+                    int base = dirIndex * CASCADES_PER_LIGHT;
 
-                    material->SetScalarParameter(
-                        "dirLightSpaceMatrices[" + std::to_string(dirCascadeIndex) + "]",
-                        sm.second.lightMatrix[c]
-                    );
+                    for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
+                    {
+                        material->SetTextureParameter(
+                            "dirShadowMaps[" + std::to_string(base + c) + "]",
+                            sm.second.framebuffer[c]->GetDepthAttachment()
+                        );
 
-                    material->SetScalarParameter(
-                        "dirCascadeSplits[" + std::to_string(dirCascadeIndex) + "]",
-                        sm.second.cascadeSplits[c]
-                    );
+                        material->SetScalarParameter(
+                            "dirLightSpaceMatrices[" + std::to_string(base + c) + "]",
+                            sm.second.lightMatrix[c]
+                        );
 
-                    dirCascadeIndex++;
+                        material->SetScalarParameter(
+                            "dirCascadeSplits[" + std::to_string(base + c) + "]",
+                            sm.second.cascadeSplits[c]
+                        );
+                    }
                 }
+
+                ++dirIndex;
             }
             // Spot lights
             else if (light.type == static_cast<int>(LightType::Spot))
@@ -610,6 +627,43 @@ namespace Pulse::Engine::Rendering{
 
     void ShadowManager::ClearAll()
     {
+        // Properly tear down every shadow map's render passes and GPU resources, and
+        // reset all bookkeeping (previous light types, point light count/capacity).
+        //
+        // This matters because callers (e.g. LightManager::RemoveLight) clear all shadow
+        // maps and then re-register every remaining light under its (possibly shifted)
+        // index. If m_PreviousLightTypes isn't reset too, RegisterOrUpdateLight sees the
+        // same type at that index as before and skips rebuilding (needsRebuild == false),
+        // leaving a freshly default-constructed ShadowMap with null framebuffers and
+        // uninitialized light matrices wired into rendering.
+        for (auto& entry : m_ShadowMaps)
+        {
+            ShadowMap& sm = entry.second;
+
+            for (const auto& passName : sm.passes)
+                Core::GetEngine().GetRenderer()->RemoveRenderPass(passName);
+
+            switch (sm.light.type)
+            {
+                case (int)LightType::Directional:
+                    for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
+                        if (sm.framebuffer[c] && sm.framebuffer[c]->IsValid())
+                            sm.framebuffer[c]->Destroy();
+                    break;
+
+                case (int)LightType::Spot:
+                case (int)LightType::Point:
+                    if (sm.framebuffer[0] && sm.framebuffer[0]->IsValid())
+                        sm.framebuffer[0]->Destroy();
+                    break;
+            }
+        }
+
         m_ShadowMaps.clear();
+        m_PreviousLightTypes.clear();
+
+        m_PointLightCount = 0;
+        m_CurrentPointLightCapacity = 0;
+        m_CubeArrayTex.reset();
     }
 }

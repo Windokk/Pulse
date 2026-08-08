@@ -3,16 +3,14 @@
 #include <string>
 
 #include "engine/core/objectID.hpp"
-#include "engine/ecs/components/misc/script.hpp"
-#include "engine/ecs/components/rendering/model_component.hpp"
-#include "engine/ecs/objects/skybox/skybox.hpp"
+#include "engine/objects/components/misc/script.hpp"
+#include "engine/objects/components/rendering/model_component.hpp"
+#include "engine/objects/skybox/skybox.hpp"
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Pulse::Engine::ECS{
+namespace Pulse::Engine::Objects{
 
-    namespace Objects{
-        class Actor;
-    }
+    class Actor;
 
     namespace Components{
         class Light;
@@ -33,7 +31,7 @@ namespace Pulse::Engine::Levels{
 
     class Level{
 
-        std::unordered_map<Core::ObjectID, std::shared_ptr<ECS::Objects::Actor>> rootActors;
+        std::unordered_map<Core::ObjectID, std::shared_ptr<Objects::Actor>> rootActors;
         std::string name;
         
         Filesystem::Path path;
@@ -64,16 +62,16 @@ namespace Pulse::Engine::Levels{
 
             Filesystem::Path GetPath() { return path; }
 
-            void AddActor(std::shared_ptr<ECS::Objects::Actor> a);
+            void AddActor(std::shared_ptr<Objects::Actor> a);
             void RemoveActor(Core::ObjectID id);
-            std::shared_ptr<ECS::Objects::Actor> GetActor(Core::ObjectID id, bool recursive = false);
+            std::shared_ptr<Objects::Actor> GetActor(Core::ObjectID id, bool recursive = false);
             std::vector<Core::ObjectID> GetActorsID(bool recursive = false);
-            std::unordered_map<Core::ObjectID, std::shared_ptr<ECS::Objects::Actor>> GetRootActors() { return rootActors; };
+            std::unordered_map<Core::ObjectID, std::shared_ptr<Objects::Actor>> GetRootActors() { return rootActors; };
 
             const std::string& GetName() const;
             void SetName(const std::string& name);
             
-            void RemoveComponent(const int idInLevel, const std::shared_ptr<ECS::Components::Component> compPtr);
+            void RemoveComponent(const int idInLevel, const std::shared_ptr<Objects::Components::Component> compPtr);
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 this->assetID = assetID;
@@ -90,18 +88,18 @@ namespace Pulse::Engine::Levels{
             void SetLoaded(bool loaded) { this->loaded = loaded; }
 
             float ambientIntensity = 0.2f;
-            std::shared_ptr<ECS::Objects::Skybox> skybox;
+            std::shared_ptr<Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture2D> ibl_texture;
 
             // These are maps for fast lookup (key: id IN LEVEL, value: ptr to the comp)
-            std::vector<std::shared_ptr<ECS::Components::Light>> lights;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::Light>> lightComps;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::Transform>> transforms;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::Model>> models;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::PhysicsBody>> physicsBodies;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::AudioSource>> audioSources;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::Camera>> cameras;
-            std::unordered_map<int, std::shared_ptr<ECS::Components::Script>> scripts;
+            std::vector<std::shared_ptr<Objects::Components::Light>> lights;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::Light>> lightComps;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::Transform>> transforms;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::Model>> models;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::PhysicsBody>> physicsBodies;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::AudioSource>> audioSources;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::Camera>> cameras;
+            std::unordered_map<int, std::shared_ptr<Objects::Components::Script>> scripts;
             std::unordered_map<int, std::pair<glm::mat4, Rendering::Mesh*>> meshes;
             
     };

@@ -9,7 +9,7 @@
 #include <typeindex>
 #include <vector>
 
-namespace Pulse::Engine::ECS::Components{
+namespace Pulse::Engine::Objects::Components{
     class PhysicsBody;
 }
 
@@ -29,25 +29,25 @@ namespace Pulse::Engine::Events {
     };
 
     struct ContactAddedEvent : public Event {
-        const ECS::Components::PhysicsBody& otherBody;
+        const Objects::Components::PhysicsBody& otherBody;
         const ContactManifold &contactManifold;
         ContactSettings &contactSettings;
-        ContactAddedEvent(const ECS::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, Core::ObjectID source)
+        ContactAddedEvent(const Objects::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, Core::ObjectID source)
              : otherBody(b2), contactManifold(manifold), contactSettings(settings), Event(source) {}
     };
 
     struct ContactPersistedEvent : public Event {
-        const ECS::Components::PhysicsBody& otherBody;
+        const Objects::Components::PhysicsBody& otherBody;
         const ContactManifold &contactManifold;
         ContactSettings &contactSettings;
-        ContactPersistedEvent(const ECS::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, Core::ObjectID source)
+        ContactPersistedEvent(const Objects::Components::PhysicsBody& b2, const ContactManifold &manifold, ContactSettings &settings, Core::ObjectID source)
              : otherBody(b2), contactManifold(manifold), contactSettings(settings), Event(source) {}
     };
 
     struct ContactRemovedEvent : public Event {
-        const ECS::Components::PhysicsBody& otherBody;
+        const Objects::Components::PhysicsBody& otherBody;
         ContactRemovedEvent(
-        const ECS::Components::PhysicsBody& b2, Core::ObjectID source) : otherBody(b2), Event(source) {}
+        const Objects::Components::PhysicsBody& b2, Core::ObjectID source) : otherBody(b2), Event(source) {}
     };
 
     enum LevelChangeType{

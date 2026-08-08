@@ -155,14 +155,16 @@ namespace Pulse::Engine::Rendering{
                 ? glm::vec3(1,0,0)
                 : glm::vec3(0,1,0);
 
+            float backoff = radius * 2.0f;
+
             // Build light view
-            glm::vec3 lightPos = center - lightDir * radius;
+            glm::vec3 lightPos = center - lightDir * backoff;
             glm::mat4 lightView = glm::lookAt(lightPos, center, up);
 
             // Build symmetric ortho projection (NO AABB)
             float extent = radius;
             float nearPlane = 0.0f;
-            float farPlane  = radius * 2.0f;
+            float farPlane  = backoff + radius;
 
             glm::mat4 lightProj = glm::ortho(
                 -extent, extent,

@@ -1,6 +1,6 @@
 #include "character.hpp"
 
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 
 #include "engine/core/engine.hpp"
 
@@ -9,7 +9,7 @@
 #include <thread>
 #include <iostream>
 
-#include "engine/ecs/components/misc/script.reflection.hpp"
+#include "engine/objects/components/misc/script.reflection.hpp"
 
 using namespace Pulse::Engine;
 

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "engine/ecs/components/misc/script.hpp"
-#include "engine/ecs/components/core/registry/component_macros.hpp"
+#include "engine/objects/components/misc/script.hpp"
+#include "engine/objects/components/core/registry/component_macros.hpp"
 
 using namespace nlohmann;
 
-class CLASS() Character : public Pulse::Engine::ECS::Components::Script{
+class CLASS() Character : public Pulse::Engine::Objects::Components::Script{
 
     public:
-        Character(std::shared_ptr<Objects::Actor> parent, uint32_t local_id) : Script(parent, local_id){};
+        Character(std::shared_ptr<Actor> parent, uint32_t local_id) : Script(parent, local_id){};
 
         void Deserialize(const json componentData) override;
         ordered_json Serialize() override;

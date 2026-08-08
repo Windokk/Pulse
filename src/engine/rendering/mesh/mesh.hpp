@@ -8,7 +8,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-#include "engine/ecs/components/misc/transform.hpp"
+#include "engine/objects/components/misc/transform.hpp"
 
 #include "engine/rendering/pipeline/pipeline.hpp"
 
@@ -97,7 +97,7 @@ namespace Pulse::Engine::Rendering {
             const glm::vec3 GetBoundsMax() const { return m_BoundsMax; }
             const glm::vec3 GetBoundsMin() const { return m_BoundsMin; }
 
-            std::vector<DrawCommand> CreateDrawCommands(std::shared_ptr<ECS::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats);
+            std::vector<DrawCommand> CreateDrawCommands(std::shared_ptr<Objects::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats);
 
             void SetAssetID(Filesystem::AssetID assetID) {
                 m_AssetID = assetID;

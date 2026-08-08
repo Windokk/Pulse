@@ -52,7 +52,7 @@ Whether you're building a fast-paced action game, a stunning simulation, or a mu
 Here's what you’ll find in the docs:
 
 - [Getting Started](getting-started.md): Install the engine and build your first game.
-- [Core Concepts](../core-concepts.md): ECS, scene management, input, rendering, and more.
+- [Core Concepts](../core-concepts.md): Objects, scene management, input, rendering, and more.
 - [Modules](../modules.md): Learn how rendering, audio, physics, and scripting work.
 - [API Reference](../API-reference.md): Detailed documentation of public classes and methods.
 - [Tutorials](../tutorials.md): Step-by-step guides for common gameplay mechanics.

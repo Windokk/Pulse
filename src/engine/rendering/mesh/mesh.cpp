@@ -4,7 +4,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/core/engine.hpp"
 
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 
 namespace Pulse::Engine::Rendering{
     
@@ -29,7 +29,7 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    std::vector<DrawCommand> Mesh::CreateDrawCommands(std::shared_ptr<ECS::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats)
+    std::vector<DrawCommand> Mesh::CreateDrawCommands(std::shared_ptr<Objects::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats)
     {
         if(mats.size() != m_Submeshes.size() && m_Submeshes.size() != 1){
             DEBUG_ERROR("Cannot create draw command for meshes with different submeshes and materials count");

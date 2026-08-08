@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include "engine/levels/level.hpp"
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 
 #include <memory>
 #include <typeinfo>
@@ -17,13 +17,13 @@ namespace Pulse::Editor::GUI{
     class PropertiesPanel
     {
         public:
-            void Draw(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
+            void Draw(std::shared_ptr<Engine::Objects::Actor> actor);
 
         private:
-            void DrawActorInfo(std::shared_ptr<Engine::ECS::Objects::Actor> actor);
-            void DrawComponent(std::shared_ptr<Engine::ECS::Components::Component> comp);
+            void DrawActorInfo(std::shared_ptr<Engine::Objects::Actor> actor);
+            void DrawComponent(std::shared_ptr<Engine::Objects::Components::Component> comp);
             void DrawField(const FieldInfo* field, void* value,
-                        std::shared_ptr<Engine::ECS::Components::Component> comp,
+                        std::shared_ptr<Engine::Objects::Components::Component> comp,
                         const Container* container = nullptr, const int valueIndexInContainer = -1);
     };
 }

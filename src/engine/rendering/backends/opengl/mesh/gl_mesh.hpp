@@ -27,7 +27,7 @@ namespace Pulse::Engine::Rendering{
 
             void GenerateGLBuffers();
 
-            uint32_t m_VAO, m_VBO, m_EBO = 0;
+            uint32_t m_VAO = 0, m_VBO = 0, m_EBO = 0;
 
     };
 }

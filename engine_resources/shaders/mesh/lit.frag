@@ -110,7 +110,7 @@ float ShadowCalculationDir(sampler2DShadow shadowMap, mat4 lightSpaceMatrix, vec
         return 1.0;
 
     // ----- Slope-scale bias -----
-    float bias = max(0.0005 * (1.0 - dot(normalize(worldNormal), -lightDir)), 0.00005);
+    float bias = max(0.0005 * (1.0 - dot(normalize(worldNormal), lightDir)), 0.00005);
 
     // ----- PCF -----
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));

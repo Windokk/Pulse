@@ -12,7 +12,7 @@
 #include "engine/core/platform/iplatform.hpp"
 #include "engine/time/time_manager.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 #include "engine/audio/audio_manager.hpp"
 
 using namespace std::chrono;

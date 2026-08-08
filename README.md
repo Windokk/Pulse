@@ -37,6 +37,8 @@
 
 ### How to build :
 
+Modify imgui submodule to use our vulkan.h (src/engine/rendering/backends/glad/include/glad/vulkan.h)
+
 Place the fonts (.ttf) inside their folder (editor_resources/fonts/)
 
 Run build.bat or build.sh (depending on your OS)

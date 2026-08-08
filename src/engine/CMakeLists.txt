@@ -7,6 +7,11 @@ file(GLOB_RECURSE ENGINE_SOURCES
 
 add_library(Engine STATIC ${ENGINE_SOURCES})
 
+if(WIN32)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+endif()
+
 set(FMOD_API_DIR "" CACHE PATH "Path to fmod api")
 
 set(COMMON_INCLUDE_DIRS 
@@ -49,6 +54,7 @@ target_compile_definitions(Engine PRIVATE BUILD_ENGINE)
 # Link the necessary libraries based on the platform
 if(WIN32)
   target_link_libraries(Engine PRIVATE freetype Jolt fmod -lz opengl32 gdi32 user32 shell32 advapi32 pdh)
+  target_link_libraries(Engine PUBLIC Threads::Threads)
 elseif(UNIX)
   target_link_libraries(Engine PRIVATE freetype Jolt fmod -lz)
 endif()

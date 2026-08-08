@@ -9,8 +9,8 @@ using namespace Pulse::Engine;
 using namespace Pulse::Engine::Core;
 using namespace Pulse::Engine::Rendering;
 using namespace Pulse::Engine::Input;
-using namespace Pulse::Engine::ECS::Components;
-using namespace Pulse::Engine::ECS::Objects;
+using namespace Pulse::Engine::Objects::Components;
+using namespace Pulse::Engine::Objects;
 
 #include <iostream>
 
@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
         }
 
         initGame(&Core::GetEngine(),
-                 &ECS::Components::GetComponentRegistry());
+                 &Objects::Components::GetComponentRegistry());
 
         auto registerGameComponents = loader.GetSymbol<Pulse::Editor::GameRegisterComponentsFn>("game", "RegisterGameComponents");
         if (!registerGameComponents){

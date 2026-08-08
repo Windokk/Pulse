@@ -2,9 +2,11 @@
 
 #include "light_manager.hpp"
 
+#include <map>
+
 #include <engine/debugging/logger.hpp>
 
-namespace Pulse::Engine::ECS::Components{
+namespace Pulse::Engine::Objects::Components{
     class Camera;
 }
 
@@ -98,7 +100,7 @@ namespace Pulse::Engine::Rendering {
         void EnsureCubeArrayCapacity(int requiredPointLights);
         void TryShrinkCubeArray();
 
-        std::unordered_map<int, ShadowMap> m_ShadowMaps;
+        std::map<int, ShadowMap> m_ShadowMaps;
         std::shared_ptr<CubemapArray> m_CubeArrayTex;
         std::shared_ptr<Shader> m_DirShader;
         std::shared_ptr<Shader> m_SpotShader;

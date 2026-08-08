@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "engine/ecs/objects/actors/actor.hpp"
+#include "engine/objects/actors/actor.hpp"
 #include "engine/levels/level_manager.hpp"
 #include "engine/rendering/utils.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
@@ -11,7 +11,7 @@
 #include "engine/core/engine.hpp"
 #include "engine/debugging/logger.hpp"
 
-#include "engine/ecs/components/audio/audio_source.hpp"
+#include "engine/objects/components/audio/audio_source.hpp"
 
 
 namespace Pulse::Engine::Audio
@@ -166,7 +166,7 @@ namespace Pulse::Engine::Audio
                     source->Update();
                 }
 
-                std::shared_ptr<ECS::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
+                std::shared_ptr<Objects::Components::Camera> cam = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
                 if(cam == nullptr)
                     return;

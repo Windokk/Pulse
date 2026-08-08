@@ -1,7 +1,7 @@
 #pragma once
 
 #include "engine/rendering/utils.hpp"
-#include "engine/ecs/components/rendering/camera.hpp"
+#include "engine/objects/components/rendering/camera.hpp"
 #include "engine/core/objectID.hpp"
 
 #include <string>
@@ -10,7 +10,7 @@
 
 namespace Pulse::Engine::Rendering{
     
-    using namespace ECS::Components;
+    using namespace Objects::Components;
 
     class CameraManager{
         public:

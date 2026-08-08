@@ -8,6 +8,8 @@
 #endif
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace Pulse::Engine::Debugging{
     
@@ -127,7 +129,9 @@ namespace Pulse::Engine::Debugging{
         #ifdef __WIN32__
             void* hQuery = nullptr;
             long pdhStatus;
-            void* hCounter;
+            std::string gpuCounterPathPattern;
+            std::vector<void*> gpuCounters;
+            bool gpuCountersBound = false;
             PDH_FMT_COUNTERVALUE* fmtValue;
         #endif
     };

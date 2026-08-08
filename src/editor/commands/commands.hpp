@@ -8,10 +8,10 @@
 
 #include "engine/core/reflection_fields.hpp"
 
-#include "engine/ecs/components/misc/transform.hpp"
+#include "engine/objects/components/misc/transform.hpp"
 #include <glm/gtx/string_cast.hpp>
 
-using namespace Pulse::Engine::ECS::Components;
+using namespace Pulse::Engine::Objects::Components;
 
 namespace Pulse::Editor::Commands{
 

@@ -2,7 +2,7 @@
 
 #include "engine/core/engine.hpp"
 #include "engine/core/platform/iplatform.hpp"
-#include "engine/ecs/components/misc/transform.reflection.hpp"
+#include "engine/objects/components/misc/transform.reflection.hpp"
 
 #include "editor/gui/IconsLucide.h"
 #include "editor/gui/main_window.hpp"
@@ -26,7 +26,8 @@ namespace Pulse::Editor::GUI {
     {
         ImGui::Begin("Viewport");
         
-        ImGui::BeginChild("ToolbarArea", ImVec2(0, 26), false, ImGuiWindowFlags_NoScrollbar);
+        float toolbarHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().WindowPadding.y * 2;
+        ImGui::BeginChild("ToolbarArea", ImVec2(0, toolbarHeight), false, ImGuiWindowFlags_NoScrollbar);
         DrawToolbar();
         ImGui::EndChild();
         
@@ -90,17 +91,17 @@ namespace Pulse::Editor::GUI {
     {
         this->parent = parent;
 
-        cameraActor = Engine::Core::Object::CreateWithContext<Engine::ECS::Objects::Actor>(&Engine::Core::GetEngine(), "[EDITOR] Camera", &Engine::Core::GetEngine());
-        cameraActor->AddComponent<Engine::ECS::Components::Camera>();
+        cameraActor = Engine::Core::Object::CreateWithContext<Engine::Objects::Actor>(&Engine::Core::GetEngine(), "[EDITOR] Camera", &Engine::Core::GetEngine());
+        cameraActor->AddComponent<Engine::Objects::Components::Camera>();
         int width = Engine::Core::GetEngine().GetWindow()->GetFramebufferWidth();
         int height = Engine::Core::GetEngine().GetWindow()->GetFramebufferHeight();
-        cameraActor->GetComponent<Engine::ECS::Components::Camera>()->Init(width, height, 0.1f, 100.0f, 60, false, 10);
-        Engine::Core::GetEngine().GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::ECS::Components::Camera>());
+        cameraActor->GetComponent<Engine::Objects::Components::Camera>()->Init(width, height, 0.1f, 100.0f, 60, false, 10);
+        Engine::Core::GetEngine().GetCameraManager()->AddCamera(cameraActor->GetID(), cameraActor->GetComponent<Engine::Objects::Components::Camera>());
         Engine::Core::GetEngine().GetCameraManager()->SetActiveCamera(cameraActor->GetID());
 
         cameraActor->transform->SetPosition(glm::vec3(10, 0, 0));
 
-        camera = cameraActor->GetComponent<Engine::ECS::Components::Camera>();
+        camera = cameraActor->GetComponent<Engine::Objects::Components::Camera>();
 
         camera->UpdateMatrix();
     }
@@ -177,7 +178,7 @@ namespace Pulse::Editor::GUI {
         float frameStatsWidth = ImGui::CalcTextSize(ICON_LC_CHART_PIE).x + ImGui::GetStyle().FramePadding.x * 2;
         float cameraWidth = ImGui::CalcTextSize(ICON_LC_CAMERA).x + ImGui::GetStyle().FramePadding.x * 2;
         float eyeWidth = ImGui::CalcTextSize(ICON_LC_EYE_OFF).x + ImGui::GetStyle().FramePadding.x * 2;
-        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + eyeWidth + 4); // 4px spacing
+        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + eyeWidth + 4); // spacing
         ImGui::SetCursorPosX(rightX);
 
         // Frame Stats Button
@@ -394,7 +395,7 @@ namespace Pulse::Editor::GUI {
     void ViewportWindow::ShowCamSettings(){
         
         ImGui::Begin("Scene Camera", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
-        std::shared_ptr<Engine::ECS::Components::Camera> cam = cameraActor->GetComponent<Engine::ECS::Components::Camera>();
+        std::shared_ptr<Engine::Objects::Components::Camera> cam = cameraActor->GetComponent<Engine::Objects::Components::Camera>();
 
         // Rendering stats
         ImGui::Text("Camera width : %f px", cam->GetSize().x);

@@ -4,6 +4,8 @@
 
 #include "engine/rendering/shader/shader.hpp"
 
+#include <algorithm>
+
 #include <glm/gtx/string_cast.hpp>
 
 struct Vertex {
@@ -107,6 +109,26 @@ namespace Pulse::Engine::Rendering{
         m_VertexCount = vertices.size() / layout.GetStride();
 
         m_VertexLayout = layout;
+
+        m_BoundsMin = glm::vec3(std::numeric_limits<float>::max());
+        m_BoundsMax = glm::vec3(std::numeric_limits<float>::lowest());
+
+        uint32_t stride = layout.GetStride();
+        auto posIt = std::find_if(layout.GetElements().begin(), layout.GetElements().end(),
+            [](const VertexElement& e) { return e.name == "aPos"; });
+
+        if (posIt != layout.GetElements().end() && stride > 0)
+        {
+            uint32_t posOffset = posIt->offset;
+            for (size_t i = 0; i < m_VertexCount; i++)
+            {
+                glm::vec3 pos;
+                memcpy(&pos, vertices.data() + i * stride + posOffset, sizeof(glm::vec3));
+
+                m_BoundsMin = glm::min(m_BoundsMin, pos);
+                m_BoundsMax = glm::max(m_BoundsMax, pos);
+            }
+        }
 
         GenerateGLBuffers();
     }

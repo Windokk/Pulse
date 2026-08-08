@@ -279,6 +279,14 @@ namespace Pulse::Engine::Rendering{
 
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
+
+        if (texture != 0) {
+            GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            if (status != GL_FRAMEBUFFER_COMPLETE)
+                DEBUG_ERROR("Framebuffer error (", m_FBO, ") after AttachCubemapArray : status 0x", std::hex, status, std::dec);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void GLFramebuffer::DetachCubemapArray()

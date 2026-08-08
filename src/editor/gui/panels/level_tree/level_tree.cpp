@@ -52,7 +52,7 @@ namespace Pulse::Editor::GUI{
         this->parent = parent;
     }
 
-    void LevelTree::SetSelection(std::shared_ptr<Engine::ECS::Objects::Actor> actor)
+    void LevelTree::SetSelection(std::shared_ptr<Engine::Objects::Actor> actor)
     {
         if (actor)
         {
@@ -64,7 +64,7 @@ namespace Pulse::Editor::GUI{
         }
     }
 
-    void LevelTree::DrawActorNode(std::shared_ptr<Engine::ECS::Objects::Actor> actor)
+    void LevelTree::DrawActorNode(std::shared_ptr<Engine::Objects::Actor> actor)
     {
         ImGuiTreeNodeFlags flags =
             ImGuiTreeNodeFlags_OpenOnArrow |
@@ -116,7 +116,7 @@ namespace Pulse::Editor::GUI{
 
             if (ImGui::MenuItem("Create Actor"))
             {
-                auto child = Engine::Core::Object::CreateWithContext<Engine::ECS::Objects::Actor>(&Engine::Core::GetEngine(), "New Actor", &Engine::Core::GetEngine());
+                auto child = Engine::Core::Object::CreateWithContext<Engine::Objects::Actor>(&Engine::Core::GetEngine(), "New Actor", &Engine::Core::GetEngine());
                 actor->AddChild(child);
             }
 
@@ -160,7 +160,7 @@ namespace Pulse::Editor::GUI{
             for (auto childID : actor->GetChildrenID(false))
             {
                 auto obj = actor->GetChild(childID);
-                auto child = std::dynamic_pointer_cast<Engine::ECS::Objects::Actor>(obj);
+                auto child = std::dynamic_pointer_cast<Engine::Objects::Actor>(obj);
                 if (child)
                     DrawActorNode(child);
             }

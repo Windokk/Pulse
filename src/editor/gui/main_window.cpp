@@ -22,7 +22,7 @@
 #include "engine/core/engine.hpp"
 
 namespace Pulse::Editor::Core{
-    
+
     void SetupImGuiStyle()
     {
         // Pulse style from ImThemes
@@ -292,7 +292,8 @@ namespace Pulse::Editor::Core{
         Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
 
         // Wait for viewport size to be initialized
-        if(!renderPassesInitialized && viewport->GetViewportSize() != glm::vec2(50,50)){
+        if(!renderPassesInitialized && viewport->GetViewportSize() != glm::vec2(50,50)
+            && viewport->GetViewportSize().x > 0 && viewport->GetViewportSize().y > 0){
         
             /// Outline mask pass
 
