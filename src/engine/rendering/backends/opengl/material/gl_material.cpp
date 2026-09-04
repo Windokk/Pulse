@@ -4,6 +4,7 @@
 #include "engine/rendering/backends/opengl/pipeline/gl_pipeline.hpp"
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/backends/opengl/shader/gl_shader.hpp"
+#include "engine/rendering/backends/opengl/texture/gl_texture.hpp"
 
 #include "engine/debugging/logger.hpp"
 #include "engine/core/engine.hpp"
@@ -124,6 +125,15 @@ namespace Pulse::Engine::Rendering{
         return std::nullopt;
     }
 
+    uint64_t GLMaterial::GetTextureParameter(const std::string& name) const
+    {
+        auto it = m_SamplersParameters.find(name);
+        if (it == m_SamplersParameters.end())
+            return 0;
+
+        return GLTexture2D::GetBindlessHandle(it->second);
+    }
+
     uint32_t GLMaterial::GetTexturesCount() const
     {
         return (uint32_t)m_SamplersParameters.size();
@@ -153,7 +163,7 @@ namespace Pulse::Engine::Rendering{
 
     bool IsGlobalSampler(const std::string& name)
     {
-        return StartsWith(name,"ibl_");
+        return StartsWith(name,"ibl_") || StartsWith(name,"ddgi_");
     }
 
     void GLMaterial::Bind()
@@ -161,7 +171,7 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<GLShader> glShader = std::static_pointer_cast<GLShader>(m_Shader);
         glShader->Bind();
 
-        std::unordered_map<std::string, Pulse::Engine::Rendering::SamplerInfo> samplers = glShader->GetActiveSamplersMap();
+        const auto& samplers = glShader->GetActiveSamplersMap();
 
         for (auto& [name, samplerInfo] : samplers)
         {
@@ -170,7 +180,7 @@ namespace Pulse::Engine::Rendering{
 
             GLuint texture = m_SamplersParameters.find(name) != m_SamplersParameters.end() ? m_SamplersParameters[name] : GetDefaultTexture(name);
 
-            glBindTextureUnit(samplerInfo.binding, texture);
+            GLStateCache::BindTextureUnit(samplerInfo.binding, texture);
         }
 
         for (auto& [name, value] : m_ScalarParameters)

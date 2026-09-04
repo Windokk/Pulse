@@ -160,6 +160,7 @@ namespace Pulse::Engine::Filesystem{
             {".ttf", Type::T_FONT}, {".otf", Type::T_FONT}, {".fnt", Type::T_FONT},
             // Shader formats
             {".geom", Type::T_SHADER}, {".frag", Type::T_SHADER}, {".vert", Type::T_SHADER},
+            {".comp", Type::T_COMPUTE_SHADER},
             // Text formats
             {".txt", Type::T_TEXT}, {".md", Type::T_TEXT},
             // Script formats

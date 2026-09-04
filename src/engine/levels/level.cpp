@@ -12,6 +12,7 @@
 #include "engine/rendering/texture/cubemap/envmap.hpp"
 #include "engine/rendering/material/material.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
+#include "engine/rendering/renderer/renderer.hpp"
 
 namespace Pulse::Engine::Levels{
 
@@ -57,6 +58,10 @@ namespace Pulse::Engine::Levels{
                 std::shared_ptr<Objects::Components::AudioSource> audio = a->AddComponent<Objects::Components::AudioSource>();
                 audio->Deserialize(component);
             }
+            else if(type == "probeVolume"){
+                std::shared_ptr<Objects::Components::ProbeVolume> probeVolume = a->AddComponent<Objects::Components::ProbeVolume>();
+                probeVolume->Deserialize(component);
+            }
             else{
                 //Custom component/Inherited component case
                 //Note : The custom component has to be already registered
@@ -84,6 +89,66 @@ namespace Pulse::Engine::Levels{
         }
 
         DeserializeComponents(a, actor);
+    }
+
+    static void CollectActorAssetRefs(const json& actor, LevelAssetManifest& manifest){
+
+        if (actor.contains("children") && actor["children"].is_array()) {
+            for (auto& child : actor["children"]) {
+                CollectActorAssetRefs(child, manifest);
+            }
+        }
+
+        if (!actor.contains("components") || !actor["components"].is_array())
+            return;
+
+        for (auto& component : actor["components"]) {
+
+            if (!component.contains("type") || !component["type"].is_string())
+                continue;
+
+            const std::string& type = component["type"];
+
+            if (type == "model") {
+                if (component.contains("mesh") && component["mesh"].is_string())
+                    manifest.meshPathsInProject.push_back(component["mesh"].get<std::string>());
+
+                if (component.contains("materials") && component["materials"].is_object()) {
+                    for (auto it = component["materials"].begin(); it != component["materials"].end(); ++it) {
+                        if (it.value().is_string())
+                            manifest.materialPathsInProject.push_back(it.value().get<std::string>());
+                    }
+                }
+            }
+        }
+    }
+
+    LevelAssetManifest CollectLevelAssetRefs(const Filesystem::Path& filePath)
+    {
+        LevelAssetManifest manifest;
+
+        std::string src = filePath.ReadFile();
+
+        try {
+            json data = json::parse(src);
+
+            if (data.contains("actors") && data["actors"].is_array()) {
+                for (auto& actor : data["actors"]) {
+                    CollectActorAssetRefs(actor, manifest);
+                }
+            }
+
+            if (data.contains("skybox") && data["skybox"].is_string()) {
+                manifest.skyboxEnvMapPathInProject = data["skybox"].get<std::string>();
+            }
+
+            manifest.success = true;
+
+        } catch (const json::parse_error& e) {
+            DEBUG_ERROR("JSON parse error: " + (std::string)e.what());
+        }
+
+        return manifest;
     }
 
     void Level::Deserialize(Filesystem::Path filePath)
@@ -247,8 +312,11 @@ namespace Pulse::Engine::Levels{
         }
 
         for(auto& [id,script] : scripts){
-            script->OnLevelLoaded(); 
+            script->OnLevelLoaded();
         }
+        
+        if(probeVolume)
+            probeVolume->Activate();
     }
 
     void Level::Unload()
@@ -376,9 +444,6 @@ namespace Pulse::Engine::Levels{
         }
         else if(compPtr->IsInstanceOf<Objects::Components::Model>()){
             meshes.erase(idInLevel);
-        }
-        else{
-            DEBUG_ERROR("Tried removing a component of unknown type from actor : ", compPtr->parent->GetName(), " in level : ", GetName());
         }
     }
 }

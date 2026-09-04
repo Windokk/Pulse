@@ -18,6 +18,7 @@ namespace Pulse::Editor::GUI {
             Engine::Filesystem::Type::T_SOUND,
             Engine::Filesystem::Type::T_FONT,
             Engine::Filesystem::Type::T_SHADER,
+            Engine::Filesystem::Type::T_COMPUTE_SHADER,
             Engine::Filesystem::Type::T_TEXT,
             Engine::Filesystem::Type::T_SCRIPT,
             Engine::Filesystem::Type::T_LEVEL,

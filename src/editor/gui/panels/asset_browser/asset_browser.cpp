@@ -3,6 +3,10 @@
 #include "editor/gui/main_window.hpp"
 
 #include "engine/projects/project.hpp"
+#include "engine/levels/level_manager.hpp"
+#include "engine/levels/level.hpp"
+#include "engine/core/resources/resources_manager.hpp"
+#include "engine/rendering/renderer/renderer.hpp"
 
 namespace Pulse::Editor::GUI{
 
@@ -179,6 +183,12 @@ namespace Pulse::Editor::GUI{
                         bool item_is_visible = ImGui::IsRectVisible(LayoutItemSize);
                         ImGui::Selectable("", item_is_selected, ImGuiSelectableFlags_None, LayoutItemSize);
 
+                        if (!item_data->isDirectory && item_data->type == Engine::Filesystem::Type::T_LEVEL
+                            && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                        {
+                            RequestOpenLevel(item_data->path);
+                        }
+
                         // Update our selection state immediately (without waiting for EndMultiSelect() requests)
                         // because we use this to alter the color of our text/icon.
                         if (ImGui::IsItemToggledSelection())
@@ -337,6 +347,25 @@ namespace Pulse::Editor::GUI{
         LayoutItemSpacing = Spacing.x;
         LayoutSelectableSpacing = IM_MAX(Spacing.x - IconHitSpacing, 0.0f);
         LayoutOuterPadding = Spacing.x * 0.5f;
+    }
+
+    void AssetBrowser::RequestOpenLevel(const Engine::Filesystem::Path &path)
+    {
+        auto& engine = Engine::Core::GetEngine();
+        auto* levelManager = engine.GetLevelManager();
+
+        for(int i = 0; i < levelManager->GetLoadedLevelCount(); i++){
+            levelManager->UnloadLevel(i);
+        }
+
+        if (levelManager->IsAsyncLoadInProgress())
+            return;
+
+        // Whatever's currently loaded is only torn down once the new level has resolved
+        // successfully (see LevelManager::FinishAsyncLoad) - so a bad/missing target here can't
+        // leave the editor with zero levels loaded.
+        std::string pathInProject = engine.GetFileManager()->GetFileInfos(path).nameInProject;
+        levelManager->LoadLevelAsync(pathInProject);
     }
 
     void AssetBrowser::RenameAsset(const std::string& oldPath, const std::string& newName)

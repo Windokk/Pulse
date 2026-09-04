@@ -15,9 +15,9 @@ namespace Pulse::Engine::Rendering{
 
             std::vector<UniformInfo> GetActiveUniforms() override;
             std::vector<SamplerInfo> GetActiveSamplers() override;
-            
-            std::unordered_map<std::string, UniformInfo> GetActiveUniformsMap() override;
-            std::unordered_map<std::string, SamplerInfo> GetActiveSamplersMap() override;
+
+            const std::unordered_map<std::string, UniformInfo>& GetActiveUniformsMap() override;
+            const std::unordered_map<std::string, SamplerInfo>& GetActiveSamplersMap() override;
 
             void SetBool(const std::string& name, bool value) override;
             void SetInt(const std::string& name, int value) override;
@@ -37,9 +37,14 @@ namespace Pulse::Engine::Rendering{
 
             void CompileErrors(unsigned int shader, const char *type);
 
+            // Uniform locations are resolved once at compile time (see the constructor) and kept
+            // in m_ActiveUniformsMap; looking them up here avoids a glGetUniformLocation() driver
+            // round-trip on every SetXxx call, which used to dominate per-draw-call state binding cost.
+            int32_t GetUniformLocationCached(const std::string& name);
+
             uint32_t m_Program;
-            std::vector<UniformInfo> m_activeUniforms;
-            std::unordered_map<std::string, UniformInfo> m_activeUniformsMap;
+            std::vector<UniformInfo> m_ActiveUniforms;
+            std::unordered_map<std::string, UniformInfo> m_ActiveUniformsMap;
             std::vector<SamplerInfo> m_ActiveSamplers;
             std::unordered_map<std::string, SamplerInfo> m_ActiveSamplersMap;
     };

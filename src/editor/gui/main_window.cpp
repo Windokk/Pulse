@@ -251,44 +251,90 @@ namespace Pulse::Editor::Core{
         glfwPollEvents();
     }
 
+    void EditorMainWindow::EnsureImGuiInitialized()
+    {
+        if(imguiInitialized)
+            return;
+
+        //Init ImGui
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+        io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
+        io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init();
+
+        SetupImGuiStyle();
+
+        LoadFontFromFile("editor_resources/fonts/OpenSans-Regular.ttf", 16, false);
+        LoadFontFromFile("editor_resources/fonts/lucide.ttf", 16, true);
+
+        //Init Panels
+        assetBrowser = new GUI::AssetBrowser();
+        assetBrowser->NavigateTo(Engine::Core::GetEngine().GetCurrentProject()->GetProjectResourcesPath().full);
+        propertiesPanel = new GUI::PropertiesPanel();
+        levelTree = new GUI::LevelTree();
+        levelTree->SetParentWindow(this);
+        viewport = new GUI::ViewportWindow();
+        viewport->SetParentWindow(this);
+        console = new GUI::Console();
+        console->SetParentWindow(this);
+        profilerPanel = new GUI::ProfilerPanel();
+        menuBar = new GUI::MenuBar();
+        menuBar->SetParentWindow(this);
+
+        GUI::EditorResources::Instance().Init();
+
+        imguiInitialized = true;
+    }
+
+    void EditorMainWindow::DrawLoadingOverlay(float progress)
+    {
+        const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x * 0.5f,
+                                        mainViewport->WorkPos.y + mainViewport->WorkSize.y * 0.5f),
+                                        ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowBgAlpha(0.85f);
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing
+            | ImGuiWindowFlags_AlwaysAutoResize;
+
+        if(ImGui::Begin("##LoadingLevelOverlay", nullptr, flags))
+        {
+            ImGui::Text("Loading Level...");
+            ImGui::ProgressBar(progress, ImVec2(240, 0));
+        }
+        ImGui::End();
+    }
+
+    void EditorMainWindow::DrawLoadingFrame(float progress)
+    {
+        EnsureImGuiInitialized();
+
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        DrawLoadingOverlay(progress);
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window);
+    }
+
     void EditorMainWindow::SwapBuffers()
     {
-        if(!imguiInitialized)
-        {
-            //Init ImGui
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            ImGuiIO& io = ImGui::GetIO();
-            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-            io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
-            io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
-            io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
+        EnsureImGuiInitialized();
 
-            // Setup Platform/Renderer backends
-            ImGui_ImplGlfw_InitForOpenGL(window, true);
-            ImGui_ImplOpenGL3_Init();
-            
-            SetupImGuiStyle();
-
-            LoadFontFromFile("editor_resources/fonts/OpenSans-Regular.ttf", 16, false);
-            LoadFontFromFile("editor_resources/fonts/lucide.ttf", 16, true);
-
-            //Init Panels
-            assetBrowser = new GUI::AssetBrowser();
-            assetBrowser->NavigateTo(Engine::Core::GetEngine().GetCurrentProject()->GetProjectResourcesPath().full);
-            propertiesPanel = new GUI::PropertiesPanel();
-            levelTree = new GUI::LevelTree();
-            levelTree->SetParentWindow(this);
-            viewport = new GUI::ViewportWindow();
-            viewport->SetParentWindow(this);
-            console = new GUI::Console();
-            console->SetParentWindow(this);
-
-            GUI::EditorResources::Instance().Init();
-
-            imguiInitialized = true;
-        }
-            
         Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
 
         // Wait for viewport size to be initialized
@@ -386,16 +432,28 @@ namespace Pulse::Editor::Core{
 
 
         ImGuizmo::BeginFrame();
-        
+
+        menuBar->Draw();
+
         ImGui::DockSpaceOverViewport();
 
-        assetBrowser->Draw();
-        viewport->Draw();
-        propertiesPanel->Draw(selectedActor);
-        levelTree->Draw();
-        console->Draw();
+        if(panelVisibility.assetBrowser)
+            assetBrowser->Draw();
+        if(panelVisibility.viewport)
+            viewport->Draw();
+        if(panelVisibility.properties)
+            propertiesPanel->Draw(selectedActor);
+        if(panelVisibility.levelTree)
+            levelTree->Draw();
+        if(panelVisibility.console)
+            console->Draw();
+        if(panelVisibility.profiler)
+            profilerPanel->Draw();
 
         ImGui::ShowDemoWindow();
+
+        if(Engine::Core::GetEngine().GetLevelManager()->IsAsyncLoadInProgress())
+            DrawLoadingOverlay(Engine::Core::GetEngine().GetLevelManager()->GetAsyncLoadProgress());
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -454,6 +512,11 @@ namespace Pulse::Editor::Core{
             const GLFWvidmode * mode = glfwGetVideoMode(monitor);
             glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
         }
+    }
+
+    void EditorMainWindow::RequestExit()
+    {
+        glfwSetWindowShouldClose(window, true);
     }
 
     void EditorMainWindow::ProcessInputs() const

@@ -157,8 +157,8 @@ namespace Pulse::Engine::Rendering{
                                 elementLocation
                             };
 
-                            m_activeUniforms.push_back(info);
-                            m_activeUniformsMap.emplace(elementName, info);
+                            m_ActiveUniforms.push_back(info);
+                            m_ActiveUniformsMap.emplace(elementName, info);
                         }
                     }
                     else
@@ -169,8 +169,8 @@ namespace Pulse::Engine::Rendering{
                             location
                         };
 
-                        m_activeUniforms.push_back(info);
-                        m_activeUniformsMap.emplace(name, info);
+                        m_ActiveUniforms.push_back(info);
+                        m_ActiveUniformsMap.emplace(name, info);
                     }
                 }
 
@@ -262,17 +262,17 @@ namespace Pulse::Engine::Rendering{
 
     void GLShader::Bind()
     {
-        glUseProgram(m_Program);
+        GLStateCache::BindProgram(m_Program);
     }
 
     void GLShader::Unbind()
     {
-        glUseProgram(0);
+        GLStateCache::BindProgram(0);
     }
 
     std::vector<UniformInfo> GLShader::GetActiveUniforms()
     {
-        return m_activeUniforms;
+        return m_ActiveUniforms;
     }
 
     std::vector<SamplerInfo> GLShader::GetActiveSamplers()
@@ -280,59 +280,77 @@ namespace Pulse::Engine::Rendering{
         return m_ActiveSamplers;
     }
 
-    std::unordered_map<std::string, UniformInfo> GLShader::GetActiveUniformsMap()
+    const std::unordered_map<std::string, UniformInfo>& GLShader::GetActiveUniformsMap()
     {
-        return m_activeUniformsMap;
+        return m_ActiveUniformsMap;
     }
 
-    std::unordered_map<std::string, SamplerInfo> GLShader::GetActiveSamplersMap()
+    const std::unordered_map<std::string, SamplerInfo>& GLShader::GetActiveSamplersMap()
     {
         return m_ActiveSamplersMap;
     }
 
+    int32_t GLShader::GetUniformLocationCached(const std::string &name)
+    {
+        auto it = m_ActiveUniformsMap.find(name);
+        if (it != m_ActiveUniformsMap.end())
+            return it->second.location;
+
+        // Array uniforms are cached under "name[0]" ; fall back to that so SetXxx("arr", ...)
+        // keeps working the same way glGetUniformLocation("arr") used to (only hit on a miss).
+        if (name.empty() || name.back() != ']')
+        {
+            auto arrayIt = m_ActiveUniformsMap.find(name + "[0]");
+            if (arrayIt != m_ActiveUniformsMap.end())
+                return arrayIt->second.location;
+        }
+
+        return -1;
+    }
+
     void GLShader::SetBool(const std::string &name, bool value)
     {
-        glUniform1i(glGetUniformLocation(m_Program, name.c_str()), (int)value);
+        glUniform1i(GetUniformLocationCached(name), (int)value);
     }
 
     void GLShader::SetInt(const std::string &name, int value)
     {
-        glUniform1i(glGetUniformLocation(m_Program, name.c_str()), value);
+        glUniform1i(GetUniformLocationCached(name), value);
     }
 
     void GLShader::SetFloat(const std::string &name, float value)
     {
-        glUniform1f(glGetUniformLocation(m_Program, name.c_str()), value);
+        glUniform1f(GetUniformLocationCached(name), value);
     }
 
     void GLShader::SetVec2(const std::string &name, const glm::vec2 &value)
     {
-        glUniform2fv(glGetUniformLocation(m_Program, name.c_str()), 1, &value[0]);
+        glUniform2fv(GetUniformLocationCached(name), 1, &value[0]);
     }
 
     void GLShader::SetVec3(const std::string &name, const glm::vec3 &value)
     {
-        glUniform3fv(glGetUniformLocation(m_Program, name.c_str()), 1, &value[0]);
+        glUniform3fv(GetUniformLocationCached(name), 1, &value[0]);
     }
 
     void GLShader::SetVec4(const std::string &name, const glm::vec4 &value)
     {
-        glUniform4fv(glGetUniformLocation(m_Program, name.c_str()), 1, &value[0]);
+        glUniform4fv(GetUniformLocationCached(name), 1, &value[0]);
     }
 
     void GLShader::SetMat2(const std::string &name, const glm::mat2 &mat)
     {
-        glUniformMatrix2fv(glGetUniformLocation(m_Program, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix2fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
     }
 
     void GLShader::SetMat3(const std::string &name, const glm::mat3 &mat)
     {
-        glUniformMatrix3fv(glGetUniformLocation(m_Program, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix3fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
     }
 
     void GLShader::SetMat4(const std::string &name, const glm::mat4 &mat)
     {
-        glUniformMatrix4fv(glGetUniformLocation(m_Program, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix4fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
     }
 
     GLShader::~GLShader()

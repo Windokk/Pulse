@@ -85,11 +85,15 @@ namespace Pulse::Engine{
             if(m_Context.currentProject->GetBuildSettings()->buildIndex.size() > 0){
                 Filesystem::Path defaultLevelPath = m_Context.currentProject->GetBuildSettings()->buildIndex[0];
                 DEBUG_LOG("Loading default level : "+defaultLevelPath.full);
-                auto level = GetResourcesManager()->GetLevel(defaultLevelPath.full);
-                if(level)
-                    GetLevelManager()->LoadLevel(level);
-                else
-                    DEBUG_ERROR("Error loading default level !");
+
+                // Parallelizes texture/mesh decode across worker threads and keeps pumping window
+                // events (+ drawing a splash frame, on platforms that support one) while it waits, so
+                // a heavy default level doesn't leave the window looking frozen at boot.
+                Platform::IWindow* window = GetWindow();
+                GetLevelManager()->LoadLevelBlocking(defaultLevelPath.full, [window](float progress){
+                    window->PollEvents();
+                    window->DrawLoadingFrame(progress);
+                });
             }
             
         }
@@ -197,13 +201,24 @@ namespace Pulse::Engine{
         bool EngineInstance::Run() {
 
             if(m_PlayMode){
-                m_Context.physicsManager->StepSimulation(m_Context.timeManager->GetFixedDeltaTime(), m_ActivateAllPhysics);
-                m_Context.audioManager->Tick();
-                m_Context.levelManager->Tick();
+                {
+                    PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
+                    m_Context.physicsManager->StepSimulation(m_Context.timeManager->GetFixedDeltaTime(), m_ActivateAllPhysics);
+                }
+                {
+                    PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Audio);
+                    m_Context.audioManager->Tick();
+                }
+                {
+                    PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Scripting);
+                    m_Context.levelManager->Tick();
+                }
             }
 
             if(m_ActivateAllPhysics)
                 m_ActivateAllPhysics = false;
+
+            m_Context.levelManager->PumpAsyncLoad();
 
             if(m_ReloadCurrentLevel)
             {
@@ -222,12 +237,30 @@ namespace Pulse::Engine{
                 m_ReloadCurrentLevel = false;
             }
 
-            m_Context.physicsManager->TickBodies(m_Context.timeManager->GetFixedDeltaTime());
+            {
+                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
+                m_Context.physicsManager->TickBodies(m_Context.timeManager->GetFixedDeltaTime());
+            }
+
             m_Context.timeManager->Tick();
-            m_Context.renderer->Render();
-            m_Context.platform->GetInput()->Tick();
-            m_Context.platform->GetWindow()->PollEvents();
-            m_Context.platform->GetWindow()->SwapBuffers();
+
+            {
+                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Rendering);
+                m_Context.renderer->Render();
+            }
+
+            {
+                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Input);
+                m_Context.platform->GetInput()->Tick();
+                m_Context.platform->GetWindow()->PollEvents();
+            }
+
+            {
+                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Presentation);
+                m_Context.platform->GetWindow()->SwapBuffers();
+            }
+
+            m_Context.profiler->EndFrameSampling();
 
             if(m_Context.platform->GetInput()->WasKeyPressed(Key::Escape))
             {

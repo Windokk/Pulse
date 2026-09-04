@@ -29,7 +29,7 @@
   });
 </script>
 
-Welcome to the official documentation for **Pulse Engine** — a powerful, flexible, and modern **3D game engine** built to empower developers to bring their ideas to life.
+Welcome to the official documentation for **Pulse Engine** - a powerful, flexible, and modern **3D game engine** built to empower developers to bring their ideas to life.
 
 Whether you're building a fast-paced action game, a stunning simulation, or a multiplayer experience, Pulse Engine gives you the tools and architecture to make it happen
 
@@ -44,7 +44,7 @@ Whether you're building a fast-paced action game, a stunning simulation, or a mu
 - 🔧 **Customizability** – Open-source, extensible, and built for developers who want full control.
 
 !!! warning "Alpha Release Notice"
-    **Pulse Engine** is currently in **active development**. An alpha version is expected in **November 2025**.   Contributions, feedback, and testing are welcome
+    **Pulse Engine** is currently in **active development**. An alpha version is expected in **November 2026**.   Contributions, feedback, and testing are welcome
 ---
 
 ## 📚 Documentation Overview

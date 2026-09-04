@@ -6,6 +6,7 @@
 
 #include "engine/objects/components/misc/transform.hpp"
 #include "engine/objects/components/rendering/light_component.hpp"
+#include "engine/objects/components/rendering/probe_volume.hpp"
 #include "engine/objects/components/physics/physics_body.hpp"
 
 #include "engine/rendering/camera/camera_manager.hpp"
@@ -180,6 +181,11 @@ namespace Pulse::Engine::Objects{
 
             if constexpr (IsSubclassOf<PhysicsBody, T>()) {
                 level->physicsBodies.emplace(GetComponentIDInLevel(component->GetLocalId()), component);
+            }
+
+            if constexpr (IsSubclassOf<ProbeVolume, T>()) {
+                level->probeVolume = component;
+                component->Activate();
             }
 
             if constexpr (IsSubclassOf<AudioSource, T>()) {

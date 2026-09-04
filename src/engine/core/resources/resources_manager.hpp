@@ -11,6 +11,7 @@ namespace Pulse::Engine::Rendering{
     class Mesh;
     class Texture2D;
     class Shader;
+    class ComputeShader;
     class Material;
 }
 
@@ -46,7 +47,13 @@ namespace Pulse::Engine::Core::Resources{
             /// @param gsPath The normalized path to the geometry shader source file (optional or empty if not used)
             /// @return A shared pointer to a Shader
             std::shared_ptr<Rendering::Shader> LoadShader(const std::string &pathInProject, const Filesystem::Path &vsPath, const Filesystem::Path &fsPath, const Filesystem::Path &gsPath);
-            
+
+            /// @brief Loads a compute shader from a given single-file source path and adds it to the project's loaded compute shaders list
+            /// @param name The name of the compute shader in the project
+            /// @param path The normalized path to the compute shader source file (.comp)
+            /// @return A shared pointer to a ComputeShader
+            std::shared_ptr<Rendering::ComputeShader> LoadComputeShader(const std::string &pathInProject, const Filesystem::Path &path);
+
             /// @brief Loads a material from a given path and adds it to the project's loaded materials list
             /// @param name The name of the material in the project
             /// @param path The normalized path at which the material is located (filename + extension expected)
@@ -74,6 +81,11 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Shader
             std::shared_ptr<Rendering::Shader> GetShader(std::string pathInProject);
 
+            /// @brief Retrieves compute shader from the project's loaded compute shaders lists (Tries to load it if it isn't loaded yet)
+            /// @param name The name of the compute shader in the project
+            /// @return A shared pointer to a ComputeShader
+            std::shared_ptr<Rendering::ComputeShader> GetComputeShader(std::string pathInProject);
+
             /// @brief Retrieves a texture2D from the project's loaded textures lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the texture2D in the project
             /// @return A shared pointer to a Texture
@@ -86,6 +98,14 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Level
             std::shared_ptr<Levels::Level> GetLevel(const std::string& pathInProject);
 
+            /// @brief Inserts an already-built mesh/texture into the cache under `pathInProject`. No-op if `pathInProject` is already cached.
+            void AdoptMesh(const std::string &pathInProject, std::shared_ptr<Rendering::Mesh> mesh);
+            void AdoptTexture(const std::string &pathInProject, std::shared_ptr<Rendering::Texture2D> texture);
+
+            /// @brief True if `pathInProject` is already resident in the mesh/texture cache.
+            bool HasMesh(const std::string &pathInProject) const;
+            bool HasTexture(const std::string &pathInProject) const;
+
             /// @brief Unloads all unused dependencies of a given asset (recursively)
             /// @param assetName The name of the "root" asset
             void UnLoadDependencies(const std::string &assetName);
@@ -93,6 +113,7 @@ namespace Pulse::Engine::Core::Resources{
             void UnloadMesh(const std::string& name);
             void UnloadMaterial(const std::string& name);
             void UnloadShader(const std::string& name);
+            void UnloadComputeShader(const std::string& name);
             void UnloadImage(const std::string& name);
             void UnloadEnvMap(const std::string& name);
             void UnloadLevel(const std::string& name);
@@ -103,6 +124,7 @@ namespace Pulse::Engine::Core::Resources{
             std::unordered_map<std::string, std::shared_ptr<Rendering::Texture2D>> textures;
             std::unordered_map<std::string, std::shared_ptr<Rendering::EnvironmentMap>> envmaps;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Shader>> shaders;
+            std::unordered_map<std::string, std::shared_ptr<Rendering::ComputeShader>> computeShaders;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Material>> materials;
             std::unordered_map<std::string, std::shared_ptr<Levels::Level>> levels;
         };

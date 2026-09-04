@@ -286,9 +286,71 @@ namespace Pulse::Engine::Rendering {
         }, sizeof(Vertex)});
     }
 
+    void DebugMultiSphere::GenerateMultiSphere(const std::vector<glm::vec3>& centers, float radius, COL_RGBA color)
+    {
+        // Fewer segments than DebugSphere's 32 - these are meant to be small, cheap markers, and there
+        // can be hundreds of them in a single merged mesh (one per probe in a GI probe grid).
+        int segments = 8;
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+        vertices.reserve(centers.size() * segments * 3);
+        indices.reserve(centers.size() * segments * 6);
+
+        for (const glm::vec3& center : centers)
+        {
+            uint32_t base = (uint32_t)vertices.size();
+
+            for (int i = 0; i < segments; i++)
+            {
+                float angle = glm::two_pi<float>() * i / segments;
+                float c = cos(angle);
+                float s = sin(angle);
+
+                // XY ring
+                vertices.push_back({ center + glm::vec3(radius * c, radius * s, 0), glm::vec2(0), glm::vec3(0), color });
+                // XZ ring
+                vertices.push_back({ center + glm::vec3(radius * c, 0, radius * s), glm::vec2(0), glm::vec3(0), color });
+                // YZ ring
+                vertices.push_back({ center + glm::vec3(0, radius * c, radius * s), glm::vec2(0), glm::vec3(0), color });
+            }
+
+            for (int i = 0; i < segments; i++)
+            {
+                int next = (i + 1) % segments;
+
+                uint32_t xy0 = base + i * 3, xy1 = base + next * 3;
+                uint32_t xz0 = base + i * 3 + 1, xz1 = base + next * 3 + 1;
+                uint32_t yz0 = base + i * 3 + 2, yz1 = base + next * 3 + 2;
+
+                indices.push_back(xy0);
+                indices.push_back(xy1);
+
+                indices.push_back(xz0);
+                indices.push_back(xz1);
+
+                indices.push_back(yz0);
+                indices.push_back(yz1);
+            }
+        }
+
+        std::vector<uint8_t> vertexBuffer;
+        vertexBuffer.resize(vertices.size() * sizeof(Vertex));
+        if (!vertices.empty())
+            memcpy(vertexBuffer.data(), vertices.data(), vertexBuffer.size());
+
+        m_Mesh = Mesh::Create();
+        m_Mesh->Create(vertexBuffer, indices, {{
+            {"aPos",     ShaderDataType::Vec3, 0, offsetof(Vertex, position)},
+            {"aTexCoord",ShaderDataType::Vec2, 1, offsetof(Vertex, texCoord)},
+            {"aNormal",  ShaderDataType::Vec3, 2, offsetof(Vertex, normal)},
+            {"aColor",   ShaderDataType::Vec4, 3, offsetof(Vertex, color)},
+        }, sizeof(Vertex)});
+    }
+
     DebugShape::~DebugShape()
     {
-        
+
     }
 
 }

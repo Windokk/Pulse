@@ -336,6 +336,9 @@ namespace Pulse::Engine::Objects::Components{
     {
         auto cloned = Object::Create<Light>(*this);
 
+        cloned->lightData = std::make_shared<Rendering::LightData>(*lightData);
+        cloned->lightIndex = -1;
+
         return cloned;
     }
 

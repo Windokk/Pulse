@@ -1,0 +1,113 @@
+#version 430 core
+
+// Third stage of the real-time GI probe update (see ProbeManager/probe_trace.comp). probe_trace.comp
+// writes one *raw, single-sample* radiance value per octahedral texel (no scatter/gather - each ray
+// maps 1:1 to the texel matching its own direction) into uRayAtlas. On its own that atlas is a tiny
+// noisy environment map, not an irradiance map - sampling it directly in a single direction (as
+// DDGI_SampleProbe used to) means a shaded point only picks up bounce light when the one ray exactly
+// along its normal happens to have hit something lit, which is why indirect lighting vanished almost
+// everywhere except right next to directly-lit surfaces.
+//
+// This pass is the missing scatter/gather step : for every output texel of uIrradianceAtlas, it gathers
+// all of that probe's traced rays (same tile layout/size as the ray atlas) weighted by
+// max(0, dot(rayDir, outDir)) - a cosine-weighted hemisphere integral approximated over a fixed set of
+// (roughly sphere-uniform, thanks to the octahedral mapping) directions. uIrradianceAtlas is what
+// DDGI_SampleProbe in lit.frag actually samples.
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// Sampler bindings start at 42 - see the identical comment in probe_trace.comp for why (avoids
+// GLStateCache going stale on lit.frag's material texture units 1-3 when ProbeManager::Update()'s raw
+// Texture2D::Bind() calls run ahead of the forward pass each frame). Image bindings (0, 2 below) are
+// unaffected - separate binding namespace.
+layout(binding = 42) uniform sampler2D uRayAtlas;
+layout(rgba16f, binding = 0) uniform image2D uIrradianceAtlas;
+
+// Distance atlas equivalents (mean hit distance, mean hit distance^2 per texel) - convolved in the same
+// dispatch as the irradiance atlas above since both loop over the exact same set of rays per output
+// texel. See DIST_SHARPNESS below for why they use a different weight.
+layout(binding = 43) uniform sampler2D uRayDistAtlas;
+layout(rg16f, binding = 2) uniform image2D uDistanceAtlas;
+
+uniform int uProbeCount;
+uniform int uTileSize;
+uniform int uAtlasProbesPerRow;
+
+// Distance wants a much tighter kernel than irradiance's linear cosine lobe : irradiance is meant to be
+// a soft, diffuse-like blur (that's how it's actually used), but a wide blur on distance would smear a
+// nearby occluder's depth across a broad cone and under-detect thin walls in the Chebyshev visibility
+// test that samples this atlas (see DDGI_VisibilityWeight in lit.frag). Raising the cosine weight to a
+// high power keeps the kernel close to "whatever this texel's own ray direction hit" while still
+// pulling in enough neighboring rays to fill gaps between the sparse traced directions.
+const float DIST_SHARPNESS = 8.0;
+
+// Same octahedral mapping as probe_trace.comp/lit.frag - kept in sync so a texel here refers to exactly
+// the direction that texel was traced for.
+vec3 OctDecode(vec2 f)
+{
+    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float t = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
+}
+
+vec3 TexelDirection(int tx, int ty, int tileSize)
+{
+    vec2 texelUV = (vec2(float(tx), float(ty)) + 0.5) / float(tileSize);
+    return OctDecode(texelUV * 2.0 - 1.0);
+}
+
+void main()
+{
+    uint gid = gl_GlobalInvocationID.x;
+    uint tileSize = uint(uTileSize);
+    uint texelsPerProbe = tileSize * tileSize;
+    uint totalTexels = uint(uProbeCount) * texelsPerProbe;
+    if (gid >= totalTexels)
+        return;
+
+    int probeIndex = int(gid / texelsPerProbe);
+    uint localIdx = gid % texelsPerProbe;
+    int outX = int(localIdx % tileSize);
+    int outY = int(localIdx / tileSize);
+
+    vec3 outDir = TexelDirection(outX, outY, uTileSize);
+
+    // Same +2-border stride as the ray atlas (see probe_trace.comp/probe_border_fixup.comp) - both
+    // atlases share identical tile layout/size, only their contents differ.
+    int stride = uTileSize + 2;
+    ivec2 tileOrigin = ivec2((probeIndex % uAtlasProbesPerRow) * stride, (probeIndex / uAtlasProbesPerRow) * stride) + ivec2(1, 1);
+
+    vec3 sum = vec3(0.0);
+    float weightSum = 0.0;
+
+    vec2 distSum = vec2(0.0);
+    float distWeightSum = 0.0;
+
+    for (int ry = 0; ry < uTileSize; ry++)
+    {
+        for (int rx = 0; rx < uTileSize; rx++)
+        {
+            vec3 rayDir = TexelDirection(rx, ry, uTileSize);
+            float w = max(0.0, dot(rayDir, outDir));
+            if (w <= 0.0)
+                continue;
+
+            vec3 radiance = texelFetch(uRayAtlas, tileOrigin + ivec2(rx, ry), 0).rgb;
+            sum += radiance * w;
+            weightSum += w;
+
+            float distW = pow(w, DIST_SHARPNESS);
+            vec2 dist = texelFetch(uRayDistAtlas, tileOrigin + ivec2(rx, ry), 0).rg;
+            distSum += dist * distW;
+            distWeightSum += distW;
+        }
+    }
+
+    vec3 irradiance = weightSum > 0.0 ? sum / weightSum : vec3(0.0);
+    imageStore(uIrradianceAtlas, tileOrigin + ivec2(outX, outY), vec4(irradiance, 1.0));
+
+    vec2 dist = distWeightSum > 0.0 ? distSum / distWeightSum : vec2(0.0);
+    imageStore(uDistanceAtlas, tileOrigin + ivec2(outX, outY), vec4(dist, 0.0, 0.0));
+}

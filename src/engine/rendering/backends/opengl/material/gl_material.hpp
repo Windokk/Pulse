@@ -26,6 +26,8 @@ namespace Pulse::Engine::Rendering{
         std::optional<NumericValue>
         GetScalarParameter(const std::string& name) override;
 
+        uint64_t GetTextureParameter(const std::string& name) const override;
+
         uint32_t GetTexturesCount() const override;
 
         void Bind();

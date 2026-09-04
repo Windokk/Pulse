@@ -13,6 +13,7 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
 #include "engine/rendering/shader/shader.hpp"
+#include "engine/rendering/shader/compute_shader.hpp"
 #include "engine/rendering/material/material.hpp"
 
 namespace Pulse::Engine::Core::Resources{
@@ -102,6 +103,14 @@ namespace Pulse::Engine::Core::Resources{
         return shader;
     }
 
+    std::shared_ptr<Rendering::ComputeShader> ResourcesManager::LoadComputeShader(const std::string &pathInProject, const Filesystem::Path &path)
+    {
+        std::shared_ptr<Rendering::ComputeShader> shader = Rendering::ComputeShader::Create(path);
+        shader->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject+".comp"));
+        computeShaders.emplace(pathInProject, shader);
+        return shader;
+    }
+
     std::shared_ptr<Rendering::Material> ResourcesManager::LoadMaterial(const std::string &pathInProject, const Filesystem::Path &path)
     {
 
@@ -187,6 +196,22 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
+    std::shared_ptr<Rendering::ComputeShader> ResourcesManager::GetComputeShader(std::string pathInProject)
+    {
+        auto it = computeShaders.find(pathInProject);
+        if (it != computeShaders.end()){
+            return it->second;
+        }
+        else{
+            Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject+".comp"));
+
+            if(assetInfos == nullptr) return nullptr;
+
+            return LoadComputeShader(pathInProject, assetInfos->baseInfos.path);
+        }
+    }
+
     std::shared_ptr<Rendering::Texture2D> ResourcesManager::GetTexture(std::string pathInProject)
     {
         auto it = textures.find(pathInProject);
@@ -231,6 +256,32 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
+    void ResourcesManager::AdoptMesh(const std::string &pathInProject, std::shared_ptr<Rendering::Mesh> mesh)
+    {
+        auto [it, inserted] = meshes.emplace(pathInProject, mesh);
+        if(inserted){
+            it->second->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
+        }
+    }
+
+    void ResourcesManager::AdoptTexture(const std::string &pathInProject, std::shared_ptr<Rendering::Texture2D> texture)
+    {
+        auto [it, inserted] = textures.emplace(pathInProject, texture);
+        if(inserted){
+            it->second->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
+        }
+    }
+
+    bool ResourcesManager::HasMesh(const std::string &pathInProject) const
+    {
+        return meshes.find(pathInProject) != meshes.end();
+    }
+
+    bool ResourcesManager::HasTexture(const std::string &pathInProject) const
+    {
+        return textures.find(pathInProject) != textures.end();
+    }
+
     void ResourcesManager::UnLoadDependencies(const std::string &assetName)
     {
 
@@ -260,6 +311,15 @@ namespace Pulse::Engine::Core::Resources{
         if (it != shaders.end())
         {
             shaders.erase(it);
+        }
+    }
+
+    void ResourcesManager::UnloadComputeShader(const std::string &name)
+    {
+        auto it = computeShaders.find(name);
+        if (it != computeShaders.end())
+        {
+            computeShaders.erase(it);
         }
     }
 

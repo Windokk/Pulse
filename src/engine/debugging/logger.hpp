@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <functional>
+#include <mutex>
 
 namespace Pulse::Engine::Debugging{
     
@@ -47,6 +48,12 @@ namespace Pulse::Engine::Debugging{
             (ss << ... << args);
 
             std::string output = ss.str();
+
+            // Log() is reachable from background asset-decode worker threads (e.g. ReadFile/stbi/ufbx
+            // failure paths during async level loading) as well as the main thread, so the whole body
+            // (sinks, std::cout, logFile) needs to be serialized.
+            std::lock_guard<std::mutex> lock(logMutex);
+
             for(auto& sink : sinks){
                 sink(level, output);
             }
@@ -74,6 +81,8 @@ namespace Pulse::Engine::Debugging{
         bool useTimestamp;
 
         std::vector<LogSink> sinks;
+
+        std::mutex logMutex;
 
         Logger() = default;
     };

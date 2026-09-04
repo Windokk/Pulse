@@ -6,6 +6,8 @@
 
 #include "engine/rendering/pipeline/pipeline.hpp"
 
+#include "engine/rendering/pipeline/compute_pipeline.hpp"
+
 #include "engine/rendering/mesh/mesh.hpp"
 
 #include <map>
@@ -15,6 +17,7 @@ namespace Pulse::Engine::Rendering {
 
     class LightManager;
     class ShadowManager;
+    class ProbeManager;
     using NumericValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
 
     class Renderer;
@@ -48,6 +51,8 @@ namespace Pulse::Engine::Rendering {
             void Init(std::shared_ptr<RendererSettings> initialSettings);
             uint64_t GenerateSortKey(const DrawCommand &cmd, const uint32_t submeshID);
             std::shared_ptr<Pipeline> GetOrAddPipeline(const PipelineSpecifications &specs);
+            std::shared_ptr<ComputePipeline> GetOrAddComputePipeline(const ComputePipelineSpecifications &specs);
+            void DispatchCompute(const std::shared_ptr<ComputePipeline> pipeline, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ, MemoryBarrierBit barriersAfter = MemoryBarrierBit::None);
             void Render();
             void Shutdown();
             void ClearPassesContent();
@@ -100,6 +105,7 @@ namespace Pulse::Engine::Rendering {
             const std::shared_ptr<Mesh> GetUnitQuad() { return m_UnitQuad; }
             const std::shared_ptr<ShadowManager> GetShadowManager() { return m_ShadowManager; }
             const std::shared_ptr<LightManager> GetLightManager() { return m_LightManager; }
+            const std::shared_ptr<ProbeManager> GetProbeManager() { return m_ProbeManager; }
             const std::shared_ptr<Material> GetDebugMaterial() { return m_DebugMat; }
 
         private:
@@ -134,8 +140,10 @@ namespace Pulse::Engine::Rendering {
             std::vector<DrawCommand> shadowDrawList = {};
             std::unordered_map<uint64_t, size_t> shadowDrawCommandsLookup;
             std::shared_ptr<LightManager> m_LightManager;
+            std::shared_ptr<ProbeManager> m_ProbeManager;
 
             std::unordered_map<PipelineSpecifications,std::shared_ptr<Pipeline>,PipelineSpecsHash> m_Pipelines;
+            std::unordered_map<ComputePipelineSpecifications,std::shared_ptr<ComputePipeline>,ComputePipelineSpecsHash> m_ComputePipelines;
 
             bool m_MultisamplingEnabled = false;
 

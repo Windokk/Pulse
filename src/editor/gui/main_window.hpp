@@ -11,6 +11,8 @@
 #include "editor/gui/panels/asset_browser/asset_browser.hpp"
 #include "editor/gui/panels/level_tree/level_tree.hpp"
 #include "editor/gui/panels/console/console.hpp"
+#include "editor/gui/panels/profiler/profiler_panel.hpp"
+#include "editor/gui/panels/menu_bar/menu_bar.hpp"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -43,8 +45,17 @@ namespace Pulse::Editor::Core {
         /// bool showBillboards;
         /// EditorViewportBuffer currentBuffer;
 
-        // TODO Cam settings 
+        // TODO Cam settings
 
+    };
+
+    struct PanelVisibility{
+        bool viewport = true;
+        bool levelTree = true;
+        bool properties = true;
+        bool assetBrowser = true;
+        bool console = true;
+        bool profiler = true;
     };
 
     class EditorMainWindow : public Engine::Core::Platform::IWindow {
@@ -60,6 +71,8 @@ namespace Pulse::Editor::Core {
 
         void SwapBuffers() override;
 
+        void DrawLoadingFrame(float progress) override;
+
         bool ShouldClose() const override;
 
         int GetFramebufferWidth() const override;
@@ -71,6 +84,8 @@ namespace Pulse::Editor::Core {
         void Destroy() const override;
   
         void ToggleFullscreen() override;
+
+        void RequestExit();
 
         void ProcessInputs() const override;
 
@@ -94,8 +109,12 @@ namespace Pulse::Editor::Core {
         GUI::ViewportWindow* viewport = nullptr;
 
         EditorSettings settings;
+        PanelVisibility panelVisibility;
 
     private:
+        void EnsureImGuiInitialized();
+        void DrawLoadingOverlay(float progress);
+
         bool imguiInitialized = false;
         bool renderPassesInitialized = false;
 
@@ -111,6 +130,8 @@ namespace Pulse::Editor::Core {
         GUI::PropertiesPanel* propertiesPanel = nullptr;
         GUI::LevelTree* levelTree = nullptr;
         GUI::Console* console = nullptr;
+        GUI::ProfilerPanel* profilerPanel = nullptr;
+        GUI::MenuBar* menuBar = nullptr;
         
         // User data
         std::shared_ptr<Engine::Objects::Actor> selectedActor = nullptr;

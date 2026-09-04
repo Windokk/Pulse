@@ -1,0 +1,44 @@
+#version 430 core
+
+// Final stage of the real-time GI probe update (see ProbeManager). ProbeManager::Update()'s maxBounces
+// loop fully recomputes the irradiance atlas from scratch every frame (no cross-frame blending internal
+// to the loop, since each bounce iteration needs a clean, unambiguous "previous bounce" source - see
+// probe_trace.comp) - but that means the raw per-frame result carries the full Monte Carlo noise of a
+// single-sample NEE light pick per ray (uLightCount > 1 makes this noise far more visible : with only one
+// light, RandomFloat() * 1 always resolves to the same index, so there's nothing to vary frame to frame;
+// with several lights, each ray's picked light flips around randomly every frame, and without smoothing
+// that shows up as visible flicker near anything lit by more than one light).
+//
+// This pass exponentially blends that raw per-frame result into a persistent "published" atlas - the one
+// ProbeManager::GetIrradianceAtlas() actually returns and lit.frag samples - trading a fraction of a
+// second of convergence lag for removing that flicker, the same way probe_trace.comp's uHysteresis blend
+// used to before the maxBounces rework made a single continuously-blended atlas ambiguous to feed back
+// into itself bounce over bounce.
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// Sampler binding starts at 44 - see the identical comment in probe_trace.comp for why (avoids
+// GLStateCache going stale on lit.frag's material texture units 1-3, since ProbeManager::Update()'s raw
+// Texture2D::Bind() runs every frame ahead of the forward pass).
+layout(binding = 44) uniform sampler2D uFresh;
+layout(rgba16f, binding = 0) uniform image2D uPublished;
+
+uniform int uAtlasSize;
+uniform float uHysteresis;
+
+void main()
+{
+    uint gid = gl_GlobalInvocationID.x;
+    uint size = uint(uAtlasSize);
+    uint totalTexels = size * size;
+    if (gid >= totalTexels)
+        return;
+
+    ivec2 coord = ivec2(int(gid % size), int(gid / size));
+
+    vec3 fresh = texelFetch(uFresh, coord, 0).rgb;
+    vec3 prev = imageLoad(uPublished, coord).rgb;
+    vec3 blended = mix(fresh, prev, uHysteresis);
+
+    imageStore(uPublished, coord, vec4(blended, 1.0));
+}

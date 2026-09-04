@@ -13,6 +13,12 @@ namespace Pulse::Engine::Rendering{
         public :
             void ExecuteDrawCommand(const DrawCommand& command, const std::shared_ptr<RenderPass> pass) override;
 
+            void ExecuteComputeDispatch(const std::shared_ptr<ComputePipeline> pipeline, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ) override;
+
+            void MemoryBarrier(MemoryBarrierBit barriers) override;
+
+            const ComputeLimits& GetComputeLimits() override;
+
             void ToggleMultisampling(const bool on) override;
 
             void SetViewport(uint32_t x, uint32_t y,
@@ -26,8 +32,11 @@ namespace Pulse::Engine::Rendering{
             std::string GetRendererName() override;
             std::string GetDriverVersion() override;
 
-        private: 
-            
+        private:
+
+            ComputeLimits m_ComputeLimits;
+            bool m_ComputeLimitsQueried = false;
+
             void BindMesh(std::shared_ptr<Mesh> mesh);
 
             void BindPipeline(std::shared_ptr<Pipeline> pipeline);
@@ -38,7 +47,7 @@ namespace Pulse::Engine::Rendering{
 
             void BindPassData(const std::shared_ptr<RenderPass> pass, std::shared_ptr<Material> material);
 
-            void BindLevelState(std::shared_ptr<Shader> shader, glm::mat4 modelMatrix, int objectID);
+            void BindLevelState(std::shared_ptr<Shader> shader, glm::mat4 modelMatrix, int objectID, bool applyPassGlobals);
 
             void DrawIndexed(const std::shared_ptr<Pipeline> pipeline, uint32_t indexCount, uint32_t indexOffset);
                 

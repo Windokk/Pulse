@@ -1,0 +1,545 @@
+#version 430 core
+#extension GL_ARB_bindless_texture : enable
+
+// Offline path tracer. Dispatched once per accumulated sample (see Raytracer::Render) - each dispatch
+// traces one path per pixel and adds its result into `uAccum`, which stores a running (sum, count) pair
+// per pixel in .rgb / .a rather than an average, so accumulation across dispatches is a simple add with
+// no read-modify-normalize step needed here (normalization to a mean happens once, on the CPU, after
+// the last sample - see Raytracer::Render).
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D uAccum;
+
+struct BVHNode
+{
+    vec3 boundsMin;
+    uint leftFirst; // internal node : left child index (right = leftFirst + 1) - leaf : first triangle index
+    vec3 boundsMax;
+    uint triCount;  // 0 = internal node, > 0 = leaf
+};
+
+struct TrianglePos
+{
+    vec4 v0, v1, v2; // xyz = world-space position
+};
+
+struct TriangleAttrib
+{
+    vec4 n0, n1, n2;  // xyz = world-space normal, w = u (texcoord) for that vertex
+    vec4 uvMatID;     // x/y/z = v (texcoord) for vertices 0/1/2, w = material index
+    vec4 t0, t1, t2;  // xyz = world-space tangent, w unused - only read when TEX_NORMAL_BIT is set
+};
+
+// Texture handles are ARB_bindless_texture handles packed as uvec2 (see GLTexture2D::GetBindlessHandle /
+// raytrace_scene.hpp) - sampler2D(uvec2) reconstructs a usable sampler from one of these directly, no
+// GL_ARB_gpu_shader_int64 needed. A bit is only set in textureFlags when the material actually has that
+// texture assigned (see ExtractMaterial), so materials without one just keep using the scalar value.
+struct GPUMaterial
+{
+    vec4 albedo;
+    vec4 emissive;
+    float roughness;
+    float metallic;
+    float ior;
+    uint textureFlags;
+    uvec2 albedoTex;
+    uvec2 metallicTex;
+    uvec2 roughnessTex;
+    uvec2 normalTex;
+};
+
+const uint TEX_ALBEDO_BIT    = 1u;
+const uint TEX_METALLIC_BIT  = 2u;
+const uint TEX_ROUGHNESS_BIT = 4u;
+const uint TEX_NORMAL_BIT    = 8u;
+
+// Mirrors Pulse::Engine::Rendering::LightData exactly (see light_manager.hpp) - reused as-is rather
+// than inventing a parallel light representation for the raytracer.
+struct Light
+{
+    vec4 position;
+    vec4 direction;
+    vec4 color;
+    float intensity;
+    float radius;
+    float innerCutoff;
+    float outerCutoff;
+    int type; // 0 = Directional, 1 = Point, 2 = Spot
+    int castShadow;
+    vec2 padding;
+};
+
+// Image binding (unit 0) and SSBO bindings (also numbered from 0) live in separate binding tables in
+// OpenGL, so they don't collide despite sharing index 0.
+layout(std430, binding = 0) readonly buffer BVHNodes       { BVHNode bvhNodes[]; };
+layout(std430, binding = 1) readonly buffer TrianglePositions { TrianglePos triPos[]; };
+layout(std430, binding = 2) readonly buffer TriangleAttribs   { TriangleAttrib triAttrib[]; };
+layout(std430, binding = 3) readonly buffer Materials         { GPUMaterial materials[]; };
+layout(std430, binding = 4) readonly buffer Lights            { Light lights[]; };
+
+uniform vec3 uCameraPos;
+uniform vec3 uCameraRight;   // basis vector, pre-scaled by tan(fov/2) * aspect
+uniform vec3 uCameraUp;      // basis vector, pre-scaled by tan(fov/2)
+uniform vec3 uCameraForward;
+uniform vec2 uImageSize;
+uniform vec2 uTileOffset;    // pixel offset of this dispatch's strip within the full image (tiled dispatch)
+uniform int  uFrameIndex;    // which accumulated sample this dispatch is (0-based) - also seeds the RNG
+uniform int  uLightCount;
+uniform int  uMaxBounces;
+uniform vec3 uSkyColor;      // flat radiance returned for rays that escape the scene
+
+const float PI = 3.14159265359;
+
+// ---------------------------------------------------------------------------
+// RNG - PCG hash, seeded per-pixel per-sample so every dispatch draws an
+// independent stream of pseudo-random numbers.
+// ---------------------------------------------------------------------------
+
+uint rngState;
+
+uint PcgHash(uint x)
+{
+    uint state = x * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+float RandomFloat()
+{
+    rngState = PcgHash(rngState);
+    return float(rngState) / 4294967296.0;
+}
+
+vec2 RandomVec2()
+{
+    return vec2(RandomFloat(), RandomFloat());
+}
+
+// ---------------------------------------------------------------------------
+// Sampling helpers
+// ---------------------------------------------------------------------------
+
+// Builds an orthonormal basis (t, b) around unit vector n (Duff et al., "Building an Orthonormal
+// Basis, Revisited" - avoids the singularity/branch cost of a naive cross-product approach).
+void BuildONB(vec3 n, out vec3 t, out vec3 b)
+{
+    float s = n.z >= 0.0 ? 1.0 : -1.0;
+    float a = -1.0 / (s + n.z);
+    float bb = n.x * n.y * a;
+    t = vec3(1.0 + s * n.x * n.x * a, s * bb, -s * n.x);
+    b = vec3(bb, s + n.y * n.y * a, -n.y);
+}
+
+vec3 CosineSampleHemisphere(vec3 n)
+{
+    vec2 u = RandomVec2();
+    float r = sqrt(u.x);
+    float phi = 2.0 * PI * u.y;
+    vec3 t, b;
+    BuildONB(n, t, b);
+    return normalize(t * (r * cos(phi)) + b * (r * sin(phi)) + n * sqrt(max(0.0, 1.0 - u.x)));
+}
+
+// Importance-samples the GGX half-vector distribution around n.
+vec3 SampleGGX(vec3 n, float roughness)
+{
+    vec2 u = RandomVec2();
+    float a = max(roughness * roughness, 1e-4);
+    float phi = 2.0 * PI * u.x;
+    float cosTheta = sqrt((1.0 - u.y) / (1.0 + (a * a - 1.0) * u.y));
+    float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+    vec3 hLocal = vec3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
+    vec3 t, b;
+    BuildONB(n, t, b);
+    return normalize(t * hLocal.x + b * hLocal.y + n * hLocal.z);
+}
+
+float DistributionGGX(vec3 n, vec3 h, float roughness)
+{
+    float a = max(roughness * roughness, 1e-4);
+    float a2 = a * a;
+    float NdotH = max(dot(n, h), 0.0);
+    float denom = NdotH * NdotH * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * denom * denom, 1e-6);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return NdotV / max(NdotV * (1.0 - k) + k, 1e-6);
+}
+
+float GeometrySmith(vec3 n, vec3 v, vec3 l, float roughness)
+{
+    return GeometrySchlickGGX(max(dot(n, v), 0.0), roughness) * GeometrySchlickGGX(max(dot(n, l), 0.0), roughness);
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+// ---------------------------------------------------------------------------
+// Ray / BVH intersection
+// ---------------------------------------------------------------------------
+
+struct HitInfo
+{
+    float t;
+    uint triIndex;
+    vec2 bary; // barycentric (u, v) - w = 1 - u - v
+};
+
+bool IntersectAABB(vec3 ro, vec3 invRd, vec3 boundsMin, vec3 boundsMax, float maxT)
+{
+    vec3 t0 = (boundsMin - ro) * invRd;
+    vec3 t1 = (boundsMax - ro) * invRd;
+    vec3 tmin = min(t0, t1);
+    vec3 tmax = max(t0, t1);
+    float tNear = max(max(tmin.x, tmin.y), tmin.z);
+    float tFar = min(min(tmax.x, tmax.y), tmax.z);
+    return tFar >= max(tNear, 0.0) && tNear < maxT;
+}
+
+// Moller-Trumbore. Shrinks `closestT` (the caller's current best hit distance) in place so the BVH
+// walk below can use it to reject farther AABBs/triangles as it goes.
+bool IntersectTriangle(vec3 ro, vec3 rd, uint triIdx, inout float closestT, out vec2 outBary)
+{
+    TrianglePos tri = triPos[triIdx];
+    vec3 e1 = tri.v1.xyz - tri.v0.xyz;
+    vec3 e2 = tri.v2.xyz - tri.v0.xyz;
+    vec3 p = cross(rd, e2);
+    float det = dot(e1, p);
+    if (abs(det) < 1e-8)
+        return false;
+
+    float invDet = 1.0 / det;
+    vec3 tvec = ro - tri.v0.xyz;
+    float u = dot(tvec, p) * invDet;
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 q = cross(tvec, e1);
+    float v = dot(rd, q) * invDet;
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    float t = dot(e2, q) * invDet;
+    if (t < 1e-4 || t > closestT)
+        return false;
+
+    closestT = t;
+    outBary = vec2(u, v);
+    return true;
+}
+
+// Same Moller-Trumbore test as IntersectTriangle, but for shadow/occlusion rays that only need to know
+// IF something blocks the ray, not the closest hit or its barycentrics.
+bool IntersectTriangleAny(vec3 ro, vec3 rd, uint triIdx, float maxT)
+{
+    TrianglePos tri = triPos[triIdx];
+    vec3 e1 = tri.v1.xyz - tri.v0.xyz;
+    vec3 e2 = tri.v2.xyz - tri.v0.xyz;
+    vec3 p = cross(rd, e2);
+    float det = dot(e1, p);
+    if (abs(det) < 1e-8)
+        return false;
+
+    float invDet = 1.0 / det;
+    vec3 tvec = ro - tri.v0.xyz;
+    float u = dot(tvec, p) * invDet;
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 q = cross(tvec, e1);
+    float v = dot(rd, q) * invDet;
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    float t = dot(e2, q) * invDet;
+    return t > 1e-4 && t < maxT;
+}
+
+// Any-hit BVH traversal for shadow rays : returns as soon as a single occluder is found instead of
+// searching for the closest one. Cast once per light sample per bounce (see TracePath's NEE block), so
+// this roughly halves the ray-tracing cost of NEE compared to reusing the closest-hit TraceRay for
+// occlusion tests too.
+bool TraceRayAny(vec3 ro, vec3 rd, float maxT)
+{
+    vec3 invRd = 1.0 / rd;
+
+    int stack[64];
+    int sp = 0;
+    stack[sp++] = 0;
+
+    int iterations = 0;
+    while (sp > 0 && iterations < 4096)
+    {
+        iterations++;
+
+        BVHNode node = bvhNodes[stack[--sp]];
+
+        if (!IntersectAABB(ro, invRd, node.boundsMin, node.boundsMax, maxT))
+            continue;
+
+        if (node.triCount > 0u)
+        {
+            for (uint i = 0u; i < node.triCount; i++)
+            {
+                if (IntersectTriangleAny(ro, rd, node.leftFirst + i, maxT))
+                    return true;
+            }
+        }
+        else if (sp < 62)
+        {
+            stack[sp++] = int(node.leftFirst);
+            stack[sp++] = int(node.leftFirst) + 1;
+        }
+    }
+
+    return false;
+}
+
+// Iterative BVH traversal (GLSL has no recursion) - 64 stack slots comfortably covers even
+// million-triangle scenes for a well-balanced tree (depth ~log2(N)), but a pathologically unbalanced
+// BVH (or corrupted node data) could in principle push past that. Writing past the end of a local array
+// in GLSL is undefined behavior - not a clean crash - and has been observed to manifest as an
+// effectively endless loop (garbage `sp`/node data keeps the loop going) that hangs the driver instead
+// of failing safely. Both the stack-depth check on push and the hard `iterations` cap below exist
+// purely as a safety net against that : a correct traversal never gets close to either limit.
+bool TraceRay(vec3 ro, vec3 rd, float maxT, out HitInfo hit)
+{
+    hit.t = maxT;
+    hit.triIndex = 0xFFFFFFFFu;
+
+    vec3 invRd = 1.0 / rd;
+
+    int stack[64];
+    int sp = 0;
+    stack[sp++] = 0;
+
+    int iterations = 0;
+    while (sp > 0 && iterations < 4096)
+    {
+        iterations++;
+
+        BVHNode node = bvhNodes[stack[--sp]];
+
+        if (!IntersectAABB(ro, invRd, node.boundsMin, node.boundsMax, hit.t))
+            continue;
+
+        if (node.triCount > 0u)
+        {
+            for (uint i = 0u; i < node.triCount; i++)
+            {
+                uint triIdx = node.leftFirst + i;
+                vec2 bary;
+                if (IntersectTriangle(ro, rd, triIdx, hit.t, bary))
+                {
+                    hit.triIndex = triIdx;
+                    hit.bary = bary;
+                }
+            }
+        }
+        else if (sp < 62)
+        {
+            stack[sp++] = int(node.leftFirst);
+            stack[sp++] = int(node.leftFirst) + 1;
+        }
+    }
+
+    return hit.triIndex != 0xFFFFFFFFu;
+}
+
+// ---------------------------------------------------------------------------
+// Shading
+// ---------------------------------------------------------------------------
+
+vec3 GetSkyColor(vec3 rd)
+{
+    return uSkyColor;
+}
+
+vec3 TracePath(vec3 ro, vec3 rd)
+{
+    vec3 radiance = vec3(0.0);
+    vec3 throughput = vec3(1.0);
+
+    for (int bounce = 0; bounce < uMaxBounces; bounce++)
+    {
+        HitInfo hit;
+        if (!TraceRay(ro, rd, 1e30, hit))
+        {
+            radiance += throughput * GetSkyColor(rd);
+            break;
+        }
+
+        TriangleAttrib attrib = triAttrib[hit.triIndex];
+        float w0 = 1.0 - hit.bary.x - hit.bary.y;
+        vec3 n = normalize(attrib.n0.xyz * w0 + attrib.n1.xyz * hit.bary.x + attrib.n2.xyz * hit.bary.y);
+        uint matID = uint(attrib.uvMatID.w);
+        GPUMaterial mat = materials[matID];
+
+        vec3 hitPos = ro + rd * hit.t;
+        if (dot(n, rd) > 0.0)
+            n = -n; // shade whichever side the ray actually came from (double-sided geometry)
+
+        // ---- Texture sampling : overrides (or, for metallic/roughness, modulates) the material's
+        // scalar values wherever a bit is set - see GPUMaterial's comment. ----
+        vec3 albedo = mat.albedo.rgb;
+        float roughness = mat.roughness;
+        float metallic = mat.metallic;
+
+        if (mat.textureFlags != 0u)
+        {
+            vec2 uv = vec2(attrib.n0.w, attrib.uvMatID.x) * w0
+                    + vec2(attrib.n1.w, attrib.uvMatID.y) * hit.bary.x
+                    + vec2(attrib.n2.w, attrib.uvMatID.z) * hit.bary.y;
+
+            if ((mat.textureFlags & TEX_ALBEDO_BIT) != 0u)
+                albedo = texture(sampler2D(mat.albedoTex), uv).rgb;
+
+            if ((mat.textureFlags & TEX_METALLIC_BIT) != 0u)
+                metallic *= texture(sampler2D(mat.metallicTex), uv).r;
+
+            if ((mat.textureFlags & TEX_ROUGHNESS_BIT) != 0u)
+                roughness *= texture(sampler2D(mat.roughnessTex), uv).r;
+
+            if ((mat.textureFlags & TEX_NORMAL_BIT) != 0u)
+            {
+                vec3 tangent = normalize(attrib.t0.xyz * w0 + attrib.t1.xyz * hit.bary.x + attrib.t2.xyz * hit.bary.y);
+                tangent = normalize(tangent - n * dot(tangent, n)); // re-orthogonalize against the interpolated normal
+                vec3 bitangent = cross(n, tangent);
+                mat3 TBN = mat3(tangent, bitangent, n);
+
+                vec3 sampledNormal = texture(sampler2D(mat.normalTex), uv).rgb * 2.0 - 1.0;
+                n = normalize(TBN * sampledNormal);
+            }
+        }
+
+        radiance += throughput * mat.emissive.rgb;
+
+        vec3 viewDir = normalize(-rd);
+        vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+        // ---- Next event estimation : sample one light directly, with a shadow ray ----
+        if (uLightCount > 0)
+        {
+            int lightIdx = min(int(RandomFloat() * float(uLightCount)), uLightCount - 1);
+            Light light = lights[lightIdx];
+
+            vec3 toLight;
+            float dist;
+            vec3 incomingRadiance;
+
+            if (light.type == 0) // Directional
+            {
+                toLight = normalize(-light.direction.xyz);
+                dist = 1e30;
+                incomingRadiance = light.color.rgb * light.intensity;
+            }
+            else // Point / Spot
+            {
+                vec3 d = light.position.xyz - hitPos;
+                dist = length(d);
+                toLight = d / max(dist, 1e-6);
+                float atten = 1.0 / max(dist * dist, 1e-4);
+                incomingRadiance = light.color.rgb * light.intensity * atten;
+
+                if (light.type == 2) // Spot cone falloff
+                {
+                    float cosAngle = dot(-toLight, normalize(light.direction.xyz));
+                    float t = clamp((cosAngle - light.outerCutoff) / max(light.innerCutoff - light.outerCutoff, 1e-4), 0.0, 1.0);
+                    incomingRadiance *= t;
+                }
+            }
+
+            float NdotL = dot(n, toLight);
+            if (NdotL > 0.0)
+            {
+                bool occluded = TraceRayAny(hitPos + n * 1e-3, toLight, dist - 2e-3);
+                if (!occluded)
+                {
+                    vec3 h = normalize(viewDir + toLight);
+                    vec3 F = FresnelSchlick(max(dot(h, viewDir), 0.0), F0);
+                    float D = DistributionGGX(n, h, roughness);
+                    float G = GeometrySmith(n, viewDir, toLight, roughness);
+                    vec3 specular = (D * G * F) / max(4.0 * max(dot(n, viewDir), 0.0) * NdotL, 1e-4);
+                    vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
+                    vec3 diffuse = kd * albedo / PI;
+
+                    // uLightCount factor : we sampled one of uLightCount lights uniformly (pdf = 1 / uLightCount)
+                    radiance += throughput * (diffuse + specular) * incomingRadiance * NdotL * float(uLightCount);
+                }
+            }
+        }
+
+        // ---- Continue the path : stochastically pick a lobe and sample a bounce direction ----
+        float specProb = clamp(mix(0.04, 1.0, metallic), 0.04, 0.95);
+        vec3 newDir;
+        vec3 lobeWeight;
+
+        if (RandomFloat() < specProb)
+        {
+            vec3 h = SampleGGX(n, roughness);
+            newDir = reflect(rd, h);
+            if (dot(newDir, n) <= 0.0)
+                break; // sampled a direction below the surface - dead end for this path
+
+            vec3 F = FresnelSchlick(max(dot(h, viewDir), 0.0), F0);
+            float G = GeometrySmith(n, viewDir, newDir, roughness);
+            float NdotV = max(dot(n, viewDir), 0.0);
+            float NdotH = max(dot(n, h), 0.0);
+            // Standard GGX-half-vector-importance-sampling weight : BRDF * NdotL / pdf, simplified
+            // using dot(newDir,h) == dot(viewDir,h) for a mirror reflection about h.
+            lobeWeight = (F * G * max(dot(newDir, h), 0.0)) / max(NdotV * NdotH * specProb, 1e-4);
+        }
+        else
+        {
+            newDir = CosineSampleHemisphere(n);
+            vec3 kd = (vec3(1.0) - F0) * (1.0 - metallic);
+            // Cosine-weighted hemisphere pdf (cosTheta / PI) cancels the BRDF's NdotL / PI exactly,
+            // leaving just the diffuse albedo term, divided by the probability of picking this lobe.
+            lobeWeight = kd * albedo / max(1.0 - specProb, 1e-4);
+        }
+
+        throughput *= lobeWeight;
+
+        // ---- Russian roulette : bound path length without introducing bias ----
+        if (bounce > 3)
+        {
+            float surviveProb = clamp(max(throughput.r, max(throughput.g, throughput.b)), 0.05, 0.95);
+            if (RandomFloat() > surviveProb)
+                break;
+            throughput /= surviveProb;
+        }
+
+        ro = hitPos + n * 1e-3;
+        rd = newDir;
+    }
+
+    return radiance;
+}
+
+void main()
+{
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy) + ivec2(uTileOffset);
+    ivec2 imageSize = ivec2(uImageSize);
+    if (pixel.x >= imageSize.x || pixel.y >= imageSize.y)
+        return;
+
+    rngState = PcgHash(PcgHash(uint(pixel.x) * 1973u + uint(pixel.y) * 9277u) + uint(uFrameIndex) * 26699u + 1u);
+
+    vec2 jitter = RandomVec2();
+    vec2 ndc = (vec2(pixel) + jitter) / uImageSize * 2.0 - 1.0;
+
+    vec3 rd = normalize(uCameraForward + uCameraRight * ndc.x + uCameraUp * ndc.y);
+    vec3 ro = uCameraPos;
+
+    vec3 sampleRadiance = TracePath(ro, rd);
+
+    vec4 prev = uFrameIndex == 0 ? vec4(0.0) : imageLoad(uAccum, pixel);
+    imageStore(uAccum, pixel, prev + vec4(sampleRadiance, 1.0));
+}

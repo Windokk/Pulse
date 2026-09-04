@@ -2,7 +2,47 @@
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <unordered_map>
+
 namespace Pulse::Engine::Rendering{
+
+    namespace {
+        // Keyed by raw GL texture ID rather than by GLTexture2D* : SetTextureParameter/m_SamplersParameters
+        // (see GLMaterial) only ever store the raw ID, so this is what's available at the call site. Entries
+        // are removed in ~GLTexture2D() to avoid a stale resident handle surviving ID reuse by a later texture.
+        std::unordered_map<uint32_t, uint64_t> s_BindlessHandles;
+        bool s_WarnedBindlessUnsupported = false;
+    }
+
+    uint64_t GLTexture2D::GetBindlessHandle(uint32_t glTextureID)
+    {
+        if (glTextureID == 0)
+            return 0;
+
+        auto it = s_BindlessHandles.find(glTextureID);
+        if (it != s_BindlessHandles.end())
+            return it->second;
+
+        if (!GLAD_GL_ARB_bindless_texture)
+        {
+            if (!s_WarnedBindlessUnsupported)
+            {
+                DEBUG_WARNING("GL_ARB_bindless_texture is not supported on this GPU/driver - raytraced materials will render without textures.");
+                s_WarnedBindlessUnsupported = true;
+            }
+            return 0;
+        }
+
+        GLuint64 handle = glGetTextureHandleARB(glTextureID);
+        if (handle == 0)
+            return 0;
+
+        glMakeTextureHandleResidentARB(handle);
+        s_BindlessHandles[glTextureID] = handle;
+        return handle;
+    }
 
     GLTexture2D::GLTexture2D(TextureSpecifications &specs, const void *data)
     {
@@ -12,6 +52,7 @@ namespace Pulse::Engine::Rendering{
         glBindTexture(GL_TEXTURE_2D, ID);
 
         GLTextureSpec glSpecs = GLTextureSpec::FromTextureSpecifications(specs);
+        m_GLInternalFormat = glSpecs.internalFormat;
 
         // Set texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glSpecs.wrapModeS);
@@ -25,7 +66,21 @@ namespace Pulse::Engine::Rendering{
             glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, glSpecs.type, data);
+        if (specs.immutableStorage)
+        {
+            int mipLevels = specs.generateMips
+                ? (int)std::floor(std::log2(std::max(specs.width, specs.height))) + 1
+                : 1;
+
+            glTexStorage2D(GL_TEXTURE_2D, mipLevels, glSpecs.internalFormat, specs.width, specs.height);
+
+            if (data)
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, specs.width, specs.height, glSpecs.format, glSpecs.type, data);
+        }
+        else
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, glSpecs.internalFormat, specs.width, specs.height, 0, glSpecs.format, glSpecs.type, data);
+        }
 
         if(specs.generateMips)
             glGenerateMipmap(GL_TEXTURE_2D);
@@ -37,6 +92,64 @@ namespace Pulse::Engine::Rendering{
         glBindTexture(GL_TEXTURE_2D, ID);
     }
 
+    // glBindImageTexture only accepts a specific subset of sized internal formats (no 3-component or
+    // depth formats) - binding an unsupported one fails silently with a GL_INVALID_VALUE error and the
+    // shader reads/writes garbage, so this is checked explicitly instead of surfacing as a mysterious
+    // black output image later.
+    static bool IsImageLoadStoreFormat(uint32_t glInternalFormat)
+    {
+        switch (glInternalFormat)
+        {
+            case GL_RGBA32F: case GL_RGBA16F: case GL_RG32F: case GL_RG16F:
+            case GL_R32F: case GL_R16F:
+            case GL_RGBA32UI: case GL_RGBA16UI: case GL_RGBA8UI:
+            case GL_RG32UI: case GL_RG16UI: case GL_RG8UI:
+            case GL_R32UI: case GL_R16UI: case GL_R8UI:
+            case GL_RGBA32I: case GL_RGBA16I: case GL_RGBA8I:
+            case GL_RG32I: case GL_RG16I: case GL_RG8I:
+            case GL_R32I: case GL_R16I: case GL_R8I:
+            case GL_RGBA16: case GL_RGBA8: case GL_RG16: case GL_RG8: case GL_R16: case GL_R8:
+            case GL_RGBA16_SNORM: case GL_RGBA8_SNORM: case GL_RG16_SNORM: case GL_RG8_SNORM:
+            case GL_R16_SNORM: case GL_R8_SNORM:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void GLTexture2D::BindImage(uint32_t unit, TextureAccess access, uint32_t level) const
+    {
+        if (!IsImageLoadStoreFormat(m_GLInternalFormat))
+        {
+            DEBUG_WARNING("Texture bound as image at unit " + std::to_string(unit) + " uses a format not supported by image load/store (e.g. RGB/RGB32F/RGB32I or depth formats aren't allowed - use RGBA32F, RGBA8, R32F, etc).");
+        }
+
+        GLenum glAccess = GL_READ_WRITE;
+        switch (access)
+        {
+            case TextureAccess::ReadOnly:  glAccess = GL_READ_ONLY; break;
+            case TextureAccess::WriteOnly: glAccess = GL_WRITE_ONLY; break;
+            case TextureAccess::ReadWrite: glAccess = GL_READ_WRITE; break;
+        }
+
+        glBindImageTexture(unit, ID, level, GL_FALSE, 0, glAccess, m_GLInternalFormat);
+    }
+
+    void GLTexture2D::ReadPixels(void* outData, size_t bufferSize, uint32_t level) const
+    {
+        size_t required = GetPixelDataSize(level);
+        if (bufferSize < required)
+        {
+            DEBUG_ERROR("ReadPixels buffer too small (" + std::to_string(bufferSize) + " bytes, needs " + std::to_string(required) + ") - texture " + std::to_string(ID) + " was not read back.");
+            return;
+        }
+
+        GLTextureSpec glSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications);
+
+        glBindTexture(GL_TEXTURE_2D, ID);
+        glGetTexImage(GL_TEXTURE_2D, level, glSpecs.format, glSpecs.type, outData);
+    }
+
     bool GLTexture2D::IsValid() const
     {
         return glIsTexture(ID);
@@ -44,6 +157,13 @@ namespace Pulse::Engine::Rendering{
 
     GLTexture2D::~GLTexture2D()
     {
+        auto it = s_BindlessHandles.find(ID);
+        if (it != s_BindlessHandles.end())
+        {
+            glMakeTextureHandleNonResidentARB(it->second);
+            s_BindlessHandles.erase(it);
+        }
+
         glDeleteTextures(1, &ID);
     }
 

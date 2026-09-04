@@ -6,6 +6,8 @@
 
 #include "editor/commands/command_stack.hpp"
 
+#include "engine/rendering/raytracing/raytracer.hpp"
+
 #include "imgui/imgui.h"
 #include "ImGuizmo.h"
 
@@ -30,6 +32,9 @@ namespace Pulse::Editor::GUI {
 
             void SetParentWindow(Core::EditorMainWindow* parent);
 
+            void SetGizmoOperation(ImGuizmo::OPERATION op) { currentGizmoOp = op; }
+            ImGuizmo::OPERATION GetGizmoOperation() const { return currentGizmoOp; }
+
             // Store previous size
             static ImVec2 prev_size;
             
@@ -40,6 +45,7 @@ namespace Pulse::Editor::GUI {
             void ShowFrameStats();
             void ShowCamSettings();
             void ShowViewportVisSettings();
+            void ShowRaytraceSettings();
 
 
             Core::EditorMainWindow* parent = nullptr;
@@ -67,7 +73,14 @@ namespace Pulse::Editor::GUI {
             bool showFrameStats = false;
             bool showCamSettings = false;
             bool showViewportVisibility = false;
+            bool showRaytraceSettings = false;
             bool uiHovered = false;
+
+            // Offline raytrace
+            Engine::Rendering::Raytracing::RaytraceSettings raytraceSettings;
+            char raytraceOutputPath[256] = "render.hdr";
+            std::unique_ptr<Engine::Rendering::Raytracing::Raytracer> raytracer;
+            std::string raytraceStatusMessage;
 
             float firstClickTime = 0;
 

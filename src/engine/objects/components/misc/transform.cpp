@@ -6,6 +6,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/objects/actors/actor.hpp"
 #include "engine/objects/components/rendering/light_component.hpp"
+#include "engine/objects/components/rendering/volume.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
 
 #include "engine/core/engine.hpp"
@@ -221,6 +222,12 @@ namespace Pulse::Engine::Objects::Components{
 		if(parent->HasComponent<Objects::Components::Model>()){
 			for(std::shared_ptr<Objects::Components::Model> comp : parent->GetComponents<Objects::Components::Model>()){
 				comp->UpdateReferenceInLevel();
+			}
+		}
+
+		if(parent->HasComponent<Objects::Components::Volume>()){
+			for(std::shared_ptr<Objects::Components::Volume> comp : parent->GetComponents<Objects::Components::Volume>()){
+				comp->RefreshDebugDrawCommands();
 			}
 		}
 	}

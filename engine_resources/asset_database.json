@@ -167,5 +167,20 @@
     "shaders/editor/outline_mask.vert":{
         "id":34,
         "dependencies":[]
+    },
+
+    "shaders/compute/path_trace.comp":{
+        "id":35,
+        "dependencies":[]
+    },
+
+    "shaders/compute/probe_border_fixup.comp":{
+        "id":36,
+        "dependencies":[37]
+    },
+
+    "shaders/compute/probe_trace.comp":{
+        "id":37,
+        "dependencies":[]
     }
 }

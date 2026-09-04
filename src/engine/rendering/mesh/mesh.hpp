@@ -72,6 +72,30 @@ namespace Pulse::Engine::Rendering {
         return h;
     }
 
+    // Plain CPU-side result of building mesh geometry (triangulation, vertex dedup, tangent
+    // computation) from an FBX source - no GL calls involved in producing this, so it's safe to build
+    // on a worker thread and hand across to the GL/main thread afterwards via Mesh::CreateFromData().
+    struct MeshCPUData
+    {
+        bool success = false;
+        std::vector<uint8_t> vertices;
+        std::vector<uint32_t> indices;
+        std::vector<SubMesh> submeshes;
+        VertexLayout layout;
+        glm::vec3 boundsMin = glm::vec3(std::numeric_limits<float>::max());
+        glm::vec3 boundsMax = glm::vec3(std::numeric_limits<float>::lowest());
+    };
+
+    // Pure CPU geometry build (triangulation, vertex dedup, tangent computation) from an
+    // already-loaded ufbx scene's mesh/node - no GL calls, safe to call from any thread.
+    MeshCPUData BuildMeshCPUDataFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters,
+        ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA vertexColor = COL_RGBA(0.99f,0.06f,0.75f,1.0f));
+
+    // Pure CPU: opens the FBX file, builds geometry via BuildMeshCPUDataFromFBX, and closes it again -
+    // no GL calls, safe to call from any thread. Used by both the synchronous
+    // ResourcesManager::LoadModel path and the async level loader's background decode workers.
+    MeshCPUData DecodeMeshFile(const Filesystem::Path& path);
+
     class Mesh : public std::enable_shared_from_this<Mesh>
     {
         public:
@@ -80,8 +104,12 @@ namespace Pulse::Engine::Rendering {
 
             virtual void Create(std::vector<uint8_t> vertices, std::vector<uint32_t> indices, const VertexLayout& layout) = 0;
 
-            virtual void CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters, 
+            virtual void CreateFromFBX(const ufbx_mesh *ufbx_mesh, double scene_unit_meters,
                 ufbx_material_list& ufbx_mats, ufbx_node* mesh_node, COL_RGBA vertexColor = COL_RGBA(0.99f,0.06f,0.75f,1.0f)) = 0;
+
+            // Uploads already-built CPU geometry (e.g. produced off-thread by BuildMeshCPUDataFromFBX/
+            // DecodeMeshFile) to the GPU. `data.success` must be true.
+            virtual void CreateFromData(const MeshCPUData& data) = 0;
 
             virtual ~Mesh() = default;
 

@@ -3,6 +3,8 @@
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 #include "engine/rendering/backends/opengl/material/gl_material.hpp"
 #include "engine/rendering/backends/opengl/pipeline/gl_pipeline.hpp"
+#include "engine/rendering/backends/opengl/pipeline/gl_compute_pipeline.hpp"
+#include "engine/rendering/pipeline/compute_pipeline.hpp"
 #include "engine/rendering/backends/opengl/mesh/gl_mesh.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
@@ -11,6 +13,8 @@
 #include "engine/rendering/lighting/light_manager.hpp"
 #include "engine/rendering/texture/cubemap/envmap.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
+#include "engine/rendering/lighting/probe_manager.hpp"
+#include "engine/rendering/texture/texture.hpp"
 
 #include "engine/objects/actors/actor.hpp"
 
@@ -18,6 +22,7 @@
 
 #include "engine/core/engine.hpp"
 #include "engine/levels/level_manager.hpp"
+#include "engine/debugging/profiler.hpp"
 
 namespace Pulse::Engine::Rendering{
 
@@ -48,6 +53,11 @@ namespace Pulse::Engine::Rendering{
 
     void GLRendererAPI::Clear(ClearBit clearBits)
     {
+        // Runs once per pass (see Renderer::BeginRenderPass) : bounds how stale the cache can get
+        // from GL state changed outside it (ImGui, compute dispatches) without losing the caching
+        // benefit within a pass, where the vast majority of draw calls live.
+        GLStateCache::Reset();
+
         GLbitfield bits = 0;
 
         if ((uint32_t)clearBits & (uint32_t)ClearBit::Color)
@@ -86,7 +96,7 @@ namespace Pulse::Engine::Rendering{
     {
         std::shared_ptr<GLMesh> glMesh = std::static_pointer_cast<GLMesh>(mesh);
         assert(glMesh && glMesh->GetVAO() != 0 && "Invalid GLMesh");
-        glBindVertexArray(glMesh->GetVAO());
+        GLStateCache::BindVertexArray(glMesh->GetVAO());
     }
 
     void GLRendererAPI::BindPipeline(std::shared_ptr<Pipeline> pipeline)
@@ -166,31 +176,67 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
-    void GLRendererAPI::BindLevelState(std::shared_ptr<Shader> shader, glm::mat4 modelMatrix, int objectID)
+    void GLRendererAPI::BindLevelState(std::shared_ptr<Shader> shader, glm::mat4 modelMatrix, int objectID, bool applyPassGlobals)
     {
+        // model/objID are genuinely per-object and must always be set.
+        shader->SetMat4("model", modelMatrix);
+        shader->SetInt("objID", objectID);
+
+        // Everything below (skybox IBL, lights, camera pos, ambient) is constant for every draw call in this pass : only reapply it the first time this program is used since the last reset.
+        if (!applyPassGlobals)
+            return;
+
         auto level = Core::GetEngine().GetLevelManager()->GetLevelAt(0);
-        auto camera = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
-        auto it = shader->GetActiveUniformsMap().find("useEnvReflections");
+        const auto& uniforms = shader->GetActiveUniformsMap();
+        auto it = uniforms.find("useEnvReflections");
 
-        if(it != shader->GetActiveUniformsMap().end() && level->skybox){
+        if(it != uniforms.end() && level->skybox){
             //Bind skybox data
-            glBindTextureUnit(shader->GetActiveSamplersMap().find("ibl_irradianceMap")->second.binding, level->skybox->GetEnvMap()->GetIrradiance()->GetHandle());
+            const auto& samplers = shader->GetActiveSamplersMap();
 
-            glBindTextureUnit(shader->GetActiveSamplersMap().find("ibl_prefilteredEnvMap")->second.binding, level->skybox->GetEnvMap()->GetPrefilter()->GetHandle());
+            GLStateCache::BindTextureUnit(samplers.find("ibl_irradianceMap")->second.binding, level->skybox->GetEnvMap()->GetIrradiance()->GetHandle());
 
-            glBindTextureUnit(shader->GetActiveSamplersMap().find("ibl_brdfLUT")->second.binding, level->skybox->GetEnvMap()->GetBRDFLUT()->GetHandle());
+            GLStateCache::BindTextureUnit(samplers.find("ibl_prefilteredEnvMap")->second.binding, level->skybox->GetEnvMap()->GetPrefilter()->GetHandle());
+
+            GLStateCache::BindTextureUnit(samplers.find("ibl_brdfLUT")->second.binding, level->skybox->GetEnvMap()->GetBRDFLUT()->GetHandle());
         }
 
-        shader->SetMat4("model", modelMatrix);
+        // Real-time GI probes (see ProbeManager) : only bind the atlas/grid data when a volume is
+        // actually ready to sample; ddgi_enabled otherwise stays false and lit.frag falls back to IBL.
+        auto probeManager = Core::GetEngine().GetRenderer()->GetProbeManager();
+        bool ddgiReady = probeManager && probeManager->IsReady();
+        shader->SetBool("ddgi_enabled", ddgiReady);
+
+        if (ddgiReady)
+        {
+            const auto& samplers = shader->GetActiveSamplersMap();
+            auto atlasSampler = samplers.find("ddgi_irradianceAtlas");
+            if (atlasSampler != samplers.end())
+                GLStateCache::BindTextureUnit(atlasSampler->second.binding, probeManager->GetIrradianceAtlas()->GetHandle());
+
+            auto distAtlasSampler = samplers.find("ddgi_distanceAtlas");
+            if (distAtlasSampler != samplers.end())
+                GLStateCache::BindTextureUnit(distAtlasSampler->second.binding, probeManager->GetDistanceAtlas()->GetHandle());
+
+            shader->SetVec3("ddgi_gridOrigin", probeManager->GetGridOrigin());
+            shader->SetVec3("ddgi_gridSpacing", probeManager->GetGridSpacing());
+            glm::ivec3 counts = probeManager->GetProbeCounts();
+            shader->SetVec3("ddgi_probeCounts", glm::vec3(counts)); // ivec3 stored as vec3, see lit.frag
+            shader->SetInt("ddgi_tileSize", (int)probeManager->GetTileSize());
+            shader->SetInt("ddgi_atlasProbesPerRow", (int)probeManager->GetAtlasProbesPerRow());
+            shader->SetInt("ddgi_atlasSize", (int)probeManager->GetAtlasSize());
+        }
+
         shader->SetInt("lightNB", Core::GetEngine().GetRenderer()->GetLightManager()->GetLightsCount());
         shader->SetVec3("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
-        shader->SetFloat("ambientIntensity", Core::GetEngine().GetLevelManager()->GetLevelAt(0)->ambientIntensity);
-        shader->SetInt("objID", objectID);
+        shader->SetFloat("ambientIntensity", level->ambientIntensity);
     }
 
     void GLRendererAPI::DrawIndexed(const std::shared_ptr<Pipeline> pipeline, uint32_t indexCount, uint32_t indexOffset)
     {
+        PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::DrawElements);
+
         glDrawElements(
             PrimitiveTopologyToGL(pipeline->GetSpecifications().topology),
             indexCount,
@@ -206,35 +252,44 @@ namespace Pulse::Engine::Rendering{
 
     void GLRendererAPI::ExecuteDrawCommand(const DrawCommand &command, const std::shared_ptr<RenderPass> pass)
     {
-        if(!command.fullscreenTri)
-            BindMesh(command.mesh);
-
         std::shared_ptr<Pipeline> pipeline = nullptr;
-        if(pass->overridePipeline)
-            pipeline = pass->customPipeline;
-        else
-            pipeline = command.material->GetPipeline();
-        BindPipeline(pipeline);
 
-        if(!command.fullscreenTri)
-            BindLevelState(pipeline->GetSpecifications().shader, command.modelMatrix, command.objectID);
+        {
+            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::StateBinding);
 
-        if(command.bindCameraState){
-            pipeline->GetSpecifications().shader->SetMat4("uProjection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
-            pipeline->GetSpecifications().shader->SetMat4("uView", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
-            pipeline->GetSpecifications().shader->SetBool("uIsOrtho", Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsOrthographic());
+            if(!command.fullscreenTri)
+                BindMesh(command.mesh);
+
+            if(pass->overridePipeline)
+                pipeline = pass->customPipeline;
+            else
+                pipeline = command.material->GetPipeline();
+            BindPipeline(pipeline);
+
+            std::shared_ptr<GLShader> glShader = std::static_pointer_cast<GLShader>(pipeline->GetSpecifications().shader);
+            GLuint program = glShader->GetProgram();
+
+            if(!command.fullscreenTri)
+                BindLevelState(pipeline->GetSpecifications().shader, command.modelMatrix, command.objectID,
+                    GLStateCache::NeedsPassGlobalsUpdate(program, GLStateCache::PassGlobalsKind::Level));
+
+            if(command.bindCameraState && GLStateCache::NeedsPassGlobalsUpdate(program, GLStateCache::PassGlobalsKind::Camera)){
+                pipeline->GetSpecifications().shader->SetMat4("uProjection", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetProjection());
+                pipeline->GetSpecifications().shader->SetMat4("uView", Core::GetEngine().GetCameraManager()->GetActiveCamera()->GetView());
+                pipeline->GetSpecifications().shader->SetBool("uIsOrtho", Core::GetEngine().GetCameraManager()->GetActiveCamera()->IsOrthographic());
+            }
+
+            if(pass->overridePipeline){
+                BindPassData(pass, pipeline);
+            }
+            else{
+                if(command.material->GetRecieveShadows())
+                    Core::GetEngine().GetRenderer()->GetShadowManager()->BindShadowMaps(command.material);
+                BindPassData(pass, command.material);
+                BindMaterial(command.material);
+            }
         }
 
-        if(pass->overridePipeline){
-            BindPassData(pass, pipeline);
-        }
-        else{
-            if(command.material->GetRecieveShadows())
-                Core::GetEngine().GetRenderer()->GetShadowManager()->BindShadowMaps(command.material);
-            BindPassData(pass, command.material);
-            BindMaterial(command.material);
-        }
-        
         if(command.fullscreenTri){
             DrawFullScreenTriangle();
         }
@@ -242,6 +297,93 @@ namespace Pulse::Engine::Rendering{
             if (command.indexCount == 0) return;
             DrawIndexed(pipeline, command.indexCount, command.indexOffset);
         }
+    }
+
+    void GLRendererAPI::ExecuteComputeDispatch(const std::shared_ptr<ComputePipeline> pipeline, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ)
+    {
+        const ComputeLimits& limits = GetComputeLimits();
+
+        uint32_t requested[3] = { groupsX, groupsY, groupsZ };
+        uint32_t clamped[3] = { groupsX, groupsY, groupsZ };
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (limits.maxWorkGroupCount[i] > 0 && requested[i] > limits.maxWorkGroupCount[i])
+                clamped[i] = limits.maxWorkGroupCount[i];
+        }
+
+        if (clamped[0] != requested[0] || clamped[1] != requested[1] || clamped[2] != requested[2])
+        {
+            DEBUG_WARNING("Compute dispatch (" + std::to_string(requested[0]) + ", " + std::to_string(requested[1]) + ", " + std::to_string(requested[2]) +
+                ") exceeds GL_MAX_COMPUTE_WORK_GROUP_COUNT (" + std::to_string(limits.maxWorkGroupCount[0]) + ", " + std::to_string(limits.maxWorkGroupCount[1]) + ", " + std::to_string(limits.maxWorkGroupCount[2]) +
+                "), clamping to fit the driver's limits.");
+        }
+
+        std::shared_ptr<GLComputePipeline> glPipeline = std::static_pointer_cast<GLComputePipeline>(pipeline);
+        glPipeline->Bind();
+        glDispatchCompute(clamped[0], clamped[1], clamped[2]);
+    }
+
+    const ComputeLimits& GLRendererAPI::GetComputeLimits()
+    {
+        if (m_ComputeLimitsQueried)
+            return m_ComputeLimits;
+
+        GLint value = 0;
+
+        for (int i = 0; i < 3; i++)
+        {
+            GLint indexedValue = 0;
+
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, i, &indexedValue);
+            m_ComputeLimits.maxWorkGroupCount[i] = static_cast<uint32_t>(indexedValue);
+
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, i, &indexedValue);
+            m_ComputeLimits.maxWorkGroupSize[i] = static_cast<uint32_t>(indexedValue);
+        }
+
+        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &value);
+        m_ComputeLimits.maxWorkGroupInvocations = static_cast<uint32_t>(value);
+
+        glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &value);
+        m_ComputeLimits.maxSharedMemorySize = static_cast<uint32_t>(value);
+
+        m_ComputeLimitsQueried = true;
+
+        return m_ComputeLimits;
+    }
+
+    void GLRendererAPI::MemoryBarrier(MemoryBarrierBit barriers)
+    {
+        GLbitfield bits = 0;
+
+        if (barriers == MemoryBarrierBit::All)
+        {
+            bits = GL_ALL_BARRIER_BITS;
+        }
+        else
+        {
+            if ((uint32_t)barriers & (uint32_t)MemoryBarrierBit::ShaderStorage)
+                bits |= GL_SHADER_STORAGE_BARRIER_BIT;
+
+            if ((uint32_t)barriers & (uint32_t)MemoryBarrierBit::ImageAccess)
+                bits |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+
+            if ((uint32_t)barriers & (uint32_t)MemoryBarrierBit::TextureFetch)
+                bits |= GL_TEXTURE_FETCH_BARRIER_BIT;
+
+            if ((uint32_t)barriers & (uint32_t)MemoryBarrierBit::BufferUpdate)
+                bits |= GL_BUFFER_UPDATE_BARRIER_BIT;
+
+            if ((uint32_t)barriers & (uint32_t)MemoryBarrierBit::VertexAttribArray)
+                bits |= GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT;
+
+            if ((uint32_t)barriers & (uint32_t)MemoryBarrierBit::TextureUpdate)
+                bits |= GL_TEXTURE_UPDATE_BARRIER_BIT;
+        }
+
+        if (bits != 0)
+            glMemoryBarrier(bits);
     }
 
     void GLRendererAPI::ToggleMultisampling(const bool on)

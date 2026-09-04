@@ -54,8 +54,23 @@ layout(binding = 2) uniform sampler2D roughnessMap;
 layout(binding = 3) uniform sampler2D normalMap;
 
 layout(binding = 4) uniform samplerCube ibl_irradianceMap;
-layout(binding = 5) uniform samplerCube ibl_prefilteredEnvMap; 
+layout(binding = 5) uniform samplerCube ibl_prefilteredEnvMap;
 layout(binding = 6) uniform sampler2D ibl_brdfLUT;
+
+// Real-time diffuse GI (see ProbeManager) - falls back to the static IBL diffuse term above when no
+// probe volume is active in the level (ddgi_enabled == false).
+layout(binding = 7) uniform sampler2D ddgi_irradianceAtlas;
+// Per-probe (mean hit distance, mean hit distance^2) atlas, same octahedral layout as the irradiance
+// one - used by DDGI_VisibilityWeight below to stop probes that are occluded from a shading point (e.g.
+// on the far side of a wall) from leaking light/shadow into it via the trilinear blend.
+layout(binding = 8) uniform sampler2D ddgi_distanceAtlas;
+uniform bool ddgi_enabled;
+uniform vec3 ddgi_gridOrigin;
+uniform vec3 ddgi_gridSpacing;
+uniform vec3 ddgi_probeCounts; // ivec3 stored as vec3 - no ivec3 uniform setter on the Shader interface
+uniform int ddgi_tileSize;
+uniform int ddgi_atlasProbesPerRow;
+uniform int ddgi_atlasSize;
 
 layout(binding = 10) uniform sampler2DShadow dirShadowMaps[NUM_CASCADES];
 layout(binding = 20) uniform sampler2D spotShadowMaps[10];
@@ -181,6 +196,119 @@ vec3 IBL_Diffuse(vec3 N, vec3 albedo, float metallic) {
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     vec3 irradiance = texture(ibl_irradianceMap, N).rgb;
+    return irradiance * albedo * kD;
+}
+
+// Octahedral encode - inverse of the OctDecode used in probe_trace.comp to pick each probe ray's
+// direction, so a texel sampled here with a given N matches the ray that was traced in that direction.
+vec2 DDGI_OctEncode(vec3 n) {
+    vec2 p = n.xy * (1.0 / (abs(n.x) + abs(n.y) + abs(n.z)));
+    if (n.z <= 0.0)
+        p = (1.0 - abs(p.yx)) * vec2(p.x >= 0.0 ? 1.0 : -1.0, p.y >= 0.0 ? 1.0 : -1.0);
+    return p;
+}
+
+// Samples one probe's octahedral tile in the irradiance atlas in direction N.
+vec3 DDGI_SampleProbe(int probeIndex, vec3 N) {
+    int stride = ddgi_tileSize + 2;
+    int col = probeIndex % ddgi_atlasProbesPerRow;
+    int row = probeIndex / ddgi_atlasProbesPerRow;
+
+    vec2 oct = DDGI_OctEncode(N);
+    vec2 texelInTile = (oct * 0.5 + 0.5) * float(ddgi_tileSize);
+
+    vec2 atlasTexel = vec2(col * stride, row * stride) + vec2(1.0) + texelInTile;
+    vec2 atlasUV = atlasTexel / float(ddgi_atlasSize);
+
+    return texture(ddgi_irradianceAtlas, atlasUV).rgb;
+}
+
+// Same octahedral tile lookup as DDGI_SampleProbe, against the distance atlas instead - returns
+// (mean hit distance, mean hit distance^2) for that probe in direction `dir`.
+vec2 DDGI_SampleDistance(int probeIndex, vec3 dir) {
+    int stride = ddgi_tileSize + 2;
+    int col = probeIndex % ddgi_atlasProbesPerRow;
+    int row = probeIndex / ddgi_atlasProbesPerRow;
+
+    vec2 oct = DDGI_OctEncode(dir);
+    vec2 texelInTile = (oct * 0.5 + 0.5) * float(ddgi_tileSize);
+
+    vec2 atlasTexel = vec2(col * stride, row * stride) + vec2(1.0) + texelInTile;
+    vec2 atlasUV = atlasTexel / float(ddgi_atlasSize);
+
+    return texture(ddgi_distanceAtlas, atlasUV).rg;
+}
+
+// Chebyshev's inequality applied to a probe's stored (mean, mean^2) hit-distance distribution, to
+// estimate how likely that probe can actually "see" a point `distToPoint` away without a wall between
+// them - this (not just the trilinear grid weight) is what stops light/shadow from leaking through
+// geometry the way a plain irradiance-only probe blend does (e.g. sun hitting a roof lighting the
+// ceiling directly below it). Cubing the raw Chebyshev bound sharpens the falloff so partially-occluded
+// probes fade out faster than a linear bound would - see the identical helper in probe_trace.comp's
+// SampleIndirect for the sibling copy this mirrors (needed separately there for the bounce-feedback
+// loop, which reads a different, not-yet-published atlas).
+float DDGI_VisibilityWeight(vec2 meanMean2, float distToPoint) {
+    float mean = meanMean2.x;
+    if (distToPoint <= mean)
+        return 1.0;
+
+    float variance = abs(meanMean2.y - mean * mean);
+    float d = distToPoint - mean;
+    float chebyshev = variance / (variance + d * d);
+    return max(chebyshev * chebyshev * chebyshev, 0.0);
+}
+
+// Trilinearly blends the 8 probes surrounding worldPos, each sampled toward N, and combines the result
+// with albedo/metallic the same way IBL_Diffuse does - a drop-in replacement for it when a probe volume
+// is active (see ddgi_enabled in main()). Each probe's trilinear grid weight is further scaled by
+// DDGI_VisibilityWeight so an occluded probe (behind a wall from worldPos) contributes little or nothing,
+// regardless of how close it is in the grid.
+vec3 DDGI_Diffuse(vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
+    vec3 gridPos = (worldPos - ddgi_gridOrigin) / max(ddgi_gridSpacing, vec3(1e-4));
+    vec3 base = floor(gridPos);
+    vec3 frac = clamp(gridPos - base, 0.0, 1.0);
+
+    vec3 irradiance = vec3(0.0);
+    float totalWeight = 0.0;
+
+    for (int i = 0; i < 8; i++) {
+        vec3 offset = vec3(float(i & 1), float((i >> 1) & 1), float((i >> 2) & 1));
+        vec3 probeCoord = clamp(base + offset, vec3(0.0), max(ddgi_probeCounts - 1.0, 0.0));
+
+        vec3 w = mix(1.0 - frac, frac, offset);
+        float trilinearWeight = w.x * w.y * w.z;
+        if (trilinearWeight <= 0.0)
+            continue;
+
+        int probeIndex = int(probeCoord.x)
+            + int(probeCoord.y) * int(ddgi_probeCounts.x)
+            + int(probeCoord.z) * int(ddgi_probeCounts.x) * int(ddgi_probeCounts.y);
+
+        // Visibility test direction is probe -> shading point, NOT N (the irradiance sample direction
+        // below) - a probe can be occluded from a point regardless of that point's surface normal.
+        vec3 probeWorldPos = ddgi_gridOrigin + probeCoord * ddgi_gridSpacing;
+        vec3 toPoint = worldPos - probeWorldPos;
+        float distToPoint = length(toPoint);
+        vec3 dirToPoint = toPoint / max(distToPoint, 1e-5);
+
+        float visWeight = DDGI_VisibilityWeight(DDGI_SampleDistance(probeIndex, dirToPoint), distToPoint);
+        float weight = trilinearWeight * visWeight;
+        if (weight <= 0.0)
+            continue;
+
+        irradiance += DDGI_SampleProbe(probeIndex, N) * weight;
+        totalWeight += weight;
+    }
+
+    // Deliberately no epsilon floor on totalWeight : if every surrounding probe is occluded from this
+    // point (e.g. a fully sealed room lit only from outside), the correct result is 0 (no bounce light),
+    // not a dim leak propped up by a fallback weight.
+    if (totalWeight > 0.0)
+        irradiance /= totalWeight;
+
+    vec3 kS = mix(vec3(0.04), albedo, metallic);
+    vec3 kD = (1.0 - kS) * (1.0 - metallic);
+
     return irradiance * albedo * kD;
 }
 
@@ -332,14 +460,26 @@ void main() {
         result += ComputeLightDisney(l, L, V, worldNormal, baseColor.rgb, roughnessValue, metallicValue, visibility, attenuation);
     }
 
-    if(useEnvReflections){
-        vec3 specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
-        vec3 diffuseIBL = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);
-        vec3 lighting = result + diffuseIBL + specularIBL;
-        fragColor = vec4(lighting, baseColor.a);
+    // Real-time GI (ddgi_enabled) intentionally isn't gated behind useEnvReflections - that flag toggles
+    // the (costlier) specular env reflections per material, but diffuse GI from an active probe volume
+    // should show up on every material regardless, or it silently does nothing on any material that
+    // doesn't happen to have useEnvReflections set.
+    vec3 ambientDiffuse;
+    vec3 specularIBL = vec3(0.0);
+
+    if (ddgi_enabled) {
+        ambientDiffuse = DDGI_Diffuse(worldPos, worldNormal, baseColor.rgb, metallicValue);
+        if (useEnvReflections)
+            specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
     }
-    else{
-        vec4 color = baseColor * ambientIntensity + vec4(result, baseColor.a);
-        fragColor = color;
+    else if (useEnvReflections) {
+        ambientDiffuse = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);
+        specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
     }
+    else {
+        ambientDiffuse = baseColor.rgb * ambientIntensity;
+    }
+
+    vec3 lighting = result + ambientDiffuse + specularIBL;
+    fragColor = vec4(lighting, baseColor.a);
 }

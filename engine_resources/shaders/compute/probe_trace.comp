@@ -1,0 +1,531 @@
+#version 430 core
+
+// Real-time diffuse GI probe ray-tracer (DDGI-like, see ProbeManager). Dispatched once per bounce
+// iteration of ProbeManager::Update()'s maxBounces loop (so up to ProbeVolume::maxBounces times per
+// frame) : traces `uTileSize * uTileSize` rays per probe against the persistent BVH, shades each hit
+// with direct lighting (one NEE sample + emissive) PLUS, when uUseIndirect is set, an indirect bounce
+// term sampled from the previous bounce iteration's freshly-convolved irradiance atlas
+// (uPrevIrradianceAtlas) at the hit point - and writes the result into the matching texel of that
+// probe's octahedral tile in `uAtlas`. Each ray index maps 1:1 to one texel of the tile via an
+// octahedral direction mapping, so there is no separate scatter/gather step for this shader's own
+// output (see probe_irradiance_convolve.comp for that).
+//
+// uUseIndirect is what turns N single-bounce trace passes into an N-bounce result : bounce 0 traces
+// direct lighting only (uUseIndirect = false, uPrevIrradianceAtlas not yet written this frame); each
+// subsequent bounce re-traces the exact same rays but adds whatever light the previous bounce's
+// convolved atlas already picked up at the hit point, so light keeps propagating one more hop per
+// iteration (same idea as RTXGI's probe-fed multi-bounce, done synchronously within one frame here
+// instead of smeared across frames via temporal accumulation).
+//
+// Structs/traversal here intentionally mirror path_trace.comp (BVHNode/TrianglePos/TriangleAttrib/
+// GPUMaterial/Light, TraceRay/TraceRayAny) rather than sharing a #include - this engine's compute shaders
+// are self-contained single files (see path_trace.comp), so the BVH traversal is duplicated rather than
+// factored out.
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(rgba16f, binding = 0) uniform image2D uAtlas;
+layout(rg16f, binding = 1) uniform image2D uDistAtlas;
+// Sampler (texture-unit) bindings deliberately start at 40, well clear of lit.frag's material/shadow
+// sampler range (0-8, 10-18, 20-29, 30) : ProbeManager::Update() runs every frame before the forward
+// pass, and its C++ side binds these with a raw Texture2D::Bind() call that (unlike material texture
+// binds) bypasses GLStateCache - so GLStateCache's cached belief about units 1-3 (metallicMap/
+// roughnessMap/normalMap in lit.frag) would otherwise go stale, causing the forward pass to skip
+// re-binding them and silently sample probe atlas data as a mesh's normal map instead. Image units
+// above aren't affected (glBindImageTexture is a separate binding namespace nothing else in this engine
+// touches mid-frame), only these sampler binds need the wide berth.
+layout(binding = 40) uniform sampler2D uPrevIrradianceAtlas;
+layout(binding = 41) uniform sampler2D uPrevDistanceAtlas;
+
+struct BVHNode
+{
+    vec3 boundsMin;
+    uint leftFirst;
+    vec3 boundsMax;
+    uint triCount;
+};
+
+struct TrianglePos
+{
+    vec4 v0, v1, v2;
+};
+
+struct TriangleAttrib
+{
+    vec4 n0, n1, n2;
+    vec4 uvMatID;
+    vec4 t0, t1, t2;
+};
+
+struct GPUMaterial
+{
+    vec4 albedo;
+    vec4 emissive;
+    float roughness;
+    float metallic;
+    float ior;
+    uint textureFlags;
+    uvec2 albedoTex;
+    uvec2 metallicTex;
+    uvec2 roughnessTex;
+    uvec2 normalTex;
+};
+
+struct Light
+{
+    vec4 position;
+    vec4 direction;
+    vec4 color;
+    float intensity;
+    float radius;
+    float innerCutoff;
+    float outerCutoff;
+    int type; // 0 = Directional, 1 = Point, 2 = Spot
+    int castShadow;
+    vec2 padding;
+};
+
+struct Probe
+{
+    vec4 position; // xyz = world-space position, w unused
+};
+
+// Bindings 8-13 (not 0-4, unlike path_trace.comp) : SSBO binding points are global GL state, and this
+// shader is dispatched every frame alongside the regular forward pass, which has its own SSBO at binding
+// 0 (lit.frag's LightBuffer) that must stay untouched - see the comment in ProbeManager::Update().
+layout(std430, binding = 8)  readonly buffer BVHNodes          { BVHNode bvhNodes[]; };
+layout(std430, binding = 9)  readonly buffer TrianglePositions { TrianglePos triPos[]; };
+layout(std430, binding = 10) readonly buffer TriangleAttribs   { TriangleAttrib triAttrib[]; };
+layout(std430, binding = 11) readonly buffer Materials         { GPUMaterial materials[]; };
+layout(std430, binding = 12) readonly buffer Lights            { Light lights[]; };
+layout(std430, binding = 13) readonly buffer Probes            { Probe probes[]; };
+
+uniform int uProbeCount;
+uniform int uTileSize;
+uniform int uAtlasProbesPerRow;
+uniform int uAtlasSize;
+uniform int uLightCount;
+uniform vec3 uSkyColor;
+
+// True for every bounce iteration after the first within a single Update() call (see
+// ProbeManager::Update()'s maxBounces loop) - false on the first, when uPrevIrradianceAtlas hasn't been
+// written this frame yet and would otherwise be sampled uninitialized.
+uniform bool uUseIndirect;
+
+// Grid params for sampling uPrevIrradianceAtlas at an arbitrary world position (same grid the probes
+// themselves sit on - see ProbeManager::RebuildGrid()/lit.frag's ddgi_grid* uniforms).
+uniform vec3 uGridOrigin;
+uniform vec3 uGridSpacing;
+uniform vec3 uProbeCounts; // ivec3 stored as vec3, see lit.frag
+
+const float PI = 3.14159265359;
+
+// ---------------------------------------------------------------------------
+// Octahedral mapping - texel (in [0, tileSize)^2) -> unit direction
+// ---------------------------------------------------------------------------
+
+vec3 OctDecode(vec2 f)
+{
+    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float t = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
+}
+
+// Inverse of OctDecode above - same as DDGI_OctEncode in lit.frag.
+vec2 OctEncode(vec3 n)
+{
+    vec2 p = n.xy * (1.0 / (abs(n.x) + abs(n.y) + abs(n.z)));
+    if (n.z <= 0.0)
+        p = (1.0 - abs(p.yx)) * vec2(p.x >= 0.0 ? 1.0 : -1.0, p.y >= 0.0 ? 1.0 : -1.0);
+    return p;
+}
+
+// ---------------------------------------------------------------------------
+// Indirect bounce lookup - samples last frame's converged irradiance atlas at an arbitrary world
+// position/normal, trilinearly blending the 8 surrounding probes (same scheme as DDGI_Diffuse in
+// lit.frag, minus the albedo/kD factor - the caller applies that itself).
+// ---------------------------------------------------------------------------
+
+vec3 SamplePrevProbe(int probeIndex, vec3 N)
+{
+    int stride = uTileSize + 2;
+    int col = probeIndex % uAtlasProbesPerRow;
+    int row = probeIndex / uAtlasProbesPerRow;
+
+    vec2 oct = OctEncode(N);
+    vec2 texelInTile = (oct * 0.5 + 0.5) * float(uTileSize);
+
+    vec2 atlasTexel = vec2(col * stride, row * stride) + vec2(1.0) + texelInTile;
+    vec2 atlasUV = atlasTexel / float(uAtlasSize);
+
+    return texture(uPrevIrradianceAtlas, atlasUV).rgb;
+}
+
+// Same octahedral tile lookup as SamplePrevProbe, against the distance atlas instead - returns
+// (mean hit distance, mean hit distance^2) for that probe in direction `dir`.
+vec2 SamplePrevDistance(int probeIndex, vec3 dir)
+{
+    int stride = uTileSize + 2;
+    int col = probeIndex % uAtlasProbesPerRow;
+    int row = probeIndex / uAtlasProbesPerRow;
+
+    vec2 oct = OctEncode(dir);
+    vec2 texelInTile = (oct * 0.5 + 0.5) * float(uTileSize);
+
+    vec2 atlasTexel = vec2(col * stride, row * stride) + vec2(1.0) + texelInTile;
+    vec2 atlasUV = atlasTexel / float(uAtlasSize);
+
+    return texture(uPrevDistanceAtlas, atlasUV).rg;
+}
+
+// Chebyshev's inequality applied to a probe's stored (mean, mean^2) hit-distance distribution, to
+// estimate how likely that probe can actually "see" a point `distToPoint` away without a wall between
+// them - see the identical DDGI_VisibilityWeight in lit.frag for the sibling copy this mirrors (needed
+// separately here because this bounce-feedback loop reads the previous bounce iteration's atlas, not
+// lit.frag's published one). Cubing the raw Chebyshev bound sharpens the falloff so partially-occluded
+// probes fade out faster than a linear bound would - a soft bound alone still lets visible light bleed
+// in near occlusion edges.
+float ChebyshevVisibility(vec2 meanMean2, float distToPoint)
+{
+    float mean = meanMean2.x;
+    if (distToPoint <= mean)
+        return 1.0;
+
+    float variance = abs(meanMean2.y - mean * mean);
+    float d = distToPoint - mean;
+    float chebyshev = variance / (variance + d * d);
+    return max(chebyshev * chebyshev * chebyshev, 0.0);
+}
+
+vec3 SampleIndirect(vec3 worldPos, vec3 N)
+{
+    vec3 gridPos = (worldPos - uGridOrigin) / max(uGridSpacing, vec3(1e-4));
+    vec3 base = floor(gridPos);
+    vec3 frac = clamp(gridPos - base, 0.0, 1.0);
+
+    vec3 irradiance = vec3(0.0);
+    float totalWeight = 0.0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        vec3 offset = vec3(float(i & 1), float((i >> 1) & 1), float((i >> 2) & 1));
+        vec3 probeCoord = clamp(base + offset, vec3(0.0), max(uProbeCounts - 1.0, 0.0));
+
+        vec3 w = mix(1.0 - frac, frac, offset);
+        float trilinearWeight = w.x * w.y * w.z;
+        if (trilinearWeight <= 0.0)
+            continue;
+
+        int probeIndex = int(probeCoord.x)
+            + int(probeCoord.y) * int(uProbeCounts.x)
+            + int(probeCoord.z) * int(uProbeCounts.x) * int(uProbeCounts.y);
+
+        // Visibility test direction is probe -> shading point, NOT N (the irradiance sample direction
+        // above) - a probe can be occluded from a point regardless of that point's surface normal.
+        vec3 probeWorldPos = uGridOrigin + probeCoord * uGridSpacing;
+        vec3 toPoint = worldPos - probeWorldPos;
+        float distToPoint = length(toPoint);
+        vec3 dirToPoint = toPoint / max(distToPoint, 1e-5);
+
+        float visWeight = ChebyshevVisibility(SamplePrevDistance(probeIndex, dirToPoint), distToPoint);
+        float weight = trilinearWeight * visWeight;
+        if (weight <= 0.0)
+            continue;
+
+        irradiance += SamplePrevProbe(probeIndex, N) * weight;
+        totalWeight += weight;
+    }
+
+    // Deliberately no epsilon floor on totalWeight : if every surrounding probe is occluded from this
+    // point (e.g. a fully enclosed room lit from outside), the correct result is 0 (no bounce light),
+    // not a dim leak propped up by a fallback weight.
+    if (totalWeight > 0.0)
+        irradiance /= totalWeight;
+
+    return irradiance;
+}
+
+// ---------------------------------------------------------------------------
+// Ray / BVH intersection (identical to path_trace.comp)
+// ---------------------------------------------------------------------------
+
+struct HitInfo
+{
+    float t;
+    uint triIndex;
+    vec2 bary;
+};
+
+bool IntersectAABB(vec3 ro, vec3 invRd, vec3 boundsMin, vec3 boundsMax, float maxT)
+{
+    vec3 t0 = (boundsMin - ro) * invRd;
+    vec3 t1 = (boundsMax - ro) * invRd;
+    vec3 tmin = min(t0, t1);
+    vec3 tmax = max(t0, t1);
+    float tNear = max(max(tmin.x, tmin.y), tmin.z);
+    float tFar = min(min(tmax.x, tmax.y), tmax.z);
+    return tFar >= max(tNear, 0.0) && tNear < maxT;
+}
+
+bool IntersectTriangle(vec3 ro, vec3 rd, uint triIdx, inout float closestT, out vec2 outBary)
+{
+    TrianglePos tri = triPos[triIdx];
+    vec3 e1 = tri.v1.xyz - tri.v0.xyz;
+    vec3 e2 = tri.v2.xyz - tri.v0.xyz;
+    vec3 p = cross(rd, e2);
+    float det = dot(e1, p);
+    if (abs(det) < 1e-8)
+        return false;
+
+    float invDet = 1.0 / det;
+    vec3 tvec = ro - tri.v0.xyz;
+    float u = dot(tvec, p) * invDet;
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 q = cross(tvec, e1);
+    float v = dot(rd, q) * invDet;
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    float t = dot(e2, q) * invDet;
+    if (t < 1e-4 || t > closestT)
+        return false;
+
+    closestT = t;
+    outBary = vec2(u, v);
+    return true;
+}
+
+bool IntersectTriangleAny(vec3 ro, vec3 rd, uint triIdx, float maxT)
+{
+    TrianglePos tri = triPos[triIdx];
+    vec3 e1 = tri.v1.xyz - tri.v0.xyz;
+    vec3 e2 = tri.v2.xyz - tri.v0.xyz;
+    vec3 p = cross(rd, e2);
+    float det = dot(e1, p);
+    if (abs(det) < 1e-8)
+        return false;
+
+    float invDet = 1.0 / det;
+    vec3 tvec = ro - tri.v0.xyz;
+    float u = dot(tvec, p) * invDet;
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 q = cross(tvec, e1);
+    float v = dot(rd, q) * invDet;
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    float t = dot(e2, q) * invDet;
+    return t > 1e-4 && t < maxT;
+}
+
+bool TraceRayAny(vec3 ro, vec3 rd, float maxT)
+{
+    vec3 invRd = 1.0 / rd;
+
+    int stack[64];
+    int sp = 0;
+    stack[sp++] = 0;
+
+    int iterations = 0;
+    while (sp > 0 && iterations < 4096)
+    {
+        iterations++;
+
+        BVHNode node = bvhNodes[stack[--sp]];
+
+        if (!IntersectAABB(ro, invRd, node.boundsMin, node.boundsMax, maxT))
+            continue;
+
+        if (node.triCount > 0u)
+        {
+            for (uint i = 0u; i < node.triCount; i++)
+            {
+                if (IntersectTriangleAny(ro, rd, node.leftFirst + i, maxT))
+                    return true;
+            }
+        }
+        else if (sp < 62)
+        {
+            stack[sp++] = int(node.leftFirst);
+            stack[sp++] = int(node.leftFirst) + 1;
+        }
+    }
+
+    return false;
+}
+
+bool TraceRay(vec3 ro, vec3 rd, float maxT, out HitInfo hit)
+{
+    hit.t = maxT;
+    hit.triIndex = 0xFFFFFFFFu;
+
+    vec3 invRd = 1.0 / rd;
+
+    int stack[64];
+    int sp = 0;
+    stack[sp++] = 0;
+
+    int iterations = 0;
+    while (sp > 0 && iterations < 4096)
+    {
+        iterations++;
+
+        BVHNode node = bvhNodes[stack[--sp]];
+
+        if (!IntersectAABB(ro, invRd, node.boundsMin, node.boundsMax, hit.t))
+            continue;
+
+        if (node.triCount > 0u)
+        {
+            for (uint i = 0u; i < node.triCount; i++)
+            {
+                uint triIdx = node.leftFirst + i;
+                vec2 bary;
+                if (IntersectTriangle(ro, rd, triIdx, hit.t, bary))
+                {
+                    hit.triIndex = triIdx;
+                    hit.bary = bary;
+                }
+            }
+        }
+        else if (sp < 62)
+        {
+            stack[sp++] = int(node.leftFirst);
+            stack[sp++] = int(node.leftFirst) + 1;
+        }
+    }
+
+    return hit.triIndex != 0xFFFFFFFFu;
+}
+
+// ---------------------------------------------------------------------------
+// Shading - direct lighting (one NEE sample + emissive) plus a probe-fed indirect term (see
+// SampleIndirect() above) instead of a real recursive bounce loop like path_trace.comp's TracePath :
+// probes trade per-ray bounce depth for feeding back through the temporally-accumulated atlas instead,
+// which stays cheap enough to run every frame in real time while still converging to multi-bounce light.
+// ---------------------------------------------------------------------------
+
+vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist)
+{
+    HitInfo hit;
+    if (!TraceRay(ro, rd, 1e30, hit))
+    {
+        // Sky miss - nothing occludes in this direction, so record a distance far beyond anything an
+        // in-scene shading point could be at. Recording "no occlusion here" (rather than e.g. 0) keeps
+        // ChebyshevVisibility from ever treating a sky ray as blocking light.
+        outHitDist = 1e4;
+        return uSkyColor;
+    }
+
+    TriangleAttrib attrib = triAttrib[hit.triIndex];
+    float w0 = 1.0 - hit.bary.x - hit.bary.y;
+    vec3 n = normalize(attrib.n0.xyz * w0 + attrib.n1.xyz * hit.bary.x + attrib.n2.xyz * hit.bary.y);
+    uint matID = uint(attrib.uvMatID.w);
+    GPUMaterial mat = materials[matID];
+
+    vec3 hitPos = ro + rd * hit.t;
+    if (dot(n, rd) > 0.0)
+        n = -n;
+
+    // Scalar material values only - texture sampling is intentionally not wired in for probe rays in
+    // this V1 (keeps the trace kernel simpler while probe counts/ray counts are still being tuned).
+    vec3 albedo = mat.albedo.rgb;
+    vec3 radiance = mat.emissive.rgb;
+
+    // Every light, every ray - not a single random NEE pick like path_trace.comp's offline path tracer
+    // gets away with. That single-sample pick made this shader's output noise scale with light count
+    // (with 1 light it's a no-op, since RandomFloat() * 1 always resolves to the same index; with 2+ it
+    // flips which light gets sampled every ray, every frame, and since ProbeManager::Update() no longer
+    // blends a single ray's result across frames the way probe_trace.comp's own hysteresis used to
+    // (see the maxBounces loop in ProbeManager::Update()), that flip-flopping showed up directly as
+    // visible flicker). Summing every light instead is deterministic - zero variance from light
+    // selection - at the cost of one shadow ray per light instead of one total, which is negligible
+    // next to the BVH traversal cost already paid per ray for realistic light counts.
+    for (int li = 0; li < uLightCount; li++)
+    {
+        Light light = lights[li];
+
+        vec3 toLight;
+        float dist;
+        vec3 incomingRadiance;
+
+        if (light.type == 0) // Directional
+        {
+            toLight = normalize(-light.direction.xyz);
+            dist = 1e30;
+            incomingRadiance = light.color.rgb * light.intensity;
+        }
+        else // Point / Spot
+        {
+            vec3 d = light.position.xyz - hitPos;
+            dist = length(d);
+            toLight = d / max(dist, 1e-6);
+            float atten = 1.0 / max(dist * dist, 1e-4);
+            incomingRadiance = light.color.rgb * light.intensity * atten;
+
+            if (light.type == 2) // Spot cone falloff
+            {
+                float cosAngle = dot(-toLight, normalize(light.direction.xyz));
+                float t = clamp((cosAngle - light.outerCutoff) / max(light.innerCutoff - light.outerCutoff, 1e-4), 0.0, 1.0);
+                incomingRadiance *= t;
+            }
+        }
+
+        float NdotL = dot(n, toLight);
+        if (NdotL > 0.0)
+        {
+            bool occluded = TraceRayAny(hitPos + n * 1e-3, toLight, dist - 2e-3);
+            if (!occluded)
+                radiance += (albedo / PI) * incomingRadiance * NdotL;
+        }
+    }
+
+    // Indirect bounce, fed from the previous bounce iteration's converged atlas (see uUseIndirect and
+    // the comment above uPrevIrradianceAtlas at the top of this file).
+    if (uUseIndirect)
+        radiance += SampleIndirect(hitPos, n) * albedo;
+
+    outHitDist = hit.t;
+    return radiance;
+}
+
+void main()
+{
+    uint gid = gl_GlobalInvocationID.x;
+    uint tileSize = uint(uTileSize);
+    uint raysPerProbe = tileSize * tileSize;
+    uint totalRays = uint(uProbeCount) * raysPerProbe;
+    if (gid >= totalRays)
+        return;
+
+    uint probeIndex = gid / raysPerProbe;
+    uint rayIndex = gid % raysPerProbe;
+
+    vec3 probePos = probes[probeIndex].position.xyz;
+
+    uint tx = rayIndex % tileSize;
+    uint ty = rayIndex / tileSize;
+    vec2 texelUV = (vec2(float(tx), float(ty)) + 0.5) / float(tileSize);
+    vec2 oct = texelUV * 2.0 - 1.0;
+    vec3 dir = OctDecode(oct);
+
+    float hitDist;
+    vec3 radiance = TraceAndShadeDirect(probePos, dir, hitDist);
+
+    uint stride = tileSize + 2u;
+    ivec2 tileOrigin = ivec2(int(probeIndex % uint(uAtlasProbesPerRow)) * int(stride),
+                              int(probeIndex / uint(uAtlasProbesPerRow)) * int(stride));
+    ivec2 texel = tileOrigin + ivec2(1, 1) + ivec2(int(tx), int(ty));
+
+    // No temporal blend here - each bounce iteration needs a clean, fully-overwritten result to feed
+    // into the next (see uUseIndirect/uPrevIrradianceAtlas above) - see probe_temporal_blend.comp for
+    // where cross-frame smoothing now happens instead.
+    imageStore(uAtlas, texel, vec4(radiance, 1.0));
+    imageStore(uDistAtlas, texel, vec4(hitDist, hitDist * hitDist, 0.0, 0.0));
+}

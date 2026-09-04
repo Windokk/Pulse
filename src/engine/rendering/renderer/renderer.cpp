@@ -4,11 +4,14 @@
 
 #include "engine/rendering/material/material.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
+#include "engine/rendering/pipeline/compute_pipeline.hpp"
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
+#include "engine/rendering/lighting/probe_manager.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
 #include "engine/core/resources/resources_manager.hpp"
+#include "engine/debugging/profiler.hpp"
 #include <queue>
 #include <glm/gtx/string_cast.hpp>
 
@@ -114,6 +117,7 @@ namespace Pulse::Engine::Rendering{
         m_LightManager = std::make_shared<LightManager>();
         m_ShadowManager = std::make_shared<ShadowManager>();
         m_ShadowManager->Init(1024, 1024, 2048);
+        m_ProbeManager = std::make_shared<ProbeManager>();
 
         // Init built-in passes
         /// Forward pass
@@ -294,6 +298,26 @@ namespace Pulse::Engine::Rendering{
         }
 
         return it->second;
+    }
+
+    std::shared_ptr<ComputePipeline> Renderer::GetOrAddComputePipeline(const ComputePipelineSpecifications& specs)
+    {
+        auto [it, inserted] = m_ComputePipelines.try_emplace(specs, nullptr);
+
+        if (inserted)
+        {
+            it->second = ComputePipeline::Create(specs);
+        }
+
+        return it->second;
+    }
+
+    void Renderer::DispatchCompute(const std::shared_ptr<ComputePipeline> pipeline, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ, MemoryBarrierBit barriersAfter)
+    {
+        m_RendererAPI->ExecuteComputeDispatch(pipeline, groupsX, groupsY, groupsZ);
+
+        if (barriersAfter != MemoryBarrierBit::None)
+            m_RendererAPI->MemoryBarrier(barriersAfter);
     }
 
     void Renderer::ReorderDrawList()
@@ -608,6 +632,7 @@ namespace Pulse::Engine::Rendering{
         Core::GetEngine().GetCameraManager()->Tick();
         ReorderDrawList();
         m_ShadowManager->UpdatePassUniforms();
+        m_ProbeManager->Update();
         if(m_NeedExecutionOrderRebuild){
             BuildExecutionOrder();
             m_NeedExecutionOrderRebuild = false;
@@ -633,6 +658,8 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::BeginRenderPass(const std::shared_ptr<RenderPass>& pass)
     {
+        PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::PassSetup);
+
         m_CurrentPass = pass;
         pass->target->Bind();
 
@@ -647,43 +674,56 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::ExecuteRenderPass()
     {
+        auto camera = Core::GetEngine().GetCameraManager()->GetActiveCamera();
+
+        if(!camera)
+        {
+            DEBUG_ERROR("Failed to find a valid active camera");
+            return;
+        }
+
+        bool cullingActive = camera->frustumCulling && m_CurrentPass->allowCulling;
+
         for(auto& drawCmd : (m_CurrentPass->externalDrawList ? *m_CurrentPass->externalDrawList : m_CurrentPass->drawList)){
-            
-            glm::vec3 center = (drawCmd.boundsMin + drawCmd.boundsMax) * 0.5f;
-            glm::vec3 extents = (drawCmd.boundsMax - drawCmd.boundsMin) * 0.5f;
 
-            glm::vec3 worldCenter = glm::vec3(drawCmd.modelMatrix * glm::vec4(center, 1.0));
+            bool skip = false;
 
-            glm::mat3 m = glm::mat3(drawCmd.modelMatrix);
-
-            glm::mat3 absM(
-                glm::abs(m[0]),
-                glm::abs(m[1]),
-                glm::abs(m[2])
-            );
-
-            glm::vec3 worldExtents = absM * extents;
-
-            glm::vec3 worldMin = worldCenter - worldExtents;
-            glm::vec3 worldMax = worldCenter + worldExtents;
-
-            auto camera = Core::GetEngine().GetCameraManager()->GetActiveCamera();
-
-            if(!camera)
             {
-                DEBUG_ERROR("Failed to find a valid active camera");
-                return;
-            }
+                PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::Culling);
 
-            if (!drawCmd.material || drawCmd.indexCount <= 0)
-                continue;
+                if (!drawCmd.material || drawCmd.indexCount <= 0)
+                {
+                    skip = true;
+                }
+                else if (cullingActive)
+                {
+                    // Bounds/frustum math is only needed to feed IsInFrustum, so skip it entirely
+                    // when culling isn't active for this camera/pass.
+                    glm::vec3 center = (drawCmd.boundsMin + drawCmd.boundsMax) * 0.5f;
+                    glm::vec3 extents = (drawCmd.boundsMax - drawCmd.boundsMin) * 0.5f;
 
-            if (camera->frustumCulling && worldMin != worldMax && m_CurrentPass->allowCulling)
-            {
-                if (!camera->IsInFrustum(worldMin, worldMax)){
-                    continue;
+                    glm::vec3 worldCenter = glm::vec3(drawCmd.modelMatrix * glm::vec4(center, 1.0));
+
+                    glm::mat3 m = glm::mat3(drawCmd.modelMatrix);
+
+                    glm::mat3 absM(
+                        glm::abs(m[0]),
+                        glm::abs(m[1]),
+                        glm::abs(m[2])
+                    );
+
+                    glm::vec3 worldExtents = absM * extents;
+
+                    glm::vec3 worldMin = worldCenter - worldExtents;
+                    glm::vec3 worldMax = worldCenter + worldExtents;
+
+                    if (worldMin != worldMax && !camera->IsInFrustum(worldMin, worldMax))
+                        skip = true;
                 }
             }
+
+            if (skip)
+                continue;
 
             m_RendererAPI->ExecuteDrawCommand(drawCmd, m_CurrentPass);
         }

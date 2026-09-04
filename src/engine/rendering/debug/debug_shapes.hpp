@@ -3,6 +3,7 @@
 #include "engine/rendering/utils.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace Pulse::Engine::Rendering {
 
@@ -69,5 +70,21 @@ namespace Pulse::Engine::Rendering {
 
         private:
             void GenerateCylinder(float radius, float halfHeight, COL_RGBA color);
+    };
+
+    // A single merged wireframe mesh containing one small sphere per entry in `centers` (local-space,
+    // relative to whatever transform the owning component submits its draw command with). Used to
+    // visualize a cluster of points (e.g. a GI probe grid) as one draw command instead of one per point.
+    class DebugMultiSphere : public DebugShape
+    {
+        public:
+
+            DebugMultiSphere(const std::vector<glm::vec3>& centers, float radius, COL_RGBA color)
+            {
+                GenerateMultiSphere(centers, radius, color);
+            }
+
+        private:
+            void GenerateMultiSphere(const std::vector<glm::vec3>& centers, float radius, COL_RGBA color);
     };
 }

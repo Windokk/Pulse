@@ -13,6 +13,7 @@
 #include "engine/objects/components/rendering/camera.hpp"
 #include "engine/objects/components/rendering/model_component.hpp"
 #include "engine/objects/components/rendering/light_component.hpp"
+#include "engine/objects/components/rendering/probe_volume.hpp"
 #include "engine/objects/components/physics/physics_body.hpp"
 
 using namespace Pulse::Engine::Objects;
@@ -303,6 +304,10 @@ namespace Pulse::Editor::GUI{
 
                 if (ImGui::MenuItem("Model")) {
                     actor->AddComponent<Engine::Objects::Components::Model>();
+                }
+
+                if (ImGui::MenuItem("Probe Volume")) {
+                    actor->AddComponent<Engine::Objects::Components::ProbeVolume>();
                 }
 
                 ImGui::EndPopup();

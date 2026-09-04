@@ -110,9 +110,9 @@ namespace Pulse::Engine::Rendering {
             virtual ~Shader() = default;
             
             virtual std::vector<UniformInfo> GetActiveUniforms() = 0;
-            virtual std::unordered_map<std::string, UniformInfo> GetActiveUniformsMap() = 0;
+            virtual const std::unordered_map<std::string, UniformInfo>& GetActiveUniformsMap() = 0;
             virtual std::vector<SamplerInfo> GetActiveSamplers() = 0;
-            virtual std::unordered_map<std::string, SamplerInfo> GetActiveSamplersMap() = 0;
+            virtual const std::unordered_map<std::string, SamplerInfo>& GetActiveSamplersMap() = 0;
 
             virtual void SetBool(const std::string& name, bool value) = 0;
             virtual void SetInt(const std::string& name, int value) = 0;

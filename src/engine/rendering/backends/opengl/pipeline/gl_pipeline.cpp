@@ -22,17 +22,10 @@ namespace Pulse::Engine::Rendering{
 
         std::shared_ptr<GLShader> glShader = std::static_pointer_cast<GLShader>(spec.shader);
 
-        glUseProgram(glShader->GetProgram());
+        GLStateCache::BindProgram(glShader->GetProgram());
 
-        if (spec.depthTest)
-            glEnable(GL_DEPTH_TEST);
-        else
-            glDisable(GL_DEPTH_TEST);
-
-        if (spec.depthWrite)
-            glDepthMask(GL_TRUE);
-        else
-            glDepthMask(GL_FALSE);
+        GLStateCache::SetDepthTest(spec.depthTest);
+        GLStateCache::SetDepthWrite(spec.depthWrite);
 
         if(spec.depthTest)
         {
@@ -47,30 +40,28 @@ namespace Pulse::Engine::Rendering{
                 default:                          depthFunc = GL_LESS; break;
             }
 
-            glDepthFunc(depthFunc);
+            GLStateCache::SetDepthFunc(depthFunc);
         }
 
         switch (spec.cullMode)
         {
             case CullMode::Back:
-                glEnable(GL_CULL_FACE);
-                glCullFace(GL_BACK);
+                GLStateCache::SetCullMode(true, GL_BACK);
                 break;
 
             case CullMode::Front:
-                glEnable(GL_CULL_FACE);
-                glCullFace(GL_FRONT);
+                GLStateCache::SetCullMode(true, GL_FRONT);
                 break;
 
             case CullMode::None:
-                glDisable(GL_CULL_FACE);
+                GLStateCache::SetCullMode(false, GL_BACK);
                 break;
         }
 
+        GLStateCache::SetBlendEnabled(spec.blending);
+
         if (spec.blending)
         {
-            glEnable(GL_BLEND);
-
             GLenum srcBlend;
             GLenum dstBlend;
 
@@ -90,7 +81,7 @@ namespace Pulse::Engine::Rendering{
                 default:                            dstBlend = GL_ONE_MINUS_SRC_ALPHA; break;
             }
 
-            glBlendFunc(srcBlend, dstBlend);
+            GLStateCache::SetBlendFunc(srcBlend, dstBlend);
 
             GLenum blendEquation;
 
@@ -100,11 +91,7 @@ namespace Pulse::Engine::Rendering{
                 default:                blendEquation = GL_FUNC_ADD; break;
             }
 
-            glBlendEquation(blendEquation);
-        }
-        else
-        {
-            glDisable(GL_BLEND);
+            GLStateCache::SetBlendEquation(blendEquation);
         }
 
         GLenum polyMode;
@@ -124,6 +111,6 @@ namespace Pulse::Engine::Rendering{
             }
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, polyMode);
-    }   
+        GLStateCache::SetPolygonMode(polyMode);
+    }
 }

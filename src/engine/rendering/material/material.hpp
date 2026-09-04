@@ -39,6 +39,13 @@ namespace Pulse::Engine::Rendering {
             virtual std::optional<NumericValue>
             GetScalarParameter(const std::string& name) = 0;
 
+            // Returns a GPU-sampleable handle for the texture bound to sampler `name` (backend-defined
+            // meaning - e.g. a resident ARB_bindless_texture handle for the GL backend), or 0 if no
+            // texture is bound to that sampler. Used by consumers that can't rely on the normal per-draw
+            // texture-unit binding done in Bind() (e.g. the raytracer, whose materials are indexed
+            // dynamically from a compute shader rather than bound per draw call).
+            virtual uint64_t GetTextureParameter(const std::string& name) const = 0;
+
             virtual uint32_t GetTexturesCount() const = 0;
 
             std::shared_ptr<Shader> GetShader() const { return m_Shader; }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "engine/core/objectID.hpp"
 #include "engine/objects/components/misc/script.hpp"
@@ -18,6 +19,7 @@ namespace Pulse::Engine::Objects{
         class Model;
         class Script;
         class AudioSource;
+        class ProbeVolume;
     }
 }
 
@@ -28,6 +30,16 @@ namespace Pulse::Engine::Rendering{
 }
 
 namespace Pulse::Engine::Levels{
+
+    struct LevelAssetManifest
+    {
+        bool success = false;
+        std::vector<std::string> meshPathsInProject;
+        std::vector<std::string> materialPathsInProject;
+        std::string skyboxEnvMapPathInProject;
+    };
+
+    LevelAssetManifest CollectLevelAssetRefs(const Filesystem::Path& filePath);
 
     class Level{
 
@@ -90,6 +102,8 @@ namespace Pulse::Engine::Levels{
             float ambientIntensity = 0.2f;
             std::shared_ptr<Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture2D> ibl_texture;
+
+            std::shared_ptr<Objects::Components::ProbeVolume> probeVolume;
 
             // These are maps for fast lookup (key: id IN LEVEL, value: ptr to the comp)
             std::vector<std::shared_ptr<Objects::Components::Light>> lights;

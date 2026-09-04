@@ -27,6 +27,7 @@ namespace Pulse::Editor::GUI {
                         "editor_resources/icons/audio.png",
                         "editor_resources/icons/font.png",
                         "editor_resources/icons/shader.png",
+                        "editor_resources/icons/compute.png",
                         "editor_resources/icons/text.png",
                         "editor_resources/icons/code.png",
                         "editor_resources/icons/level.png",

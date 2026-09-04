@@ -206,4 +206,74 @@ namespace Pulse::Engine::Debugging{
                 PdhCloseQuery (hQuery);
         #endif
     }
+
+    void Profiler::BeginSample(ProfileCategory category)
+    {
+        m_SampleStart[static_cast<size_t>(category)] = ProfileClock::now();
+    }
+
+    void Profiler::EndSample(ProfileCategory category)
+    {
+        auto elapsed = ProfileClock::now() - m_SampleStart[static_cast<size_t>(category)];
+        float ms = std::chrono::duration<float, std::milli>(elapsed).count();
+        m_CurrentFrame.categoryMs[static_cast<size_t>(category)] += ms;
+    }
+
+    void Profiler::BeginRenderSubSample(RenderSubSample sample)
+    {
+        m_RenderSubSampleStart[static_cast<size_t>(sample)] = ProfileClock::now();
+    }
+
+    void Profiler::EndRenderSubSample(RenderSubSample sample)
+    {
+        auto elapsed = ProfileClock::now() - m_RenderSubSampleStart[static_cast<size_t>(sample)];
+        float ms = std::chrono::duration<float, std::milli>(elapsed).count();
+        m_CurrentFrame.renderSubMs[static_cast<size_t>(sample)] += ms;
+    }
+
+    void Profiler::EndFrameSampling()
+    {
+        m_CurrentFrame.totalMs = Core::GetEngine().GetTimeManager()->GetDeltaTime() * 1000.0f;
+
+        float tracked = 0.0f;
+        for (size_t i = 0; i < kProfileCategoryCount; i++)
+        {
+            if (static_cast<ProfileCategory>(i) == ProfileCategory::Other)
+                continue;
+            tracked += m_CurrentFrame.categoryMs[i];
+        }
+
+        float other = m_CurrentFrame.totalMs - tracked;
+        m_CurrentFrame.categoryMs[static_cast<size_t>(ProfileCategory::Other)] = other > 0.0f ? other : 0.0f;
+
+        m_LastFrame = m_CurrentFrame;
+        m_History[m_HistoryCursor] = m_CurrentFrame;
+        m_HistoryCursor = (m_HistoryCursor + 1) % kHistoryLength;
+        if (m_HistoryCount < kHistoryLength)
+            m_HistoryCount++;
+
+        m_CurrentFrame = FrameProfile{};
+    }
+
+    ScopedProfileSample::ScopedProfileSample(ProfileCategory category)
+        : category(category)
+    {
+        Core::GetEngine().GetProfiler()->BeginSample(category);
+    }
+
+    ScopedProfileSample::~ScopedProfileSample()
+    {
+        Core::GetEngine().GetProfiler()->EndSample(category);
+    }
+
+    ScopedRenderSubSample::ScopedRenderSubSample(RenderSubSample sample)
+        : sample(sample)
+    {
+        Core::GetEngine().GetProfiler()->BeginRenderSubSample(sample);
+    }
+
+    ScopedRenderSubSample::~ScopedRenderSubSample()
+    {
+        Core::GetEngine().GetProfiler()->EndRenderSubSample(sample);
+    }
 }

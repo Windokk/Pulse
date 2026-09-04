@@ -2,6 +2,7 @@
 
 #include "engine/core/engine.hpp"
 #include "engine/core/platform/iplatform.hpp"
+#include "engine/levels/level_manager.hpp"
 #include "engine/objects/components/misc/transform.reflection.hpp"
 
 #include "editor/gui/IconsLucide.h"
@@ -11,6 +12,8 @@
 
 
 #include <glm/gtx/string_cast.hpp>
+
+#include <algorithm>
 
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 
@@ -24,8 +27,15 @@ namespace Pulse::Editor::GUI {
 
     void ViewportWindow::Draw()
     {
+        // Dispatches one accumulated sample (or, on the first call after Start(), builds the scene/BVH)
+        // per editor frame while a raytrace is active (see Raytracer::Update()'s comments) - called
+        // unconditionally, regardless of whether the raytrace settings window is currently open, so the
+        // render keeps progressing in the background even if the user closes that panel.
+        if (raytracer && raytracer->IsActive())
+            raytracer->Update();
+
         ImGui::Begin("Viewport");
-        
+
         float toolbarHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().WindowPadding.y * 2;
         ImGui::BeginChild("ToolbarArea", ImVec2(0, toolbarHeight), false, ImGuiWindowFlags_NoScrollbar);
         DrawToolbar();
@@ -113,11 +123,10 @@ namespace Pulse::Editor::GUI {
         float toolbarWidth = ImGui::GetContentRegionAvail().x;
 
         // Gizmo Space
-        const char* items[2] = { ICON_LC_LOCATE " Local", ICON_LC_EARTH " World" };
+        const char* items[2] = { ICON_LC_LOCATE " Local  ", ICON_LC_EARTH " World  " };
         static int item_selected_idx = 0;
         const char* combo_preview_value = items[item_selected_idx];
-        ImGui::PushItemWidth(100);
-        if (ImGui::BeginCombo("##GizmoSpace", combo_preview_value, 0))
+        if (ImGui::BeginCombo("##GizmoSpace", combo_preview_value, ImGuiComboFlags_WidthFitPreview))
         {
             for (int n = 0; n < IM_ARRAYSIZE(items); n++)
             {
@@ -128,7 +137,6 @@ namespace Pulse::Editor::GUI {
             }
             ImGui::EndCombo();
         }
-        ImGui::PopItemWidth();
 
         currentGizmoMode = (item_selected_idx == 0) ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
 
@@ -178,7 +186,8 @@ namespace Pulse::Editor::GUI {
         float frameStatsWidth = ImGui::CalcTextSize(ICON_LC_CHART_PIE).x + ImGui::GetStyle().FramePadding.x * 2;
         float cameraWidth = ImGui::CalcTextSize(ICON_LC_CAMERA).x + ImGui::GetStyle().FramePadding.x * 2;
         float eyeWidth = ImGui::CalcTextSize(ICON_LC_EYE_OFF).x + ImGui::GetStyle().FramePadding.x * 2;
-        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + eyeWidth + 4); // spacing
+        float raytraceWidth = ImGui::CalcTextSize(ICON_LC_APERTURE).x + ImGui::GetStyle().FramePadding.x * 2;
+        float rightX = toolbarWidth - (frameStatsWidth + cameraWidth + eyeWidth + raytraceWidth + 16); // spacing
         ImGui::SetCursorPosX(rightX);
 
         // Frame Stats Button
@@ -230,6 +239,27 @@ namespace Pulse::Editor::GUI {
             if(showViewportVisibility)
             {
                 ShowViewportVisSettings();
+            }
+        }
+
+        ImGui::SameLine();
+
+        // Offline raytrace
+        {
+            if(showRaytraceSettings)
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+            else
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Button));
+            if(ImGui::Button(ICON_LC_APERTURE))
+                showRaytraceSettings = !showRaytraceSettings;
+            ImGui::PopStyleColor();
+
+            if(ImGui::IsItemHovered())
+                ImGui::SetTooltip("Offline raytrace");
+
+            if(showRaytraceSettings)
+            {
+                ShowRaytraceSettings();
             }
         }
     }
@@ -431,6 +461,107 @@ namespace Pulse::Editor::GUI {
         ImGui::Checkbox("Show Outlines ?", &parent->settings.showOutlines);
         ImGui::Checkbox("Show Gizmos ?", &parent->settings.showGizmos);
         ImGui::Checkbox("Show Grid ?", &parent->settings.showGrid);
+
+        ImGui::End();
+    }
+
+    void ViewportWindow::ShowRaytraceSettings()
+    {
+        namespace Raytracing = Engine::Rendering::Raytracing;
+
+        ImGui::Begin("Offline Raytrace", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+
+        if (raytracer && raytracer->IsPreparing())
+        {
+            // Scene/BVH build hasn't started yet at this point - it runs on the very next Update() call
+            // (see Raytracer::BuildScene()'s comment), after this frame has been presented. No progress
+            // fraction is meaningful yet, so just show that something is about to happen.
+            ImGui::TextWrapped("%s", raytracer->GetStatusMessage().c_str());
+            ImGui::TextDisabled("This can take a few seconds on large scenes.");
+
+            if (ImGui::Button(ICON_LC_X " Cancel"))
+            {
+                raytracer->Cancel();
+                raytraceStatusMessage = raytracer->GetStatusMessage();
+                raytracer.reset();
+            }
+        }
+        else if (raytracer && raytracer->IsRendering())
+        {
+            // Progress advances every frame via Draw() calling raytracer->Update() - this window just
+            // reflects that state, it doesn't drive the render itself.
+            ImGui::ProgressBar(raytracer->GetProgress());
+            ImGui::TextWrapped("%s", raytracer->GetStatusMessage().c_str());
+
+            if (ImGui::Button(ICON_LC_X " Cancel"))
+            {
+                raytracer->Cancel();
+                raytraceStatusMessage = raytracer->GetStatusMessage();
+                raytracer.reset();
+            }
+        }
+        else
+        {
+            if (raytracer)
+            {
+                // Reached a terminal state (Completed/Failed) since the last time this window was open -
+                // capture the final message and drop the instance (it already released its GPU buffers).
+                raytraceStatusMessage = raytracer->GetStatusMessage();
+                raytracer.reset();
+            }
+
+            int width = (int)raytraceSettings.width;
+            if (ImGui::InputInt("Width", &width))
+                raytraceSettings.width = (uint32_t)std::max(1, width);
+
+            int height = (int)raytraceSettings.height;
+            if (ImGui::InputInt("Height", &height))
+                raytraceSettings.height = (uint32_t)std::max(1, height);
+
+            int samples = (int)raytraceSettings.samplesPerPixel;
+            if (ImGui::InputInt("Samples per pixel", &samples))
+                raytraceSettings.samplesPerPixel = (uint32_t)std::max(1, samples);
+
+            int bounces = (int)raytraceSettings.maxBounces;
+            if (ImGui::InputInt("Max bounces", &bounces))
+                raytraceSettings.maxBounces = (uint32_t)std::max(1, bounces);
+
+            ImGui::ColorEdit3("Sky color", &raytraceSettings.skyColor.x);
+
+            ImGui::Separator();
+
+            ImGui::InputText("Output file", raytraceOutputPath, sizeof(raytraceOutputPath));
+            ImGui::TextDisabled("Relative to the project's resources folder. Saved as linear HDR (.hdr).");
+
+            ImGui::Separator();
+
+            auto activeLevel = Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0);
+            auto activeCamera = Engine::Core::GetEngine().GetCameraManager()->GetActiveCamera();
+            bool canRender = activeLevel && activeCamera;
+
+            ImGui::BeginDisabled(!canRender);
+            if (ImGui::Button(ICON_LC_APERTURE " Render"))
+            {
+                std::string filename = raytraceOutputPath[0] != '\0' ? raytraceOutputPath : "render.hdr";
+                auto outputPath = Engine::Filesystem::Path(
+                    Engine::Core::GetEngine().GetFileManager()->GetProjectRoot().full + "/" + filename, true);
+
+                raytraceStatusMessage.clear();
+
+                auto newRaytracer = std::make_unique<Raytracing::Raytracer>();
+                if (newRaytracer->Start(activeLevel, activeCamera, raytraceSettings, outputPath))
+                    raytracer = std::move(newRaytracer);
+                else
+                    raytraceStatusMessage = newRaytracer->GetStatusMessage();
+            }
+            ImGui::EndDisabled();
+
+            if (!canRender)
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.3f, 1.0f), "Need a loaded level and an active camera.");
+        }
+
+        if (!raytraceStatusMessage.empty())
+            ImGui::TextWrapped("%s", raytraceStatusMessage.c_str());
 
         ImGui::End();
     }

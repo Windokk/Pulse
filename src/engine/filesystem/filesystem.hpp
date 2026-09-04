@@ -21,6 +21,7 @@ namespace Pulse::Engine::Filesystem{
         T_SOUND,
         T_FONT,
         T_SHADER,
+        T_COMPUTE_SHADER,
         T_TEXT,
         T_SCRIPT,
         T_LEVEL,

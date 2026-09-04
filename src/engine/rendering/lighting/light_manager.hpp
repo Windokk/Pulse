@@ -71,6 +71,10 @@ namespace Pulse::Engine::Rendering {
             /// @return The total number of lights in the renderer
             int GetLightsCount();
 
+            /// @brief Read-only access to the current light list (e.g. for the offline raytracer to
+            /// snapshot scene lights into its own SSBO, independent from this manager's live buffer)
+            const std::vector<std::shared_ptr<LightData>>& GetLights() const { return m_Lights; }
+
         private:
             std::vector<std::shared_ptr<LightData>> m_Lights;
             std::shared_ptr<StorageBuffer> m_SSBO;
