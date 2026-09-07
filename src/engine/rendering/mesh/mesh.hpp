@@ -20,6 +20,9 @@ namespace Pulse::Engine::Rendering {
         size_t indexOffset;
         size_t indexCount;
         size_t vertexCount;
+        // Index of the source material slot this submesh belongs to (matches the
+        // mesh's FBX material order, which is what level files address by slot).
+        uint32_t materialIndex = 0;
     };
 
     class Material;

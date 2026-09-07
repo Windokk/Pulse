@@ -76,11 +76,11 @@ namespace Pulse::Engine::Objects{
     void Actor::Destroy()
     {
         for(auto& component : components){
-            
+
             if(level)
                 level->RemoveComponent(GetComponentIDInLevel(component->GetLocalId()), component);
-            
-            component->Destroy();
+            else
+                component->Destroy();
         }
 
         if(level){

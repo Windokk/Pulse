@@ -137,8 +137,17 @@ namespace Pulse::Engine::Rendering{
             std::unordered_map<Vertex, unsigned int> vertexToIndex;
         };
 
-        std::unordered_map<ufbx_material*, GroupedTriangles> materialGroups;
-        std::vector<ufbx_material*> materialOrder;
+        // One group per FBX material slot, kept in the mesh's own material-index
+        // order. Level files (and DCC tools) address materials by that index, so
+        // submesh N must map to material slot N. Faces are not necessarily sorted
+        // by material in the file, so grouping by encounter order would permute
+        // the mapping - an unused slot instead yields an empty submesh that keeps
+        // the alignment intact.
+        uint32_t materialSlotCount = (ufbx_mesh->materials.count > 0)
+            ? (uint32_t)ufbx_mesh->materials.count
+            : 1u;
+
+        std::vector<GroupedTriangles> materialGroups(materialSlotCount);
 
         for (size_t i = 0; i < ufbx_mesh->num_faces; i++) {
             ufbx_face face = ufbx_mesh->faces.data[i];
@@ -147,22 +156,11 @@ namespace Pulse::Engine::Rendering{
             if (ufbx_mesh->face_material.data && i < ufbx_mesh->face_material.count) {
                 mat_index = ufbx_mesh->face_material.data[i];
             }
-
-            ufbx_material* mat = nullptr;
-            if (ufbx_mesh->materials.data && mat_index < ufbx_mesh->materials.count) {
-                mat = ufbx_mesh->materials[mat_index];
+            if (mat_index >= materialSlotCount) {
+                mat_index = 0;
             }
 
-            // Fallback to global material list if needed
-            if (!mat && ufbx_mats.count > 0 && ufbx_mats.data) {
-                mat = ufbx_mats.data[0];
-            }
-
-            if (materialGroups.find(mat) == materialGroups.end()) {
-                materialOrder.push_back(mat);
-            }
-
-            GroupedTriangles& group = materialGroups[mat];
+            GroupedTriangles& group = materialGroups[mat_index];
             size_t start = face.index_begin;
             size_t count = face.num_indices;
 
@@ -217,10 +215,12 @@ namespace Pulse::Engine::Rendering{
             }
         }
 
+        (void)ufbx_mats;
+
         uint32_t totalVertexCount = 0;
 
-        for (ufbx_material* mat : materialOrder) {
-            auto& group = materialGroups[mat];
+        for (uint32_t slot = 0; slot < materialSlotCount; slot++) {
+            auto& group = materialGroups[slot];
 
             ComputeTangents(group.verts, group.localIndices);
 
@@ -235,11 +235,13 @@ namespace Pulse::Engine::Rendering{
 
             result.vertices.resize(byteOffset + byteSize);
 
-            memcpy(
-                result.vertices.data() + byteOffset,
-                group.verts.data(),
-                byteSize
-            );
+            if (byteSize > 0) {
+                memcpy(
+                    result.vertices.data() + byteOffset,
+                    group.verts.data(),
+                    byteSize
+                );
+            }
 
             for (auto idx : group.localIndices)
                 result.indices.push_back(static_cast<uint32_t>(vertexOffset + idx));
@@ -247,7 +249,8 @@ namespace Pulse::Engine::Rendering{
             result.submeshes.push_back(SubMesh{
                 .indexOffset = indexOffset,
                 .indexCount = indexCount,
-                .vertexCount = group.verts.size()
+                .vertexCount = group.verts.size(),
+                .materialIndex = slot
             });
         }
 
@@ -327,8 +330,13 @@ namespace Pulse::Engine::Rendering{
 
     std::vector<DrawCommand> Mesh::CreateDrawCommands(std::shared_ptr<Objects::Components::Transform> tr, int modelID, std::vector<std::shared_ptr<Material>> mats)
     {
+        if(mats.empty()){
+            DEBUG_ERROR("Cannot create draw commands: no materials supplied");
+            return {};
+        }
+
         if(mats.size() != m_Submeshes.size() && m_Submeshes.size() != 1){
-            DEBUG_ERROR("Cannot create draw command for meshes with different submeshes and materials count");
+            DEBUG_WARNING("Mesh submesh count and supplied material count differ; clamping material slots");
         }
 
         std::vector<DrawCommand> cmds;
@@ -341,8 +349,14 @@ namespace Pulse::Engine::Rendering{
             cmd.indexCount  = m_Submeshes[i].indexCount;
             cmd.vertexCount = m_Submeshes[i].vertexCount;
 
+            // Submeshes are emitted in FBX material-slot order; pick the material
+            // for this submesh's slot, clamping if the caller supplied fewer.
+            uint32_t slot = m_Submeshes[i].materialIndex;
+            if (slot >= mats.size())
+                slot = (uint32_t)mats.size() - 1;
+
             cmd.mesh        = shared_from_this();
-            cmd.material    = mats[i];
+            cmd.material    = mats[slot];
             cmd.modelMatrix = tr->GetTransformMatrix();
             cmd.objectID    = tr->parent->GetID().GetAsInt();
             cmd.modelID     = modelID;

@@ -19,6 +19,11 @@ namespace Pulse::Engine::Objects::Components
             void SetIntensity(float intensity);
             void SetPosition(glm::vec3 postion);
             void SetLightIndex(int index);
+
+            /// @brief Force this light's cached index to match its new slot after a sibling
+            /// light was removed and the level's light array shifted (does not touch the renderer
+            /// side, which LightManager::RemoveLight() already re-indexed on its own)
+            void ReindexTo(int index) { lightIndex = index; }
             void SetCastShadow(bool castShadows);
             void SetColor(COL_RGB color);
 

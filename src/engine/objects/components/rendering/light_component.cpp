@@ -5,6 +5,7 @@
 #include "engine/objects/actors/actor.hpp"
 
 #include "engine/core/engine.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include "light_component.reflection.hpp"
 

@@ -23,12 +23,17 @@ namespace Pulse::Engine::Objects::Components{
     glm::vec3 ProbeVolume::GetGridOrigin() const
     {
         glm::vec3 center = parent && parent->transform ? parent->transform->GetPosition() : glm::vec3(0.0f);
-        return center - halfExtent;
+        // Inset by half a cell (see GetGridSpacing()) so the outermost layer of probes sits inside the
+        // volume's bounding box instead of exactly on its surface - a probe volume is typically sized
+        // flush against a room's walls, and a probe placed right on/embedded in a wall sees it fill
+        // almost its entire hemisphere, turning the octahedral tile's coarse angular resolution into a
+        // visible faceted (diamond-shaped, from the octahedral projection) pattern directly on that wall.
+        return center - halfExtent + GetGridSpacing() * 0.5f;
     }
 
     glm::vec3 ProbeVolume::GetGridSpacing() const
     {
-        glm::ivec3 divisions = glm::max(probeCounts - glm::ivec3(1), glm::ivec3(1));
+        glm::ivec3 divisions = glm::max(probeCounts, glm::ivec3(1));
         return (halfExtent * 2.0f) / glm::vec3(divisions);
     }
 
@@ -39,7 +44,7 @@ namespace Pulse::Engine::Objects::Components{
 
         glm::ivec3 counts = glm::max(probeCounts, glm::ivec3(1));
         glm::vec3 spacing = GetGridSpacing();
-        glm::vec3 localOrigin = -halfExtent; // relative to the actor's position - see GetGridOrigin()
+        glm::vec3 localOrigin = -halfExtent + spacing * 0.5f; // relative to the actor's position - see GetGridOrigin()
 
         std::vector<glm::vec3> centers;
         centers.reserve((size_t)counts.x * (size_t)counts.y * (size_t)counts.z);
@@ -95,7 +100,7 @@ namespace Pulse::Engine::Objects::Components{
         {
             auto probeManager = GetEngineContext()->GetRenderer()->GetProbeManager();
             probeManager->RebuildScene(parent->level);
-            probeManager->SetActiveVolume(this);
+            probeManager->AddActiveVolume(this);
         }
     }
 
@@ -104,13 +109,13 @@ namespace Pulse::Engine::Objects::Components{
         Volume::DeActivate();
 
         if(parent && parent->level && parent->level->IsLoaded())
-            GetEngineContext()->GetRenderer()->GetProbeManager()->ClearActiveVolume(this);
+            GetEngineContext()->GetRenderer()->GetProbeManager()->RemoveActiveVolume(this);
     }
 
     void ProbeVolume::Destroy()
     {
         if(parent && parent->level && parent->level->IsLoaded())
-            GetEngineContext()->GetRenderer()->GetProbeManager()->ClearActiveVolume(this);
+            GetEngineContext()->GetRenderer()->GetProbeManager()->RemoveActiveVolume(this);
 
         if (m_ProbeDebugShape && m_ProbeDebugShape->m_Mesh && parent)
         {
@@ -140,7 +145,7 @@ namespace Pulse::Engine::Objects::Components{
         if (name == "halfExtent" || name == "probeCounts" || name == "raysPerProbe")
         {
             if(parent && parent->level && parent->level->IsLoaded())
-                GetEngineContext()->GetRenderer()->GetProbeManager()->RebuildGrid();
+                GetEngineContext()->GetRenderer()->GetProbeManager()->RebuildGrid(this);
         }
     }
 

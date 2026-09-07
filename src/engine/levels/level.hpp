@@ -99,7 +99,7 @@ namespace Pulse::Engine::Levels{
 
             void SetLoaded(bool loaded) { this->loaded = loaded; }
 
-            float ambientIntensity = 0.2f;
+            float ambientIntensity = 0.3f;
             std::shared_ptr<Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture2D> ibl_texture;
 

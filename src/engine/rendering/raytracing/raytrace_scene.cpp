@@ -52,6 +52,18 @@ namespace Pulse::Engine::Rendering::Raytracing {
             return glm::uvec2((uint32_t)(handle & 0xFFFFFFFFu), (uint32_t)(handle >> 32));
         }
 
+        bool IsMasked(const std::shared_ptr<Material>& mat)
+        {
+            if (!mat)
+                return false;
+
+            if (auto v = mat->GetScalarParameter("masked"))
+                if (auto* b = std::get_if<bool>(&*v))
+                    return *b;
+
+            return false;
+        }
+
         // Reads scalar parameters, then (when the material has one bound) a bindless handle for each of
         // the 4 texture slots the raytracer understands - same sampler names the rasterizer's "lit" shader
         // uses, so any material authored for the rasterizer picks up its textures here for free.
@@ -120,7 +132,7 @@ namespace Pulse::Engine::Rendering::Raytracing {
         return BuildFromSnapshot(CaptureSnapshot(level));
     }
 
-    RaytraceSceneSnapshot SceneBuilder::CaptureSnapshot(Levels::Level* level)
+    RaytraceSceneSnapshot SceneBuilder::CaptureSnapshot(Levels::Level* level, bool excludeMasked)
     {
         RaytraceSceneSnapshot snapshot;
 
@@ -151,7 +163,16 @@ namespace Pulse::Engine::Rendering::Raytracing {
 
             for (size_t submeshIdx = 0; submeshIdx < submeshes.size(); submeshIdx++)
             {
-                std::shared_ptr<Material> mat = mats[std::min(submeshIdx, mats.size() - 1)];
+                // Submeshes are in FBX material-slot order; use each submesh's own
+                // slot so it lines up with the model component's material list.
+                size_t slot = std::min<size_t>(submeshes[submeshIdx].materialIndex, mats.size() - 1);
+                std::shared_ptr<Material> mat = mats[slot];
+
+                if (excludeMasked && IsMasked(mat))
+                {
+                    modelSnap.materialIndicesPerSubmesh[submeshIdx] = kSkippedSubmesh;
+                    continue;
+                }
 
                 uint32_t materialIndex;
                 auto it = materialIndices.find(mat.get());
@@ -175,16 +196,35 @@ namespace Pulse::Engine::Rendering::Raytracing {
         return snapshot;
     }
 
-    RaytraceScene SceneBuilder::BuildFromSnapshot(const RaytraceSceneSnapshot &snapshot)
+    RaytraceScene SceneBuilder::BuildFromSnapshot(const RaytraceSceneSnapshot &snapshot, const ProgressCallback& onProgress)
     {
+        // Flatten runs 0 -> kFlattenEnd, BVH build kFlattenEnd -> kBvhEnd, the final payload reorder
+        // kBvhEnd -> 1. The split is a rough guess at the relative cost, not measured.
+        constexpr float kFlattenEnd = 0.45f;
+        constexpr float kBvhEnd = 0.95f;
+
+        auto report = [&](float fraction, const char* phase)
+        {
+            if (onProgress)
+                onProgress(fraction, phase);
+        };
+
+        report(0.0f, "Baking scene info");
+
         RaytraceScene scene;
         scene.materials = snapshot.materials;
 
         std::vector<GPUTrianglePos> positions;
         std::vector<GPUTriangleAttrib> attribs;
 
+        const size_t modelCount = snapshot.models.size();
+        size_t modelIdx = 0;
         for (auto& modelSnap : snapshot.models)
         {
+            ++modelIdx;
+            if (modelCount > 0)
+                report(kFlattenEnd * (float)modelIdx / (float)modelCount, "Baking scene info");
+
             const Mesh* mesh = modelSnap.mesh.get();
             if (!mesh)
                 continue;
@@ -215,6 +255,9 @@ namespace Pulse::Engine::Rendering::Raytracing {
             {
                 const SubMesh& submesh = submeshes[submeshIdx];
                 uint32_t materialIndex = modelSnap.materialIndicesPerSubmesh[submeshIdx];
+
+                if (materialIndex == kSkippedSubmesh)
+                    continue;
 
                 size_t triangleCount = submesh.indexCount / 3;
 
@@ -276,8 +319,11 @@ namespace Pulse::Engine::Rendering::Raytracing {
         if (positions.empty())
         {
             scene.bvhNodes = { BVHNode{ glm::vec3(0.0f), 0, glm::vec3(0.0f), 0 } };
+            report(1.0f, "Building BVH");
             return scene;
         }
+
+        report(kFlattenEnd, "Building BVH");
 
         std::vector<BVHPrimitive> primitives(positions.size());
         for (size_t i = 0; i < positions.size(); i++)
@@ -292,7 +338,8 @@ namespace Pulse::Engine::Rendering::Raytracing {
         }
 
         std::vector<uint32_t> order;
-        scene.bvhNodes = BVHBuilder::Build(primitives, order);
+        scene.bvhNodes = BVHBuilder::Build(primitives, order,
+            [&](float p) { report(kFlattenEnd + (kBvhEnd - kFlattenEnd) * p, "Building BVH"); });
 
         scene.trianglePositions.resize(order.size());
         scene.triangleAttribs.resize(order.size());
@@ -302,6 +349,7 @@ namespace Pulse::Engine::Rendering::Raytracing {
             scene.triangleAttribs[i] = attribs[order[i]];
         }
 
+        report(1.0f, "Building BVH");
         return scene;
     }
 

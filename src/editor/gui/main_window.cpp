@@ -4,6 +4,8 @@
 
 #include "editor/gui/panels/asset_browser/asset_browser.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -11,6 +13,9 @@
 #include <cstring>
 
 #include "editor/gui/IconsLucide.h"
+#include "editor/gui/notifications.hpp"
+
+#include "engine/rendering/lighting/probe_manager.hpp"
 
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/levels/level_manager.hpp"
@@ -326,6 +331,8 @@ namespace Pulse::Editor::Core{
 
         DrawLoadingOverlay(progress);
 
+        GUI::Notifications::RenderFrame();
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
@@ -455,9 +462,52 @@ namespace Pulse::Editor::Core{
         if(Engine::Core::GetEngine().GetLevelManager()->IsAsyncLoadInProgress())
             DrawLoadingOverlay(Engine::Core::GetEngine().GetLevelManager()->GetAsyncLoadProgress());
 
+        UpdateProbeBuildNotification();
+        GUI::Notifications::RenderFrame();
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
+    }
+
+    void EditorMainWindow::UpdateProbeBuildNotification()
+    {
+        Rendering::Renderer* renderer = Engine::Core::GetEngine().GetRenderer();
+        if(!renderer)
+            return;
+
+        auto probeManager = renderer->GetProbeManager();
+        if(!probeManager)
+            return;
+
+        // One long-lived progress notification, opened when a scene build starts and closed when it
+        // finishes. The handles survive across frames; 0 means "no notification currently open".
+        static GUI::Notifications::ProgressId probeBuildNotif = 0;
+        static bool tracking = false;
+
+        if(probeManager->IsSceneBuilding())
+        {
+            const float progress = std::clamp(probeManager->GetSceneBuildProgress(), 0.0f, 1.0f);
+            const int percent = (int)std::lround(progress * 100.0f);
+            const std::string message = std::string(probeManager->GetSceneBuildPhase())
+                + " - " + std::to_string(percent) + "%";
+
+            if(!tracking)
+            {
+                probeBuildNotif = GUI::Notifications::BeginProgress("Baking GI probes", message);
+                tracking = true;
+            }
+            else
+            {
+                GUI::Notifications::UpdateProgress(probeBuildNotif, progress, message);
+            }
+        }
+        else if(tracking)
+        {
+            GUI::Notifications::EndProgress(probeBuildNotif, true, "GI probe scene ready");
+            tracking = false;
+            probeBuildNotif = 0;
+        }
     }
 
     bool EditorMainWindow::ShouldClose() const

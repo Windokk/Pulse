@@ -1,4 +1,5 @@
 #version 430 core
+#extension GL_ARB_bindless_texture : enable
 
 // Real-time diffuse GI probe ray-tracer (DDGI-like, see ProbeManager). Dispatched once per bounce
 // iteration of ProbeManager::Update()'s maxBounces loop (so up to ProbeVolume::maxBounces times per
@@ -71,6 +72,12 @@ struct GPUMaterial
     uvec2 normalTex;
 };
 
+// Matches GPUMaterialTextureBit in raytrace_scene.hpp / TEX_*_BIT in path_trace.comp.
+const uint TEX_ALBEDO_BIT    = 1u;
+const uint TEX_METALLIC_BIT  = 2u;
+const uint TEX_ROUGHNESS_BIT = 4u;
+const uint TEX_NORMAL_BIT    = 8u;
+
 struct Light
 {
     vec4 position;
@@ -99,6 +106,10 @@ layout(std430, binding = 10) readonly buffer TriangleAttribs   { TriangleAttrib 
 layout(std430, binding = 11) readonly buffer Materials         { GPUMaterial materials[]; };
 layout(std430, binding = 12) readonly buffer Lights            { Light lights[]; };
 layout(std430, binding = 13) readonly buffer Probes            { Probe probes[]; };
+// Written by probe_classify.comp right after bounce 0's trace dispatch, from that same bounce's raw hits
+// - see the m_ProbeActiveBuffer comment in probe_manager.hpp. Only ever read here from bounce 1 onward
+// (SampleIndirect isn't called at bounce 0), so it's always this frame's own classification, not stale.
+layout(std430, binding = 14) readonly buffer ProbeActive       { float probeActive[]; };
 
 uniform int uProbeCount;
 uniform int uTileSize;
@@ -106,6 +117,17 @@ uniform int uAtlasProbesPerRow;
 uniform int uAtlasSize;
 uniform int uLightCount;
 uniform vec3 uSkyColor;
+
+// Fresh uniform-random rotation every frame (same value for every bounce iteration within one frame -
+// see ProbeManager::Update()) applied to each ray's direction right after OctDecode, below. The texel a
+// ray writes to is still purely a function of its (unrotated) tile position, so this doesn't change what
+// direction a given output texel nominally represents - only which real-world direction is actually
+// sampled to fill it in on any given frame. Without this the ray set is fully deterministic frame to
+// frame, so a "lucky" ray that happens to graze a small, high-contrast feature (a saturated tapestry, a
+// bright doorway) gets retraced identically forever, and the temporal hysteresis blend below just
+// confirms that one biased sample instead of averaging it against nearby directions the way real
+// resampling would - see the m_RayRNG comment in probe_manager.hpp.
+uniform mat3 uRayRotation;
 
 // True for every bounce iteration after the first within a single Update() call (see
 // ProbeManager::Update()'s maxBounces loop) - false on the first, when uPrevIrradianceAtlas hasn't been
@@ -180,6 +202,36 @@ vec2 SamplePrevDistance(int probeIndex, vec3 dir)
     return texture(uPrevDistanceAtlas, atlasUV).rg;
 }
 
+// Cook-Torrance GGX terms for the direct-light specular response below - identical to path_trace.comp's
+// copies (no importance-sampled specular bounce here, unlike path_trace.comp : probes only need the
+// direct (NEE) response per ray, since indirect diffuse is what the probe grid itself provides via
+// SampleIndirect - so only the D/G/F evaluation is needed, not GGX half-vector sampling).
+float DistributionGGX(vec3 n, vec3 h, float roughness)
+{
+    float a = max(roughness * roughness, 1e-4);
+    float a2 = a * a;
+    float NdotH = max(dot(n, h), 0.0);
+    float denom = NdotH * NdotH * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * denom * denom, 1e-6);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return NdotV / max(NdotV * (1.0 - k) + k, 1e-6);
+}
+
+float GeometrySmith(vec3 n, vec3 v, vec3 l, float roughness)
+{
+    return GeometrySchlickGGX(max(dot(n, v), 0.0), roughness) * GeometrySchlickGGX(max(dot(n, l), 0.0), roughness);
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 // Chebyshev's inequality applied to a probe's stored (mean, mean^2) hit-distance distribution, to
 // estimate how likely that probe can actually "see" a point `distToPoint` away without a wall between
 // them - see the identical DDGI_VisibilityWeight in lit.frag for the sibling copy this mirrors (needed
@@ -201,7 +253,11 @@ float ChebyshevVisibility(vec2 meanMean2, float distToPoint)
 
 vec3 SampleIndirect(vec3 worldPos, vec3 N)
 {
-    vec3 gridPos = (worldPos - uGridOrigin) / max(uGridSpacing, vec3(1e-4));
+    // Same normal bias as DDGI_Diffuse in lit.frag - see that comment for why. Kept in sync since this is
+    // the sibling copy used for the multi-bounce feedback loop instead of the final published atlas.
+    vec3 biasedPos = worldPos + N * (0.25 * min(min(uGridSpacing.x, uGridSpacing.y), uGridSpacing.z));
+
+    vec3 gridPos = (biasedPos - uGridOrigin) / max(uGridSpacing, vec3(1e-4));
     vec3 base = floor(gridPos);
     vec3 frac = clamp(gridPos - base, 0.0, 1.0);
 
@@ -222,15 +278,17 @@ vec3 SampleIndirect(vec3 worldPos, vec3 N)
             + int(probeCoord.y) * int(uProbeCounts.x)
             + int(probeCoord.z) * int(uProbeCounts.x) * int(uProbeCounts.y);
 
-        // Visibility test direction is probe -> shading point, NOT N (the irradiance sample direction
-        // above) - a probe can be occluded from a point regardless of that point's surface normal.
+        // Visibility test direction is probe -> (biased) shading point, NOT N (the irradiance sample
+        // direction above) - a probe can be occluded from a point regardless of that point's surface normal.
         vec3 probeWorldPos = uGridOrigin + probeCoord * uGridSpacing;
-        vec3 toPoint = worldPos - probeWorldPos;
+        vec3 toPoint = biasedPos - probeWorldPos;
         float distToPoint = length(toPoint);
         vec3 dirToPoint = toPoint / max(distToPoint, 1e-5);
 
         float visWeight = ChebyshevVisibility(SamplePrevDistance(probeIndex, dirToPoint), distToPoint);
-        float weight = trilinearWeight * visWeight;
+        // probeActive : see probe_classify.comp - a probe embedded in geometry contributes nothing,
+        // same as a fully-occluded one, instead of leaking its biased self-lit radiance.
+        float weight = trilinearWeight * visWeight * probeActive[probeIndex];
         if (weight <= 0.0)
             continue;
 
@@ -411,7 +469,7 @@ bool TraceRay(vec3 ro, vec3 rd, float maxT, out HitInfo hit)
 // which stays cheap enough to run every frame in real time while still converging to multi-bounce light.
 // ---------------------------------------------------------------------------
 
-vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist)
+vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist, out float outValidity)
 {
     HitInfo hit;
     if (!TraceRay(ro, rd, 1e30, hit))
@@ -420,6 +478,7 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist)
         // in-scene shading point could be at. Recording "no occlusion here" (rather than e.g. 0) keeps
         // ChebyshevVisibility from ever treating a sky ray as blocking light.
         outHitDist = 1e4;
+        outValidity = 1.0; // open sky - not a sign this probe is embedded in geometry
         return uSkyColor;
     }
 
@@ -430,13 +489,54 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist)
     GPUMaterial mat = materials[matID];
 
     vec3 hitPos = ro + rd * hit.t;
-    if (dot(n, rd) > 0.0)
+
+    // Backface hit (ray travels the same general direction as the surface's authored normal, i.e. it
+    // approached from behind) usually means this probe is embedded in/behind solid geometry - flagged
+    // here so probe_classify.comp can tally it per-probe and exclude embedded probes from the DDGI blend
+    // entirely (see that shader's header comment) instead of letting them inject biased, self-lit
+    // radiance into whatever they're stuck inside.
+    bool backface = dot(n, rd) > 0.0;
+    outValidity = backface ? 0.0 : 1.0;
+
+    if (backface)
         n = -n;
 
-    // Scalar material values only - texture sampling is intentionally not wired in for probe rays in
-    // this V1 (keeps the trace kernel simpler while probe counts/ray counts are still being tuned).
+    // Albedo/metallic/roughness/normal textures, when the material has them - mirrors path_trace.comp's
+    // identical block.
     vec3 albedo = mat.albedo.rgb;
+    float roughness = mat.roughness;
+    float metallic = mat.metallic;
     vec3 radiance = mat.emissive.rgb;
+
+    if (mat.textureFlags != 0u)
+    {
+        vec2 uv = vec2(attrib.n0.w, attrib.uvMatID.x) * w0
+                + vec2(attrib.n1.w, attrib.uvMatID.y) * hit.bary.x
+                + vec2(attrib.n2.w, attrib.uvMatID.z) * hit.bary.y;
+
+        if ((mat.textureFlags & TEX_ALBEDO_BIT) != 0u)
+            albedo = texture(sampler2D(mat.albedoTex), uv).rgb;
+
+        if ((mat.textureFlags & TEX_METALLIC_BIT) != 0u)
+            metallic *= texture(sampler2D(mat.metallicTex), uv).r;
+
+        if ((mat.textureFlags & TEX_ROUGHNESS_BIT) != 0u)
+            roughness *= texture(sampler2D(mat.roughnessTex), uv).r;
+
+        if ((mat.textureFlags & TEX_NORMAL_BIT) != 0u)
+        {
+            vec3 tangent = normalize(attrib.t0.xyz * w0 + attrib.t1.xyz * hit.bary.x + attrib.t2.xyz * hit.bary.y);
+            tangent = normalize(tangent - n * dot(tangent, n)); // re-orthogonalize against the interpolated normal
+            vec3 bitangent = cross(n, tangent);
+            mat3 TBN = mat3(tangent, bitangent, n);
+
+            vec3 sampledNormal = texture(sampler2D(mat.normalTex), uv).rgb * 2.0 - 1.0;
+            n = normalize(TBN * sampledNormal);
+        }
+    }
+
+    vec3 viewDir = normalize(-rd);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     // Every light, every ray - not a single random NEE pick like path_trace.comp's offline path tracer
     // gets away with. That single-sample pick made this shader's output noise scale with light count
@@ -482,14 +582,30 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist)
         {
             bool occluded = TraceRayAny(hitPos + n * 1e-3, toLight, dist - 2e-3);
             if (!occluded)
-                radiance += (albedo / PI) * incomingRadiance * NdotL;
+            {
+                vec3 h = normalize(viewDir + toLight);
+                vec3 F = FresnelSchlick(max(dot(h, viewDir), 0.0), F0);
+                float D = DistributionGGX(n, h, roughness);
+                float G = GeometrySmith(n, viewDir, toLight, roughness);
+                vec3 specular = (D * G * F) / max(4.0 * max(dot(n, viewDir), 0.0) * NdotL, 1e-4);
+                vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
+                vec3 diffuse = kd * albedo / PI;
+
+                radiance += (diffuse + specular) * incomingRadiance * NdotL;
+            }
         }
     }
 
     // Indirect bounce, fed from the previous bounce iteration's converged atlas (see uUseIndirect and
-    // the comment above uPrevIrradianceAtlas at the top of this file).
+    // the comment above uPrevIrradianceAtlas at the top of this file). Diffuse-only (the probe grid is a
+    // diffuse GI approximation, same as lit.frag's DDGI_Diffuse - no probe-fed specular term), damped by
+    // the same kD a metallic surface gets in the direct term above so a metallic hit point doesn't pick
+    // up a full-strength diffuse bounce it physically wouldn't reflect.
     if (uUseIndirect)
-        radiance += SampleIndirect(hitPos, n) * albedo;
+    {
+        vec3 kD = (vec3(1.0) - F0) * (1.0 - metallic);
+        radiance += SampleIndirect(hitPos, n) * albedo * kD;
+    }
 
     outHitDist = hit.t;
     return radiance;
@@ -513,10 +629,11 @@ void main()
     uint ty = rayIndex / tileSize;
     vec2 texelUV = (vec2(float(tx), float(ty)) + 0.5) / float(tileSize);
     vec2 oct = texelUV * 2.0 - 1.0;
-    vec3 dir = OctDecode(oct);
+    vec3 dir = uRayRotation * OctDecode(oct);
 
     float hitDist;
-    vec3 radiance = TraceAndShadeDirect(probePos, dir, hitDist);
+    float validity;
+    vec3 radiance = TraceAndShadeDirect(probePos, dir, hitDist, validity);
 
     uint stride = tileSize + 2u;
     ivec2 tileOrigin = ivec2(int(probeIndex % uint(uAtlasProbesPerRow)) * int(stride),
@@ -525,7 +642,8 @@ void main()
 
     // No temporal blend here - each bounce iteration needs a clean, fully-overwritten result to feed
     // into the next (see uUseIndirect/uPrevIrradianceAtlas above) - see probe_temporal_blend.comp for
-    // where cross-frame smoothing now happens instead.
-    imageStore(uAtlas, texel, vec4(radiance, 1.0));
+    // where cross-frame smoothing now happens instead. Alpha channel carries `validity` (backface flag,
+    // see TraceAndShadeDirect) rather than a fixed 1.0 - see probe_classify.comp for the reader.
+    imageStore(uAtlas, texel, vec4(radiance, validity));
     imageStore(uDistAtlas, texel, vec4(hitDist, hitDist * hitDist, 0.0, 0.0));
 }

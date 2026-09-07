@@ -115,6 +115,10 @@ namespace Pulse::Editor::Core {
         void EnsureImGuiInitialized();
         void DrawLoadingOverlay(float progress);
 
+        // Polls the ProbeManager's async scene-build progress and mirrors it into a single
+        // "Baking GI probes" progress notification (see editor/gui/notifications.hpp).
+        void UpdateProbeBuildNotification();
+
         bool imguiInitialized = false;
         bool renderPassesInitialized = false;
 

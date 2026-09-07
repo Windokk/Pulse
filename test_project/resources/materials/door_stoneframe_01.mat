@@ -1,0 +1,14 @@
+{
+    "recievesShadows":true,
+    "renderMode": "opaque",
+    "shader":"shaders/mesh/lit",
+    "uniforms":[
+        {"albedo":"textures/sponza/door_stoneframe_01_BaseColor.png"},
+        {"metallicMap":"textures/sponza/door_stoneframe_01_Metalness.png"},
+        {"roughnessMap":"textures/sponza/door_stoneframe_01_Roughness.png"},
+        {"normalMap":"textures/sponza/door_stoneframe_01_Normal.png"},
+        {"metallic":0.0},
+        {"roughness":1.0},
+        {"useEnvReflections":false}
+    ]
+}

@@ -3,12 +3,12 @@
     "renderMode": "opaque",
     "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures/Cerberus_A.tga"},
-        {"metallic":0.3},
-        {"roughness":0.9},
-        {"metallicMap":"textures/Cerberus_M.tga"},
-        {"roughnessMap":"textures/Cerberus_R.tga"},
-        {"normalMap":"textures/Cerberus_N.tga"},
+        {"albedo":"textures/cerberus_gun/Cerberus_A.tga"},
+        {"metallicMap":"textures/cerberus_gun/Cerberus_M.tga"},
+        {"roughnessMap":"textures/cerberus_gun/Cerberus_R.tga"},
+        {"normalMap":"textures/cerberus_gun/Cerberus_N.tga"},
+        {"metallic":1.0},
+        {"roughness":1.0},
         {"useEnvReflections":true}
     ]
 }

@@ -262,10 +262,9 @@ namespace Pulse::Engine::Levels{
     void Level::RemoveActorRecursive(Core::ObjectID actorID)
     {
         auto objPtr = Core::GetEngine().GetObjectIDManager()->GetObjectFromID(actorID);
-        if (!objPtr && !dynamic_pointer_cast<Objects::LevelObject>(objPtr))
-            return;
-
         auto lvlObjPtr = dynamic_pointer_cast<Objects::LevelObject>(objPtr);
+        if (!lvlObjPtr)
+            return;
 
         // Copy children IDs FIRST
         std::vector<Core::ObjectID> children;
@@ -438,8 +437,20 @@ namespace Pulse::Engine::Levels{
         }
         else if(compPtr->IsInstanceOf<Objects::Components::Light>()){
             int index = lightComps.at(idInLevel)->GetLightIndex();
-            std::rotate(lights.begin() + index, lights.begin() + index + 1, lights.end());
-            lights.pop_back();
+            if (index >= 0 && index < (int)lights.size())
+            {
+                std::rotate(lights.begin() + index, lights.begin() + index + 1, lights.end());
+                lights.pop_back();
+
+                // Everything past the removed slot shifted down by one - resync each light's
+                // cached index so a later removal doesn't rotate() with a stale (now out-of-range) index.
+                for (size_t i = index; i < lights.size(); ++i)
+                    lights[i]->ReindexTo((int)i);
+            }
+            else
+            {
+                DEBUG_ERROR("Level::RemoveComponent(Light) index OUT OF RANGE - light stays stuck in lights vector!");
+            }
             lightComps.erase(idInLevel);
         }
         else if(compPtr->IsInstanceOf<Objects::Components::Model>()){

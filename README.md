@@ -70,7 +70,8 @@ This runs the editor, loads the game module, opens the project at "project path"
   - [ufbx](https://github.com/ufbx/ufbx)
   - [json for c++](https://github.com/nlohmann/json)
   - [fmod](https://www.fmod.com/)
-  - [ImViewGuizmo](https://github.com/Ka1serM/ImViewGuizmo)
+  - [ImOGuizmo](https://github.com/fknfilewalker/imoguizmo)
+  - [ImGuiNotify](https://github.com/TyomaVader/ImGuiNotify/tree/Dev)
 
 - Fonts :
   - [Lucide icons](https://lucide.dev/)
@@ -81,7 +82,7 @@ This runs the editor, loads the game module, opens the project at "project path"
 
 - Models :
   - "Rubik's Cube" (<https://skfb.ly/6U7pp>) by RED2000 is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).
-  - "Sponza" Model downloaded from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)
+  - Intel Sponza 2022 Scene commissioned by Frank Meinl, sponsored by Anton Kaplanyan [Link](https://www.intel.com/content/www/us/en/developer/topic-technology/graphics-processing-research/samples.html)
   - "Cerberus" Gun model [Andrew Maximov](https://artisaverb.info/PBT.html) 
 
 - Textures :

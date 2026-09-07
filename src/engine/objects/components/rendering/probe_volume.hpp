@@ -8,10 +8,16 @@ namespace Pulse::Engine::Objects::Components
 {
     // Places a real-time diffuse GI probe grid in the level (see ProbeManager). Bounding box (halfExtent)
     // and its wireframe gizmo come from Volume - this adds the probe grid resolution/ray count and a
-    // second gizmo (small white spheres, one per probe - see RebuildProbeVisualization()). V1 supports a
-    // single active volume per level : activating a second one replaces the first (see
-    // ProbeManager::SetActiveVolume). The grid is axis-aligned in world space, centered on this
-    // component's actor position - it does not follow the actor's rotation/scale, only its translation.
+    // second gizmo (small white spheres, one per probe - see RebuildProbeVisualization()). Up to
+    // ProbeManager::kMaxProbeVolumes volumes can be simultaneously active (see
+    // ProbeManager::AddActiveVolume) - a shading point picks the SMALLEST active volume whose grid
+    // actually contains it (see DDGI_PickVolume in lit.frag), so a small, densely-packed local volume
+    // automatically overrides a coarser one it's nested inside without any explicit priority field. This
+    // is the fix for an object too small for a room-scale grid to resolve at all (e.g. a small prop
+    // sitting inside a building-sized probe volume, where the grid spacing is many times the prop's own
+    // size) : give it its own small ProbeVolume instead of trying to make the whole level's grid denser.
+    // The grid is axis-aligned in world space, centered on this component's actor position - it does not
+    // follow the actor's rotation/scale, only its translation.
     class CLASS() ProbeVolume : public Volume{
         public:
             ProbeVolume(std::shared_ptr<Actor> parent, uint32_t local_id);

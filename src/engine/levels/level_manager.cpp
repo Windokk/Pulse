@@ -76,16 +76,18 @@ namespace Pulse::Engine::Levels{
         std::string pathInProject = asyncLoadPathInProject;
 
         auto& engine = Core::GetEngine();
-        auto level = engine.GetResourcesManager()->GetLevel(pathInProject);
+        auto* assetIDManager = engine.GetAssetIDManager();
 
-        if(!level){
+        // Cheap, side-effect-free existence check first (no actor/ID allocation) so a bad/missing
+        // target can't leave the editor with zero levels loaded - without actually deserializing
+        // the new level yet (see below for why that has to wait).
+        if(!assetIDManager->GetAssetFromID(assetIDManager->GetIDFromNameInProject(pathInProject))){
             DEBUG_ERROR("Error loading level : " + pathInProject);
             return;
         }
 
         if(!levelBuffer.empty()){
             auto* resourcesManager = engine.GetResourcesManager();
-            auto* assetIDManager = engine.GetAssetIDManager();
 
             while(!levelBuffer.empty()){
                 std::string nameInProject = assetIDManager->GetAssetFromID(levelBuffer[0]->GetAssetID())->baseInfos.nameInProject;
@@ -94,7 +96,21 @@ namespace Pulse::Engine::Levels{
             }
 
             engine.GetRenderer()->ClearPassesContent();
+
+            // Must happen before the new level is deserialized below: Reset() invalidates every
+            // ObjectID and restarts the counter from 1. Deserializing first would hand the new
+            // level's actors IDs that Reset() then wipes out from the manager (while the objects
+            // themselves stay alive via the level's own containers), so the *next* level loaded
+            // reuses those same low IDs - GetObjectFromID() then resolves them to the wrong actor
+            // and RemoveActorRecursive() ends up tearing down the wrong level's tree entirely.
             engine.GetObjectIDManager()->Reset();
+        }
+
+        auto level = engine.GetResourcesManager()->GetLevel(pathInProject);
+
+        if(!level){
+            DEBUG_ERROR("Error loading level : " + pathInProject);
+            return;
         }
 
         LoadLevel(level);

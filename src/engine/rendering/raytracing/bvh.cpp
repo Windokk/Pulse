@@ -129,23 +129,49 @@ namespace Pulse::Engine::Rendering::Raytracing {
             return found;
         }
 
+        struct BuildProgress
+        {
+            const BVHBuilder::ProgressFn* fn = nullptr;
+            size_t total = 0;
+            size_t done = 0;
+
+            // Called once for every node that ends up a leaf, with that leaf's triangle count : every
+            // primitive is accounted for exactly once (a split node's triangles are counted later, by
+            // its descendants' leaves), so `done` walks monotonically from 0 to `total`.
+            void leaf(uint32_t triCount)
+            {
+                done += triCount;
+                if (fn && *fn)
+                    (*fn)(total ? (float)done / (float)total : 1.0f);
+            }
+        };
+
         void Subdivide(std::vector<BVHNode>& nodes, uint32_t& nodesUsed, uint32_t nodeIdx,
-            const std::vector<BVHPrimitive>& prims, std::vector<uint32_t>& order)
+            const std::vector<BVHPrimitive>& prims, std::vector<uint32_t>& order, BuildProgress& progress)
         {
             BVHNode& node = nodes[nodeIdx];
 
             if (node.triCount <= kMaxLeafTriangles)
+            {
+                progress.leaf(node.triCount);
                 return;
+            }
 
             int axis = 0;
             float splitPos = 0.0f, splitCost = 0.0f;
             if (!FindBestSplit(node, prims, order, axis, splitPos, splitCost))
+            {
+                progress.leaf(node.triCount);
                 return;
+            }
 
             // Only split if it's actually cheaper than leaving this node as one big leaf.
             float parentCost = node.triCount * SurfaceArea(node.boundsMin, node.boundsMax);
             if (splitCost >= parentCost)
+            {
+                progress.leaf(node.triCount);
                 return;
+            }
 
             // Partition [leftFirst, leftFirst + triCount) in-place by centroid vs. the chosen plane.
             auto rangeBegin = order.begin() + node.leftFirst;
@@ -156,7 +182,10 @@ namespace Pulse::Engine::Rendering::Raytracing {
 
             uint32_t leftCount = (uint32_t)std::distance(rangeBegin, mid);
             if (leftCount == 0 || leftCount == node.triCount)
-                return; // degenerate split (e.g. all remaining centroids landed on one side) - keep as leaf
+            {
+                progress.leaf(node.triCount); // degenerate split (all centroids landed on one side) - keep as leaf
+                return;
+            }
 
             uint32_t leftFirst = node.leftFirst;
             uint32_t rightFirst = leftFirst + leftCount;
@@ -178,13 +207,14 @@ namespace Pulse::Engine::Rendering::Raytracing {
             UpdateBounds(nodes[leftIdx], prims, order);
             UpdateBounds(nodes[rightIdx], prims, order);
 
-            Subdivide(nodes, nodesUsed, leftIdx, prims, order);
-            Subdivide(nodes, nodesUsed, rightIdx, prims, order);
+            Subdivide(nodes, nodesUsed, leftIdx, prims, order, progress);
+            Subdivide(nodes, nodesUsed, rightIdx, prims, order, progress);
         }
 
     }
 
-    std::vector<BVHNode> BVHBuilder::Build(const std::vector<BVHPrimitive>& primitives, std::vector<uint32_t>& outOrder)
+    std::vector<BVHNode> BVHBuilder::Build(const std::vector<BVHPrimitive>& primitives, std::vector<uint32_t>& outOrder,
+        const ProgressFn& onProgress)
     {
         size_t n = primitives.size();
 
@@ -206,7 +236,13 @@ namespace Pulse::Engine::Rendering::Raytracing {
         nodes[0].triCount = (uint32_t)n;
         UpdateBounds(nodes[0], primitives, outOrder);
 
-        Subdivide(nodes, nodesUsed, 0, primitives, outOrder);
+        BuildProgress progress;
+        progress.fn = &onProgress;
+        progress.total = n;
+        Subdivide(nodes, nodesUsed, 0, primitives, outOrder, progress);
+
+        if (onProgress)
+            onProgress(1.0f);
 
         nodes.resize(nodesUsed);
         return nodes;

@@ -7,6 +7,7 @@
 
 #include "engine/core/engine.hpp"
 #include "engine/core/platform/iwindow.hpp"
+#include "engine/debugging/logger.hpp"
 
 #include "engine/rendering/renderer/renderer.hpp"
 
@@ -74,7 +75,10 @@ namespace Pulse::Engine::Rendering{
     void LightManager::RemoveLight(int lightIndex)
     {
         if (lightIndex < 0 || lightIndex >= static_cast<int>(m_Lights.size()))
+        {
+            DEBUG_ERROR("RemoveLight(" + std::to_string(lightIndex) + ") REJECTED - out of range, m_Lights.size()=" + std::to_string(m_Lights.size()));
             return;
+        }
 
         auto* renderer = Core::GetEngine().GetRenderer();
         auto shadowMan = renderer->GetShadowManager();

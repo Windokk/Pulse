@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 #include <memory>
 
@@ -80,7 +81,9 @@ namespace Pulse::Engine::Rendering::Raytracing {
         // one-shot at load time), so reading through this shared_ptr from a worker thread while the
         // main thread carries on is safe.
         std::shared_ptr<Mesh> mesh;
-        // One already-resolved index into RaytraceSceneSnapshot::materials per submesh.
+        // One already-resolved index into RaytraceSceneSnapshot::materials per submesh, or UINT32_MAX
+        // (see kSkippedSubmesh) for a submesh CaptureSnapshot(..., excludeMasked=true) chose to leave out
+        // entirely - BuildFromSnapshot() skips generating triangles for those.
         std::vector<uint32_t> materialIndicesPerSubmesh;
         glm::mat4 worldMatrix = glm::mat4(1.0f);
     };
@@ -93,9 +96,19 @@ namespace Pulse::Engine::Rendering::Raytracing {
         std::vector<GPUMaterial> materials;
     };
 
+    // Sentinel for ModelSnapshot::materialIndicesPerSubmesh - see its comment.
+    constexpr uint32_t kSkippedSubmesh = 0xFFFFFFFFu;
+
     class SceneBuilder
     {
         public:
+            // Invoked with (fraction in [0, 1], short phase label) as BuildFromSnapshot() advances -
+            // the label is one of a small fixed set of string literals ("Baking scene info",
+            // "Building BVH"), so it is safe to keep the pointer around. May be called frequently and,
+            // when BuildFromSnapshot() runs on a worker thread (ProbeManager's async scene build), from
+            // that thread - the callback must be cheap and thread-safe.
+            using ProgressCallback = std::function<void(float, const char*)>;
+
             // Walks every active Model component in `level`, flattens their (world-transformed)
             // triangles and materials into GPU-ready arrays, and builds a BVH over them. Materials are
             // read from their scalar parameters (albedo/roughness/metallic/emissive) plus, when present,
@@ -111,12 +124,30 @@ namespace Pulse::Engine::Rendering::Raytracing {
             // `level`'s live actors/materials and produces a self-contained snapshot with every
             // GL-touching bit (bindless texture handle resolution via Material::GetTextureParameter)
             // already done. Must be called from the thread that owns the GL context.
-            static RaytraceSceneSnapshot CaptureSnapshot(Levels::Level* level);
+            //
+            // excludeMasked : when true, submeshes using an Opacity::Masked material (alpha-cutout, e.g.
+            // foliage cards) are left out of the snapshot entirely rather than flattened as opaque
+            // triangles. The offline path tracer (via Build()) doesn't need this - it's meant for
+            // ProbeManager specifically, whose probe rays don't sample textures at all (see
+            // probe_trace.comp), so a masked material's cutout shape is invisible to it and gets treated
+            // as a solid, fully-opaque card instead. That's a much worse trade for probes than for the
+            // path tracer : with only a handful of rays per probe, a nearby foliage card wrongly counted
+            // as solid dominates a large, unstable fraction of that probe's hemisphere (worse once probe
+            // rays are jittered frame to frame - see ProbeManager::Update()'s m_RayRNG), showing up as
+            // flicker/leaks on whatever it's stuck next to. Dropping masked geometry from GI capture
+            // entirely (no bounce contribution from foliage) reads far better in practice than a biased,
+            // unstable solid-card approximation of it.
+            static RaytraceSceneSnapshot CaptureSnapshot(Levels::Level* level, bool excludeMasked = false);
 
             // Pure CPU (triangle flattening + BVH build) - touches no engine singleton, no GL, no live
             // Level/Actor/Transform state, only the snapshot's copied data - safe to call from any
             // thread, including a background worker while the main thread continues running.
-            static RaytraceScene BuildFromSnapshot(const RaytraceSceneSnapshot& snapshot);
+            //
+            // onProgress, when set, is called with a monotonically increasing [0, 1] fraction and a
+            // phase label across the flatten ("Baking scene info") and BVH ("Building BVH") passes -
+            // see ProbeManager, which forwards it to the editor's progress notification.
+            static RaytraceScene BuildFromSnapshot(const RaytraceSceneSnapshot& snapshot,
+                const ProgressCallback& onProgress = {});
     };
 
 }

@@ -1,0 +1,14 @@
+{
+    "recievesShadows":true,
+    "renderMode": "opaque",
+    "shader":"shaders/mesh/lit",
+    "uniforms":[
+        {"albedo":"textures/sponza/col_head_2ndfloor_02_BaseColor.png"},
+        {"metallicMap":"textures/sponza/col_head_2ndfloor_02_Metalness.png"},
+        {"roughnessMap":"textures/sponza/col_head_2ndfloor_02_Roughness.png"},
+        {"normalMap":"textures/sponza/col_head_2ndfloor_02_Normal.png"},
+        {"metallic":0.0},
+        {"roughness":1.0},
+        {"useEnvReflections":false}
+    ]
+}

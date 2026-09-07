@@ -3,11 +3,9 @@
     "renderMode": "opaque",
     "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures/sphere_BaseColor.jpg"},
+        {"albedo":"textures/white.png"},
         {"metallic":0.0},
         {"roughness":1.0},
-        {"roughnessMap":"textures/sphere_Roughness.jpg"},
-        {"normalMap":"textures/sphere_Normal.jpg"},
         {"useEnvReflections":true}
     ]
 }

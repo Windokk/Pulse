@@ -354,10 +354,6 @@ namespace Pulse::Editor::GUI{
         auto& engine = Engine::Core::GetEngine();
         auto* levelManager = engine.GetLevelManager();
 
-        for(int i = 0; i < levelManager->GetLoadedLevelCount(); i++){
-            levelManager->UnloadLevel(i);
-        }
-
         if (levelManager->IsAsyncLoadInProgress())
             return;
 

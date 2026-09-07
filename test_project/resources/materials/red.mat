@@ -3,7 +3,7 @@
     "renderMode": "opaque",
     "shader":"shaders/mesh/lit",
     "uniforms":[
-        {"albedo":"textures/red.png"},
+        {"albedo":"textures/generic/red.png"},
         {"metallic":0.2},
         {"roughness":0.2},
         {"useEnvReflections":false}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -38,7 +39,14 @@ namespace Pulse::Engine::Rendering::Raytracing {
             // The caller must reorder its own parallel payload arrays (triangle positions/attributes,
             // ...) using this same permutation, since leaf nodes address their triangles by contiguous
             // range in that reordered space (leftFirst / leftFirst + triCount).
-            static std::vector<BVHNode> Build(const std::vector<BVHPrimitive>& primitives, std::vector<uint32_t>& outOrder);
+            //
+            // onProgress, if set, is invoked with a monotonically increasing fraction in [0, 1] as the
+            // build advances (roughly, primitives committed to a finished leaf / total). It may be
+            // called many times and from whatever thread Build() runs on - keep it cheap and
+            // thread-safe (the DDGI probe build runs this on a worker thread, see ProbeManager).
+            using ProgressFn = std::function<void(float)>;
+            static std::vector<BVHNode> Build(const std::vector<BVHPrimitive>& primitives, std::vector<uint32_t>& outOrder,
+                const ProgressFn& onProgress = {});
     };
 
 }

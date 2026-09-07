@@ -178,7 +178,7 @@ namespace Pulse::Editor::GUI{
 
         // 60 FPS reference line.
         float y60 = p1.y - (16.6f / maxMs) * size.y;
-        draw->AddLine(ImVec2(p0.x, y60), ImVec2(p1.x, y60), IM_COL32(255, 255, 255, 130), 1.0f);
+        draw->AddLine(ImVec2(p0.x, y60), ImVec2(p1.x, y60), IM_COL32(255, 255, 255, 130), 3.0f);
 
         ImGui::Dummy(size);
         ImGui::TextDisabled("White line = 16.6 ms (60 FPS budget)");
