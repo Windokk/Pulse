@@ -40,6 +40,22 @@ namespace Pulse::Engine::Objects::Components {
             GetEngineContext()->GetCameraManager()->AddCamera(parent->GetID(), static_pointer_cast<Camera>(shared_from_this()));
     }
 
+    void Camera::Activate()
+    {
+        Component::Activate();
+
+        if(parent)
+            GetEngineContext()->GetCameraManager()->PromoteNextActiveCamera();
+    }
+
+    void Camera::DeActivate()
+    {
+        Component::DeActivate();
+
+        if(parent)
+            GetEngineContext()->GetCameraManager()->PromoteNextActiveCamera();
+    }
+
     void Camera::UpdateSize(int new_width, int new_height)
     {
         if(!activated)

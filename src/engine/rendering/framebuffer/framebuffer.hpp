@@ -60,6 +60,8 @@ namespace Pulse::Engine::Rendering {
             virtual uint32_t GetResolveColorAttachment() const = 0;
             virtual uint32_t GetResolveDepthAttachment() const = 0;
 
+            virtual uint64_t GetColorAttachmentBindlessHandle() const = 0;
+
             virtual uint32_t GetHandle() const = 0;
             
             virtual bool IsValid() const = 0;

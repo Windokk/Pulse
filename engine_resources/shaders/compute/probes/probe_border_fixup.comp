@@ -18,13 +18,7 @@ uniform int uProbeCount;
 uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
 
-ivec2 TileOrigin(int probeIndex)
-{
-    int stride = uTileSize + 2;
-    int col = probeIndex % uAtlasProbesPerRow;
-    int row = probeIndex / uAtlasProbesPerRow;
-    return ivec2(col * stride, row * stride);
-}
+#include "../../common/ddgi_atlas.glsl"
 
 void main()
 {
@@ -39,7 +33,7 @@ void main()
     uint localIdx = gid % perTile;
     int N = uTileSize;
 
-    ivec2 tileOrigin = TileOrigin(probeIndex);
+    ivec2 tileOrigin = DDGI_TileCorner(probeIndex, uTileSize, uAtlasProbesPerRow);
 
     ivec2 borderTexel;
     ivec2 srcTexel;

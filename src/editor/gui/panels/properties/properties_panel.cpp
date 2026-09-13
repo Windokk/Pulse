@@ -4,12 +4,15 @@
 #include "engine/core/engine.hpp"
 
 #include "editor/gui/main_window.hpp"
+#include "editor/gui/dragdrop/asset_drag_drop.hpp"
+#include "editor/gui/IconsLucide.h"
 
 #include <glm/glm.hpp>
 #include <type_traits>
 #include <unordered_map>
 
 #include "engine/objects/components/audio/audio_source.hpp"
+#include "engine/objects/components/misc/transform.hpp"
 #include "engine/objects/components/rendering/camera.hpp"
 #include "engine/objects/components/rendering/model_component.hpp"
 #include "engine/objects/components/rendering/light_component.hpp"
@@ -261,12 +264,18 @@ namespace Pulse::Editor::GUI{
             
             DrawActorInfo(actor);
 
+            std::shared_ptr<Component> componentToRemove = nullptr;
+
             for (int i = 0; i < actor->GetComponents().size(); i++)
             {
                 ImGui::PushID(i);
-                DrawComponent(actor->GetComponents()[i]);
+                if (DrawComponent(actor->GetComponents()[i]))
+                    componentToRemove = actor->GetComponents()[i];
                 ImGui::PopID();
             }
+
+            if (componentToRemove)
+                actor->RemoveComponent(componentToRemove);
 
             ImGui::Separator();
 
@@ -335,28 +344,58 @@ namespace Pulse::Editor::GUI{
         ImGui::Text("Components: %zu", actor->GetComponents().size());
     }
 
-    void PropertiesPanel::DrawComponent(std::shared_ptr<Component> comp)
+    bool PropertiesPanel::DrawComponent(std::shared_ptr<Component> comp)
     {
         const ClassDescriptor* desc = comp->GetDescriptor();
+        bool removeRequested = false;
 
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
-        ImGui::SetNextItemAllowOverlap();
-        bool open = ImGui::CollapsingHeader(desc->name.c_str(), flags);
-
-        ImGui::SameLine(ImGui::GetWindowWidth() - 30);
-        float headerHeight = ImGui::GetFrameHeight();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        // The Transform is mandatory on every actor and cannot be removed.
+        bool removable = !comp->IsInstanceOf<Transform>();
 
         bool active = comp->Active();
         std::string id = "##" + desc->name + "Active";
+
+        ImGui::AlignTextToFramePadding();
         if (ImGui::Checkbox(id.c_str(), &active))
         {
             active ? comp->Activate() : comp->DeActivate();
         }
 
-        ImGui::PopStyleVar();
+        ImGui::SameLine();
+
+        float removeButtonWidth = ImGui::GetFrameHeight();
+        float rightAlignX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - removeButtonWidth;
+
+        if (removable)
+            ImGui::SetNextItemAllowOverlap();
+
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
+        bool open = ImGui::CollapsingHeader(desc->name.c_str(), flags);
+
+        if (removable)
+        {
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(rightAlignX);
+
+            std::string removeId = std::string(ICON_LC_X) + "##" + desc->name + "Remove";
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, removeButtonWidth * 0.5f);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.85f, 0.27f, 0.27f, 0.45f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.85f, 0.27f, 0.27f, 0.70f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.45f, 0.45f, 1.0f));
+
+            if (ImGui::Button(removeId.c_str(), ImVec2(removeButtonWidth, removeButtonWidth)))
+            {
+                removeRequested = true;
+            }
+
+            ImGui::PopStyleColor(4);
+            ImGui::PopStyleVar();
+
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Remove Component");
+        }
 
         if (open)
         {
@@ -388,6 +427,8 @@ namespace Pulse::Editor::GUI{
                 ImGui::EndTable();
             }
         }
+
+        return removeRequested;
     }
 
     void PropertiesPanel::DrawField(const FieldInfo *field, void *value, std::shared_ptr<Engine::Objects::Components::Component> comp, const Container *container, const int valueIndexInContainer)
@@ -581,6 +622,21 @@ namespace Pulse::Editor::GUI{
                         }
                         FieldChangedEvent evt{ field };
                         comp->OnFieldChanged(evt);
+                    }
+
+                    // Accept an asset dragged from the browser onto this field - works for any
+                    // AssetID field (mesh, materials, ...) since it only needs the dropped asset's
+                    // nameInProject, which GetIDFromNameInProject resolves the same way as the text box.
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        std::vector<std::string> dropped = DragDrop::AcceptAssetDragDropPayload();
+                        if (manager && !dropped.empty())
+                        {
+                            *static_cast<Filesystem::AssetID*>(value) = manager->GetIDFromNameInProject(dropped[0]);
+                            FieldChangedEvent evt{ field };
+                            comp->OnFieldChanged(evt);
+                        }
+                        ImGui::EndDragDropTarget();
                     }
                 }
                 break;

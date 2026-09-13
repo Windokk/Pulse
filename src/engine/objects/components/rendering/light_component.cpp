@@ -11,6 +11,8 @@
 
 #include "glm/ext.hpp"
 
+#include <algorithm>
+
 using namespace Pulse::Engine::Core;
 
 namespace Pulse::Engine::Objects::Components{
@@ -180,6 +182,56 @@ namespace Pulse::Engine::Objects::Components{
             GetEngineContext()->GetRenderer()->GetLightManager()->Update(lightIndex);
             
         UpdateExposedValues();
+    }
+
+    /// @brief Re-registers this light with the LightManager (mirrors the registration Actor::AddComponent
+    /// does for a freshly-created light), so a light turned back on in the editor lights the scene again.
+    void Light::Activate()
+    {
+        bool wasInactive = !activated;
+        Component::Activate();
+
+        if(!wasInactive || lightIndex != -1)
+            return;
+
+        if(!parent || !parent->level || !parent->level->IsLoaded())
+            return;
+
+        SetLightIndex((int)parent->level->lights.size());
+        parent->level->lights.push_back(AsShared<Light>());
+    }
+
+    /// @brief Pulls this light out of the LightManager's active buffer (mirrors Level::RemoveComponent's
+    /// Light branch) without fully destroying the component, so it stops lighting the scene until
+    /// Activate() re-adds it.
+    void Light::DeActivate()
+    {
+        if(!activated){
+            Component::DeActivate();
+            return;
+        }
+
+        Component::DeActivate();
+
+        if(!parent || !parent->level || lightIndex == -1)
+            return;
+
+        auto& lights = parent->level->lights;
+        int index = lightIndex;
+
+        if(index < 0 || index >= (int)lights.size())
+            return;
+
+        GetEngineContext()->GetRenderer()->GetLightManager()->RemoveLight(index);
+
+        std::rotate(lights.begin() + index, lights.begin() + index + 1, lights.end());
+        lights.pop_back();
+
+        // Everything past the removed slot shifted down by one - resync each light's cached index.
+        for(size_t i = index; i < lights.size(); ++i)
+            lights[i]->ReindexTo((int)i);
+
+        lightIndex = -1;
     }
 
     void Light::Deserialize(const json componentData)

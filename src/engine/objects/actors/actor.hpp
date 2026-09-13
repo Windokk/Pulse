@@ -36,6 +36,8 @@ namespace Pulse::Engine::Objects{
 
             std::shared_ptr<Component> AddComponentRaw(std::shared_ptr<Component> component);
 
+            void RemoveComponent(std::shared_ptr<Component> component);
+
             template <typename T>
             bool HasComponent();
 

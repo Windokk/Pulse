@@ -50,10 +50,16 @@ namespace Pulse::Engine::Levels{
         asyncLoadPending = true;
         prefetcher.BeginLoad(pathInProject);
 
-        while(!prefetcher.Pump()){
+        // Always hand the caller at least one tick, even when the load finishes on the first
+        // Pump() (an empty level does). The editor drives its GUI init - including the viewport
+        // camera - from this callback, and must get that chance before the first engine frame
+        // renders; otherwise Renderer::Render() runs once with no active camera.
+        bool loadComplete = false;
+        do {
+            loadComplete = prefetcher.Pump();
             if(tickCallback)
                 tickCallback(prefetcher.GetProgress());
-        }
+        } while(!loadComplete);
 
         asyncLoadPending = false;
         FinishAsyncLoad();

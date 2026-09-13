@@ -47,21 +47,36 @@ namespace Pulse::Engine::Debugging{
     // Fine-grained sub-measurements nested within ProfileCategory::Rendering. Unlike the top-level
     // categories, these overlap with (are part of) the Rendering time and are not summed into it :
     // they exist purely to show what inside Rendering is the heaviest.
+    // Together they span the whole of Renderer::Render() (see Renderer::BeginFrame/DrawFrame/EndFrame) :
+    // per-frame subsystem updates (camera, shadows, GI probes, SSAO), then per-draw-call pass execution
+    // (setup, culling, state binding, submission), then the multisample resolve at the end of the frame.
     enum class RenderSubSample : uint8_t {
-        Culling = 0,
+        CameraUpdate = 0,
+        ShadowUpdate,
+        GIProbeUpdate,
+        SSAOUpdate,
+        LightCullingUpdate,
+        PassSetup,
+        Culling,
         StateBinding,
         DrawElements,
-        PassSetup,
+        MultisampleResolve,
         COUNT
     };
 
     inline const char* RenderSubSampleName(RenderSubSample sample){
         switch(sample){
-            case RenderSubSample::Culling:      return "Culling";
-            case RenderSubSample::StateBinding: return "State binding";
-            case RenderSubSample::DrawElements: return "glDrawElements";
-            case RenderSubSample::PassSetup:    return "Pass setup";
-            default:                            return "Unknown";
+            case RenderSubSample::CameraUpdate:       return "Camera update";
+            case RenderSubSample::ShadowUpdate:       return "Shadow maps";
+            case RenderSubSample::GIProbeUpdate:      return "GI probes (DDGI)";
+            case RenderSubSample::SSAOUpdate:         return "SSAO";
+            case RenderSubSample::LightCullingUpdate: return "Light culling (Forward+)";
+            case RenderSubSample::PassSetup:          return "Pass setup";
+            case RenderSubSample::Culling:            return "Culling";
+            case RenderSubSample::StateBinding:       return "State binding";
+            case RenderSubSample::DrawElements:       return "glDrawElements";
+            case RenderSubSample::MultisampleResolve: return "MSAA resolve";
+            default:                                  return "Unknown";
         }
     }
 

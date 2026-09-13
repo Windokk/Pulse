@@ -1,6 +1,7 @@
 #include "gl_compute_shader.hpp"
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
+#include "engine/rendering/shader/glsl_preprocessor.hpp"
 
 #include "engine/debugging/logger.hpp"
 
@@ -43,7 +44,9 @@ namespace Pulse::Engine::Rendering{
 
         m_FilePath = path.full;
 
-        std::string computeCode = path.ReadFile();
+        // Expand `#include "..."` directives (see glsl_preprocessor.hpp) before handing the source to
+        // the driver - GLSL itself has no include support.
+        std::string computeCode = ResolveGLSLIncludes(path);
         const char* computeSource = computeCode.c_str();
 
         GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
@@ -285,49 +288,67 @@ namespace Pulse::Engine::Rendering{
         return m_ActiveSamplersMap;
     }
 
+    int32_t GLComputeShader::GetUniformLocationCached(const std::string &name)
+    {
+        auto it = m_ActiveUniformsMap.find(name);
+        if (it != m_ActiveUniformsMap.end())
+            return it->second.location;
+
+        // Array uniforms are cached under "name[0]" ; fall back to that so SetXxx("arr", ...) keeps
+        // working the same way glGetUniformLocation("arr") used to (only hit on a miss).
+        if (name.empty() || name.back() != ']')
+        {
+            auto arrayIt = m_ActiveUniformsMap.find(name + "[0]");
+            if (arrayIt != m_ActiveUniformsMap.end())
+                return arrayIt->second.location;
+        }
+
+        return -1;
+    }
+
     void GLComputeShader::SetBool(const std::string &name, bool value)
     {
-        glUniform1i(glGetUniformLocation(m_Program, name.c_str()), (int)value);
+        glUniform1i(GetUniformLocationCached(name), (int)value);
     }
 
     void GLComputeShader::SetInt(const std::string &name, int value)
     {
-        glUniform1i(glGetUniformLocation(m_Program, name.c_str()), value);
+        glUniform1i(GetUniformLocationCached(name), value);
     }
 
     void GLComputeShader::SetFloat(const std::string &name, float value)
     {
-        glUniform1f(glGetUniformLocation(m_Program, name.c_str()), value);
+        glUniform1f(GetUniformLocationCached(name), value);
     }
 
     void GLComputeShader::SetVec2(const std::string &name, const glm::vec2 &value)
     {
-        glUniform2fv(glGetUniformLocation(m_Program, name.c_str()), 1, &value[0]);
+        glUniform2fv(GetUniformLocationCached(name), 1, &value[0]);
     }
 
     void GLComputeShader::SetVec3(const std::string &name, const glm::vec3 &value)
     {
-        glUniform3fv(glGetUniformLocation(m_Program, name.c_str()), 1, &value[0]);
+        glUniform3fv(GetUniformLocationCached(name), 1, &value[0]);
     }
 
     void GLComputeShader::SetVec4(const std::string &name, const glm::vec4 &value)
     {
-        glUniform4fv(glGetUniformLocation(m_Program, name.c_str()), 1, &value[0]);
+        glUniform4fv(GetUniformLocationCached(name), 1, &value[0]);
     }
 
     void GLComputeShader::SetMat2(const std::string &name, const glm::mat2 &mat)
     {
-        glUniformMatrix2fv(glGetUniformLocation(m_Program, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix2fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
     }
 
     void GLComputeShader::SetMat3(const std::string &name, const glm::mat3 &mat)
     {
-        glUniformMatrix3fv(glGetUniformLocation(m_Program, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix3fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
     }
 
     void GLComputeShader::SetMat4(const std::string &name, const glm::mat4 &mat)
     {
-        glUniformMatrix4fv(glGetUniformLocation(m_Program, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+        glUniformMatrix4fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
     }
 
     GLComputeShader::~GLComputeShader()

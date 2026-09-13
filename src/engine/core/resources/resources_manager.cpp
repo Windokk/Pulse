@@ -76,6 +76,11 @@ namespace Pulse::Engine::Core::Resources{
     std::shared_ptr<Rendering::Texture2D> ResourcesManager::LoadTexture(const std::string &pathInProject, const Filesystem::Path &path)
     {
         Rendering::TextureSpecifications specs = {};
+        // Trilinear : mips are already generated (specs.generateMips defaults true) but the default
+        // Linear min filter never samples them, so every material texture was minified straight from
+        // level 0 - aliasing/shimmer on detailed textures at distance. GLTexture2D adds anisotropy on
+        // top when mips are present.
+        specs.minFilter = Rendering::TextureFilter::LinearMipmapLinear;
         std::shared_ptr<Rendering::Texture2D> img = Rendering::Texture2D::Create(specs,path);
         textures.emplace(pathInProject, img);
         img->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));

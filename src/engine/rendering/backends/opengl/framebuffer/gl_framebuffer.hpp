@@ -32,9 +32,11 @@ namespace Pulse::Engine::Rendering{
 
             uint32_t GetColorAttachment() const override;
             uint32_t GetDepthAttachment() const override;
-            
+
             uint32_t GetResolveColorAttachment() const override;
             uint32_t GetResolveDepthAttachment() const override;
+
+            uint64_t GetColorAttachmentBindlessHandle() const override;
 
         private:
             uint32_t m_FBO = 0;

@@ -26,9 +26,28 @@ namespace Pulse::Engine::Rendering{
             /// @brief Removes a camera by name
             void RemoveCamera(const Core::ObjectID parentID) {
                 if (cameras.count(parentID)) {
-                    if (cameras[parentID] == activeCamera)
-                        activeCamera = nullptr;
+                    bool wasActive = cameras[parentID] == activeCamera;
                     cameras.erase(parentID);
+                    if (wasActive) {
+                        activeCamera = nullptr;
+                        PromoteNextActiveCamera();
+                    }
+                }
+            }
+
+            /// @brief Picks another enabled camera to become active, e.g. after the current active
+            /// camera got disabled or removed. If none is available, the current activeCamera is left
+            /// as-is (even disabled/null) rather than forced to null, since renderer code dereferences
+            /// GetActiveCamera() unconditionally in several places.
+            void PromoteNextActiveCamera() {
+                if (activeCamera && activeCamera->Active())
+                    return;
+
+                for (auto& [id, cam] : cameras) {
+                    if (cam->Active()) {
+                        activeCamera = cam;
+                        return;
+                    }
                 }
             }
 

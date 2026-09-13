@@ -283,6 +283,7 @@ namespace Pulse::Engine::Rendering{
 
         // Always update light
         sm.light = *light;
+        sm.lightPtr = light;
 
         bool needsRebuild = (previousType != currentType);
 
@@ -426,6 +427,39 @@ namespace Pulse::Engine::Rendering{
         // If we did rebuilt gpu resources, re-submit passes
         if (needsRebuild)
             SubmitPasses(lightIndex);
+
+        // The set of registered shadow casters may have changed shape (new light, type change) -
+        // recompute every light's shadowIndex so it's correct before the caller (LightManager::Update)
+        // uploads the SSBO.
+        ReassignShadowIndices();
+    }
+
+    void ShadowManager::ReassignShadowIndices()
+    {
+        int dirIndex = 0, spotIndex = 0;
+
+        for (auto& [lightIndex, sm] : m_ShadowMaps)
+        {
+            if (!sm.lightPtr)
+                continue;
+
+            switch (sm.light.type)
+            {
+                case (int)LightType::Directional:
+                    sm.lightPtr->shadowIndex = dirIndex;
+                    ++dirIndex;
+                    break;
+
+                case (int)LightType::Spot:
+                    sm.lightPtr->shadowIndex = (spotIndex < MAX_SPOT_LIGHTS) ? spotIndex : -1;
+                    ++spotIndex;
+                    break;
+
+                case (int)LightType::Point:
+                    sm.lightPtr->shadowIndex = (sm.cubeArrayLayer < MAX_POINT_LIGHTS) ? sm.cubeArrayLayer : -1;
+                    break;
+            }
+        }
     }
 
     void ShadowManager::TryShrinkCubeArray()
@@ -536,28 +570,34 @@ namespace Pulse::Engine::Rendering{
             Core::GetEngine().GetRenderer()->RemoveRenderPass(passName);
         }
 
+        // No longer a registered shadow caster - clear its slot before it drops out of m_ShadowMaps.
+        if (removedSM.lightPtr)
+            removedSM.lightPtr->shadowIndex = -1;
+
         // ---- Remove from list ----
         m_ShadowMaps.erase(lightIndex);
         m_PreviousLightTypes.erase(lightIndex);
+
+        // Remaining same-type lights may need to shift into the slot this one vacated.
+        ReassignShadowIndices();
     }
 
     void ShadowManager::BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material)
     {
-        constexpr int MAX_SPOT_LIGHTS  = 10;
-        constexpr int MAX_POINT_LIGHTS = 10;
-
-        // Bind shadow textures
-        int spotIndex = 0;
-        int dirIndex  = 0;
-
-        // NOTE: m_ShadowMaps is an ordered map (keyed by light index), so this iterates
-        // lights in the same ascending order as the light SSBO. The shader's selectCascade()
-        // relies on that to compute "lightIndex * CASCADES_PER_LIGHT" for the correct light.
+        // Every slot bound here is read from LightData::shadowIndex (kept in sync by
+        // ReassignShadowIndices, called after every registration/removal) rather than recomputed by
+        // scanning order here - that index is what lit.frag's `l.shadowIndex` uses to look up the same
+        // slot, and the two must agree regardless of what order/subset of lights a fragment iterates
+        // (which, under clustered light culling, is no longer the full-array scan order).
         for (const auto& sm : m_ShadowMaps)
         {
             const LightData& light = sm.second.light;
 
-            if (!light.castShadow)
+            if (!light.castShadow || !sm.second.lightPtr)
+                continue;
+
+            int shadowIndex = sm.second.lightPtr->shadowIndex;
+            if (shadowIndex < 0)
                 continue;
 
             // Directional lights
@@ -565,7 +605,7 @@ namespace Pulse::Engine::Rendering{
             {
                 if (!sm.second.passes.empty())
                 {
-                    int base = dirIndex * CASCADES_PER_LIGHT;
+                    int base = shadowIndex * CASCADES_PER_LIGHT;
 
                     for (int c = 0; c < CASCADES_PER_LIGHT; ++c)
                     {
@@ -585,36 +625,26 @@ namespace Pulse::Engine::Rendering{
                         );
                     }
                 }
-
-                ++dirIndex;
             }
             // Spot lights
             else if (light.type == static_cast<int>(LightType::Spot))
             {
-                if (spotIndex >= MAX_SPOT_LIGHTS)
-                    continue;
-
                 // Set sampler uniform
                 material->SetTextureParameter(
-                    "spotShadowMaps[" + std::to_string(spotIndex) + "]",
+                    "spotShadowMaps[" + std::to_string(shadowIndex) + "]",
                     sm.second.framebuffer[0]->GetDepthAttachment()
                 );
 
                 material->SetScalarParameter(
-                    "spotLightSpaceMatrices[" + std::to_string(spotIndex) + "]",
+                    "spotLightSpaceMatrices[" + std::to_string(shadowIndex) + "]",
                     sm.second.lightMatrix[0]
                 );
-
-                ++spotIndex;
             }
             // Point lights
             else if (light.type == static_cast<int>(LightType::Point))
             {
-                if (sm.second.cubeArrayLayer >= MAX_POINT_LIGHTS)
-                    continue;
-
                 material->SetScalarParameter(
-                    "pointLightFarPlanes[" + std::to_string(sm.second.cubeArrayLayer) + "]",
+                    "pointLightFarPlanes[" + std::to_string(shadowIndex) + "]",
                     light.radius
                 );
             }

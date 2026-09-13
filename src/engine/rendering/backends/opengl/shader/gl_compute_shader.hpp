@@ -41,6 +41,13 @@ namespace Pulse::Engine::Rendering{
 
             void ValidateLocalSize();
 
+            // Uniform locations are resolved once at compile time (see the constructor) and kept in
+            // m_ActiveUniformsMap; looking them up here avoids a glGetUniformLocation() driver
+            // round-trip on every SetXxx call - see the identical GLShader::GetUniformLocationCached
+            // this mirrors. Compute shaders are dispatched every frame (e.g. ProbeManager::Update()'s
+            // per-bounce trace/classify/relocate/convolve passes), so this was a real per-frame cost.
+            int32_t GetUniformLocationCached(const std::string& name);
+
             uint32_t m_Program;
             uint32_t m_LocalSize[3] = { 0, 0, 0 };
             std::vector<UniformInfo> m_ActiveUniforms;

@@ -18,6 +18,8 @@ namespace Pulse::Engine::Rendering {
     class LightManager;
     class ShadowManager;
     class ProbeManager;
+    class SSAOManager;
+    class LightCullingManager;
     using NumericValue = std::variant<bool, float, int, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
 
     class Renderer;
@@ -32,6 +34,17 @@ namespace Pulse::Engine::Rendering {
         std::shared_ptr<Pipeline> customPipeline = nullptr;
         bool allowResize = true;
         bool allowCulling = true;
+        // Skipped entirely in Renderer::DrawFrame() when false - lets a pass stay registered (keeping
+        // its dependents, target, draw list, etc. intact) while producing nothing this frame, e.g. the
+        // editor hiding probe-marker gizmos (ProbeGizmoPass) without touching the ProbeVolume components
+        // that actually drive GI (which stay active either way).
+        bool enabled = true;
+        // Issued once, right after this pass finishes executing (Renderer::EndRenderPass) - needed only
+        // when something this pass wrote is later read in a way the driver can't track through normal
+        // bind-point synchronization (e.g. a bindless texture handle sampled by a later pass, mirroring
+        // why DispatchCompute takes the same MemoryBarrierBit for image-load-store writes read by a
+        // subsequent draw). None for every ordinary pass.
+        MemoryBarrierBit barrierAfter = MemoryBarrierBit::None;
         std::vector<DrawCommand> drawList = {};
         std::unordered_map<uint64_t, size_t> drawCommandsLookup;
         std::vector<DrawCommand>* externalDrawList = nullptr;
@@ -82,6 +95,8 @@ namespace Pulse::Engine::Rendering {
 
             uint32_t GetViewportTextureHandle() const { return m_ViewportBuffer->GetResolveColorAttachment(); }
 
+            std::shared_ptr<Framebuffer> GetViewportFramebuffer() const { return m_ViewportBuffer; }
+
             void PresentToScreen(int screenWidth, int screenHeight) { m_ViewportBuffer->BlitToScreen(screenWidth, screenHeight); }
 
             void ToggleMultisampling(const bool on);
@@ -106,6 +121,8 @@ namespace Pulse::Engine::Rendering {
             const std::shared_ptr<ShadowManager> GetShadowManager() { return m_ShadowManager; }
             const std::shared_ptr<LightManager> GetLightManager() { return m_LightManager; }
             const std::shared_ptr<ProbeManager> GetProbeManager() { return m_ProbeManager; }
+            const std::shared_ptr<SSAOManager> GetSSAOManager() { return m_SSAOManager; }
+            const std::shared_ptr<LightCullingManager> GetLightCullingManager() { return m_LightCullingManager; }
             const std::shared_ptr<Material> GetDebugMaterial() { return m_DebugMat; }
 
         private:
@@ -141,6 +158,8 @@ namespace Pulse::Engine::Rendering {
             std::unordered_map<uint64_t, size_t> shadowDrawCommandsLookup;
             std::shared_ptr<LightManager> m_LightManager;
             std::shared_ptr<ProbeManager> m_ProbeManager;
+            std::shared_ptr<SSAOManager> m_SSAOManager;
+            std::shared_ptr<LightCullingManager> m_LightCullingManager;
 
             std::unordered_map<PipelineSpecifications,std::shared_ptr<Pipeline>,PipelineSpecsHash> m_Pipelines;
             std::unordered_map<ComputePipelineSpecifications,std::shared_ptr<ComputePipeline>,ComputePipelineSpecsHash> m_ComputePipelines;

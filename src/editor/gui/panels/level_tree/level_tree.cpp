@@ -3,8 +3,11 @@
 #include "engine/core/engine.hpp"
 
 #include "editor/gui/main_window.hpp"
+#include "editor/gui/panels/common.hpp"
+#include "editor/gui/dragdrop/asset_drag_drop.hpp"
 
 #include "engine/levels/level_manager.hpp"
+#include "engine/objects/components/rendering/model_component.hpp"
 
 namespace Pulse::Editor::GUI{
     
@@ -30,6 +33,54 @@ namespace Pulse::Editor::GUI{
         {
             if (rootActor)
                 DrawActorNode(rootActor);
+        }
+
+        // Whole-window drop zone (rather than per-item) so dropping a mesh anywhere in the outliner -
+        // not just precisely on an existing row - spawns it as a new root actor; BeginDragDropTargetCustom
+        // registers the window's own rect as a target without submitting an "item", so it doesn't
+        // interfere with the "click empty space to deselect" hit-testing below.
+        if (ImGuiWindow* window = ImGui::GetCurrentWindow())
+        {
+            if (ImGui::BeginDragDropTargetCustom(window->Rect(), window->ID))
+            {
+                std::vector<std::string> dropped = DragDrop::AcceptAssetDragDropPayload();
+                for (const auto& nameInProject : dropped)
+                {
+                    if (Engine::Filesystem::Path(nameInProject).GetExtensionType() != Engine::Filesystem::Type::T_MODEL)
+                        continue;
+
+                    auto actor = Engine::Core::Object::CreateWithContext<Engine::Objects::Actor>(
+                        &GetEngine(), Engine::Filesystem::Path(nameInProject).GetFilename(false), &GetEngine());
+                    level->AddActor(actor);
+
+                    auto model = actor->AddComponent<Engine::Objects::Components::Model>();
+                    if (model)
+                        model->SetMesh(nameInProject);
+
+                    selectedID = actor->GetID();
+                    if (parent)
+                        parent->SetSelectedActor(actor);
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
+
+        // Right-click on empty space (including a level with no actors at all) -> create a root actor.
+        // NoOpenOverItems lets each actor node keep its own context menu (see DrawActorNode).
+        if (ImGui::BeginPopupContextWindow("##LevelTreeContext",
+                ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+        {
+            if (ImGui::MenuItem("Create Actor"))
+            {
+                auto actor = Engine::Core::Object::CreateWithContext<Engine::Objects::Actor>(
+                    &GetEngine(), "New Actor", &GetEngine());
+                level->AddActor(actor);
+                selectedID = actor->GetID();
+                if (parent)
+                    parent->SetSelectedActor(actor);
+            }
+
+            ImGui::EndPopup();
         }
 
         // Click vide = deselect

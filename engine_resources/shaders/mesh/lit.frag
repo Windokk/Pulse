@@ -1,23 +1,29 @@
 #version 430 core
+// Needed only for ssaoTextureHandle's sampler2D(uvec2) reconstruction below (see its declaration) - the
+// blurred AO texture is passed as a bindless handle rather than a `layout(binding=N)` sampler because
+// this shader is already close to a real, driver-documented texture-unit limit (see kMaxProbeVolumes in
+// probe_manager.hpp).
+#extension GL_ARB_bindless_texture : enable
 
-struct Light {
-    vec4 position;
-    vec4 direction;
-    vec4 color;
-
-    float intensity;
-    float radius;
-    float innerCutoff;
-    float outerCutoff;
-
-    int type;
-    int castShadow;
-    vec2 padding;
-};
+#include "../common/light.glsl"
+#include "../common/cluster.glsl"
 
 layout(std430, binding = 0) buffer LightBuffer {
     Light lights[];
 };
+
+// Clustered light culling (point/spot lights only - see LightCullingManager). Filled every frame by
+// cluster_light_cull.comp; directional lights bypass this entirely (see the dedicated loop in main()).
+layout(std430, binding = 2) readonly buffer LightGrid {
+    uvec2 clusters[]; // x = offset into lightIndices, y = count
+};
+layout(std430, binding = 3) readonly buffer LightIndexList {
+    uint lightIndices[];
+};
+
+uniform uvec2 clusterGridSizeXY;
+uniform float clusterScaleZ;
+uniform float clusterBiasZ;
 
 out vec4 fragColor;
 
@@ -57,20 +63,47 @@ layout(binding = 4) uniform samplerCube ibl_irradianceMap;
 layout(binding = 5) uniform samplerCube ibl_prefilteredEnvMap;
 layout(binding = 6) uniform sampler2D ibl_brdfLUT;
 
-// Real-time diffuse GI (see ProbeManager) - falls back to the static IBL diffuse term above when no
-// probe volume is active in the level (ddgi_enabled == false).
-layout(binding = 7) uniform sampler2D ddgi_irradianceAtlas;
-// Per-probe (mean hit distance, mean hit distance^2) atlas, same octahedral layout as the irradiance
-// one - used by DDGI_VisibilityWeight below to stop probes that are occluded from a shading point (e.g.
-// on the far side of a wall) from leaking light/shadow into it via the trilinear blend.
-layout(binding = 8) uniform sampler2D ddgi_distanceAtlas;
+// Real-time diffuse GI (see ProbeManager) - falls back to the static IBL diffuse term below when no
+// probe volume's grid contains the shading point (DDGI_PickVolume returns -1). Up to this many
+// ProbeVolumes can be active at once, each with its own grid/atlases; DDGI_PickVolume picks the
+// smallest one containing the point, so a dense local volume overrides a coarse room-scale one it's
+// nested in. MUST equal ProbeManager::kMaxProbeVolumes - gl_api.cpp fills ddgi_*[0 .. volumeCount-1].
+#define MAX_PROBE_VOLUMES 2
+
+// One octahedral irradiance tile atlas + one (mean dist, mean dist^2) distance atlas per volume. These
+// are scalar samplers on hand-picked units (7,8,9,19 - the gaps left between the material/IBL block
+// and the shadow-map ranges at 10/20/30) rather than sampler2D[MAX_PROBE_VOLUMES] arrays : GLSL
+// sampler-array indexing must be dynamically uniform (the volume index here is per-fragment), and a
+// 2-element array from binding 7 would also push the distance atlas onto unit 32, past the 32-unit
+// limit some drivers enforce (see kMaxProbeVolumes in probe_manager.hpp). The distance atlas feeds
+// DDGI_VisibilityWeight, which stops an occluded probe (wall between it and the shading point) from
+// leaking light/shadow through the trilinear blend. Add a third volume -> add ddgi_*Atlas2 here, in
+// DDGI_Sample*Atlas below, in DDGI_ProbeState, and bump MAX_PROBE_VOLUMES / kMaxProbeVolumes together.
+layout(binding = 7)  uniform sampler2D ddgi_irradianceAtlas0;
+layout(binding = 8)  uniform sampler2D ddgi_irradianceAtlas1;
+layout(binding = 9)  uniform sampler2D ddgi_distanceAtlas0;
+layout(binding = 19) uniform sampler2D ddgi_distanceAtlas1;
+
 uniform bool ddgi_enabled;
-uniform vec3 ddgi_gridOrigin;
-uniform vec3 ddgi_gridSpacing;
-uniform vec3 ddgi_probeCounts; // ivec3 stored as vec3 - no ivec3 uniform setter on the Shader interface
-uniform int ddgi_tileSize;
-uniform int ddgi_atlasProbesPerRow;
-uniform int ddgi_atlasSize;
+uniform int  ddgi_volumeCount;                     // ready volumes actually filled in below, <= MAX_PROBE_VOLUMES
+uniform vec3 ddgi_gridOrigin[MAX_PROBE_VOLUMES];
+uniform vec3 ddgi_gridSpacing[MAX_PROBE_VOLUMES];
+uniform vec3 ddgi_probeCounts[MAX_PROBE_VOLUMES];  // ivec3 stored as vec3
+uniform int  ddgi_tileSize[MAX_PROBE_VOLUMES];
+uniform int  ddgi_atlasProbesPerRow[MAX_PROBE_VOLUMES];
+uniform int  ddgi_atlasSize[MAX_PROBE_VOLUMES];
+
+// Per-probe state buffer, one per volume (SSBO 14, 15 - see gl_api.cpp / probe_manager.hpp). GLSL 4.3
+// can't put an unsized array inside an arrayed interface block portably, so it's one named block per
+// volume plus the DDGI_ProbeState() dispatch below. .w = classification flag (0 = probe embedded in
+// geometry, contributes nothing), .xyz = relocation offset added to the probe's grid position.
+layout(std430, binding = 14) readonly buffer DDGIProbeState0 { vec4 ddgi_probeState0[]; };
+layout(std430, binding = 15) readonly buffer DDGIProbeState1 { vec4 ddgi_probeState1[]; };
+
+vec4 DDGI_ProbeState(int v, int probeIndex) {
+    if (v == 0) return ddgi_probeState0[probeIndex];
+    return ddgi_probeState1[probeIndex];
+}
 
 layout(binding = 10) uniform sampler2DShadow dirShadowMaps[NUM_CASCADES];
 layout(binding = 20) uniform sampler2D spotShadowMaps[10];
@@ -82,6 +115,28 @@ const float PI = 3.141592653589793;
 uniform float metallic;
 uniform float roughness;
 uniform float ambientIntensity;
+
+// Screen-space ambient occlusion (see SSAOManager) - ssaoTextureHandle is a bindless texture handle
+// (low/high 32 bits of an ARB_bindless_texture handle), reconstructed into a
+// sampler only at the point of use (SampleSSAO below) via GLSL's sampler2D(uvec2) constructor - NOT
+// declared as `uniform sampler2D`, which would consume one of this shader's already-scarce texture
+// units. ssaoIntensity blends toward "no occlusion" in SampleSSAO,
+// so it's a cheap post-hoc strength control that doesn't need the SSAO passes themselves rerun.
+uniform bool ssaoEnabled;
+uniform float ssaoIntensity;
+uniform uvec2 ssaoTextureHandle;
+
+vec3 SampleSSAO(vec3 ambient) {
+    if (!ssaoEnabled || ssaoTextureHandle == uvec2(0))
+        return ambient;
+
+    sampler2D ssaoTex = sampler2D(ssaoTextureHandle);
+    float ao = texture(ssaoTex, gl_FragCoord.xy / vec2(textureSize(ssaoTex, 0))).r;
+    // ssaoIntensity is allowed above 1.0 as an amplification knob (mix() extrapolates past `ao`
+    // once the blend factor exceeds 1) - clamp so an aggressive value can't overshoot into
+    // negative/relighting territory.
+    return ambient * clamp(mix(1.0, ao, ssaoIntensity), 0.0, 1.0);
+}
 
 vec3 sampleOffsetDirections[20] = vec3[]
 (
@@ -168,6 +223,20 @@ float ShadowCalculationSpot(sampler2D shadowMap, vec3 lightDir, mat4 lightSpaceM
     return shadow / 25.0;
 }
 
+// Flattened index into LightGrid/LightIndexList for the cluster this fragment sits in - must match
+// the flattening cluster_build.comp/cluster_light_cull.comp use (x + y*gridWidth + z*gridWidth*gridHeight).
+uint GetClusterIndex(vec3 fragWorldPos){
+    vec4 viewPosForCluster = viewMatrix * vec4(fragWorldPos, 1.0);
+    float viewZ = max(-viewPosForCluster.z, 1e-4);
+
+    uint zSlice = uint(clamp(log2(viewZ) * clusterScaleZ + clusterBiasZ, 0.0, float(CLUSTER_Z_SLICES - 1)));
+
+    uvec2 tileXY = uvec2(gl_FragCoord.xy) / uint(CLUSTER_TILE_PX);
+    tileXY = min(tileXY, clusterGridSizeXY - uvec2(1, 1));
+
+    return tileXY.x + tileXY.y * clusterGridSizeXY.x + zSlice * (clusterGridSizeXY.x * clusterGridSizeXY.y);
+}
+
 float ShadowCalculationPoint(int index,vec3 lightPos,vec3 fragPos,float farPlane,vec3 worldNormal){
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
@@ -199,72 +268,70 @@ vec3 IBL_Diffuse(vec3 N, vec3 albedo, float metallic) {
     return irradiance * albedo * kD;
 }
 
-// Octahedral encode - inverse of the OctDecode used in probe_trace.comp to pick each probe ray's
-// direction, so a texel sampled here with a given N matches the ray that was traced in that direction.
-vec2 DDGI_OctEncode(vec3 n) {
-    vec2 p = n.xy * (1.0 / (abs(n.x) + abs(n.y) + abs(n.z)));
-    if (n.z <= 0.0)
-        p = (1.0 - abs(p.yx)) * vec2(p.x >= 0.0 ? 1.0 : -1.0, p.y >= 0.0 ? 1.0 : -1.0);
-    return p;
+#include "../common/octahedral.glsl"
+#include "../common/ddgi_atlas.glsl"
+#include "../common/ddgi_visibility.glsl"
+
+// Per-fragment volume select over the scalar atlas samplers (see their declaration for why they're
+// not arrays). Hard-codes MAX_PROBE_VOLUMES == 2, same as DDGI_ProbeState above.
+// textureLod(.., 0) not texture() : the atlases have no mips, and the select below is non-uniform
+// control flow where implicit-LOD derivatives are undefined.
+vec3 DDGI_SampleIrradianceAtlas(int v, vec2 uv) {
+    return (v == 0) ? textureLod(ddgi_irradianceAtlas0, uv, 0.0).rgb
+                    : textureLod(ddgi_irradianceAtlas1, uv, 0.0).rgb;
+}
+vec2 DDGI_SampleDistanceAtlas(int v, vec2 uv) {
+    return (v == 0) ? textureLod(ddgi_distanceAtlas0, uv, 0.0).rg
+                    : textureLod(ddgi_distanceAtlas1, uv, 0.0).rg;
 }
 
-// Samples one probe's octahedral tile in the irradiance atlas in direction N.
-vec3 DDGI_SampleProbe(int probeIndex, vec3 N) {
-    int stride = ddgi_tileSize + 2;
-    int col = probeIndex % ddgi_atlasProbesPerRow;
-    int row = probeIndex / ddgi_atlasProbesPerRow;
-
-    vec2 oct = DDGI_OctEncode(N);
-    vec2 texelInTile = (oct * 0.5 + 0.5) * float(ddgi_tileSize);
-
-    vec2 atlasTexel = vec2(col * stride, row * stride) + vec2(1.0) + texelInTile;
-    vec2 atlasUV = atlasTexel / float(ddgi_atlasSize);
-
-    return texture(ddgi_irradianceAtlas, atlasUV).rgb;
+// Samples one probe's octahedral tile in volume v's irradiance atlas in direction N - see
+// common/ddgi_atlas.glsl's DDGI_AtlasUV for the shared tile-addressing math this builds on.
+vec3 DDGI_SampleProbe(int v, int probeIndex, vec3 N) {
+    vec2 uv = DDGI_AtlasUV(probeIndex, N, ddgi_tileSize[v], ddgi_atlasProbesPerRow[v], ddgi_atlasSize[v]);
+    return DDGI_SampleIrradianceAtlas(v, uv);
 }
 
-// Same octahedral tile lookup as DDGI_SampleProbe, against the distance atlas instead - returns
-// (mean hit distance, mean hit distance^2) for that probe in direction `dir`.
-vec2 DDGI_SampleDistance(int probeIndex, vec3 dir) {
-    int stride = ddgi_tileSize + 2;
-    int col = probeIndex % ddgi_atlasProbesPerRow;
-    int row = probeIndex / ddgi_atlasProbesPerRow;
-
-    vec2 oct = DDGI_OctEncode(dir);
-    vec2 texelInTile = (oct * 0.5 + 0.5) * float(ddgi_tileSize);
-
-    vec2 atlasTexel = vec2(col * stride, row * stride) + vec2(1.0) + texelInTile;
-    vec2 atlasUV = atlasTexel / float(ddgi_atlasSize);
-
-    return texture(ddgi_distanceAtlas, atlasUV).rg;
+// Same tile lookup against the distance atlas - returns (mean hit distance, mean hit distance^2).
+vec2 DDGI_SampleDistance(int v, int probeIndex, vec3 dir) {
+    vec2 uv = DDGI_AtlasUV(probeIndex, dir, ddgi_tileSize[v], ddgi_atlasProbesPerRow[v], ddgi_atlasSize[v]);
+    return DDGI_SampleDistanceAtlas(v, uv);
 }
 
-// Chebyshev's inequality applied to a probe's stored (mean, mean^2) hit-distance distribution, to
-// estimate how likely that probe can actually "see" a point `distToPoint` away without a wall between
-// them - this (not just the trilinear grid weight) is what stops light/shadow from leaking through
-// geometry the way a plain irradiance-only probe blend does (e.g. sun hitting a roof lighting the
-// ceiling directly below it). Cubing the raw Chebyshev bound sharpens the falloff so partially-occluded
-// probes fade out faster than a linear bound would - see the identical helper in probe_trace.comp's
-// SampleIndirect for the sibling copy this mirrors (needed separately there for the bounce-feedback
-// loop, which reads a different, not-yet-published atlas).
-float DDGI_VisibilityWeight(vec2 meanMean2, float distToPoint) {
-    float mean = meanMean2.x;
-    if (distToPoint <= mean)
-        return 1.0;
-
-    float variance = abs(meanMean2.y - mean * mean);
-    float d = distToPoint - mean;
-    float chebyshev = variance / (variance + d * d);
-    return max(chebyshev * chebyshev * chebyshev, 0.0);
+// Index of the smallest active volume whose grid AABB contains p, or -1 if none does. "Smallest" =
+// smallest cell volume, so a dense local ProbeVolume nested inside a coarse room-scale one wins for
+// points it covers, with no explicit priority field (see ProbeVolume's header comment).
+int DDGI_PickVolume(vec3 p) {
+    int best = -1;
+    float bestCell = 1e30;
+    for (int v = 0; v < ddgi_volumeCount; v++) {
+        vec3 gmin = ddgi_gridOrigin[v];
+        vec3 gmax = gmin + ddgi_gridSpacing[v] * max(ddgi_probeCounts[v] - 1.0, vec3(0.0));
+        if (all(greaterThanEqual(p, gmin)) && all(lessThanEqual(p, gmax))) {
+            float cell = ddgi_gridSpacing[v].x * ddgi_gridSpacing[v].y * ddgi_gridSpacing[v].z;
+            if (cell < bestCell) { bestCell = cell; best = v; }
+        }
+    }
+    return best;
 }
 
-// Trilinearly blends the 8 probes surrounding worldPos, each sampled toward N, and combines the result
-// with albedo/metallic the same way IBL_Diffuse does - a drop-in replacement for it when a probe volume
-// is active (see ddgi_enabled in main()). Each probe's trilinear grid weight is further scaled by
-// DDGI_VisibilityWeight so an occluded probe (behind a wall from worldPos) contributes little or nothing,
-// regardless of how close it is in the grid.
-vec3 DDGI_Diffuse(vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
-    vec3 gridPos = (worldPos - ddgi_gridOrigin) / max(ddgi_gridSpacing, vec3(1e-4));
+// Trilinearly blends the 8 probes of volume `v` surrounding worldPos, each sampled toward N, and
+// combines the result with albedo/metallic the same way IBL_Diffuse does. Each probe's trilinear grid
+// weight is further scaled by DDGI_VisibilityWeight (occluded probe -> ~0) and by the probe's
+// classification flag (probe embedded in geometry -> 0), and every probe position includes its
+// relocation offset (see DDGI_ProbeState / probe_relocate.comp).
+vec3 DDGI_Diffuse(int v, vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
+    // Bias the sampled position off the surface along its normal before gridding, same as
+    // probe_trace.comp's SampleIndirect (see that function's comment) - kept in sync since they're
+    // sibling copies of the same trilinear-probe-blend logic (one feeding the next bounce, this one
+    // shading what the player actually sees). Missing this bias here used to mean the *final* shaded
+    // pixel sampled the grid right at the surface it sits on, which is far more prone to picking up the
+    // wrong side of a nearby occlusion boundary than the (correctly biased) bounce-feedback path was -
+    // most visible as weak/missing colored bounce light right where two differently-tinted surfaces
+    // meet (e.g. a colored curtain near the floor).
+    vec3 biasedPos = worldPos + N * (0.25 * min(min(ddgi_gridSpacing[v].x, ddgi_gridSpacing[v].y), ddgi_gridSpacing[v].z));
+
+    vec3 gridPos = (biasedPos - ddgi_gridOrigin[v]) / max(ddgi_gridSpacing[v], vec3(1e-4));
     vec3 base = floor(gridPos);
     vec3 frac = clamp(gridPos - base, 0.0, 1.0);
 
@@ -273,7 +340,7 @@ vec3 DDGI_Diffuse(vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
 
     for (int i = 0; i < 8; i++) {
         vec3 offset = vec3(float(i & 1), float((i >> 1) & 1), float((i >> 2) & 1));
-        vec3 probeCoord = clamp(base + offset, vec3(0.0), max(ddgi_probeCounts - 1.0, 0.0));
+        vec3 probeCoord = clamp(base + offset, vec3(0.0), max(ddgi_probeCounts[v] - 1.0, 0.0));
 
         vec3 w = mix(1.0 - frac, frac, offset);
         float trilinearWeight = w.x * w.y * w.z;
@@ -281,22 +348,27 @@ vec3 DDGI_Diffuse(vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
             continue;
 
         int probeIndex = int(probeCoord.x)
-            + int(probeCoord.y) * int(ddgi_probeCounts.x)
-            + int(probeCoord.z) * int(ddgi_probeCounts.x) * int(ddgi_probeCounts.y);
+            + int(probeCoord.y) * int(ddgi_probeCounts[v].x)
+            + int(probeCoord.z) * int(ddgi_probeCounts[v].x) * int(ddgi_probeCounts[v].y);
 
-        // Visibility test direction is probe -> shading point, NOT N (the irradiance sample direction
-        // below) - a probe can be occluded from a point regardless of that point's surface normal.
-        vec3 probeWorldPos = ddgi_gridOrigin + probeCoord * ddgi_gridSpacing;
-        vec3 toPoint = worldPos - probeWorldPos;
+        vec4 state = DDGI_ProbeState(v, probeIndex);
+        if (state.w <= 0.0) // probe classified as embedded in geometry
+            continue;
+
+        // Visibility test direction is probe -> (biased) shading point, NOT N (the irradiance sample
+        // direction below) - a probe can be occluded from a point regardless of that point's surface
+        // normal. + state.xyz : the probe may have been relocated out of geometry.
+        vec3 probeWorldPos = ddgi_gridOrigin[v] + probeCoord * ddgi_gridSpacing[v] + state.xyz;
+        vec3 toPoint = biasedPos - probeWorldPos;
         float distToPoint = length(toPoint);
         vec3 dirToPoint = toPoint / max(distToPoint, 1e-5);
 
-        float visWeight = DDGI_VisibilityWeight(DDGI_SampleDistance(probeIndex, dirToPoint), distToPoint);
+        float visWeight = DDGI_VisibilityWeight(DDGI_SampleDistance(v, probeIndex, dirToPoint), distToPoint);
         float weight = trilinearWeight * visWeight;
         if (weight <= 0.0)
             continue;
 
-        irradiance += DDGI_SampleProbe(probeIndex, N) * weight;
+        irradiance += DDGI_SampleProbe(v, probeIndex, N) * weight;
         totalWeight += weight;
     }
 
@@ -394,27 +466,41 @@ void main() {
     vec3 V = normalize(camPos - worldPos);
     vec3 result = vec3(0.0);
 
-    int dirIdx = 0, pointIdx = 0, spotIdx = 0;
-
+    // Directional lights: never clustered (at most a handful in any scene - see
+    // LightManager::MAX_DIRECTIONAL_LIGHTS), so still a plain scan of the full light list.
     for (int i = 0; i < lightNB; ++i) {
         Light l = lights[i];
+        if (l.type != 0)
+            continue;
+
+        vec3 L = -normalize(l.direction.xyz);
+        float visibility = 1.0;
+
+        if (l.castShadow == 1 && l.shadowIndex >= 0) {
+            int cascadeIdx = selectCascade(l.shadowIndex);
+            visibility = ShadowCalculationDir(dirShadowMaps[cascadeIdx], dirLightSpaceMatrices[cascadeIdx], L, worldPos, worldNormal);
+        }
+
+        result += ComputeLightDisney(l, L, V, worldNormal, baseColor.rgb, roughnessValue, metallicValue, visibility, 1.0);
+    }
+
+    // Point/Spot lights: only the subset the light-culling compute pass placed in this fragment's
+    // cluster (see LightCullingManager / cluster_light_cull.comp) - not the full light list.
+    uint clusterIndex = GetClusterIndex(worldPos);
+    uvec2 clusterEntry = clusters[clusterIndex];
+    uint clusterLightOffset = clusterEntry.x;
+    uint clusterLightCount = min(clusterEntry.y, uint(MAX_LIGHTS_PER_CLUSTER));
+
+    for (uint k = 0; k < clusterLightCount; ++k) {
+        Light l = lights[lightIndices[clusterLightOffset + k]];
 
         float visibility = 1.0;
         float attenuation = 1.0;
         vec3 L = vec3(0.0);
 
-        if (l.type == 0) { // Directional
-            L = -normalize(l.direction.xyz);
-            if (l.castShadow == 1) {
-                int cascadeIdx = selectCascade(dirIdx);
-                visibility = ShadowCalculationDir(dirShadowMaps[cascadeIdx], dirLightSpaceMatrices[cascadeIdx], L, worldPos, worldNormal);
-            }
-            
-            dirIdx++;
-        }
-        else if (l.type == 1) { // Point
+        if (l.type == 1) { // Point
             vec3 toLight = l.position.xyz - worldPos;
-            
+
             float dist = length(toLight);
 
             L = normalize(toLight);
@@ -424,18 +510,17 @@ void main() {
             float falloff = clamp(1.0 - dist / l.radius, 0.0, 1.0);
             attenuation *= falloff * falloff;
 
-            if (l.castShadow == 1){
-                visibility = ShadowCalculationPoint(pointIdx, l.position.xyz, worldPos, pointLightFarPlanes[pointIdx], worldNormal);
+            if (l.castShadow == 1 && l.shadowIndex >= 0){
+                visibility = ShadowCalculationPoint(l.shadowIndex, l.position.xyz, worldPos, pointLightFarPlanes[l.shadowIndex], worldNormal);
             }
-            pointIdx++;
         }
         else if (l.type == 2) { // Spot
             vec3 toFrag = worldPos - l.position.xyz;
 
             float dist = length(toFrag);
-            
+
             L = normalize(l.position.xyz - worldPos);
-            
+
             // distance attenuation
             attenuation = 1.0 / (dist * dist);
 
@@ -450,11 +535,9 @@ void main() {
 
             attenuation *= spotIntensity;
 
-            if (l.castShadow == 1) {
-                visibility = ShadowCalculationSpot(spotShadowMaps[spotIdx], L, spotLightSpaceMatrices[spotIdx], worldNormal);
+            if (l.castShadow == 1 && l.shadowIndex >= 0) {
+                visibility = ShadowCalculationSpot(spotShadowMaps[l.shadowIndex], L, spotLightSpaceMatrices[l.shadowIndex], worldNormal);
             }
-                
-            spotIdx++;
         }
 
         result += ComputeLightDisney(l, L, V, worldNormal, baseColor.rgb, roughnessValue, metallicValue, visibility, attenuation);
@@ -463,12 +546,15 @@ void main() {
     // Real-time GI (ddgi_enabled) intentionally isn't gated behind useEnvReflections - that flag toggles
     // the (costlier) specular env reflections per material, but diffuse GI from an active probe volume
     // should show up on every material regardless, or it silently does nothing on any material that
-    // doesn't happen to have useEnvReflections set.
-    vec3 ambientDiffuse;
+    // doesn't happen to have useEnvReflections set. A point outside every active volume's grid
+    // (ddgiVolume < 0) falls back to the same IBL / flat-ambient path as when no volume exists.
+    vec3 ambientDiffuse = vec3(0.0);
     vec3 specularIBL = vec3(0.0);
 
-    if (ddgi_enabled) {
-        ambientDiffuse = DDGI_Diffuse(worldPos, worldNormal, baseColor.rgb, metallicValue);
+    int ddgiVolume = ddgi_enabled ? DDGI_PickVolume(worldPos) : -1;
+
+    if (ddgiVolume >= 0) {
+        ambientDiffuse = DDGI_Diffuse(ddgiVolume, worldPos, worldNormal, baseColor.rgb, metallicValue);
         if (useEnvReflections)
             specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
     }
@@ -476,9 +562,29 @@ void main() {
         ambientDiffuse = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);
         specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
     }
-    else {
-        ambientDiffuse = baseColor.rgb * ambientIntensity;
-    }
+
+    // Flat ambient floor, ADDED on top of whatever DDGI/IBL/direct lighting already computed above
+    // (not multiplied into it, and not gated behind "no DDGI and no IBL" the way this used to be) : this
+    // is what makes ambientIntensity mean "light that's there even when the scene has no lights at all"
+    // - a real light source can't do that (zero lights = zero direct contribution, always), only a flat
+    // additive term can. Being additive rather than a multiplier also means it still does something in
+    // a spot DDGI/IBL computes near-zero for (a probe-starved corner, geometry outside every volume's
+    // grid), instead of just scaling an already-dark result to a still-dark one. Level::ambientIntensity
+    // defaults to 0.0 - DDGI/IBL are real, computed lighting and don't need a fake floor propping them
+    // up by default, so this stays a no-op unless a level explicitly wants unlit corners not to be pure
+    // black, or a material overrides it for a cheap self-lit look (light_bulb.mat : 4.0, useEnvReflections
+    // = false, so this term is the ENTIRE reason it's visibly bright at all - see GLRendererAPI::
+    // BindLevelState for how a level default vs. a per-material override of this uniform interact).
+    ambientDiffuse += baseColor.rgb * ambientIntensity;
+
+    // Screen-space ambient occlusion (see SampleSSAO above / SSAOManager) - darkens ambient/indirect
+    // light in creases/corners/contact points, not `result` (direct lighting) or `specularIBL` : that's
+    // the standard, well-understood scope for SSAO, and it composes naturally with the additive floor
+    // just above (a level with SSAO on but zero real lights/DDGI/IBL still gets its ambientIntensity
+    // floor darkened in contact points, which is correct - occlusion blocks that flat "always there"
+    // light too, physically). The 3 SSAO passes always run (see SSAOManager::Init) - ssaoEnabled is
+    // purely a lit.frag-side gate, off is a no-op.
+    ambientDiffuse = SampleSSAO(ambientDiffuse);
 
     vec3 lighting = result + ambientDiffuse + specularIBL;
     fragColor = vec4(lighting, baseColor.a);

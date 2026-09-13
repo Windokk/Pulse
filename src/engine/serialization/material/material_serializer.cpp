@@ -69,7 +69,13 @@ namespace Pulse::Engine::Serialization{
 
                     // Texture
                     if (value.is_string()) {
-                        uint32_t tex = Core::GetEngine().GetResourcesManager()->GetTexture(value.get<std::string>())->GetHandle();
+                        // GetTexture() returns nullptr when the referenced path isn't a registered asset
+                        // (missing file, stale/wrong path in the .mat, or the asset database out of sync
+                        // with it) - dereferencing it unconditionally here used to segfault instead of
+                        // hitting the "No texture found" error path right below, which is exactly what a
+                        // bad texture path should produce.
+                        std::shared_ptr<Texture2D> texture = Core::GetEngine().GetResourcesManager()->GetTexture(value.get<std::string>());
+                        uint32_t tex = texture ? texture->GetHandle() : 0;
                         if(tex){
                             mat->SetTextureParameter(name, tex);
                         }

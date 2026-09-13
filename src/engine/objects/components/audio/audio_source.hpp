@@ -28,6 +28,13 @@ namespace Pulse::Engine::Objects::Components
 
             void Destroy() override;
 
+            void Activate() override
+            {
+                Component::Activate();
+
+                Play();
+            }
+
             void DeActivate() override
             {
                 Component::DeActivate();

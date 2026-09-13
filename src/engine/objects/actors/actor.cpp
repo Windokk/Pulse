@@ -1,5 +1,7 @@
 #include "actor.hpp"
 
+#include <algorithm>
+
 #include "engine/core/engine.hpp"
 
 #include "engine/projects/project.hpp"
@@ -71,6 +73,32 @@ namespace Pulse::Engine::Objects{
         }
 
         return component;
+    }
+
+    void Actor::RemoveComponent(std::shared_ptr<Component> component)
+    {
+        if (!component) {
+            DEBUG_ERROR("Tried to remove null component.");
+            return;
+        }
+
+        if (dynamic_cast<Transform*>(component.get())) {
+            DEBUG_ERROR("The Transform component cannot be removed from an actor.");
+            return;
+        }
+
+        auto it = std::find(components.begin(), components.end(), component);
+        if (it == components.end()) {
+            DEBUG_ERROR("Tried to remove a component that does not belong to this actor.");
+            return;
+        }
+
+        if (level)
+            level->RemoveComponent(GetComponentIDInLevel(component->GetLocalId()), component);
+        else
+            component->Destroy();
+
+        components.erase(it);
     }
 
     void Actor::Destroy()

@@ -21,5 +21,9 @@ namespace Pulse::Editor::GUI{
             float refreshIntervalSeconds = 0.25f;
             float timeSinceRefresh = 0.0f;
             Engine::Debugging::FrameProfile displayedFrame{};
+
+            // Category clicked in the breakdown list, whose sub-counters (if any) are expanded
+            // below it. -1 means no category is selected.
+            int selectedCategory = -1;
     };
 }

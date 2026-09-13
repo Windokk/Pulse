@@ -23,10 +23,7 @@
 #include "imgui_internal.h"
 
 #include "IconsLucide.h"
-
-/**
- * CONFIGURATION SECTION Start
-*/
+#include "loading_widgets.hpp"
 
 #define NOTIFY_MAX_MSG_LENGTH				4096		// Max message content length
 #define NOTIFY_PADDING_X					20.f		// Bottom-left X padding
@@ -41,16 +38,6 @@
 
 // Warning: Requires ImGui docking with multi-viewport enabled
 #define NOTIFY_RENDER_OUTSIDE_MAIN_WINDOW	false		// If true, the notifications will be rendered in the corner of the monitor, otherwise in the corner of the main window
-
-/**
- * CONFIGURATION SECTION End
-*/
-
-
-
-
-
-
 
 
 static const ImGuiWindowFlags NOTIFY_DEFAULT_TOAST_FLAGS = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing;
@@ -220,12 +207,22 @@ public:
     }
 
     /**
-     * @brief Restart this toast's lifetime as if it had just been created (resets the fade/dismiss
-     * clock). Called on every progress update so a sticky toast never fades mid-operation.
+     * @brief Restart this toast's dismiss clock as if it had just finished fading in (resets the
+     * dismiss deadline without resetting the fade-in itself). Called on every progress update so a
+     * sticky toast never fades mid-operation.
+     *
+     * Landing exactly on "now" here (rather than "now - fade-in duration", as done below) would push
+     * creationTime forward every single call - and UpdateProgress() calls this every frame while a
+     * background operation runs. getPhase()/getFadePercent() derive the toast's opacity purely from
+     * elapsed time since creationTime, so with creationTime constantly reset to "now" the elapsed time
+     * driving that opacity stays pinned at ~0 for the toast's entire lifetime, i.e. permanently in the
+     * FadeIn phase at ~0 opacity - the toast (background, icon, and this Pulse addition's progress bar)
+     * reads as stuck-transparent for as long as updates keep arriving, never reaching the fully-opaque
+     * Wait phase at all.
      */
     inline void refreshCreationTime()
     {
-        this->creationTime = std::chrono::system_clock::now();
+        this->creationTime = std::chrono::system_clock::now() - std::chrono::milliseconds(NOTIFY_FADE_IN_OUT_TIME);
     }
 
     /**
@@ -622,6 +619,17 @@ namespace ImGui
             const char* defaultTitle = currentToast->getDefaultTitle();
             const float opacity = currentToast->getFadePercent(); // Get opacity based of the current phase
 
+            // --- Pulse additions : a toast carrying a progress bar (BeginProgress/UpdateProgress, e.g.
+            // the DDGI probe scene-build notification) gets a heavier, fully opaque "card" treatment
+            // instead of the default lightweight toast look - it represents work actually in flight
+            // rather than a fire-and-forget message, so it should read as a solid piece of UI rather
+            // than something translucent floating over the viewport. isActiveProgress (Info-only, i.e.
+            // still running rather than the brief Success/Error tail after EndProgress()) additionally
+            // swaps the static type icon for an animated spinner - see the icon block below.
+            const float toastProgress = currentToast->getProgress();
+            const bool hasProgressBar = toastProgress >= 0.0f;
+            const bool isActiveProgress = hasProgressBar && currentToast->getType() == ImGuiToastType::Info;
+
             // Window rendering
             ImVec4 textColor = currentToast->getColor();
             textColor.w = opacity;
@@ -639,6 +647,20 @@ namespace ImGui
             #endif
 
             //PushStyleColor(ImGuiCol_Text, textColor);
+
+            // Elevated, opaque background + rounded border for progress toasts (see hasProgressBar's
+            // comment above) - SetNextWindowBgAlpha() below still overrides just the alpha channel of
+            // this pushed color, so the fade in/out animation keeps working unchanged, it just fades a
+            // solid dark card instead of the default toast background.
+            if (hasProgressBar)
+            {
+                PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.09f, 0.10f, 0.11f, 1.0f));
+                PushStyleColor(ImGuiCol_Border, ImVec4(0.30f, 0.34f, 0.38f, 1.0f));
+                PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+                PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.5f);
+                PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16.0f, 14.0f));
+            }
+
             SetNextWindowBgAlpha(opacity);
 
             #if NOTIFY_RENDER_OUTSIDE_MAIN_WINDOW
@@ -672,8 +694,17 @@ namespace ImGui
 
                 bool wasTitleRendered = false;
 
+                if (isActiveProgress)
+                {
+                    float r = GetFontSize() * 0.5f;
+                    ImVec2 topLeft = GetCursorScreenPos();
+                    Pulse::Editor::GUI::LoadingWidgets::SpinnerFadePulsar(GetWindowDrawList(),
+                        ImVec2(topLeft.x + r, topLeft.y + r), r, ColorConvertFloat4ToU32(textColor), 1.8f, 2);
+                    Dummy(ImVec2(r * 2.0f, r * 2.0f));
+                    wasTitleRendered = true;
+                }
                 // If an icon is set
-                if (!NOTIFY_NULL_OR_EMPTY(icon))
+                else if (!NOTIFY_NULL_OR_EMPTY(icon))
                 {
                     //Text(icon); // Render icon text
                     TextColored(textColor, "%s", icon);
@@ -699,17 +730,15 @@ namespace ImGui
                     wasTitleRendered = true;
                 }
 
-                // If a dismiss button is enabled
                 if (NOTIFY_USE_DISMISS_BUTTON)
                 {
-                    // If a title or content is set, we want to render the button on the same line
                     if (wasTitleRendered || !NOTIFY_NULL_OR_EMPTY(content))
                     {
                         SameLine();
                     }
 
                     // Render the dismiss button on the top right corner
-                    // NEEDS TO BE REWORKED
+                    // NEEDS TO BE REWORKED !!!
                     float scale = 0.8f;
 
                     if (CalcTextSize(content).x > GetWindowContentRegionMax().x)
@@ -746,17 +775,22 @@ namespace ImGui
                 }
 
                 // If a progress fraction is set (Pulse addition), render a bar under the content
-                const float toastProgress = currentToast->getProgress();
-                if (toastProgress >= 0.0f)
+                if (hasProgressBar)
                 {
                     if (wasTitleRendered || !NOTIFY_NULL_OR_EMPTY(content))
                         SetCursorPosY(GetCursorPosY() + 5.f);
 
                     ImVec4 barColor = currentToast->getColor();
                     barColor.w = opacity;
-                    PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-                    ProgressBar(toastProgress, ImVec2(mainWindowSize.x / 5.f, 0.f));
-                    PopStyleColor();
+                    ImU32 fillColor = ColorConvertFloat4ToU32(barColor);
+                    ImU32 bgColor = ColorConvertFloat4ToU32(ImVec4(0.08f, 0.08f, 0.09f, opacity));
+                    ImU32 borderColor = ColorConvertFloat4ToU32(ImVec4(0.24f, 0.27f, 0.30f, opacity));
+
+                    ImVec2 barPos = GetCursorScreenPos();
+                    ImVec2 barSize(mainWindowSize.x / 5.f, 10.0f);
+                    Pulse::Editor::GUI::LoadingWidgets::DrawProgressBar(GetWindowDrawList(), barPos, barSize,
+                        toastProgress, bgColor, fillColor, borderColor);
+                    Dummy(barSize);
                 }
 
                 // If a button is set
@@ -777,6 +811,12 @@ namespace ImGui
 
             // End
             End();
+
+            if (hasProgressBar)
+            {
+                PopStyleVar(3);
+                PopStyleColor(2);
+            }
         }
     }
 }

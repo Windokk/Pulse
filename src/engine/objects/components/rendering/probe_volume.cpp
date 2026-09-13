@@ -88,7 +88,10 @@ namespace Pulse::Engine::Objects::Components{
         cmd.objectID = parent->GetID().GetAsInt();
         cmd.vertexCount = m_ProbeDebugShape->m_Mesh->GetVertexCount();
 
-        GetEngineContext()->GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
+        // Its own pass (see Renderer::Init()), not "ForwardPass" like Volume's own box wireframe - lets
+        // the editor hide just these markers (RenderPass::enabled) without touching ProbeVolume's
+        // activation state, which must keep driving GI regardless of whether the markers are shown.
+        GetEngineContext()->GetRenderer()->AddOrUpdateCommands({cmd}, {"ProbeGizmoPass"}, false);
     }
 
     void ProbeVolume::Activate()
@@ -120,7 +123,7 @@ namespace Pulse::Engine::Objects::Components{
         if (m_ProbeDebugShape && m_ProbeDebugShape->m_Mesh && parent)
         {
             uint64_t cmdID = Rendering::MakeCommandID(m_ProbeDebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
-            GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
+            GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"ProbeGizmoPass"}, false);
         }
         delete m_ProbeDebugShape;
         m_ProbeDebugShape = nullptr;
@@ -142,7 +145,9 @@ namespace Pulse::Engine::Objects::Components{
             RebuildProbeVisualization();
         }
 
-        if (name == "halfExtent" || name == "probeCounts" || name == "raysPerProbe")
+        // enableRelocation only needs the grid rebuilt so accumulated relocation offsets are zeroed
+        // (RebuildGrid re-inits probeStateBuffer) - the per-frame dispatch is already gated on the flag.
+        if (name == "halfExtent" || name == "probeCounts" || name == "raysPerProbe" || name == "enableRelocation")
         {
             if(parent && parent->level && parent->level->IsLoaded())
                 GetEngineContext()->GetRenderer()->GetProbeManager()->RebuildGrid(this);
@@ -180,6 +185,9 @@ namespace Pulse::Engine::Objects::Components{
         raysPerProbe = getInt(componentData, "raysPerProbe", 64);
         maxBounces = getInt(componentData, "maxBounces", 2);
 
+        if (componentData.contains("enableRelocation") && componentData["enableRelocation"].is_boolean())
+            enableRelocation = componentData["enableRelocation"].get<bool>();
+
         if (componentData.contains("active") && componentData["active"].is_boolean() && componentData["active"].get<bool>())
             Activate();
         else
@@ -203,6 +211,7 @@ namespace Pulse::Engine::Objects::Components{
 
         comp["raysPerProbe"] = raysPerProbe;
         comp["maxBounces"] = maxBounces;
+        comp["enableRelocation"] = enableRelocation;
 
         return comp;
     }

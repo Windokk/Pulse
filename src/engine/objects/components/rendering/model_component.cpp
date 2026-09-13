@@ -1,5 +1,7 @@
 #include "model_component.hpp"
 
+#include <algorithm>
+
 #include "engine/core/engine.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 
@@ -47,11 +49,13 @@ namespace Pulse::Engine::Objects::Components{
         // ---------------- MATERIALS ----------------
         std::vector<std::shared_ptr<Rendering::Material>> materials;
 
-        if (!componentData.contains("materials") || !componentData["materials"].is_object())
+        if (componentData.contains("materials") && !componentData["materials"].is_object())
         {
-            DEBUG_ERROR("Model missing or invalid 'materials' block");
+            // A missing key is a legitimate "no materials yet" model (see the comment in Serialize()) -
+            // only a present-but-wrong-typed block indicates actual corruption worth flagging.
+            DEBUG_ERROR("Model has an invalid 'materials' block (not an object)");
         }
-        else
+        else if (componentData.contains("materials"))
         {
             const auto& localMaterials = componentData["materials"];
 
@@ -138,6 +142,11 @@ namespace Pulse::Engine::Objects::Components{
 
         comp["mesh"] = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(mesh->GetAssetID())->baseInfos.nameInProject;
 
+        // Always emit the key, even with zero materials - nlohmann::json only creates "materials" the
+        // first time comp["materials"][...] is assigned, so a model with no materials yet (e.g. right
+        // after AddComponent<Model>(), before a mesh/material is picked) would otherwise round-trip
+        // through save/load with the key missing entirely, which Deserialize below logs as corruption.
+        comp["materials"] = ordered_json::object();
         for(int i = 0; i < materials.size(); i++){
             std::string matNameInProject = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(materials[i]->GetAssetID())->baseInfos.nameInProject;
             comp["materials"][std::to_string(i)] = matNameInProject;
@@ -157,8 +166,34 @@ namespace Pulse::Engine::Objects::Components{
             if(mesh)
                 RemoveFromDrawList();
             this->mesh = newMesh;
-            UpdateReferenceInLevel();
             this->meshID = mesh->GetAssetID();
+
+            size_t submeshCount = mesh->GetSubMeshes().size();
+            if(materials.size() != submeshCount)
+            {
+                std::vector<std::shared_ptr<Rendering::Material>> resized(submeshCount, nullptr);
+                for(size_t i = 0; i < submeshCount && i < materials.size(); i++)
+                    resized[i] = materials[i];
+
+                std::shared_ptr<Rendering::Material> defaultMaterial =
+                    GetEngineContext()->GetResourcesManager()->GetMaterial("materials/default.mat");
+
+                for(auto& mat : resized)
+                {
+                    if(!mat)
+                        mat = defaultMaterial;
+                }
+
+                SetMaterials(std::move(resized));
+            }
+
+            UpdateReferenceInLevel();
+
+            // Re-register the new mesh into whatever extra passes it was in before the swap (e.g. this
+            // is the currently selected actor's EditorOutlineMaskPass entry) - RemoveFromDrawList()
+            // above already dropped the old mesh's commands from them.
+            for(const auto& passName : std::vector<std::string>(extraPasses))
+                AddToPass(passName);
         }
         else{
             DEBUG_ERROR("Specified mesh path doesn't exist in project");
@@ -178,10 +213,36 @@ namespace Pulse::Engine::Objects::Components{
             if(mesh)
                 RemoveFromDrawList();
             this->mesh = GetEngineContext()->GetResourcesManager()->GetMesh(name);
+            this->meshID = mesh->GetAssetID();
+
+            size_t submeshCount = mesh->GetSubMeshes().size();
+            if(materials.size() != submeshCount)
+            {
+                std::vector<std::shared_ptr<Rendering::Material>> resized(submeshCount, nullptr);
+                for(size_t i = 0; i < submeshCount && i < materials.size(); i++)
+                    resized[i] = materials[i];
+
+                std::shared_ptr<Rendering::Material> defaultMaterial =
+                    GetEngineContext()->GetResourcesManager()->GetMaterial("materials/default.mat");
+
+                for(auto& mat : resized)
+                {
+                    if(!mat)
+                        mat = defaultMaterial;
+                }
+
+                SetMaterials(std::move(resized));
+            }
+
             this->Update();
             UpdateReferenceInLevel();
-            this->meshID = mesh->GetAssetID();
-        }        
+
+            // Re-register the new mesh into whatever extra passes it was in before the swap (e.g. this
+            // is the currently selected actor's EditorOutlineMaskPass entry) - RemoveFromDrawList()
+            // above already dropped the old mesh's commands from them.
+            for(const auto& passName : std::vector<std::string>(extraPasses))
+                AddToPass(passName);
+        }
     }
 
     void Model::UpdateReferenceInLevel()
@@ -199,10 +260,6 @@ namespace Pulse::Engine::Objects::Components{
     {
         if(!activated)
             return;
-
-        if (newMaterials.empty()) {
-            DEBUG_ERROR("SetMaterials called with empty list");
-        }
 
         this->materials = std::move(newMaterials);
         this->Update();
@@ -225,18 +282,74 @@ namespace Pulse::Engine::Objects::Components{
 
             std::vector<std::string> passesName;
             passesName.push_back("ForwardPass");
-#ifdef  BUILD_EDITOR
-            passesName.push_back("EditorOutlineMaskPass");
-#endif
+            // SSAO's depth+normal prepass (see SSAOManager) needs every mesh's real geometry, the same
+            // way ForwardPass does - it always runs (SSAOManager::Init registers it unconditionally),
+            // only Level::ssaoEnabled gates whether lit.frag actually uses the result.
+            passesName.push_back("SSAODepthNormalPass");
 
             GetEngineContext()->GetRenderer()->AddOrUpdateCommands(cmds, passesName, true);
         }
     }
 
+    void Model::AddToPass(const std::string &passName)
+    {
+        if(!activated)
+            return;
+
+        if (std::find(extraPasses.begin(), extraPasses.end(), passName) == extraPasses.end())
+            extraPasses.push_back(passName);
+
+        if (materials.size() > 0 && mesh != nullptr && parent->level && parent->level->IsLoaded()){
+
+            std::shared_ptr<Transform> tr = parent->transform;
+
+            std::vector<Rendering::DrawCommand> cmds = mesh->CreateDrawCommands(tr, parent->GetComponentIDInLevel(local_id), this->materials);
+
+            GetEngineContext()->GetRenderer()->AddOrUpdateCommands(cmds, {passName}, false);
+        }
+    }
+
+    void Model::RemoveFromPass(const std::string &passName)
+    {
+        extraPasses.erase(std::remove(extraPasses.begin(), extraPasses.end(), passName), extraPasses.end());
+
+        if (materials.size() > 0 && mesh != nullptr && parent->level && parent->level->IsLoaded()){
+
+            std::vector<uint64_t> cmdsID;
+            for(int i = 0; i < mesh->GetSubMeshes().size(); i++){
+                cmdsID.push_back(Rendering::MakeCommandID(mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), i));
+            }
+
+            GetEngineContext()->GetRenderer()->RemoveCommands(cmdsID, {passName}, false);
+        }
+    }
+
+    void Model::Activate()
+    {
+        bool wasInactive = !activated;
+        Component::Activate();
+
+        // Re-issue the draw commands that DeActivate() pulled - Update() itself is a no-op
+        // if there's no mesh/materials yet, so this is safe to call unconditionally here.
+        if(wasInactive)
+            Update();
+    }
+
+    void Model::DeActivate()
+    {
+        if(!activated){
+            Component::DeActivate();
+            return;
+        }
+
+        Component::DeActivate();
+        RemoveFromDrawList();
+    }
+
     void Model::RemoveFromDrawList()
     {
         if (materials.size() > 0 && mesh != nullptr && parent->level->IsLoaded()){
-            
+
             std::shared_ptr<Transform> tr = parent->transform;
             std::vector<uint64_t> cmdsID;
             for(int i = 0; i < mesh->GetSubMeshes().size(); i++){
@@ -245,10 +358,15 @@ namespace Pulse::Engine::Objects::Components{
 
             std::vector<std::string> passesName;
             passesName.push_back("ForwardPass");
-#ifdef  BUILD_EDITOR
-            passesName.push_back("EditorOutlineMaskPass");
-#endif
+            passesName.push_back("SSAODepthNormalPass");
             GetEngineContext()->GetRenderer()->RemoveCommands(cmdsID, passesName, true);
+
+            // Also drop this (still-current, about-to-be-replaced-or-gone) mesh's commands from any
+            // extra pass it was registered into (e.g. EditorOutlineMaskPass) - otherwise a mesh swap
+            // on a selected actor leaves the old mesh's commands orphaned in that pass forever, since
+            // a later RemoveFromPass() would compute IDs from the *new* mesh instead.
+            if(!extraPasses.empty())
+                GetEngineContext()->GetRenderer()->RemoveCommands(cmdsID, extraPasses, false);
         }
     }
 

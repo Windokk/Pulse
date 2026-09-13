@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdio>
 
 namespace Pulse::Editor::GUI{
 
@@ -49,6 +50,7 @@ namespace Pulse::Editor::GUI{
 
         ImGui::Separator();
         ImGui::TextUnformatted("Breakdown (last frame)");
+        ImGui::TextDisabled("Click a category to expand its sub-counters");
         DrawBreakdown(displayedFrame);
         ImGui::Separator();
         ImGui::TextUnformatted("History");
@@ -93,10 +95,13 @@ namespace Pulse::Editor::GUI{
         {
             const Entry& entry = entries[i];
             float pct = frame.totalMs > 0.0f ? (entry.ms / frame.totalMs) * 100.0f : 0.0f;
+            int categoryIndex = static_cast<int>(entry.category);
+            bool isSelected = (selectedCategory == categoryIndex);
+
+            ImGui::PushID(categoryIndex);
 
             ImVec4 swatch = ImGui::ColorConvertU32ToFloat4(CategoryColor(entry.category));
-            ImGui::ColorButton(Engine::Debugging::ProfileCategoryName(entry.category), swatch,
-                ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder, ImVec2(12, 12));
+            ImGui::ColorButton("##swatch", swatch, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder, ImVec2(12, 12));
             ImGui::SameLine();
 
             // Highlight the biggest consumer this frame.
@@ -104,27 +109,35 @@ namespace Pulse::Editor::GUI{
             if (isTop)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.3f, 1.0f));
 
-            ImGui::Text("%-12s %6.2f ms (%4.1f%%)", Engine::Debugging::ProfileCategoryName(entry.category), entry.ms, pct);
+            char label[128];
+            snprintf(label, sizeof(label), "%-12s %6.2f ms (%4.1f%%)", Engine::Debugging::ProfileCategoryName(entry.category), entry.ms, pct);
+
+            // Clicking a category toggles its selection, expanding/collapsing its sub-counters below.
+            if (ImGui::Selectable(label, isSelected))
+                selectedCategory = isSelected ? -1 : categoryIndex;
 
             if (isTop)
                 ImGui::PopStyleColor();
 
-            // Sub-measures nested within this category (e.g. glDrawElements under Rendering).
-            if (entry.category == ProfileCategory::Rendering)
+            // Sub-measures nested within this category (e.g. glDrawElements under Rendering),
+            // only shown while this category is the one selected.
+            if (isSelected && entry.category == ProfileCategory::Rendering)
             {
                 float renderingMs = frame.categoryMs[static_cast<size_t>(ProfileCategory::Rendering)];
 
+                ImGui::Indent(20.0f);
                 for (size_t s = 0; s < Engine::Debugging::kRenderSubSampleCount; s++)
                 {
                     auto sample = static_cast<Engine::Debugging::RenderSubSample>(s);
                     float subMs = frame.renderSubMs[s];
                     float subPct = renderingMs > 0.0f ? (subMs / renderingMs) * 100.0f : 0.0f;
 
-                    ImGui::Indent(20.0f);
-                    ImGui::TextDisabled("%-14s %6.2f ms (%4.1f%% of Rendering)", Engine::Debugging::RenderSubSampleName(sample), subMs, subPct);
-                    ImGui::Unindent(20.0f);
+                    ImGui::TextDisabled("%-18s %6.2f ms (%4.1f%% of Rendering)", Engine::Debugging::RenderSubSampleName(sample), subMs, subPct);
                 }
+                ImGui::Unindent(20.0f);
             }
+
+            ImGui::PopID();
         }
     }
 

@@ -255,6 +255,7 @@ namespace Pulse::Editor::GUI{
 
         ImGui::MenuItem("Viewport", nullptr, &parent->panelVisibility.viewport);
         ImGui::MenuItem("Level Tree", nullptr, &parent->panelVisibility.levelTree);
+        ImGui::MenuItem("Level Settings", nullptr, &parent->panelVisibility.levelSettings);
         ImGui::MenuItem("Properties", nullptr, &parent->panelVisibility.properties);
         ImGui::MenuItem("Asset Browser", nullptr, &parent->panelVisibility.assetBrowser);
         ImGui::MenuItem("Console", nullptr, &parent->panelVisibility.console);

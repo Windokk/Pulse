@@ -27,6 +27,9 @@ namespace Pulse::Engine::Objects::Components
             void SetCastShadow(bool castShadows);
             void SetColor(COL_RGB color);
 
+            void Activate() override;
+            void DeActivate() override;
+
             // Directional / Spot light
             void SetDirection(glm::vec3 direction);
 

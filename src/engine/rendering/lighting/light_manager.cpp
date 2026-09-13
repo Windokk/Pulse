@@ -32,6 +32,16 @@ namespace Pulse::Engine::Rendering{
         if(m_Lights.empty())
             return;
 
+        // Must run before the SSBO upload below: this may (re)assign LightData::shadowIndex (see
+        // ShadowManager::ReassignShadowIndices), which the flattened upload needs to carry to the GPU
+        // this same call.
+        if (index != -1)
+        {
+            auto& light = m_Lights[index];
+            if (light)
+                Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterOrUpdateLight(index, light);
+        }
+
         std::vector<LightData> flatLights;
         flatLights.reserve(m_Lights.size());
 
@@ -43,15 +53,6 @@ namespace Pulse::Engine::Rendering{
 
         m_SSBO->SetData(flatLights.data(), sizeof(LightData) * flatLights.size());
         m_SSBO->Bind(0);
-
-        if(index == -1)
-            return;
-
-        auto& light = m_Lights[index];
-        if (!light)
-            return;
-
-        Core::GetEngine().GetRenderer()->GetShadowManager()->RegisterOrUpdateLight(index, light);
     }
 
     void LightManager::AddLight(int index, std::shared_ptr<LightData> data)
@@ -99,6 +100,11 @@ namespace Pulse::Engine::Rendering{
                 shadowMan->RegisterOrUpdateLight(static_cast<int>(i), m_Lights[i]);
             }
         }
+
+        // RegisterOrUpdateLight above may have assigned new shadowIndex values onto the shifted
+        // lights (shadow-map slots re-numbered after the removal) - re-upload so the SSBO reflects
+        // them, same as any other light mutation.
+        Update(-1);
     }
 
     int LightManager::GetLightsCount()

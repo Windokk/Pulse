@@ -12,17 +12,24 @@
 //
 // Consumed as a hard 0/1 weight by DDGI_Diffuse in lit.frag and SampleIndirect in probe_trace.comp -
 // an inactive probe contributes nothing, the same as a fully-occluded one.
+//
+// The active flag is the .w of the shared per-probe state buffer (probeState); .xyz is the relocation
+// offset owned by probe_relocate.comp, which runs right after this pass on the same buffer. This
+// dispatch only touches .w.
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba16f, binding = 0) uniform readonly image2D uRayAtlas;
 
-// Binding 14 - see the comment on m_ProbeActiveBuffer in probe_manager.hpp for why here specifically.
-layout(std430, binding = 14) writeonly buffer ProbeActive { float probeActive[]; };
+// Binding 14 - see the comment on m_ProbeStateBuffer in probe_manager.hpp for why here specifically.
+// Not writeonly : this pass writes only .w and must leave probe_relocate.comp's .xyz untouched.
+layout(std430, binding = 14) buffer ProbeState { vec4 probeState[]; };
 
 uniform int uProbeCount;
 uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
+
+#include "../../common/ddgi_atlas.glsl"
 
 // A probe with more than this fraction of its rays hitting backfaces is considered embedded in geometry.
 const float BACKFACE_RATIO_THRESHOLD = 0.5;
@@ -33,8 +40,7 @@ void main()
     if (probeIndex >= uProbeCount)
         return;
 
-    int stride = uTileSize + 2;
-    ivec2 tileOrigin = ivec2((probeIndex % uAtlasProbesPerRow) * stride, (probeIndex / uAtlasProbesPerRow) * stride) + ivec2(1, 1);
+    ivec2 tileOrigin = DDGI_TileCorner(probeIndex, uTileSize, uAtlasProbesPerRow) + ivec2(1, 1);
 
     int backfaceCount = 0;
     int totalCount = uTileSize * uTileSize;
@@ -53,5 +59,5 @@ void main()
     }
 
     float backfaceRatio = float(backfaceCount) / float(totalCount);
-    probeActive[probeIndex] = backfaceRatio > BACKFACE_RATIO_THRESHOLD ? 0.0 : 1.0;
+    probeState[probeIndex].w = backfaceRatio > BACKFACE_RATIO_THRESHOLD ? 0.0 : 1.0;
 }

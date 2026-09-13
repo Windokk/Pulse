@@ -9,9 +9,6 @@
 namespace Pulse::Engine::Rendering{
 
     namespace {
-        // Keyed by raw GL texture ID rather than by GLTexture2D* : SetTextureParameter/m_SamplersParameters
-        // (see GLMaterial) only ever store the raw ID, so this is what's available at the call site. Entries
-        // are removed in ~GLTexture2D() to avoid a stale resident handle surviving ID reuse by a later texture.
         std::unordered_map<uint32_t, uint64_t> s_BindlessHandles;
         bool s_WarnedBindlessUnsupported = false;
     }
@@ -83,7 +80,20 @@ namespace Pulse::Engine::Rendering{
         }
 
         if(specs.generateMips)
+        {
             glGenerateMipmap(GL_TEXTURE_2D);
+
+            if (GLAD_GL_ARB_texture_filter_anisotropic || GLAD_GL_EXT_texture_filter_anisotropic)
+            {
+                static GLfloat s_MaxAniso = []{
+                    GLfloat m = 1.0f;
+                    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &m);
+                    return m;
+                }();
+
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, std::min(8.0f, s_MaxAniso));
+            }
+        }
     }
 
     void GLTexture2D::Bind(uint32_t slot) const

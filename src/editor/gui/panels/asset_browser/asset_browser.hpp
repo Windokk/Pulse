@@ -6,6 +6,10 @@
 
 #include "editor/gui/panels/common.hpp"
 
+namespace Pulse::Editor::Core{
+    class EditorMainWindow;
+}
+
 namespace Pulse::Editor::GUI{
 
     struct ExampleSelectionWithDeletion : ImGuiSelectionBasicStorage
@@ -77,15 +81,20 @@ namespace Pulse::Editor::GUI{
         Engine::Filesystem::Type type;
         bool isDirectory;
 
+        std::string nameInProject;
+        int size = 0;
+
         const AtlasRegion* icon;  // cached pointer
-        
-        Asset(ImGuiID id, const Engine::Filesystem::Path& path, const Engine::Filesystem::Type type, bool isDir, const AtlasRegion* icon)
+
+        Asset(ImGuiID id, const Engine::Filesystem::Path& path, const Engine::Filesystem::Type type, bool isDir, const AtlasRegion* icon, const std::string& nameInProject = "", int size = 0)
         {
             this->path = path;
             this->type = type;
             this->id = id;
             this->icon = icon;
             this->isDirectory = isDir;
+            this->nameInProject = nameInProject;
+            this->size = size;
         }
 
         static const ImGuiTableSortSpecs* s_current_sort_specs;
@@ -148,6 +157,7 @@ namespace Pulse::Editor::GUI{
             void Refresh();
             void Draw();
             void NavigateTo(const std::string& path);
+            void SetParentWindow(Core::EditorMainWindow* parent);
 
         private:
             void DrawBreadcrumb();
@@ -155,6 +165,8 @@ namespace Pulse::Editor::GUI{
             void UpdateLayoutSizes(float avail_width);
             void RenameAsset(const std::string &oldPath, const std::string &newName);
             void RequestOpenLevel(const Engine::Filesystem::Path &path);
+
+            Core::EditorMainWindow* parent = nullptr;
 
             Engine::Filesystem::Path currentPath;
             float thumbnailSize = 72.f;
@@ -189,10 +201,11 @@ namespace Pulse::Editor::GUI{
             bool            AllowSorting = true;
             bool            AllowDragUnselected = false;
             bool            AllowBoxSelect = true;
-            ImVec2 ItemSize        = ImVec2(90.0f, 110.0f);  // Full clickable/selectable area
+            ImVec2 ItemSize        = ImVec2(90.0f, 138.0f);  // Full clickable/selectable area
             ImVec2 ThumbnailSize   = ImVec2(80.0f, 80.0f);    // Actual image size
             ImVec2 Spacing         = ImVec2(20.0f, 20.0f);    // Horizontal / Vertical spacing
             float IconHitSpacing   = 6;
+            float IconTopPadding   = 8.0f;    // Fixed gap between the tile top and the thumbnail
             bool            StretchSpacing = true;
 
             ImVec2          LayoutItemSize;

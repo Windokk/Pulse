@@ -7,10 +7,138 @@
 #include "engine/levels/level.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
+#include "engine/rendering/texture/texture.hpp"
+
+#include "editor/gui/resources/mesh_thumbnail_cache.hpp"
+#include "editor/gui/panels/asset_editor_registry.hpp"
+#include "editor/gui/dragdrop/asset_drag_drop.hpp"
+
+#include <cstdio>
+#include <functional>
+#include <algorithm>
 
 namespace Pulse::Editor::GUI{
 
     const ImGuiTableSortSpecs* Asset::s_current_sort_specs = NULL;
+
+    // Unreal-esque per-type color coding, used both for the tile's accent bar and its tooltip.
+    static ImU32 GetTypeAccentColor(Engine::Filesystem::Type type, bool isDirectory)
+    {
+        if (isDirectory)
+            return IM_COL32(226, 188, 116, 255); // folder tan
+
+        switch (type)
+        {
+            case Engine::Filesystem::Type::T_MODEL:          return IM_COL32(230, 126, 34, 255);  // orange
+            case Engine::Filesystem::Type::T_MATERIAL:       return IM_COL32(46, 204, 113, 255);  // green
+            case Engine::Filesystem::Type::T_IMAGE:          return IM_COL32(175, 110, 220, 255); // purple/pink
+            case Engine::Filesystem::Type::T_SOUND:          return IM_COL32(26, 188, 156, 255);  // teal
+            case Engine::Filesystem::Type::T_SCRIPT:         return IM_COL32(241, 196, 15, 255);  // yellow
+            case Engine::Filesystem::Type::T_LEVEL:          return IM_COL32(231, 76, 60, 255);   // red
+            case Engine::Filesystem::Type::T_SHADER:         return IM_COL32(52, 152, 219, 255);  // blue
+            case Engine::Filesystem::Type::T_COMPUTE_SHADER: return IM_COL32(41, 128, 185, 255);  // dark blue
+            case Engine::Filesystem::Type::T_FONT:           return IM_COL32(149, 165, 166, 255); // grey-blue
+            case Engine::Filesystem::Type::T_CONFIG:         return IM_COL32(127, 140, 141, 255); // grey
+            case Engine::Filesystem::Type::T_TEXT:           return IM_COL32(189, 195, 199, 255); // light grey
+            default:                                         return IM_COL32(150, 150, 150, 255);
+        }
+    }
+
+    static const char* GetTypeDisplayName(Engine::Filesystem::Type type, bool isDirectory)
+    {
+        if (isDirectory)
+            return "Folder";
+
+        switch (type)
+        {
+            case Engine::Filesystem::Type::T_MODEL:          return "Static Mesh";
+            case Engine::Filesystem::Type::T_MATERIAL:       return "Material";
+            case Engine::Filesystem::Type::T_IMAGE:          return "Texture";
+            case Engine::Filesystem::Type::T_SOUND:          return "Sound";
+            case Engine::Filesystem::Type::T_SCRIPT:         return "Script";
+            case Engine::Filesystem::Type::T_LEVEL:          return "Level";
+            case Engine::Filesystem::Type::T_SHADER:         return "Shader";
+            case Engine::Filesystem::Type::T_COMPUTE_SHADER: return "Compute Shader";
+            case Engine::Filesystem::Type::T_FONT:           return "Font";
+            case Engine::Filesystem::Type::T_CONFIG:         return "Config";
+            case Engine::Filesystem::Type::T_TEXT:           return "Text File";
+            default:                                         return "Asset";
+        }
+    }
+
+    // Wraps a filename into at most two centered lines that fit within maxWidth, truncating
+    // the second line with an ellipsis if the name is still too long to fully display.
+    static void WrapLabelToLines(const std::string& text, float maxWidth, std::string& line1, std::string& line2)
+    {
+        line2.clear();
+
+        if (ImGui::CalcTextSize(text.c_str()).x <= maxWidth)
+        {
+            line1 = text;
+            return;
+        }
+
+        ImFont* font = ImGui::GetFont();
+        float fontSize = ImGui::GetFontSize();
+
+        const char* text_begin = text.c_str();
+        const char* text_end = text_begin + text.size();
+
+        const char* line1_end = font->CalcWordWrapPosition(fontSize, text_begin, text_end, maxWidth);
+        if (line1_end <= text_begin)
+            line1_end = text_begin + 1;
+
+        line1.assign(text_begin, line1_end);
+
+        const char* remaining_begin = line1_end;
+        while (remaining_begin < text_end && *remaining_begin == ' ')
+            remaining_begin++;
+
+        if (remaining_begin >= text_end)
+            return;
+
+        std::string remaining(remaining_begin, text_end);
+
+        if (ImGui::CalcTextSize(remaining.c_str()).x <= maxWidth)
+        {
+            line2 = remaining;
+            return;
+        }
+
+        const char* line2_end = font->CalcWordWrapPosition(fontSize, remaining_begin, text_end, maxWidth);
+        if (line2_end <= remaining_begin)
+            line2_end = remaining_begin + 1;
+
+        std::string truncated(remaining_begin, line2_end);
+        while (!truncated.empty() && ImGui::CalcTextSize((truncated + "...").c_str()).x > maxWidth)
+            truncated.pop_back();
+
+        line2 = truncated + "...";
+    }
+
+    static std::string FormatFileSize(int bytes)
+    {
+        if (bytes < 0)
+            return "";
+
+        char buf[32];
+
+        if (bytes < 1024)
+        {
+            snprintf(buf, sizeof(buf), "%d B", bytes);
+            return buf;
+        }
+
+        double kb = bytes / 1024.0;
+        if (kb < 1024.0)
+        {
+            snprintf(buf, sizeof(buf), "%.1f KB", kb);
+            return buf;
+        }
+
+        snprintf(buf, sizeof(buf), "%.1f MB", kb / 1024.0);
+        return buf;
+    }
 
     void AssetBrowser::Refresh()
     {
@@ -32,11 +160,13 @@ namespace Pulse::Editor::GUI{
             auto file = files[i];
 
             items.push_back(Asset(
-                ImHashStr(file.path.full.c_str()), 
+                ImHashStr(file.path.full.c_str()),
                 file.path,
                 file.type,
                 file.isDirectory,
-                &atlas->GetRegion(file.isDirectory ? Engine::Filesystem::Type::T_DIRECTORY : file.type)
+                &atlas->GetRegion(file.isDirectory ? Engine::Filesystem::Type::T_DIRECTORY : file.type),
+                file.nameInProject,
+                file.size
             ));
         }
 
@@ -47,6 +177,8 @@ namespace Pulse::Editor::GUI{
     {
         if (dirty)
             Refresh();
+
+        MeshThumbnailCache::Instance().BeginFrame();
 
         ImGui::Begin("Asset Browser");
 
@@ -62,41 +194,79 @@ namespace Pulse::Editor::GUI{
     {
         auto& engine = Engine::Core::GetEngine();
 
-        std::string projectRoot =
-            engine.GetCurrentProject()->GetProjectResourcesPath().full;
+        Engine::Filesystem::Path projectRoot = engine.GetCurrentProject()->GetProjectResourcesPath();
 
-        std::string relative = Engine::Filesystem::Path(projectRoot).RelativeTo(currentPath).full;
+        // currentPath relative to projectRoot (NOT the other way around - that would compute the
+        // path FROM currentPath back up TO the root, i.e. "..", which is backwards for a breadcrumb).
+        std::string relative = currentPath.RelativeTo(projectRoot).full;
+        if (relative == ".")
+            relative.clear();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
-
-        if (ImGui::Button(engine.GetCurrentProject()
-                            ->GetProjectResourcesPath()
-                            .GetFilename()
-                            .c_str()))
-        {
-            NavigateTo(projectRoot);
-        }
-
+        std::vector<std::string> segments;
         if (!relative.empty())
         {
             std::stringstream ss(relative);
             std::string segment;
-            std::string accum = projectRoot;
-
             while (std::getline(ss, segment, '/'))
-            {
-                ImGui::SameLine();
-                ImGui::Text("/");
-                ImGui::SameLine();
-
-                accum += "/" + segment;
-
-                if (ImGui::Button(segment.c_str()))
-                    NavigateTo(accum);
-            }
+                if (!segment.empty())
+                    segments.push_back(segment);
         }
 
-        ImGui::PopStyleVar();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.08f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.14f));
+
+        auto drawSeparator = [&]()
+        {
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.30f), ">");
+            ImGui::SameLine();
+        };
+
+        auto drawCrumb = [&](int id, const std::string& label, bool isCurrent, const std::function<void()>& onClick)
+        {
+            ImGui::PushID(id);
+
+            if (isCurrent)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                ImGui::BeginDisabled();
+                ImGui::Button(label.c_str());
+                ImGui::EndDisabled();
+                ImGui::PopStyleColor();
+            }
+            else
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 0.65f));
+                if (ImGui::Button(label.c_str()))
+                    onClick();
+                ImGui::PopStyleColor();
+            }
+
+            ImGui::PopID();
+        };
+
+        drawCrumb(0, engine.GetCurrentProject()->GetProjectResourcesPath().GetFilename(),
+            segments.empty(),
+            [&]() { NavigateTo(projectRoot.full); });
+
+        Engine::Filesystem::Path accum = projectRoot;
+
+        for (size_t i = 0; i < segments.size(); i++)
+        {
+            drawSeparator();
+
+            accum = accum / segments[i];
+            bool isCurrent = (i == segments.size() - 1);
+
+            drawCrumb((int)i + 1, segments[i], isCurrent, [&, accum]() { NavigateTo(accum.full); });
+        }
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(3);
     }
 
     void AssetBrowser::DrawAssets()
@@ -151,9 +321,6 @@ namespace Pulse::Editor::GUI{
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(LayoutSelectableSpacing, LayoutSelectableSpacing));
 
             // Rendering parameters
-            const ImU32 icon_type_overlay_colors[3] = { 0, IM_COL32(200, 70, 70, 255), IM_COL32(70, 170, 70, 255) };
-            const ImU32 icon_bg_color = ImGui::GetColorU32(IM_COL32(35, 35, 35, 220));
-            const ImVec2 icon_type_overlay_size = ImVec2(4.0f, 4.0f);
             const bool display_label = (LayoutItemSize.x >= ImGui::CalcTextSize("999").x);
 
             const int column_count = LayoutColumnCount;
@@ -183,10 +350,43 @@ namespace Pulse::Editor::GUI{
                         bool item_is_visible = ImGui::IsRectVisible(LayoutItemSize);
                         ImGui::Selectable("", item_is_selected, ImGuiSelectableFlags_None, LayoutItemSize);
 
-                        if (!item_data->isDirectory && item_data->type == Engine::Filesystem::Type::T_LEVEL
-                            && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                        bool item_hovered = ImGui::IsItemHovered();
+
+                        if (item_hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                         {
-                            RequestOpenLevel(item_data->path);
+                            if (item_data->isDirectory)
+                                NavigateTo(item_data->path.full);
+                            else if (item_data->type == Engine::Filesystem::Type::T_LEVEL)
+                                RequestOpenLevel(item_data->path);
+                            else
+                                AssetEditorRegistry::Instance().TryOpen(item_data->type, item_data->path);
+                        }
+
+                        if (!ImGui::IsDragDropActive() && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+                        {
+                            ImGui::BeginTooltip();
+
+                            ImVec4 accentColor = ImGui::ColorConvertU32ToFloat4(GetTypeAccentColor(item_data->type, item_data->isDirectory));
+
+                            ImGui::TextUnformatted(item_data->path.GetFilename().c_str());
+                            ImGui::TextColored(accentColor, "%s", GetTypeDisplayName(item_data->type, item_data->isDirectory));
+
+                            if (!item_data->isDirectory)
+                            {
+                                ImGui::Separator();
+                                ImGui::TextDisabled("%s", FormatFileSize(item_data->size).c_str());
+
+                                if (item_data->type == Engine::Filesystem::Type::T_IMAGE)
+                                {
+                                    auto tex = Engine::Core::GetEngine().GetResourcesManager()->GetTexture(item_data->nameInProject);
+                                    if (tex)
+                                        ImGui::TextDisabled("%u x %u", tex->GetWidth(), tex->GetHeight());
+                                }
+                            }
+
+                            ImGui::TextDisabled("%s", item_data->nameInProject.c_str());
+
+                            ImGui::EndTooltip();
                         }
 
                         // Update our selection state immediately (without waiting for EndMultiSelect() requests)
@@ -198,44 +398,88 @@ namespace Pulse::Editor::GUI{
                         if (item_curr_idx_to_focus == item_idx)
                             ImGui::SetKeyboardFocusHere(-1);
 
-                        // Drag and drop
+                        // Drag and drop - the payload carries each dragged item's nameInProject (see
+                        // DragDrop::SetAssetDragDropPayload) so any drop target elsewhere in the editor
+                        // (viewport, level tree, inspector asset fields, material slots, ...) can feed
+                        // it straight into ResourcesManager/AssetIDManager lookups.
                         if (ImGui::BeginDragDropSource())
                         {
                             // Create payload with full selection OR single unselected item.
                             // (the later is only possible when using ImGuiMultiSelectFlags_SelectOnClickRelease)
                             if (ImGui::GetDragDropPayload() == NULL)
                             {
-                                ImVector<ImGuiID> payload_items;
-                                void* it = NULL;
-                                ImGuiID id = 0;
+                                std::vector<std::string> dragged;
                                 if (!item_is_selected)
-                                    payload_items.push_back(item_data->id);
+                                    dragged.push_back(item_data->nameInProject);
                                 else
+                                {
+                                    void* it = NULL;
+                                    ImGuiID id = 0;
                                     while (selection.GetNextSelectedItem(&it, &id))
-                                        payload_items.push_back(id);
-                                ImGui::SetDragDropPayload("ASSETS_BROWSER_ITEMS", payload_items.Data, (size_t)payload_items.size_in_bytes());
+                                    {
+                                        auto found = std::find_if(items.begin(), items.end(),
+                                            [id](const Asset& a) { return a.id == id; });
+                                        if (found != items.end())
+                                            dragged.push_back(found->nameInProject);
+                                    }
+                                }
+                                DragDrop::SetAssetDragDropPayload(dragged);
                             }
 
                             // Display payload content in tooltip, by extracting it from the payload data
                             // (we could read from selection, but it is more correct and reusable to read from payload)
-                            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
-                            const int payload_count = (int)payload->DataSize / (int)sizeof(ImGuiID);
-                            ImGui::Text("%d assets", payload_count);
+                            std::vector<std::string> payloadNames = DragDrop::PeekAssetDragDropPayload();
+                            if (payloadNames.size() == 1)
+                            {
+                                Engine::Filesystem::Type t = Engine::Filesystem::Path(payloadNames[0]).GetExtensionType();
+                                ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(GetTypeAccentColor(t, false)),
+                                    "%s", GetTypeDisplayName(t, false));
+                            }
+                            else
+                            {
+                                ImGui::Text("%d assets", (int)payloadNames.size());
+                            }
 
                             ImGui::EndDragDropSource();
                         }
 
-                        // Render icon (a real app would likely display an image/thumbnail here)
+                        // Render icon/thumbnail, Unreal-Content-Browser-style: a type-tinted tile,
+                        // a real texture preview for images (falling back to the atlas icon for
+                        // everything else), a solid color-coded accent bar under the thumbnail, and
+                        // a selection/hover outline.
                         if (item_is_visible)
                         {
                             ImVec2 box_min(pos.x - 1, pos.y - 1);
                             ImVec2 box_max(box_min.x + LayoutItemSize.x + 2, box_min.y + LayoutItemSize.y + 2); // Dubious
-                            draw_list->AddRectFilled(box_min, box_max, icon_bg_color); // Background color
-                            
-                            // Compute centered icon position inside LayoutItemSize
+
+                            ImU32 accent = GetTypeAccentColor(item_data->type, item_data->isDirectory);
+                            ImVec4 accentF = ImGui::ColorConvertU32ToFloat4(accent);
+
+                            // Base tile background subtly tinted towards the type's accent color,
+                            // brightened a touch on hover.
+                            ImVec4 baseBg = item_hovered ? ImVec4(0.205f, 0.205f, 0.220f, 0.92f) : ImVec4(0.149f, 0.149f, 0.161f, 0.86f);
+                            const float tintWeight = 0.10f;
+                            ImU32 tileBg = ImGui::ColorConvertFloat4ToU32(ImVec4(
+                                baseBg.x * (1.0f - tintWeight) + accentF.x * tintWeight,
+                                baseBg.y * (1.0f - tintWeight) + accentF.y * tintWeight,
+                                baseBg.z * (1.0f - tintWeight) + accentF.z * tintWeight,
+                                baseBg.w
+                            ));
+
+                            draw_list->AddRectFilled(box_min, box_max, tileBg, 4.0f);
+
+                            if (item_is_selected)
+                                draw_list->AddRect(box_min, box_max, IM_COL32(35, 154, 255, 255), 4.0f, 0, 2.0f);
+                            else if (item_hovered)
+                                draw_list->AddRect(box_min, box_max, IM_COL32(255, 255, 255, 90), 4.0f, 0, 1.0f);
+
+                            // Icon sits at a fixed distance from the top of the tile (horizontally
+                            // centered) rather than centered across the full tile height, so its
+                            // position - and the accent bar right under it - stay put regardless of
+                            // how tall the label below ends up being (one vs two lines).
                             ImVec2 icon_offset = ImVec2(
                                 (LayoutItemSize.x - ThumbnailSize.x) * 0.5f,
-                                (LayoutItemSize.y - ThumbnailSize.y) * 0.5f - 10
+                                IconTopPadding
                             );
 
                             ImVec2 icon_min = ImVec2(
@@ -248,26 +492,93 @@ namespace Pulse::Editor::GUI{
                                 icon_min.y + ThumbnailSize.y
                             );
 
-                            // Draw icon
-                            draw_list->AddImage(
-                                (void*)(intptr_t)EditorResources::Instance().GetIconAtlas()->GetTexture()->GetHandle(),
-                                icon_min,
-                                icon_max,
-                                item_data->icon->uv0,
-                                item_data->icon->uv1
-                            );
-                            /*if (ShowTypeOverlay && item_data->Type != 0)
+                            // Real preview for images and static meshes; every other type falls
+                            // back to its atlas icon. Images sample their own already-loaded
+                            // texture directly; meshes are rendered white/unlit into a shared
+                            // thumbnail atlas the first time they're seen (see MeshThumbnailCache).
+                            std::shared_ptr<Engine::Rendering::Texture2D> imageThumbnail;
+                            const AtlasRegion* meshThumbnail = nullptr;
+
+                            if (!item_data->isDirectory && item_data->type == Engine::Filesystem::Type::T_IMAGE)
+                                imageThumbnail = Engine::Core::GetEngine().GetResourcesManager()->GetTexture(item_data->nameInProject);
+                            else if (!item_data->isDirectory && item_data->type == Engine::Filesystem::Type::T_MODEL)
+                                meshThumbnail = MeshThumbnailCache::Instance().GetOrCreateThumbnail(item_data->nameInProject);
+
+                            if (imageThumbnail && imageThumbnail->IsValid())
                             {
-                                ImU32 type_col = icon_type_overlay_colors[item_data->Type % IM_ARRAYSIZE(icon_type_overlay_colors)];
-                                draw_list->AddRectFilled(ImVec2(box_max.x - 2 - icon_type_overlay_size.x, box_min.y + 2), ImVec2(box_max.x - 2, box_min.y + 2 + icon_type_overlay_size.y), type_col);
-                            }*/
+                                draw_list->AddRectFilled(icon_min, icon_max, IM_COL32(18, 18, 20, 255));
+                                draw_list->AddImage(
+                                    (void*)(intptr_t)imageThumbnail->GetHandle(),
+                                    icon_min,
+                                    icon_max
+                                );
+                                draw_list->AddRect(icon_min, icon_max, IM_COL32(0, 0, 0, 130));
+                            }
+                            else if (meshThumbnail)
+                            {
+                                draw_list->AddImage(
+                                    (void*)(intptr_t)MeshThumbnailCache::Instance().GetAtlasTextureHandle(),
+                                    icon_min,
+                                    icon_max,
+                                    meshThumbnail->uv0,
+                                    meshThumbnail->uv1
+                                );
+                                draw_list->AddRect(icon_min, icon_max, IM_COL32(0, 0, 0, 130));
+                            }
+                            else
+                            {
+                                draw_list->AddImage(
+                                    (void*)(intptr_t)EditorResources::Instance().GetIconAtlas()->GetTexture()->GetHandle(),
+                                    icon_min,
+                                    icon_max,
+                                    item_data->icon->uv0,
+                                    item_data->icon->uv1
+                                );
+                            }
+
+                            // Type-color accent bar, sitting right under the thumbnail - the main
+                            // "what kind of asset is this" cue, at a glance, across the whole grid.
+                            ImVec2 bar_min(box_min.x + 3, icon_max.y + 4);
+                            ImVec2 bar_max(box_max.x - 3, bar_min.y + 3);
+                            draw_list->AddRectFilled(bar_min, bar_max, accent, 1.5f);
+
                             if (display_label)
                             {
-                                ImU32 label_col = ImGui::GetColorU32(item_is_selected ? ImGuiCol_Text : ImGuiCol_TextDisabled);
-                                //std::string filename = item_data->path.GetFilename();
                                 std::string filename = item_data->path.GetFilename();
-                                float width = ImGui::CalcTextSize(filename.c_str()).x;
-                                draw_list->AddText(ImVec2(box_min.x + (box_max.x - box_min.x) * 0.5 - width / 2, box_max.y - ImGui::GetFontSize()), label_col, filename.c_str());
+
+                                const float labelMaxWidth = (box_max.x - box_min.x) - 8.0f;
+                                std::string line1, line2;
+                                WrapLabelToLines(filename, labelMaxWidth, line1, line2);
+
+                                const float fontSize = ImGui::GetFontSize();
+                                const bool hasSecondLine = !line2.empty();
+
+                                // The label block is always reserved at its full two-line height,
+                                // even for names that only need one line - so the strip, and every
+                                // line of text across the whole grid, lines up at the same height
+                                // regardless of which tiles happen to need wrapping.
+                                float stripTop = box_max.y - (fontSize * 2.0f + 2.0f) - 4.0f;
+                                draw_list->AddRectFilled(
+                                    ImVec2(box_min.x + 2, stripTop),
+                                    ImVec2(box_max.x - 2, box_max.y - 2),
+                                    IM_COL32(15, 15, 17, 180),
+                                    3.0f
+                                );
+
+                                ImU32 label_col = ImGui::GetColorU32(item_is_selected ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+
+                                float line1Width = ImGui::CalcTextSize(line1.c_str()).x;
+                                float line1Y = box_max.y - fontSize * 2.0f - 3.0f;
+                                ImVec2 line1Pos(box_min.x + (box_max.x - box_min.x) * 0.5f - line1Width / 2, line1Y);
+                                draw_list->AddText(line1Pos, label_col, line1.c_str());
+
+                                if (hasSecondLine)
+                                {
+                                    float line2Width = ImGui::CalcTextSize(line2.c_str()).x;
+                                    float line2Y = box_max.y - fontSize - 3.0f;
+                                    ImVec2 line2Pos(box_min.x + (box_max.x - box_min.x) * 0.5f - line2Width / 2, line2Y);
+                                    draw_list->AddText(line2Pos, label_col, line2.c_str());
+                                }
                             }
                         }
 
@@ -362,6 +673,11 @@ namespace Pulse::Editor::GUI{
         // leave the editor with zero levels loaded.
         std::string pathInProject = engine.GetFileManager()->GetFileInfos(path).nameInProject;
         levelManager->LoadLevelAsync(pathInProject);
+    }
+
+    void AssetBrowser::SetParentWindow(Core::EditorMainWindow* parent)
+    {
+        this->parent = parent;
     }
 
     void AssetBrowser::RenameAsset(const std::string& oldPath, const std::string& newName)

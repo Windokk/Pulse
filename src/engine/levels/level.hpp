@@ -103,6 +103,21 @@ namespace Pulse::Engine::Levels{
             std::shared_ptr<Objects::Skybox> skybox;
             std::shared_ptr<Rendering::Texture2D> ibl_texture;
 
+            // Screen-space ambient occlusion (see SSAOManager). Off by default since it darkens every
+            // scene's ambient term - the 3 SSAO render passes themselves always run regardless (turning
+            // this on/off doesn't register/unregister them), only the multiply in lit.frag is gated by
+            // it, so toggling this is cheap and instant. radius/bias/intensity are the classic
+            // hemisphere-kernel SSAO tuning knobs (world-space sample radius, depth-compare bias to
+            // avoid self-occlusion acne, and a 0-1 blend strength applied in lit.frag).
+            bool ssaoEnabled = true;
+            float ssaoRadius = 0.5f;
+            float ssaoBias = 0.025f;
+            float ssaoIntensity = 1.0f;
+            // Contrast curve applied to the raw AO average (see ssao.frag) before it reaches
+            // lit.frag - without it, a 32-sample boolean average clusters close to mid-gray and
+            // never gets convincingly dark even in tight corners. 1.0 = no curve (legacy behavior).
+            float ssaoPower = 2.0f;
+
             std::shared_ptr<Objects::Components::ProbeVolume> probeVolume;
 
             // These are maps for fast lookup (key: id IN LEVEL, value: ptr to the comp)

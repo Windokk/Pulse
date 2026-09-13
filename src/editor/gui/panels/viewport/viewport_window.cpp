@@ -9,6 +9,9 @@
 #include "editor/gui/main_window.hpp"
 #include "editor/gui/panels/common.hpp"
 #include "editor/gui/imoguizmo.hpp"
+#include "editor/gui/dragdrop/asset_drag_drop.hpp"
+
+#include "engine/objects/components/rendering/model_component.hpp"
 
 
 #include <glm/gtx/string_cast.hpp>
@@ -27,6 +30,22 @@ namespace Pulse::Editor::GUI {
 
     void ViewportWindow::Draw()
     {
+        // The editor fly-camera must own the viewport whenever we're not in play mode. Loading or
+        // reloading a level rebinds CameraManager's active camera through Level::OnLoad() - to a
+        // level camera, or to nothing at all when the scene has no camera actor, which left the
+        // viewport with no active camera ("Failed to find a valid active camera"). Re-assert it
+        // here every editor frame; it's a cheap lookup that no-ops once we're already active.
+        if (cameraActor && !Engine::Core::GetEngine().IsInPlayMode())
+        {
+            auto* cameraManager = Engine::Core::GetEngine().GetCameraManager();
+            if (cameraManager->GetActiveCamera() != camera)
+            {
+                if (!cameraManager->GetCamera(cameraActor->GetID()))
+                    cameraManager->AddCamera(cameraActor->GetID(), camera);
+                cameraManager->SetActiveCamera(cameraActor->GetID());
+            }
+        }
+
         // Dispatches one accumulated sample (or, on the first call after Start(), builds the scene/BVH)
         // per editor frame while a raytrace is active (see Raytracer::Update()'s comments) - called
         // unconditionally, regardless of whether the raytrace settings window is currently open, so the
@@ -71,9 +90,11 @@ namespace Pulse::Editor::GUI {
 
         viewportHovered = ImGui::IsItemHovered();
         viewportFocused = ImGui::IsWindowFocused();
-        
+
         viewportImageMin = ImGui::GetItemRectMin();
         viewportImageMax = ImGui::GetItemRectMax();
+
+        HandleAssetDrop();
 
         if(parent && parent->GetSelectedActor() && parent->settings.showGizmos)
             DrawObjectGizmo();
@@ -378,6 +399,64 @@ namespace Pulse::Editor::GUI {
             Commands::CommandStack::Get().End();
             gizmoActive = false;
         }
+    }
+
+    void ViewportWindow::HandleAssetDrop()
+    {
+        if (!ImGui::BeginDragDropTarget())
+            return;
+
+        std::vector<std::string> dropped = DragDrop::AcceptAssetDragDropPayload();
+        if (!dropped.empty())
+        {
+            auto level = Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0);
+            if (level)
+            {
+                // Ray from the camera through the drop position - if it lands on existing geometry the
+                // new actor spawns there (dropping onto a floor/wall places it flush against it),
+                // otherwise a fixed distance out in front of the camera so it never spawns behind it.
+                ImVec2 mouse = ImGui::GetMousePos();
+                float localX = mouse.x - viewportImageMin.x;
+                float localY = mouse.y - viewportImageMin.y;
+
+                glm::vec3 nearPoint = camera->ScreenToWorld(localX, localY, 0.0f);
+                glm::vec3 farPoint  = camera->ScreenToWorld(localX, localY, 1.0f);
+                glm::vec3 dir = glm::normalize(farPoint - nearPoint);
+
+                Engine::Physics::RaycastResult hit = Engine::Core::GetEngine().GetPhysicsManager()->RayCast({nearPoint, dir, 10000.0f});
+                glm::vec3 spawnPos = nearPoint + dir * (hit.hit ? hit.hitDistance : 15.0f);
+
+                std::shared_ptr<Engine::Objects::Actor> lastSpawned;
+
+                for (const auto& nameInProject : dropped)
+                {
+                    // Only static meshes can be dropped directly into the scene this way - other asset
+                    // types (materials, textures, ...) are assigned onto existing fields instead (see
+                    // the Asset-field/material-slot drag targets in properties_panel.cpp / material_editor_panel.cpp).
+                    if (Engine::Filesystem::Path(nameInProject).GetExtensionType() != Engine::Filesystem::Type::T_MODEL)
+                        continue;
+
+                    auto actor = Engine::Core::Object::CreateWithContext<Engine::Objects::Actor>(
+                        &Engine::Core::GetEngine(),
+                        Engine::Filesystem::Path(nameInProject).GetFilename(false),
+                        &Engine::Core::GetEngine());
+
+                    level->AddActor(actor);
+                    actor->transform->SetPosition(spawnPos);
+
+                    auto model = actor->AddComponent<Engine::Objects::Components::Model>();
+                    if (model)
+                        model->SetMesh(nameInProject);
+
+                    lastSpawned = actor;
+                }
+
+                if (lastSpawned && parent)
+                    parent->SetSelectedActor(lastSpawned);
+            }
+        }
+
+        ImGui::EndDragDropTarget();
     }
 
     void ViewportWindow::ShowFrameStats(){

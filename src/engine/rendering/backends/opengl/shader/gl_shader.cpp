@@ -1,6 +1,7 @@
 #include "gl_shader.hpp"
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
+#include "engine/rendering/shader/glsl_preprocessor.hpp"
 
 #include "engine/debugging/logger.hpp"
 
@@ -41,9 +42,11 @@ namespace Pulse::Engine::Rendering{
             m_VertexFilePath = vertexPath.full;
             m_FragmentFilePath = fragmentPath.full;
 
-            // Read vertexFile and fragmentFile and store the strings
-            std::string vertexCode = vertexPath.ReadFile();
-            std::string fragmentCode = fragmentPath.ReadFile();
+            // Read vertexFile and fragmentFile, expanding any `#include "..."` directives (see
+            // glsl_preprocessor.hpp) before handing the source to the driver - GLSL itself has no
+            // include support.
+            std::string vertexCode = ResolveGLSLIncludes(vertexPath);
+            std::string fragmentCode = ResolveGLSLIncludes(fragmentPath);
     
             // Convert the shader source strings into character arrays
             const char* vertexSource = vertexCode.c_str();
@@ -72,7 +75,7 @@ namespace Pulse::Engine::Rendering{
 
             if (hasGeometry) {
                 m_GeometryFilePath = geometryPath.full;
-                std::string geometryCode = geometryPath.ReadFile();
+                std::string geometryCode = ResolveGLSLIncludes(geometryPath);
                 const char* geometrySource = geometryCode.c_str();
 
                 geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
@@ -351,6 +354,11 @@ namespace Pulse::Engine::Rendering{
     void GLShader::SetMat4(const std::string &name, const glm::mat4 &mat)
     {
         glUniformMatrix4fv(GetUniformLocationCached(name), 1, GL_FALSE, &mat[0][0]);
+    }
+
+    void GLShader::SetUVec2(const std::string &name, uint32_t x, uint32_t y)
+    {
+        glUniform2ui(GetUniformLocationCached(name), x, y);
     }
 
     GLShader::~GLShader()

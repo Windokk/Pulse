@@ -19,8 +19,17 @@ namespace Pulse::Engine::Objects::Components{
     void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const InstancedStruct& newParams, EMotionType newMotionType, bool forceRecreation)
     {
         auto physics = GetEngineContext()->GetPhysicsManager();
-        if (!physics || m_BodyID.IsInvalid())
+        if (!physics)
             return;
+
+        // A freshly added PhysicsBody component (e.g. via the editor's "Add Component")
+        // has no Jolt body yet - CreateBody() is otherwise only called from Deserialize()
+        // and Clone(). Create it now from whatever shape/motion type was just set.
+        if (m_BodyID.IsInvalid())
+        {
+            CreateBody(newShape, newParams, newMotionType);
+            return;
+        }
 
         auto& bi = physics->GetBodyInterface();
 

@@ -376,7 +376,12 @@ namespace Pulse::Engine::Rendering{
     {
         return m_ColorAttachment;
     }
-    
+
+    uint64_t GLFramebuffer::GetColorAttachmentBindlessHandle() const
+    {
+        return GLTexture2D::GetBindlessHandle(m_ColorAttachment);
+    }
+
     uint32_t GLFramebuffer::GetDepthAttachment() const
     {
         return m_DepthAttachment;

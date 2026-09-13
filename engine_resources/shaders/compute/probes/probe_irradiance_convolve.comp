@@ -17,7 +17,7 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // Sampler bindings start at 42 - see the identical comment in probe_trace.comp for why (avoids
-// GLStateCache going stale on lit.frag's material texture units 1-3 when ProbeManager::Update()'s raw
+// GLStateCache going stale on lit.frag's material texture units 1-3, since ProbeManager::Update()'s raw
 // Texture2D::Bind() calls run ahead of the forward pass each frame). Image bindings (0, 2 below) are
 // unaffected - separate binding namespace.
 layout(binding = 42) uniform sampler2D uRayAtlas;
@@ -33,6 +33,9 @@ uniform int uProbeCount;
 uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
 
+#include "../../common/octahedral.glsl"
+#include "../../common/ddgi_atlas.glsl"
+
 // Distance wants a much tighter kernel than irradiance's linear cosine lobe : irradiance is meant to be
 // a soft, diffuse-like blur (that's how it's actually used), but a wide blur on distance would smear a
 // nearby occluder's depth across a broad cone and under-detect thin walls in the Chebyshev visibility
@@ -40,17 +43,6 @@ uniform int uAtlasProbesPerRow;
 // high power keeps the kernel close to "whatever this texel's own ray direction hit" while still
 // pulling in enough neighboring rays to fill gaps between the sparse traced directions.
 const float DIST_SHARPNESS = 8.0;
-
-// Same octahedral mapping as probe_trace.comp/lit.frag - kept in sync so a texel here refers to exactly
-// the direction that texel was traced for.
-vec3 OctDecode(vec2 f)
-{
-    vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-    float t = max(-n.z, 0.0);
-    n.x += n.x >= 0.0 ? -t : t;
-    n.y += n.y >= 0.0 ? -t : t;
-    return normalize(n);
-}
 
 vec3 TexelDirection(int tx, int ty, int tileSize)
 {
@@ -76,8 +68,7 @@ void main()
 
     // Same +2-border stride as the ray atlas (see probe_trace.comp/probe_border_fixup.comp) - both
     // atlases share identical tile layout/size, only their contents differ.
-    int stride = uTileSize + 2;
-    ivec2 tileOrigin = ivec2((probeIndex % uAtlasProbesPerRow) * stride, (probeIndex / uAtlasProbesPerRow) * stride) + ivec2(1, 1);
+    ivec2 tileOrigin = DDGI_TileCorner(probeIndex, uTileSize, uAtlasProbesPerRow) + ivec2(1, 1);
 
     vec3 sum = vec3(0.0);
     float weightSum = 0.0;

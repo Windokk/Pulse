@@ -5,7 +5,7 @@
     "uniforms":[
         {"albedo":"textures/white.png"},
         {"metallic":0.2},
-        {"roughness":0.2},
+        {"roughness":1.0},
         {"useEnvReflections":false}
     ]
 }

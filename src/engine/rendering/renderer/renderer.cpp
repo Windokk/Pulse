@@ -9,6 +9,8 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
 #include "engine/rendering/lighting/probe_manager.hpp"
+#include "engine/rendering/lighting/ssao_manager.hpp"
+#include "engine/rendering/lighting/light_culling_manager.hpp"
 #include "engine/rendering/camera/camera_manager.hpp"
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/debugging/profiler.hpp"
@@ -129,6 +131,30 @@ namespace Pulse::Engine::Rendering{
         // Initially no dependencies for forward pass
         AddRenderPass(forwardPass, "ForwardPass", {});
         m_RendererAPI->SetClearColor(0,0,0,1);
+
+        /// Probe gizmo pass - the small per-probe marker spheres ProbeVolume submits (see
+        /// ProbeVolume::RefreshDebugDrawCommands). Same target as ForwardPass, drawn right after it
+        /// without clearing (so markers composite on top of the already-shaded scene) - kept as its own
+        /// pass rather than mixed into ForwardPass's own draw list so the editor can hide just these
+        /// markers (RenderPass::enabled = false) without touching the ProbeVolume components themselves,
+        /// which must stay active regardless (see LevelSettingsPanel).
+        std::shared_ptr<RenderPass> probeGizmoPass = std::make_shared<RenderPass>();
+        probeGizmoPass->target = m_ViewportBuffer;
+        probeGizmoPass->clearColor = false;
+        probeGizmoPass->clearDepth = false;
+        probeGizmoPass->overridePipeline = false;
+        AddRenderPass(probeGizmoPass, "ProbeGizmoPass", {"ForwardPass"});
+
+        // Init SSAO (see SSAOManager) - after ForwardPass is registered, since Init() adds
+        // "ForwardPass" -> "SSAOBlurPass" as a dependency so the forward pass always samples this
+        // frame's finished (blurred) AO texture rather than a stale or in-progress one.
+        m_SSAOManager = std::make_shared<SSAOManager>();
+        m_SSAOManager->Init(this, m_Settings->viewportWidth, m_Settings->viewportHeight);
+
+        // Init Forward+ light culling (see LightCullingManager) - after LightManager exists, since its
+        // per-frame Update() reads the light SSBO/count from it.
+        m_LightCullingManager = std::make_shared<LightCullingManager>();
+        m_LightCullingManager->Init(this);
 
         struct Vertex {
             glm::vec3 position;
@@ -629,10 +655,33 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::BeginFrame()
     {
-        Core::GetEngine().GetCameraManager()->Tick();
+        {
+            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::CameraUpdate);
+            Core::GetEngine().GetCameraManager()->Tick();
+        }
+
         ReorderDrawList();
-        m_ShadowManager->UpdatePassUniforms();
-        m_ProbeManager->Update();
+
+        {
+            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::ShadowUpdate);
+            m_ShadowManager->UpdatePassUniforms();
+        }
+
+        {
+            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::GIProbeUpdate);
+            m_ProbeManager->Update();
+        }
+
+        {
+            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::SSAOUpdate);
+            m_SSAOManager->Update();
+        }
+
+        {
+            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::LightCullingUpdate);
+            m_LightCullingManager->Update();
+        }
+
         if(m_NeedExecutionOrderRebuild){
             BuildExecutionOrder();
             m_NeedExecutionOrderRebuild = false;
@@ -644,6 +693,8 @@ namespace Pulse::Engine::Rendering{
         for (const auto& passName : m_ExecutionOrder)
         {
             auto pass = m_RenderPasses[passName];
+            if (!pass->enabled)
+                continue;
             BeginRenderPass(pass);
             ExecuteRenderPass();
             EndRenderPass();
@@ -653,6 +704,7 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::EndFrame()
     {
+        PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::MultisampleResolve);
         m_ViewportBuffer->ResolveMultisampled();
     }
 
@@ -676,11 +728,19 @@ namespace Pulse::Engine::Rendering{
     {
         auto camera = Core::GetEngine().GetCameraManager()->GetActiveCamera();
 
+        // Benign transient: right after boot (before the editor builds its viewport camera) or
+        // during a level swap there can be a frame with no active camera. Skip the pass, and warn
+        // only on the no-camera -> still-no-camera edge so a genuine "stuck" state stays visible
+        // without spamming one line per pass per frame.
+        static bool hadCameraLastCall = true;
         if(!camera)
         {
-            DEBUG_ERROR("Failed to find a valid active camera");
+            if(hadCameraLastCall)
+                DEBUG_WARNING("No active camera - skipping render passes until one is set");
+            hadCameraLastCall = false;
             return;
         }
+        hadCameraLastCall = true;
 
         bool cullingActive = camera->frustumCulling && m_CurrentPass->allowCulling;
 
@@ -691,7 +751,11 @@ namespace Pulse::Engine::Rendering{
             {
                 PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::Culling);
 
-                if (!drawCmd.material || drawCmd.indexCount <= 0)
+                // A fullscreenTri command has no index buffer (DrawFullScreenTriangle() just issues
+                // glDrawArrays(GL_TRIANGLES, 0, 3)), so it never has indexCount set - only require it
+                // for indexed draws, or every fullscreen-triangle command (SSAO's raw/blur passes,
+                // the editor's outline composite) would get silently dropped here every frame.
+                if (!drawCmd.material || (!drawCmd.fullscreenTri && drawCmd.indexCount <= 0))
                 {
                     skip = true;
                 }
@@ -731,5 +795,7 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::EndRenderPass()
     {
+        if (m_CurrentPass->barrierAfter != MemoryBarrierBit::None)
+            m_RendererAPI->MemoryBarrier(m_CurrentPass->barrierAfter);
     }
 }

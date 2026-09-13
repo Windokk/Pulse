@@ -34,6 +34,15 @@ namespace Pulse::Engine::Objects::Components
             void Update();
             void RemoveFromDrawList();
 
+            // Registers/unregisters this model's draw commands with an arbitrary extra pass, without
+            // touching its standing ForwardPass/SSAODepthNormalPass registration - used by the editor
+            // to draw only the selected actor into EditorOutlineMaskPass rather than the whole scene.
+            void AddToPass(const std::string &passName);
+            void RemoveFromPass(const std::string &passName);
+
+            void Activate() override;
+            void DeActivate() override;
+
             void Destroy() override;
 
             std::shared_ptr<Component> Clone() const override;
@@ -52,6 +61,11 @@ namespace Pulse::Engine::Objects::Components
 
             std::shared_ptr<Rendering::Mesh> mesh;
             std::vector<std::shared_ptr<Rendering::Material>> materials;
+
+            // Extra passes registered via AddToPass (e.g. the editor's EditorOutlineMaskPass for the
+            // selected actor) - tracked so a mesh swap can drop the old mesh's commands from them and
+            // re-register the new mesh's, instead of leaving the old mesh's commands orphaned in the pass.
+            std::vector<std::string> extraPasses;
 
     };
 }

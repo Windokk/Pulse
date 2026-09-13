@@ -135,7 +135,7 @@ namespace Pulse::Engine::Rendering {
             bool IsVolumeReady(int index) const;
             std::shared_ptr<Texture2D> GetIrradianceAtlas(int index) const;
             std::shared_ptr<Texture2D> GetDistanceAtlas(int index) const;
-            std::shared_ptr<StorageBuffer> GetProbeActiveBuffer(int index) const;
+            std::shared_ptr<StorageBuffer> GetProbeStateBuffer(int index) const;
             glm::vec3 GetGridOrigin(int index) const;
             glm::vec3 GetGridSpacing(int index) const;
             glm::ivec3 GetProbeCounts(int index) const;
@@ -153,16 +153,27 @@ namespace Pulse::Engine::Rendering {
                 std::shared_ptr<StorageBuffer> probeBuffer;
                 uint32_t probeCount = 0;
 
-                // One float per probe (0.0 = inactive, 1.0 = active), read by DDGI_Diffuse in lit.frag
-                // and SampleIndirect in probe_trace.comp to exclude a probe from the blend entirely
-                // instead of letting it contribute - see probe_classify.comp for how this gets computed
-                // ("Probe Classification", the same RTXGI technique this probe system otherwise mirrors).
-                // Without this, a probe that a uniform grid happens to land inside (e.g. a protruding
-                // piece of geometry like a wall relief/statue) sees mostly backfaces and bakes biased,
-                // self-lit radiance that then leaks into whatever surface it's stuck inside via the
-                // trilinear blend. Initialized to all-active in RebuildGrid() so nothing is wrongly
-                // excluded before the first classify dispatch completes.
-                std::shared_ptr<StorageBuffer> probeActiveBuffer;
+                // One vec4 of per-probe state, bound at SSBO 14 for every probe compute pass and (per
+                // volume) for the forward pass :
+                //  - .w   : classification flag (0.0 = inactive, 1.0 = active), written by
+                //           probe_classify.comp, read by DDGI_Diffuse in lit.frag and SampleIndirect in
+                //           probe_trace.comp to exclude a probe from the blend entirely. Without it, a
+                //           probe a uniform grid lands inside a protruding piece of geometry (wall
+                //           relief, statue, pillar) sees mostly backfaces and bakes biased, self-lit
+                //           radiance that leaks into whatever it's stuck inside via the trilinear blend.
+                //  - .xyz : world-space relocation offset, written by probe_relocate.comp, added to the
+                //           probe's grid position everywhere it's used (probe_trace.comp ray origins +
+                //           SampleIndirect, lit.frag DDGI_Diffuse). RTXGI "Probe Relocation" : nudge a
+                //           trapped/grazing probe back into open space (bounded to 0.45 * min grid
+                //           spacing) so it stays useful instead of only being silenced by .w. Persistent
+                //           across frames (integrated, then eased back toward zero once the probe has
+                //           room). A relocated probe re-classifies active once its rays clear the geometry.
+                // Both packed into one buffer so the forward pass needs only one SSBO binding per volume
+                // (14, 15) rather than four. Initialized to (0,0,0,1) in RebuildGrid() - all-active,
+                // zero offset - so nothing is wrongly excluded before the first classify/relocate
+                // dispatch, and so re-running RebuildGrid() (grid resize, or ProbeVolume::enableRelocation
+                // toggled) resets accumulated offsets.
+                std::shared_ptr<StorageBuffer> probeStateBuffer;
 
                 // Four atlases, same tile layout/size (tileSize = sqrt(raysPerProbe) texels + 1 texel of
                 // border on each side, border-fixup pass keeps bilinear sampling from bleeding across
@@ -261,6 +272,8 @@ namespace Pulse::Engine::Rendering {
             std::shared_ptr<ComputePipeline> m_BorderFixupPipeline;
             std::shared_ptr<ComputeShader> m_ClassifyShader;
             std::shared_ptr<ComputePipeline> m_ClassifyPipeline;
+            std::shared_ptr<ComputeShader> m_RelocateShader;
+            std::shared_ptr<ComputePipeline> m_RelocatePipeline;
             std::shared_ptr<ComputeShader> m_TemporalBlendShader;
             std::shared_ptr<ComputePipeline> m_TemporalBlendPipeline;
             // Separate pipeline from m_TemporalBlendPipeline : that shader's uPublished image is

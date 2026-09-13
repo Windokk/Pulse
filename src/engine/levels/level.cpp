@@ -168,33 +168,68 @@ namespace Pulse::Engine::Levels{
                 DeserializeActor(a, data, actor);
             }
 
-            if(data.contains("skybox")){
-                auto& skybox_folder = data["skybox"];
-                if(skybox_folder.is_string()){
-                    std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/skybox/skybox");
-                    std::shared_ptr<Rendering::EnvironmentMap> envMap = Core::GetEngine().GetResourcesManager()->GetEnvMap(data["skybox"]);
-                    Rendering::PipelineSpecifications specs;
-                    specs.depthCompare = Rendering::DepthCompareOp::LessOrEqual;
-                    specs.depthWrite = false;
-                    specs.shader = shader;
-                    specs.topology = Rendering::PrimitiveTopology::Triangles;
-                    specs.debugName = "SkyboxPipeline";
+            if(data.contains("settings")){
+                auto& settings = data["settings"];
 
-                    std::shared_ptr<Rendering::Pipeline> skyboxPipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(specs);
+                //Rendering settings
+                if(settings.contains("skybox")){
+                    auto& skyboxFolder = settings["skybox"];
+                    if(skyboxFolder.is_string()){
+                        std::shared_ptr<Rendering::Shader> shader = Core::GetEngine().GetResourcesManager()->GetShader("shaders/skybox/skybox");
+                        std::shared_ptr<Rendering::EnvironmentMap> envMap = Core::GetEngine().GetResourcesManager()->GetEnvMap(settings["skybox"]);
+                        Rendering::PipelineSpecifications specs;
+                        specs.depthCompare = Rendering::DepthCompareOp::LessOrEqual;
+                        specs.depthWrite = false;
+                        specs.shader = shader;
+                        specs.topology = Rendering::PrimitiveTopology::Triangles;
+                        specs.debugName = "SkyboxPipeline";
 
-                    std::shared_ptr<Rendering::Material> skyboxMat = Rendering::Material::Create(shader, skyboxPipeline, false, Rendering::Opacity::Opaque);
+                        std::shared_ptr<Rendering::Pipeline> skyboxPipeline = Core::GetEngine().GetRenderer()->GetOrAddPipeline(specs);
 
-                    if(shader != nullptr && envMap != nullptr)
-                    {
-                        std::shared_ptr<Objects::Skybox> sb = Core::Object::Create<Objects::Skybox>(envMap, skyboxMat);
-                        this->skybox = sb;
+                        std::shared_ptr<Rendering::Material> skyboxMat = Rendering::Material::Create(shader, skyboxPipeline, false, Rendering::Opacity::Opaque);
+
+                        if(shader != nullptr && envMap != nullptr)
+                        {
+                            std::shared_ptr<Objects::Skybox> sb = Core::Object::Create<Objects::Skybox>(envMap, skyboxMat);
+                            this->skybox = sb;
+                        }
+                        else{
+                            DEBUG_ERROR("Couldn't deserialize skybox : shader or cubemap missing");
+                        }
                     }
-                    else{
-                        DEBUG_ERROR("Couldn't deserialize skybox : shader or cubemap missing");
+                }
+            
+                if(settings.contains("ambient_intensity")){
+                    auto& intensity = settings["ambient_intensity"];
+                    if(intensity.is_number()){
+                        ambientIntensity = intensity;
+                    }
+                }
+
+                if(settings.contains("ssao")){
+                    auto& ssaoSettings = settings["ssao"];
+                    if(ssaoSettings.contains("enabled")){
+                        ssaoEnabled = ssaoSettings["enabled"].is_boolean() ? static_cast<bool>(ssaoSettings["enabled"]) : ssaoEnabled;
+                    }
+
+                    if(ssaoSettings.contains("radius")){
+                        ssaoRadius = ssaoSettings["radius"].is_number_float() ? static_cast<float>(ssaoSettings["radius"]) : ssaoRadius;
+                    }
+
+                    if(ssaoSettings.contains("intensity")){
+                        ssaoIntensity = ssaoSettings["intensity"].is_number_float() ? static_cast<float>(ssaoSettings["intensity"]) : ssaoIntensity;
+                    }
+
+                    if(ssaoSettings.contains("bias")){
+                        ssaoBias = ssaoSettings["bias"].is_number_float() ? static_cast<float>(ssaoSettings["bias"]) : ssaoBias;
+                    }
+
+                    if(ssaoSettings.contains("power")){
+                        ssaoPower = ssaoSettings["power"].is_number_float() ? static_cast<float>(ssaoSettings["power"]) : ssaoPower;
                     }
                 }
             }
-
+        
         } catch (const json::parse_error& e) {
             DEBUG_ERROR("JSON parse error: " + (std::string)e.what());
             return;
@@ -246,8 +281,15 @@ namespace Pulse::Engine::Levels{
         full["actors"] = actorsArray;
 
         if(skybox){
-            full["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(Core::GetEngine().GetAssetIDManager()->GetAssetFromID(skybox->GetEnvMap()->GetAssetID())->baseInfos.path).nameInProject;
+            full["settings"]["skybox"] = Core::GetEngine().GetFileManager()->GetFileInfos(Core::GetEngine().GetAssetIDManager()->GetAssetFromID(skybox->GetEnvMap()->GetAssetID())->baseInfos.path).nameInProject;
         }
+
+        full["settings"]["ambient_intensity"] = ambientIntensity;
+        full["settings"]["ssao"]["enabled"] = ssaoEnabled;
+        full["settings"]["ssao"]["intensity"] = ssaoIntensity;
+        full["settings"]["ssao"]["bias"] = ssaoBias;
+        full["settings"]["ssao"]["radius"] = ssaoRadius;
+        full["settings"]["ssao"]["power"] = ssaoPower;
 
         std::string fileContent = full.dump();
 
@@ -298,6 +340,12 @@ namespace Pulse::Engine::Levels{
 
     void Level::OnLoad()
     {
+        // The renderer's pass draw lists were cleared on the previous level's unload
+        // (ClearPassesContent), so the skybox's draw command has to be re-submitted every load -
+        // otherwise a level with a skybox but no actors renders as a black viewport.
+        if(skybox)
+            skybox->CreateDrawCommands();
+
         for(auto& [id,cam] : cameras){
             Core::GetEngine().GetCameraManager()->AddCamera(cam->parent->GetID(), cam);
         }

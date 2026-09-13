@@ -27,9 +27,13 @@ namespace Pulse::Engine::Objects
             std::shared_ptr<Rendering::EnvironmentMap> GetEnvMap() const { return m_EnvMap; }
             std::shared_ptr<Rendering::Material> GetMaterial() const { return m_Material; }
 
-        private:
-
+            /// @brief (Re)submits the skybox's fullscreen draw command to the ForwardPass. Safe to
+            /// call repeatedly - the command is updated in place. Must be re-run after every level
+            /// load: ClearPassesContent() (level swap) wipes the pass draw lists, and a cached Level
+            /// won't re-run the constructor that first added it.
             void CreateDrawCommands();
+
+        private:
 
             std::shared_ptr<Rendering::EnvironmentMap> m_EnvMap;
             std::shared_ptr<Rendering::Material> m_Material;

@@ -9,7 +9,10 @@
 #include "editor/gui/panels/viewport/viewport_window.hpp"
 #include "editor/gui/panels/properties/properties_panel.hpp"
 #include "editor/gui/panels/asset_browser/asset_browser.hpp"
+#include "editor/gui/panels/material_editor/material_editor_panel.hpp"
+#include "editor/gui/panels/asset_editor_registry.hpp"
 #include "editor/gui/panels/level_tree/level_tree.hpp"
+#include "editor/gui/panels/level_settings/level_settings_panel.hpp"
 #include "editor/gui/panels/console/console.hpp"
 #include "editor/gui/panels/profiler/profiler_panel.hpp"
 #include "editor/gui/panels/menu_bar/menu_bar.hpp"
@@ -38,6 +41,7 @@ namespace Pulse::Editor::Core {
         bool showOutlines = true;
         bool showGizmos = true;
         bool showGrid;
+        bool showProbeGizmos = true;
 
         /// TODO
         /// bool showShadows;
@@ -56,6 +60,7 @@ namespace Pulse::Editor::Core {
         bool assetBrowser = true;
         bool console = true;
         bool profiler = true;
+        bool levelSettings = true;
     };
 
     class EditorMainWindow : public Engine::Core::Platform::IWindow {
@@ -91,12 +96,7 @@ namespace Pulse::Editor::Core {
 
         int GetBytesPerPixel() const override;
 
-        void SetSelectedActor(std::shared_ptr<Engine::Objects::Actor> newPtr){
-            this->selectedActor = newPtr;
-
-            if(levelTree)
-                levelTree->SetSelection(newPtr);
-        }
+        void SetSelectedActor(std::shared_ptr<Engine::Objects::Actor> newPtr);
 
         std::shared_ptr<Engine::Objects::Actor> GetSelectedActor(){
             return selectedActor;
@@ -131,8 +131,10 @@ namespace Pulse::Editor::Core {
 
         // Panels
         GUI::AssetBrowser* assetBrowser = nullptr;
+        GUI::MaterialEditorPanel* materialEditorPanel = nullptr;
         GUI::PropertiesPanel* propertiesPanel = nullptr;
         GUI::LevelTree* levelTree = nullptr;
+        GUI::LevelSettingsPanel* levelSettingsPanel = nullptr;
         GUI::Console* console = nullptr;
         GUI::ProfilerPanel* profilerPanel = nullptr;
         GUI::MenuBar* menuBar = nullptr;

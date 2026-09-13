@@ -14,6 +14,7 @@
 
 #include "editor/gui/IconsLucide.h"
 #include "editor/gui/notifications.hpp"
+#include "editor/gui/loading_widgets.hpp"
 
 #include "engine/rendering/lighting/probe_manager.hpp"
 
@@ -24,6 +25,7 @@
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
 #include "engine/rendering/material/material.hpp"
+#include "engine/objects/components/rendering/model_component.hpp"
 #include "engine/core/engine.hpp"
 
 namespace Pulse::Editor::Core{
@@ -46,7 +48,7 @@ namespace Pulse::Editor::Core{
         style.PopupRounding = 0.0f;
         style.PopupBorderSize = 1.0f;
         style.FramePadding = ImVec2(4.0f, 4.0f);
-        style.FrameRounding = 0.0f;
+        style.FrameRounding = 4.0f;
         style.FrameBorderSize = 0.0f;
         style.ItemSpacing = ImVec2(8.0f, 4.0f);
         style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
@@ -205,6 +207,28 @@ namespace Pulse::Editor::Core{
         return font;
     }
 
+    void EditorMainWindow::SetSelectedActor(std::shared_ptr<Engine::Objects::Actor> newPtr)
+    {
+        // EditorOutlineMaskPass only ever contains the currently selected actor's own model(s) (see the
+        // matching comment where the pass is created in SwapBuffers) - swapping the selection means
+        // pulling the old actor's draw commands out and pushing the new one's in, rather than drawing
+        // the whole scene and sorting it out per-fragment with an objID compare.
+        if(renderPassesInitialized && selectedActor)
+            for(auto& comp : selectedActor->GetComponents())
+                if(auto model = std::dynamic_pointer_cast<Engine::Objects::Components::Model>(comp))
+                    model->RemoveFromPass("EditorOutlineMaskPass");
+
+        this->selectedActor = newPtr;
+
+        if(renderPassesInitialized && selectedActor)
+            for(auto& comp : selectedActor->GetComponents())
+                if(auto model = std::dynamic_pointer_cast<Engine::Objects::Components::Model>(comp))
+                    model->AddToPass("EditorOutlineMaskPass");
+
+        if(levelTree)
+            levelTree->SetSelection(newPtr);
+    }
+
     void EditorMainWindow::Init(const std::string &title, const int &width, const int &height, const bool &fullscreen, const int &vsync, const uint32_t& api)
     {
         //Init glfw and gl context
@@ -282,9 +306,14 @@ namespace Pulse::Editor::Core{
         //Init Panels
         assetBrowser = new GUI::AssetBrowser();
         assetBrowser->NavigateTo(Engine::Core::GetEngine().GetCurrentProject()->GetProjectResourcesPath().full);
+        assetBrowser->SetParentWindow(this);
+        materialEditorPanel = new GUI::MaterialEditorPanel();
+        GUI::AssetEditorRegistry::Instance().Register(Engine::Filesystem::Type::T_MATERIAL, materialEditorPanel);
         propertiesPanel = new GUI::PropertiesPanel();
         levelTree = new GUI::LevelTree();
         levelTree->SetParentWindow(this);
+        levelSettingsPanel = new GUI::LevelSettingsPanel();
+        levelSettingsPanel->SetParentWindow(this);
         viewport = new GUI::ViewportWindow();
         viewport->SetParentWindow(this);
         console = new GUI::Console();
@@ -304,18 +333,62 @@ namespace Pulse::Editor::Core{
         ImGui::SetNextWindowPos(ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x * 0.5f,
                                         mainViewport->WorkPos.y + mainViewport->WorkSize.y * 0.5f),
                                         ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowBgAlpha(0.85f);
+        // Fully opaque - this overlay stands in for the whole editor while a level loads, so letting the
+        // still-mid-initialization viewport/panels show through underneath it (the old 0.85 alpha) read
+        // as a rendering glitch rather than a deliberate loading screen.
+        ImGui::SetNextWindowBgAlpha(1.0f);
 
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove
             | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing
             | ImGuiWindowFlags_AlwaysAutoResize;
 
+        // A dedicated, slightly-elevated background (rather than the default ImGuiCol_WindowBg) plus
+        // rounded corners and generous padding, so this reads as a purpose-built loading card and not a
+        // resized debug window.
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.09f, 0.10f, 0.11f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.30f, 0.34f, 0.38f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(32.0f, 26.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.5f);
+
         if(ImGui::Begin("##LoadingLevelOverlay", nullptr, flags))
         {
-            ImGui::Text("Loading Level...");
-            ImGui::ProgressBar(progress, ImVec2(240, 0));
+            // Matches the editor's own blue-teal accent (see ImGuiCol_SliderGrabActive/ButtonHovered in
+            // SetupImGuiStyle) so this overlay doesn't look like it belongs to a different app.
+            const ImU32 accent = IM_COL32(84, 125, 153, 255);
+            const ImU32 accentBright = IM_COL32(130, 178, 212, 255);
+            constexpr float barWidth = 280.0f;
+            constexpr float spinnerRadius = 14.0f;
+
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+            ImVec2 spinnerTopLeft = ImGui::GetCursorScreenPos();
+            ImVec2 spinnerCentre(spinnerTopLeft.x + barWidth * 0.5f, spinnerTopLeft.y + spinnerRadius);
+            GUI::LoadingWidgets::SpinnerFadePulsar(drawList, spinnerCentre, spinnerRadius, accent, 1.8f, 2);
+            ImGui::Dummy(ImVec2(barWidth, spinnerRadius * 2.0f + 14.0f));
+
+            const char* label = "Loading Level...";
+            float labelWidth = ImGui::CalcTextSize(label).x;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (barWidth - labelWidth) * 0.5f);
+            ImGui::TextUnformatted(label);
+
+            ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+            ImVec2 barPos = ImGui::GetCursorScreenPos();
+            ImVec2 barSize(barWidth, 14.0f);
+            GUI::LoadingWidgets::DrawProgressBar(drawList, barPos, barSize, progress,
+                IM_COL32(20, 21, 23, 255), accent, IM_COL32(60, 68, 76, 255));
+            ImGui::Dummy(barSize);
+
+            std::string percentLabel = std::to_string((int)std::lround(std::clamp(progress, 0.0f, 1.0f) * 100.0f)) + "%";
+            float percentWidth = ImGui::CalcTextSize(percentLabel.c_str()).x;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (barWidth - percentWidth) * 0.5f);
+            ImGui::TextDisabled("%s", percentLabel.c_str());
         }
         ImGui::End();
+
+        ImGui::PopStyleVar(3);
+        ImGui::PopStyleColor(2);
     }
 
     void EditorMainWindow::DrawLoadingFrame(float progress)
@@ -374,48 +447,148 @@ namespace Pulse::Editor::Core{
             outlineMaskPass->customPipeline = outlineMaskPipeline;
             outlineMaskPass->target = fbOutlineMask;
             outlineMaskPass->overridePipeline = true;
-            if(selectedActor)
-                outlineMaskPass->customUniforms.emplace("selectedObjID", selectedActor->GetID().GetAsInt());
 
             renderer->AddRenderPass(outlineMaskPass, "EditorOutlineMaskPass", {});
 
+            // Only the selected actor's own model(s) ever get registered into this pass (see
+            // SetSelectedActor) - the mask shader can just paint white unconditionally instead of
+            // comparing objID, and the pass only ever rasterizes the one object that matters instead of
+            // the whole scene. If a selection was already made before this pass existed (e.g. selecting
+            // something while the viewport panel was still settling its size), register it retroactively.
+            if(selectedActor)
+                for(auto& comp : selectedActor->GetComponents())
+                    if(auto model = std::dynamic_pointer_cast<Engine::Objects::Components::Model>(comp))
+                        model->AddToPass("EditorOutlineMaskPass");
+
             /////////
 
-            /// Outline Pass
-            
-            Rendering::FramebufferSpecifications fbOutlineSpecs;
-            fbOutlineSpecs.hasColor = true;
-            fbOutlineSpecs.hasDepth = false;
-            fbOutlineSpecs.colorSpecs = {};
-            fbOutlineSpecs.width = viewport->GetViewportSize().x;
-            fbOutlineSpecs.height = viewport->GetViewportSize().y;
+            /// Jump Flood Algorithm - propagates, for every pixel, the position of its nearest
+            /// silhouette (mask) pixel, so the final pass can turn that into a true Euclidean distance
+            /// field instead of the old fixed 3x3-neighbor mask check (which only ever caught
+            /// 1px-aligned edges and gave an outline whose thickness varied with edge angle).
+            /// Ping-pongs between two RGBA32F buffers: .xy holds the seed's pixel position, .z is a
+            /// validity flag (1.0 = has a seed) rather than a magic sentinel coordinate.
 
-            std::shared_ptr<Rendering::Framebuffer> fbOutline = Rendering::Framebuffer::Create(fbOutlineSpecs);
+            Rendering::FramebufferSpecifications fbJFASpecs;
+            fbJFASpecs.hasColor = true;
+            fbJFASpecs.hasDepth = false;
+            fbJFASpecs.width = viewport->GetViewportSize().x;
+            fbJFASpecs.height = viewport->GetViewportSize().y;
+            fbJFASpecs.colorSpecs.internalFormat = Rendering::TextureInternalFormat::RGBA32F;
+            fbJFASpecs.colorSpecs.minFilter = Rendering::TextureFilter::Nearest;
+            fbJFASpecs.colorSpecs.magFilter = Rendering::TextureFilter::Nearest;
+            fbJFASpecs.colorSpecs.wrapS = Rendering::TextureWrap::ClampEdge;
+            fbJFASpecs.colorSpecs.wrapT = Rendering::TextureWrap::ClampEdge;
+            fbJFASpecs.colorSpecs.generateMips = false;
+
+            std::shared_ptr<Rendering::Framebuffer> fbJFA_A = Rendering::Framebuffer::Create(fbJFASpecs);
+            std::shared_ptr<Rendering::Framebuffer> fbJFA_B = Rendering::Framebuffer::Create(fbJFASpecs);
+
+            glm::vec2 jfaTexelSize = glm::vec2(1.0f / fbJFASpecs.width, 1.0f / fbJFASpecs.height);
+
+            Rendering::PipelineSpecifications jfaInitPipelineSpecs;
+            jfaInitPipelineSpecs.depthTest = false;
+            jfaInitPipelineSpecs.depthWrite = false;
+            jfaInitPipelineSpecs.blending = false;
+            jfaInitPipelineSpecs.shader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/jfa_init");
+            jfaInitPipelineSpecs.debugName = "JFAInitPipeline";
+            jfaInitPipelineSpecs.vertexLayout = {};
+            std::shared_ptr<Rendering::Pipeline> jfaInitPipeline = renderer->GetOrAddPipeline(jfaInitPipelineSpecs);
+            std::shared_ptr<Rendering::Material> jfaInitMaterial = Rendering::Material::Create(jfaInitPipelineSpecs.shader, jfaInitPipeline, false, Rendering::Opacity::Opaque);
+
+            std::shared_ptr<Rendering::RenderPass> jfaInitPass = std::make_shared<Rendering::RenderPass>();
+            jfaInitPass->clearColor = true;
+            jfaInitPass->customPipeline = jfaInitPipeline;
+            jfaInitPass->target = fbJFA_A;
+            jfaInitPass->overridePipeline = true;
+            jfaInitPass->customSamplers["maskTex"] = fbOutlineMask->GetColorAttachment();
+            renderer->AddRenderPass(jfaInitPass, "EditorJFAInitPass", {"EditorOutlineMaskPass"});
+
+            Rendering::DrawCommand jfaInitCmd{};
+            jfaInitCmd.fullscreenTri = true;
+            jfaInitCmd.bindCameraState = false;
+            jfaInitCmd.material = jfaInitMaterial;
+            renderer->AddOrUpdateCommands({jfaInitCmd}, {"EditorJFAInitPass"}, false);
+
+            Rendering::PipelineSpecifications jfaStepPipelineSpecs;
+            jfaStepPipelineSpecs.depthTest = false;
+            jfaStepPipelineSpecs.depthWrite = false;
+            jfaStepPipelineSpecs.blending = false;
+            jfaStepPipelineSpecs.shader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/jfa_step");
+            jfaStepPipelineSpecs.debugName = "JFAStepPipeline";
+            jfaStepPipelineSpecs.vertexLayout = {};
+            std::shared_ptr<Rendering::Pipeline> jfaStepPipeline = renderer->GetOrAddPipeline(jfaStepPipelineSpecs);
+
+            // Fixed falling step sequence rather than the full log2(max(width,height)) chain a
+            // whole-image distance transform would need - correct for any pixel within ~31px of a
+            // seed, which is far more than a selection outline ever needs (outlineThickness below).
+            const float steps[] = {16.0f, 8.0f, 4.0f, 2.0f, 1.0f};
+            std::shared_ptr<Rendering::Framebuffer> jfaRead = fbJFA_A;
+            std::shared_ptr<Rendering::Framebuffer> jfaWrite = fbJFA_B;
+            std::string prevPassName = "EditorJFAInitPass";
+
+            for (int i = 0; i < 5; i++)
+            {
+                std::shared_ptr<Rendering::Material> stepMaterial = Rendering::Material::Create(jfaStepPipelineSpecs.shader, jfaStepPipeline, false, Rendering::Opacity::Opaque);
+
+                std::shared_ptr<Rendering::RenderPass> stepPass = std::make_shared<Rendering::RenderPass>();
+                stepPass->clearColor = true;
+                stepPass->customPipeline = jfaStepPipeline;
+                stepPass->target = jfaWrite;
+                stepPass->overridePipeline = true;
+                stepPass->customUniforms["stepSize"] = steps[i];
+                stepPass->customUniforms["texelSize"] = jfaTexelSize;
+                stepPass->customSamplers["seedTex"] = jfaRead->GetColorAttachment();
+
+                std::string passName = "EditorJFAStepPass" + std::to_string(i);
+                renderer->AddRenderPass(stepPass, passName, {prevPassName});
+
+                Rendering::DrawCommand stepCmd{};
+                stepCmd.fullscreenTri = true;
+                stepCmd.bindCameraState = false;
+                stepCmd.material = stepMaterial;
+                renderer->AddOrUpdateCommands({stepCmd}, {passName}, false);
+
+                prevPassName = passName;
+                std::swap(jfaRead, jfaWrite);
+            }
+
+            // After an odd number of steps (5), the final result sits in jfaRead (the chain swaps
+            // read/write at the end of every iteration above).
+            std::shared_ptr<Rendering::Framebuffer> fbJFAFinal = jfaRead;
+
+            /////////
+
+            /// Outline Pass - composited straight onto the already-shaded scene (the viewport
+            /// framebuffer), right after everything else has drawn into it, so the mask's edge pixels
+            /// (the only ones outline.frag doesn't discard) land on top of the final image instead of
+            /// into a framebuffer nothing ever samples.
 
             std::shared_ptr<Rendering::Shader> outlineShader = Engine::Core::GetEngine().GetResourcesManager()->GetShader("shaders/editor/outline");
-            
+
             Rendering::PipelineSpecifications outlinePipelineSpecs;
             outlinePipelineSpecs.depthTest = false;
             outlinePipelineSpecs.depthWrite = false;
+            outlinePipelineSpecs.blending = false;
             outlinePipelineSpecs.shader = outlineShader;
             outlinePipelineSpecs.debugName = "FullscreenOutlinePipeline";
             outlinePipelineSpecs.vertexLayout = {};
             std::shared_ptr<Rendering::Pipeline> outlinePipeline = Engine::Core::GetEngine().GetRenderer()->GetOrAddPipeline(outlinePipelineSpecs);
-             
-            std::shared_ptr<Rendering::Material> outlineMaterial = Rendering::Material::Create(outlineShader, outlinePipeline, false, Rendering::Opacity::Opaque);
-            
-            std::shared_ptr<Rendering::RenderPass> outlinePass = std::make_shared<Rendering::RenderPass>();
-            outlinePass->clearColor = true;
-            outlinePass->clearDepth = true;
-            outlinePass->customPipeline = outlinePipeline;
-            outlinePass->target = fbOutline;
-            outlinePass->overridePipeline = true;
-            outlinePass->customUniforms.emplace("outlineThickness", 4.0f);
-            outlinePass->customUniforms.emplace("texelSize", glm::vec2(1.0 / fbOutlineMask->GetWidth(), 1.0 / fbOutlineMask->GetHeight()));
-            outlinePass->customUniforms.emplace("outlineColor", glm::vec3(1.0f, 0.722f, 0.0f));
-            outlinePass->customSamplers.emplace("maskTex", fbOutlineMask->GetColorAttachment());
 
-            renderer->AddRenderPass(outlinePass, "EditorOutlinePass", {});
+            std::shared_ptr<Rendering::Material> outlineMaterial = Rendering::Material::Create(outlineShader, outlinePipeline, false, Rendering::Opacity::Opaque);
+
+            std::shared_ptr<Rendering::RenderPass> outlinePass = std::make_shared<Rendering::RenderPass>();
+            outlinePass->clearColor = false;
+            outlinePass->clearDepth = false;
+            outlinePass->customPipeline = outlinePipeline;
+            outlinePass->target = renderer->GetViewportFramebuffer();
+            outlinePass->overridePipeline = true;
+            outlinePass->customUniforms["outlineThickness"] = 4.0f;
+            outlinePass->customUniforms["outlineColor"] = glm::vec3(1.0f, 0.722f, 0.0f);
+            outlinePass->customSamplers["maskTex"] = fbOutlineMask->GetColorAttachment();
+            outlinePass->customSamplers["seedTex"] = fbJFAFinal->GetColorAttachment();
+
+            renderer->AddRenderPass(outlinePass, "EditorOutlinePass", {prevPassName, "ProbeGizmoPass"});
 
             Rendering::DrawCommand cmd{};
             cmd.fullscreenTri = true;
@@ -424,14 +597,27 @@ namespace Pulse::Editor::Core{
 
             renderer->AddOrUpdateCommands({cmd}, {"EditorOutlinePass"}, false);
 
-            for(auto model : Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->models)
-                model.second->Update();
-
             renderPassesInitialized = true;
         }
-        
-        if(selectedActor)
-            renderer->GetRenderPass("EditorOutlineMaskPass")->customUniforms.emplace("selectedObjID", selectedActor->GetID().GetAsInt());;
+
+        if(renderPassesInitialized)
+        {
+            auto outlineMaskPass = renderer->GetRenderPass("EditorOutlineMaskPass");
+            auto outlinePass = renderer->GetRenderPass("EditorOutlinePass");
+            outlineMaskPass->enabled = settings.showOutlines;
+            outlinePass->enabled = settings.showOutlines;
+
+            // Re-submit the selected actor's model(s) every frame rather than only on selection change -
+            // AddToPass captures the transform's current matrix at call time (see
+            // Mesh::CreateDrawCommands), so without this the mask would keep drawing the object at
+            // whatever position/rotation/scale it had at the moment it got selected, going stale the
+            // instant it's moved by a gizmo drag, a script, or physics. AddOrUpdateCommands treats this
+            // as a cheap update-in-place (matching commandID) rather than a fresh registration.
+            if(selectedActor)
+                for(auto& comp : selectedActor->GetComponents())
+                    if(auto model = std::dynamic_pointer_cast<Engine::Objects::Components::Model>(comp))
+                        model->AddToPass("EditorOutlineMaskPass");
+        }
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -452,12 +638,14 @@ namespace Pulse::Editor::Core{
             propertiesPanel->Draw(selectedActor);
         if(panelVisibility.levelTree)
             levelTree->Draw();
+        if(panelVisibility.levelSettings)
+            levelSettingsPanel->Draw();
         if(panelVisibility.console)
             console->Draw();
         if(panelVisibility.profiler)
             profilerPanel->Draw();
 
-        ImGui::ShowDemoWindow();
+        materialEditorPanel->Draw();
 
         if(Engine::Core::GetEngine().GetLevelManager()->IsAsyncLoadInProgress())
             DrawLoadingOverlay(Engine::Core::GetEngine().GetLevelManager()->GetAsyncLoadProgress());

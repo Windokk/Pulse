@@ -24,8 +24,19 @@ namespace Pulse::Engine::Rendering {
     static constexpr uint32_t CASCADES_PER_LIGHT = 3;
     static constexpr uint32_t NUM_CASCADES = (LightManager::MAX_DIRECTIONAL_LIGHTS * CASCADES_PER_LIGHT);
 
+    // Mirrors the fixed-size shadow sampler arrays in lit.frag (spotShadowMaps[10], the point cube
+    // array's implicit layer cap) - a shadow-casting light beyond these caps gets shadowIndex = -1
+    // (see ShadowManager::ReassignShadowIndices) and renders unshadowed rather than reading garbage.
+    static constexpr int MAX_SPOT_LIGHTS = 10;
+    static constexpr int MAX_POINT_LIGHTS = 10;
+
     struct ShadowMap {
         LightData light;
+
+        // The live LightData this ShadowMap mirrors (same object LightManager uploads to the SSBO) -
+        // kept so ReassignShadowIndices can write shadowIndex back onto it, not just this struct's own
+        // `light` copy.
+        std::shared_ptr<LightData> lightPtr;
 
         // Directional and spot
         std::shared_ptr<Framebuffer> framebuffer[CASCADES_PER_LIGHT] = {nullptr};       // One FBO per cascade (only 1 used for spot)
@@ -99,6 +110,13 @@ namespace Pulse::Engine::Rendering {
         void SubmitPasses(int lightIndex);
         void EnsureCubeArrayCapacity(int requiredPointLights);
         void TryShrinkCubeArray();
+
+        // Recomputes and writes back LightData::shadowIndex for every currently-registered
+        // shadow-casting light (directional/spot: ordinal position among same-type shadow casters in
+        // ascending light-index order; point: the persistent cubeArrayLayer). Must run after any change
+        // to the set of registered shadow-casting lights (RegisterOrUpdateLight, UnregisterLight) -
+        // callers must ensure LightManager::Update() runs afterward so the new indices reach the GPU.
+        void ReassignShadowIndices();
 
         std::map<int, ShadowMap> m_ShadowMaps;
         std::shared_ptr<CubemapArray> m_CubeArrayTex;

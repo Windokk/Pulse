@@ -57,6 +57,14 @@ namespace Pulse::Engine::Objects::Components
             FIELD(Editable)
             int maxBounces = 2;
 
+            // RTXGI "Probe Relocation" : each frame, every probe is nudged by a small bounded offset
+            // (<= 0.45 * grid spacing) out of any geometry it sits inside or grazes, so a uniform grid
+            // landing probes inside walls/pillars/statues still produces useful data there instead of
+            // just switching those probes off (that's probe classification, which always runs). On by
+            // default; toggling it re-zeroes accumulated offsets (via ProbeManager::RebuildGrid).
+            FIELD(Editable)
+            bool enableRelocation = true;
+
             DECLARE_DESCRIPTOR(ProbeVolume)
 
         protected:

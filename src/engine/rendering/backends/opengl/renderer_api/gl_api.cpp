@@ -14,6 +14,8 @@
 #include "engine/rendering/texture/cubemap/envmap.hpp"
 #include "engine/rendering/lighting/shadow_manager.hpp"
 #include "engine/rendering/lighting/probe_manager.hpp"
+#include "engine/rendering/lighting/ssao_manager.hpp"
+#include "engine/rendering/lighting/light_culling_manager.hpp"
 #include "engine/rendering/buffer/storage_buffer.hpp"
 #include "engine/rendering/texture/texture.hpp"
 
@@ -193,7 +195,15 @@ namespace Pulse::Engine::Rendering{
         // GLMaterial::Bind() runs after this and re-applies the material's own value when it has one,
         // so a per-material override now lasts exactly one draw.
         if (level)
+        {
             shader->SetFloat("ambientIntensity", level->ambientIntensity);
+
+            // Same re-assertion reasoning as ambientIntensity just above (see its comment) - a level
+            // toggle, not a per-material one, but pushed the same way for consistency and to stay
+            // correct if a material ever legitimately needs to override it later.
+            shader->SetBool("ssaoEnabled", level->ssaoEnabled);
+            shader->SetFloat("ssaoIntensity", level->ssaoIntensity);
+        }
 
         // Everything below (skybox IBL, lights, camera pos) is constant for every draw call in this pass : only reapply it the first time this program is used since the last reset.
         if (!applyPassGlobals)
@@ -227,25 +237,32 @@ namespace Pulse::Engine::Rendering{
         {
             const auto& samplers = shader->GetActiveSamplersMap();
             int volumeCount = 0;
+            int lastReady = -1; // last volume bound, reused to pad the unused ddgi_* slots below
 
             for (int i = 0; i < probeManager->GetActiveVolumeCount(); i++)
             {
                 if (!probeManager->IsVolumeReady(i))
                     continue;
 
-                std::string idx = "[" + std::to_string(volumeCount) + "]";
+                std::string idx = "[" + std::to_string(volumeCount) + "]"; // ddgi_* uniform-array element
+                std::string num = std::to_string(volumeCount);              // ddgi_*Atlas<n> scalar sampler
 
-                auto atlasSampler = samplers.find("ddgi_irradianceAtlas" + idx);
+                // Atlases are per-volume scalar samplers (ddgi_irradianceAtlas0/1, ddgi_distanceAtlas0/1)
+                // - see the comment on their declaration in lit.frag for why they're not arrays.
+                auto atlasSampler = samplers.find("ddgi_irradianceAtlas" + num);
                 if (atlasSampler != samplers.end())
                     GLStateCache::BindTextureUnit(atlasSampler->second.binding, probeManager->GetIrradianceAtlas(i)->GetHandle());
 
-                auto distAtlasSampler = samplers.find("ddgi_distanceAtlas" + idx);
+                auto distAtlasSampler = samplers.find("ddgi_distanceAtlas" + num);
                 if (distAtlasSampler != samplers.end())
                     GLStateCache::BindTextureUnit(distAtlasSampler->second.binding, probeManager->GetDistanceAtlas(i)->GetHandle());
 
-                auto probeActiveBuffer = probeManager->GetProbeActiveBuffer(i);
-                if (probeActiveBuffer)
-                    probeActiveBuffer->Bind(14 + volumeCount);
+                // Per-probe state (.w classification, .xyz relocation offset). One SSBO binding per
+                // ready volume : 14 for the first, 15 for the second - matches lit.frag's
+                // DDGIProbeState<n> blocks and stays clear of the LightBuffer at 0.
+                auto probeStateBuffer = probeManager->GetProbeStateBuffer(i);
+                if (probeStateBuffer)
+                    probeStateBuffer->Bind(14 + volumeCount);
 
                 shader->SetVec3("ddgi_gridOrigin" + idx, probeManager->GetGridOrigin(i));
                 shader->SetVec3("ddgi_gridSpacing" + idx, probeManager->GetGridSpacing(i));
@@ -255,7 +272,29 @@ namespace Pulse::Engine::Rendering{
                 shader->SetInt("ddgi_atlasProbesPerRow" + idx, (int)probeManager->GetAtlasProbesPerRow(i));
                 shader->SetInt("ddgi_atlasSize" + idx, (int)probeManager->GetAtlasSize(i));
 
+                lastReady = i;
                 volumeCount++;
+            }
+
+            // Point every unused ddgi_* slot at the last bound volume's resources. DDGI_PickVolume only
+            // ever returns an index < ddgi_volumeCount so these are never actually sampled, but leaving
+            // an active sampler / readonly SSBO block with nothing bound trips warnings (and undefined
+            // reads) on stricter drivers.
+            for (int s = volumeCount; lastReady >= 0 && s < kMaxProbeVolumes; s++)
+            {
+                std::string num = std::to_string(s);
+
+                auto atlasSampler = samplers.find("ddgi_irradianceAtlas" + num);
+                if (atlasSampler != samplers.end())
+                    GLStateCache::BindTextureUnit(atlasSampler->second.binding, probeManager->GetIrradianceAtlas(lastReady)->GetHandle());
+
+                auto distAtlasSampler = samplers.find("ddgi_distanceAtlas" + num);
+                if (distAtlasSampler != samplers.end())
+                    GLStateCache::BindTextureUnit(distAtlasSampler->second.binding, probeManager->GetDistanceAtlas(lastReady)->GetHandle());
+
+                auto padStateBuffer = probeManager->GetProbeStateBuffer(lastReady);
+                if (padStateBuffer)
+                    padStateBuffer->Bind(14 + s);
             }
 
             shader->SetInt("ddgi_volumeCount", volumeCount);
@@ -265,6 +304,16 @@ namespace Pulse::Engine::Rendering{
         shader->SetVec3("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
         // ambientIntensity is now re-asserted every draw at the top of this function (see the comment
         // there) rather than only here, so a per-material override can't leak past its own draw.
+
+        // Forward+ cluster grid (see LightCullingManager) - lit.frag's GetClusterIndex uses these to
+        // find the point/spot light list for the fragment's cluster instead of scanning every light.
+        auto lightCullingManager = Core::GetEngine().GetRenderer()->GetLightCullingManager();
+        if (lightCullingManager)
+        {
+            shader->SetUVec2("clusterGridSizeXY", lightCullingManager->GetGridSizeX(), lightCullingManager->GetGridSizeY());
+            shader->SetFloat("clusterScaleZ", lightCullingManager->GetClusterScaleZ());
+            shader->SetFloat("clusterBiasZ", lightCullingManager->GetClusterBiasZ());
+        }
     }
 
     void GLRendererAPI::DrawIndexed(const std::shared_ptr<Pipeline> pipeline, uint32_t indexCount, uint32_t indexOffset)
@@ -319,6 +368,7 @@ namespace Pulse::Engine::Rendering{
             else{
                 if(command.material->GetRecieveShadows())
                     Core::GetEngine().GetRenderer()->GetShadowManager()->BindShadowMaps(command.material);
+                Core::GetEngine().GetRenderer()->GetSSAOManager()->BindSSAOTexture(command.material);
                 BindPassData(pass, command.material);
                 BindMaterial(command.material);
             }

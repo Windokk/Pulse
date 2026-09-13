@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <exception>
 #include <random>
 
 #include <glm/gtc/quaternion.hpp>
@@ -161,11 +162,14 @@ namespace Pulse::Engine::Rendering {
         slot.probeBuffer = StorageBuffer::Create((uint32_t)(probes.size() * sizeof(GPUProbe)));
         slot.probeBuffer->SetData(probes.data(), (uint32_t)(probes.size() * sizeof(GPUProbe)));
 
-        // All-active until the first classify dispatch (see probe_classify.comp) actually runs - see the
-        // probeActiveBuffer comment on VolumeSlot for why this can't start zeroed/uninitialized.
-        std::vector<float> allActive(slot.probeCount, 1.0f);
-        slot.probeActiveBuffer = StorageBuffer::Create((uint32_t)(allActive.size() * sizeof(float)));
-        slot.probeActiveBuffer->SetData(allActive.data(), (uint32_t)(allActive.size() * sizeof(float)));
+        // Per-probe state (see probeStateBuffer on VolumeSlot) : .w = 1 (all-active until the first
+        // classify dispatch runs - can't start zeroed/uninitialized or every probe leaks before then),
+        // .xyz = 0 (zero relocation offset - probe_relocate.comp integrates on top of this). Reallocating
+        // here also resets accumulated offsets, which is what should happen when the grid resolution/
+        // bounds change or ProbeVolume::enableRelocation is toggled.
+        std::vector<glm::vec4> initialState(slot.probeCount, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        slot.probeStateBuffer = StorageBuffer::Create((uint32_t)(initialState.size() * sizeof(glm::vec4)));
+        slot.probeStateBuffer->SetData(initialState.data(), (uint32_t)(initialState.size() * sizeof(glm::vec4)));
 
         // Each ray maps directly to one texel of the probe's octahedral tile (see probe_trace.comp), so
         // raysPerProbe is rounded down to the nearest perfect square here.
@@ -241,7 +245,7 @@ namespace Pulse::Engine::Rendering {
 
     void ProbeManager::EnsureShaders()
     {
-        if (m_TracePipeline && m_ConvolvePipeline && m_BorderFixupPipeline && m_ClassifyPipeline && m_TemporalBlendPipeline && m_DistanceTemporalBlendPipeline)
+        if (m_TracePipeline && m_ConvolvePipeline && m_BorderFixupPipeline && m_ClassifyPipeline && m_RelocatePipeline && m_TemporalBlendPipeline && m_DistanceTemporalBlendPipeline)
             return;
 
         Renderer* renderer = Core::GetEngine().GetRenderer();
@@ -249,7 +253,7 @@ namespace Pulse::Engine::Rendering {
 
         if (!m_TracePipeline)
         {
-            m_TraceShader = ComputeShader::Create(resRoot / "shaders/compute/probe_trace.comp");
+            m_TraceShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_trace.comp");
             if (!m_TraceShader)
             {
                 DEBUG_ERROR("ProbeManager : failed to load probe_trace.comp");
@@ -264,7 +268,7 @@ namespace Pulse::Engine::Rendering {
 
         if (!m_ConvolvePipeline)
         {
-            m_ConvolveShader = ComputeShader::Create(resRoot / "shaders/compute/probe_irradiance_convolve.comp");
+            m_ConvolveShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_irradiance_convolve.comp");
             if (!m_ConvolveShader)
             {
                 DEBUG_ERROR("ProbeManager : failed to load probe_irradiance_convolve.comp");
@@ -279,7 +283,7 @@ namespace Pulse::Engine::Rendering {
 
         if (!m_BorderFixupPipeline)
         {
-            m_BorderFixupShader = ComputeShader::Create(resRoot / "shaders/compute/probe_border_fixup.comp");
+            m_BorderFixupShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_border_fixup.comp");
             if (!m_BorderFixupShader)
             {
                 DEBUG_ERROR("ProbeManager : failed to load probe_border_fixup.comp");
@@ -294,7 +298,7 @@ namespace Pulse::Engine::Rendering {
 
         if (!m_ClassifyPipeline)
         {
-            m_ClassifyShader = ComputeShader::Create(resRoot / "shaders/compute/probe_classify.comp");
+            m_ClassifyShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_classify.comp");
             if (!m_ClassifyShader)
             {
                 DEBUG_ERROR("ProbeManager : failed to load probe_classify.comp");
@@ -307,9 +311,24 @@ namespace Pulse::Engine::Rendering {
             m_ClassifyPipeline = renderer->GetOrAddComputePipeline(specs);
         }
 
+        if (!m_RelocatePipeline)
+        {
+            m_RelocateShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_relocate.comp");
+            if (!m_RelocateShader)
+            {
+                DEBUG_ERROR("ProbeManager : failed to load probe_relocate.comp");
+                return;
+            }
+
+            ComputePipelineSpecifications specs;
+            specs.shader = m_RelocateShader;
+            specs.debugName = "ProbeRelocate";
+            m_RelocatePipeline = renderer->GetOrAddComputePipeline(specs);
+        }
+
         if (!m_TemporalBlendPipeline)
         {
-            m_TemporalBlendShader = ComputeShader::Create(resRoot / "shaders/compute/probe_temporal_blend.comp");
+            m_TemporalBlendShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_temporal_blend.comp");
             if (!m_TemporalBlendShader)
             {
                 DEBUG_ERROR("ProbeManager : failed to load probe_temporal_blend.comp");
@@ -324,7 +343,7 @@ namespace Pulse::Engine::Rendering {
 
         if (!m_DistanceTemporalBlendPipeline)
         {
-            m_DistanceTemporalBlendShader = ComputeShader::Create(resRoot / "shaders/compute/probe_distance_temporal_blend.comp");
+            m_DistanceTemporalBlendShader = ComputeShader::Create(resRoot / "shaders/compute/probes/probe_distance_temporal_blend.comp");
             if (!m_DistanceTemporalBlendShader)
             {
                 DEBUG_ERROR("ProbeManager : failed to load probe_distance_temporal_blend.comp");
@@ -365,34 +384,70 @@ namespace Pulse::Engine::Rendering {
         glm::vec3 gridSpacing = slot.volume->GetGridSpacing();
         glm::ivec3 probeCounts = glm::max(slot.volume->probeCounts, glm::ivec3(1));
 
+        // Bind the trace shader's SSBOs and set its bounce-invariant uniforms once, ahead of the loop,
+        // instead of every bounce iteration : both are safe to hoist even though the classify/relocate
+        // pipelines get bound in between on bounce 0 below. Uniform values live on the program object
+        // itself in OpenGL (not context-global state), so they survive an intervening Bind() of a
+        // *different* program and are still there next time m_TracePipeline is rebound - and SSBO
+        // binding points 8-13 here are never touched by classify/relocate (they only bind 14, see their
+        // own dispatches below), so nothing else in this loop invalidates them either. This used to mean
+        // ~10 uncached-until-recently glGetUniformLocation-backed SetXxx calls per bounce per volume
+        // every single frame (see GLComputeShader::GetUniformLocationCached) for values that never
+        // actually change within one UpdateVolume() call - only uUseIndirect and the ping-ponged
+        // prev-atlas texture binds below genuinely need to be redone each iteration.
+        m_TracePipeline->Bind();
+
+        // SSBO binding points are global GL context state (glBindBufferBase), not scoped to this
+        // pipeline - bindings 0-4 are what path_trace.comp AND lit.frag's LightBuffer use, and unlike
+        // the offline raytracer (a one-off editor operation), ProbeManager::Update() runs every single
+        // frame from Renderer::BeginFrame(), before the forward pass. Reusing binding 0 here silently
+        // stole it away from lit.frag's `layout(std430, binding = 0) buffer LightBuffer` every frame
+        // (LightManager only re-binds it when a light actually changes, not per-frame), which made
+        // every light in the scene go dark as soon as a probe volume was active. Kept clear of 0-4 for
+        // exactly that reason. Reused across every volume's dispatch below (sequential, never bound
+        // simultaneously for two different volumes) - only the forward pass's probeState reads (see
+        // gl_api.cpp) need one binding per volume alive at once (14, 15).
+        m_BVHBuffer->Bind(8);
+        m_PosBuffer->Bind(9);
+        m_AttribBuffer->Bind(10);
+        m_MatBuffer->Bind(11);
+        if (m_LightBuffer)
+            m_LightBuffer->Bind(12);
+        slot.probeBuffer->Bind(13);
+        // Per-probe state (.w classification, .xyz relocation offset - see the probeStateBuffer
+        // comment on VolumeSlot). Written by the classify + relocate dispatches below (bounce 0
+        // only), read every bounce here : .w by SampleIndirect on later bounces, .xyz by main()'s
+        // ray origin and SampleIndirect's neighbour positions on every bounce. This frame's trace
+        // uses last frame's offset; the relocate pass updates it for next frame. Rebound at binding 14
+        // by the classify/relocate dispatches below (same buffer object, so this is still valid once
+        // control returns here), which is why this alone - unlike 8-13 - would be safe to re-bind every
+        // iteration too ; left hoisted here regardless since it costs nothing extra to do so once.
+        slot.probeStateBuffer->Bind(14);
+
+        m_TraceShader->SetInt("uProbeCount", (int)slot.probeCount);
+        m_TraceShader->SetInt("uTileSize", (int)slot.tileSize);
+        m_TraceShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+        m_TraceShader->SetInt("uAtlasSize", (int)slot.atlasSize);
+        m_TraceShader->SetInt("uLightCount", (int)m_FlatLights.size());
+        m_TraceShader->SetVec3("uSkyColor", glm::vec3(0.8f, 0.9f, 1.0f));
+        m_TraceShader->SetVec3("uGridOrigin", gridOrigin);
+        m_TraceShader->SetVec3("uGridSpacing", gridSpacing);
+        m_TraceShader->SetVec3("uProbeCounts", glm::vec3(probeCounts));
+        m_TraceShader->SetMat3("uRayRotation", rayRotation);
+
         for (int bounce = 0; bounce < maxBounces; bounce++)
         {
             bool useIndirect = bounce > 0;
 
             // Trace : write raw per-ray radiance into the (never directly sampled) scratch ray atlas.
+            // Rebind the program (classify/relocate below may have bound a different one on the previous
+            // iteration) - everything set on it above is still in effect, see the comment there.
             m_TracePipeline->Bind();
 
-            // SSBO binding points are global GL context state (glBindBufferBase), not scoped to this
-            // pipeline - bindings 0-4 are what path_trace.comp AND lit.frag's LightBuffer use, and unlike
-            // the offline raytracer (a one-off editor operation), ProbeManager::Update() runs every single
-            // frame from Renderer::BeginFrame(), before the forward pass. Reusing binding 0 here silently
-            // stole it away from lit.frag's `layout(std430, binding = 0) buffer LightBuffer` every frame
-            // (LightManager only re-binds it when a light actually changes, not per-frame), which made
-            // every light in the scene go dark as soon as a probe volume was active. Kept clear of 0-4 for
-            // exactly that reason. Reused across every volume's dispatch below (sequential, never bound
-            // simultaneously for two different volumes) - only the forward pass's ProbeActive reads (see
-            // gl_api.cpp) need one binding per volume alive at once.
-            m_BVHBuffer->Bind(8);
-            m_PosBuffer->Bind(9);
-            m_AttribBuffer->Bind(10);
-            m_MatBuffer->Bind(11);
-            if (m_LightBuffer)
-                m_LightBuffer->Bind(12);
-            slot.probeBuffer->Bind(13);
-            // Written by the classify dispatch below (bounce 0 only), read here by SampleIndirect on
-            // every later bounce - see the probeActiveBuffer comment on VolumeSlot in the header.
-            slot.probeActiveBuffer->Bind(14);
-
+            // Unlike the SSBO binds/uniforms hoisted above, these image units genuinely need
+            // re-establishing every iteration : classify (and relocate, if enabled) rebind units 0/1 to
+            // the SAME textures but as ReadOnly right after bounce 0's trace dispatch below, so without
+            // this, every bounce after the first would try to imageStore into a ReadOnly-bound image.
             slot.rayAtlas->BindImage(0, TextureAccess::ReadWrite);
             slot.rayDistAtlas->BindImage(1, TextureAccess::ReadWrite);
 
@@ -403,24 +458,15 @@ namespace Pulse::Engine::Rendering {
             // GLStateCache, so they're skipped whenever not needed rather than left as a no-op cost
             // every frame. Unit numbers here (40/41) must match probe_trace.comp's
             // uPrevIrradianceAtlas/uPrevDistanceAtlas layout(binding=...) - see that shader's comment
-            // for why they're not 1/2/3.
+            // for why they're not 1/2/3. Genuinely per-iteration (unlike the binds/uniforms hoisted
+            // above) : the ping-pong swap means a different underlying texture is "current" each bounce.
             if (useIndirect)
             {
                 slot.irradianceAtlas->Bind(40);
                 slot.distanceAtlas->Bind(41);
             }
 
-            m_TraceShader->SetInt("uProbeCount", (int)slot.probeCount);
-            m_TraceShader->SetInt("uTileSize", (int)slot.tileSize);
-            m_TraceShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
-            m_TraceShader->SetInt("uAtlasSize", (int)slot.atlasSize);
-            m_TraceShader->SetInt("uLightCount", (int)m_FlatLights.size());
             m_TraceShader->SetBool("uUseIndirect", useIndirect);
-            m_TraceShader->SetVec3("uSkyColor", glm::vec3(0.8f, 0.9f, 1.0f));
-            m_TraceShader->SetVec3("uGridOrigin", gridOrigin);
-            m_TraceShader->SetVec3("uGridSpacing", gridSpacing);
-            m_TraceShader->SetVec3("uProbeCounts", glm::vec3(probeCounts));
-            m_TraceShader->SetMat3("uRayRotation", rayRotation);
 
             // TextureFetch (not just ImageAccess) : the convolve pass below reads the ray atlas back via
             // a sampler2D (texelFetch), not imageLoad - GL_SHADER_IMAGE_ACCESS_BARRIER_BIT alone doesn't
@@ -430,7 +476,7 @@ namespace Pulse::Engine::Rendering {
             if (bounce == 0)
             {
                 // Classify : one thread per probe, scans that probe's own tile of bounce 0's raw hits
-                // (backface-hit ratio, see probe_classify.comp) and updates slot.probeActiveBuffer.
+                // (backface-hit ratio, see probe_classify.comp) and writes slot.probeStateBuffer's .w.
                 // Bounce 0 never samples it (uUseIndirect is false there), so every later bounce
                 // iteration this same frame - and the forward pass right after - sees this frame's own
                 // classification, not a stale one. Only needs to run once : the hit geometry a ray finds
@@ -444,11 +490,38 @@ namespace Pulse::Engine::Rendering {
                 m_ClassifyShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
 
                 // ShaderStorage (not ImageAccess) : this dispatch's output is an SSBO write
-                // (slot.probeActiveBuffer), not an image store - read back both by later bounces' compute
-                // dispatches in this same UpdateVolume() call and, further downstream, by lit.frag's
-                // fragment shader once the forward pass runs.
+                // (slot.probeStateBuffer .w), not an image store - read back both by later bounces'
+                // compute dispatches in this same UpdateVolume() call, by the relocate dispatch right
+                // below, and by lit.frag's fragment shader once the forward pass runs.
                 uint32_t classifyGroupsX = (slot.probeCount + 63) / 64;
                 renderer->DispatchCompute(m_ClassifyPipeline, classifyGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
+
+                // Relocate : one thread per probe, reads the same bounce 0 raw hits and integrates a
+                // small bounded offset into slot.probeStateBuffer's .xyz so probes embedded in / grazing
+                // geometry migrate into open space (RTXGI "Probe Relocation" - see probe_relocate.comp).
+                // Like classify, bounce 0 only (ray hit geometry is identical across bounce iterations)
+                // and gated on the volume's toggle. The write lands next frame : this frame's trace
+                // already ran with the previous offset, and the forward pass reads whatever's here now.
+                // Writes .xyz only, leaving the .w the classify dispatch above just wrote.
+                if (slot.volume->enableRelocation)
+                {
+                    m_RelocatePipeline->Bind();
+
+                    slot.rayAtlas->BindImage(0, TextureAccess::ReadOnly);
+                    slot.rayDistAtlas->BindImage(1, TextureAccess::ReadOnly);
+                    slot.probeStateBuffer->Bind(14);
+
+                    m_RelocateShader->SetInt("uProbeCount", (int)slot.probeCount);
+                    m_RelocateShader->SetInt("uTileSize", (int)slot.tileSize);
+                    m_RelocateShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+                    m_RelocateShader->SetMat3("uRayRotation", rayRotation);
+                    m_RelocateShader->SetVec3("uGridSpacing", gridSpacing);
+
+                    // ShaderStorage : same reasoning as the classify dispatch above - the SSBO write is
+                    // read by this frame's later bounce trace dispatches and by lit.frag's forward pass.
+                    uint32_t relocateGroupsX = (slot.probeCount + 63) / 64;
+                    renderer->DispatchCompute(m_RelocatePipeline, relocateGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
+                }
             }
 
             // Convolve : turn the raw per-ray radiance into an actual cosine-weighted irradiance map -
@@ -570,16 +643,31 @@ namespace Pulse::Engine::Rendering {
         if (m_PendingSceneBuild.valid() &&
             m_PendingSceneBuild.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         {
-            Raytracing::RaytraceScene scene = m_PendingSceneBuild.get();
+            try
+            {
+                Raytracing::RaytraceScene scene = m_PendingSceneBuild.get();
 
-            // A newer RebuildScene() call may have superseded this one while it was building (see its
-            // comment) - only the latest generation's result is worth uploading.
-            if (m_PendingSceneBuildGeneration == m_SceneBuildGeneration.load(std::memory_order_relaxed))
-                UploadScene(scene);
+                // A newer RebuildScene() call may have superseded this one while it was building (see
+                // its comment) - only the latest generation's result is worth uploading.
+                if (m_PendingSceneBuildGeneration == m_SceneBuildGeneration.load(std::memory_order_relaxed))
+                    UploadScene(scene);
+            }
+            catch (const std::exception& e)
+            {
+                // future::get() rethrows whatever exception the background build's worker thread threw,
+                // right here on the main thread - e.g. std::system_error if the parallel flatten/BVH
+                // build (raytrace_scene.cpp / bvh.cpp) couldn't spawn a helper thread, which past the
+                // guards in parallel_build_budget.hpp shouldn't happen anymore, but letting ANY exception
+                // from that background work escape uncaught turns "this one scene rebuild didn't work"
+                // into an unhandled exception that crashes the whole editor. Leaving m_SceneBuilt as-is
+                // means an older, already-uploaded scene (if one exists) stays in use rather than being
+                // torn down over a failed rebuild.
+                DEBUG_ERROR("ProbeManager : scene build failed - ", e.what());
+            }
 
             // The pending build always holds the newest generation (RebuildScene() parks the previous
-            // one in m_AbandonedSceneBuilds rather than overwriting it here), so its completion is the
-            // end of the build the editor is showing progress for.
+            // one in m_AbandonedSceneBuilds rather than overwriting it here), so its completion - success
+            // or failure - is the end of the build the editor is showing progress for.
             m_SceneBuildProgress.store(1.0f, std::memory_order_relaxed);
             m_SceneBuilding.store(false, std::memory_order_relaxed);
         }
@@ -588,7 +676,7 @@ namespace Pulse::Engine::Rendering {
             return;
 
         EnsureShaders();
-        if (!m_TracePipeline || !m_ConvolvePipeline || !m_BorderFixupPipeline || !m_ClassifyPipeline || !m_TemporalBlendPipeline || !m_DistanceTemporalBlendPipeline)
+        if (!m_TracePipeline || !m_ConvolvePipeline || !m_BorderFixupPipeline || !m_ClassifyPipeline || !m_RelocatePipeline || !m_TemporalBlendPipeline || !m_DistanceTemporalBlendPipeline)
             return;
 
         Renderer* renderer = Core::GetEngine().GetRenderer();
@@ -645,10 +733,10 @@ namespace Pulse::Engine::Rendering {
         return slot ? slot->publishedDistanceAtlas : nullptr;
     }
 
-    std::shared_ptr<StorageBuffer> ProbeManager::GetProbeActiveBuffer(int index) const
+    std::shared_ptr<StorageBuffer> ProbeManager::GetProbeStateBuffer(int index) const
     {
         const VolumeSlot* slot = FindSlot(index);
-        return slot ? slot->probeActiveBuffer : nullptr;
+        return slot ? slot->probeStateBuffer : nullptr;
     }
 
     glm::vec3 ProbeManager::GetGridOrigin(int index) const

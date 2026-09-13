@@ -42,6 +42,7 @@ namespace Pulse::Editor::GUI {
             void DrawToolbar();
             void DrawViewGizmo();
             void DrawObjectGizmo();
+            void HandleAssetDrop();
             void ShowFrameStats();
             void ShowCamSettings();
             void ShowViewportVisSettings();

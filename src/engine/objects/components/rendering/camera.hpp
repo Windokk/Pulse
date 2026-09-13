@@ -48,6 +48,9 @@ namespace Pulse::Engine::Objects::Components {
 
             void AddToCameraManager();
 
+            void Activate() override;
+            void DeActivate() override;
+
             void Destroy() override;
 
             void UpdateSize(int new_width, int new_height);
