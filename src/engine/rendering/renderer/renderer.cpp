@@ -15,6 +15,7 @@
 #include "engine/core/resources/resources_manager.hpp"
 #include "engine/debugging/profiler.hpp"
 #include <queue>
+#include <algorithm>
 #include <glm/gtx/string_cast.hpp>
 
 namespace Pulse::Engine::Rendering{
@@ -144,6 +145,17 @@ namespace Pulse::Engine::Rendering{
         probeGizmoPass->clearDepth = false;
         probeGizmoPass->overridePipeline = false;
         AddRenderPass(probeGizmoPass, "ProbeGizmoPass", {"ForwardPass"});
+
+        /// Physics debug shapes pass - the wireframe collision shapes PhysicsBody submits (see
+        /// PhysicsBody::Update()). Same target as ForwardPass, drawn right after it without clearing,
+        /// kept as its own pass so the editor can hide just these shapes (RenderPass::enabled = false)
+        /// without touching the PhysicsBody components themselves (see ViewportWindow's Visibility tab).
+        std::shared_ptr<RenderPass> physicsDebugPass = std::make_shared<RenderPass>();
+        physicsDebugPass->target = m_ViewportBuffer;
+        physicsDebugPass->clearColor = false;
+        physicsDebugPass->clearDepth = false;
+        physicsDebugPass->overridePipeline = false;
+        AddRenderPass(physicsDebugPass, "PhysicsDebugPass", {"ForwardPass"});
 
         // Init SSAO (see SSAOManager) - after ForwardPass is registered, since Init() adds
         // "ForwardPass" -> "SSAOBlurPass" as a dependency so the forward pass always samples this
@@ -348,7 +360,32 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::ReorderDrawList()
     {
-        //TODO : Sorting based on sort key for each passes, if rebuild is neeeded
+        // GenerateSortKey() packs pipeline/material/mesh identity into `sortKey` precisely so draws
+        // sharing GL state end up adjacent - submission order (scene traversal) has no relation to
+        // that, so without this sort GLStateCache (gl_utils.hpp) rarely gets consecutive draws it can
+        // actually skip binds for. `drawCommandsLookup` maps commandID -> index into `drawList` for
+        // O(1) incremental add/remove (see AddOrUpdateCommands/RemoveCommands), so it has to be
+        // rebuilt after every sort or those would silently touch the wrong slot.
+        auto sortAndReindex = [](std::vector<DrawCommand>& drawList, std::unordered_map<uint64_t, size_t>& lookup)
+        {
+            std::sort(drawList.begin(), drawList.end(), [](const DrawCommand& a, const DrawCommand& b){
+                return a.sortKey < b.sortKey;
+            });
+
+            for (size_t i = 0; i < drawList.size(); i++)
+                lookup[drawList[i].commandID] = i;
+        };
+
+        for (auto& [name, pass] : m_RenderPasses)
+        {
+            // externalDrawList passes (shadow passes) all point at shadowDrawList, sorted once below -
+            // sorting it once per pointing pass would be redundant and each would re-derive the same
+            // order anyway.
+            if (!pass->externalDrawList)
+                sortAndReindex(pass->drawList, pass->drawCommandsLookup);
+        }
+
+        sortAndReindex(shadowDrawList, shadowDrawCommandsLookup);
     }
 
     void Renderer::AddOrUpdateCommands(const std::vector<DrawCommand>& commands, const std::vector<std::string>& passes, bool addToShadowDrawList)

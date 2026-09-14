@@ -388,6 +388,12 @@ namespace Pulse::Engine::Levels{
 
     void Level::Play()
     {
+        for(auto& [id, audio] : audioSources){
+            if(audio->Active()){
+                audio->OnPlay();
+            }
+        }
+
         for(auto& [id,script] : scripts){
             if(script->Active()){
                 script->OnPlay();

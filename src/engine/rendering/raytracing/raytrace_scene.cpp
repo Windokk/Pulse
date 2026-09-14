@@ -220,7 +220,7 @@ namespace Pulse::Engine::Rendering::Raytracing {
 
             ModelSnapshot modelSnap;
             modelSnap.mesh = mesh;
-            modelSnap.worldMatrix = model->parent->transform->GetTransformMatrix();
+            modelSnap.worldMatrix = model->parent->transform->GetWorldMatrix();
             modelSnap.materialIndicesPerSubmesh.resize(submeshes.size());
 
             for (size_t submeshIdx = 0; submeshIdx < submeshes.size(); submeshIdx++)

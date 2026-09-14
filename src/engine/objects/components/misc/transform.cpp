@@ -95,12 +95,15 @@ namespace Pulse::Engine::Objects::Components{
         if(!activated)
             return;
 
-		glm::vec3 oldpos = this->position;
         this->position = position;
+
+		// Invalidate (and propagate) the world matrix cache before anything below reads a world-space
+		// value derived from it, otherwise it would read the pre-edit, now-stale cached matrix.
+		MarkWorldMatrixDirty();
 
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetPosition(glm::vec3(this->position.x, this->position.y, this->position.z));
+				light->SetPosition(GetWorldPosition());
 			}
 		}
 
@@ -116,10 +119,12 @@ namespace Pulse::Engine::Objects::Components{
             return;
 
 		this->rotation = glm::quat(glm::radians(rotation));
-		
+
+		MarkWorldMatrixDirty();
+
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetDirection(this->GetForward());
+				light->SetDirection(GetWorldForward());
 			}
 		}
 		UpdateMeshReferencesInLevel();
@@ -134,10 +139,12 @@ namespace Pulse::Engine::Objects::Components{
             return;
 
 		this->rotation = rotation;
-		
+
+		MarkWorldMatrixDirty();
+
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetDirection(this->GetForward());
+				light->SetDirection(GetWorldForward());
 			}
 		}
 		UpdateMeshReferencesInLevel();
@@ -152,6 +159,8 @@ namespace Pulse::Engine::Objects::Components{
             return;
 
         this->scale = scale;
+
+		MarkWorldMatrixDirty();
 		UpdateMeshReferencesInLevel();
 
 		if(updateDirty)
@@ -165,9 +174,11 @@ namespace Pulse::Engine::Objects::Components{
 
         this->position += deltaPosition;
 
+		MarkWorldMatrixDirty();
+
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetPosition(glm::vec3(this->position.x, this->position.y, this->position.z));
+				light->SetPosition(GetWorldPosition());
 			}
 		}
 
@@ -189,10 +200,12 @@ namespace Pulse::Engine::Objects::Components{
 		glm::quat qRoll  = glm::angleAxis(radians.z, glm::vec3(0, 0, 1));
 
 		this->rotation = qYaw * qPitch * qRoll * this->rotation;
-		
+
+		MarkWorldMatrixDirty();
+
 		if(parent->HasComponent<Light>()){
 			for(auto& light : parent->GetComponents<Light>()){
-				light->SetDirection(this->GetForward());
+				light->SetDirection(GetWorldForward());
 			}
 		}
 		UpdateMeshReferencesInLevel();
@@ -207,9 +220,10 @@ namespace Pulse::Engine::Objects::Components{
             return;
 
         this->scale += deltaScale;
-		
+
+		MarkWorldMatrixDirty();
 		UpdateMeshReferencesInLevel();
-		
+
 		if(updateDirty)
 			dirtyFlags |= DirtyFlags::Scale;
     }
@@ -237,6 +251,84 @@ namespace Pulse::Engine::Objects::Components{
         return glm::translate(glm::mat4(1.0f), position)
             * glm::toMat4(rotation)
             * glm::scale(glm::mat4(1.0f), scale);
+    }
+
+    std::shared_ptr<Transform> Transform::GetParentTransform() const
+    {
+        if (!parent)
+            return nullptr;
+
+        auto parentActor = std::dynamic_pointer_cast<Actor>(parent->GetParent());
+        return parentActor ? parentActor->transform : nullptr;
+    }
+
+    glm::mat4 Transform::GetWorldMatrix()
+    {
+        if (worldMatrixDirty)
+        {
+            std::shared_ptr<Transform> parentTransform = GetParentTransform();
+
+            cachedWorldMatrix = parentTransform
+                ? parentTransform->GetWorldMatrix() * GetTransformMatrix()
+                : GetTransformMatrix();
+
+            worldMatrixDirty = false;
+        }
+
+        return cachedWorldMatrix;
+    }
+
+    glm::vec3 Transform::GetWorldPosition()
+    {
+        return glm::vec3(GetWorldMatrix()[3]);
+    }
+
+    glm::quat Transform::GetWorldRotationQuat()
+    {
+        glm::mat4 m = GetWorldMatrix();
+
+        glm::mat3 rotationMatrix(
+            glm::normalize(glm::vec3(m[0])),
+            glm::normalize(glm::vec3(m[1])),
+            glm::normalize(glm::vec3(m[2]))
+        );
+
+        return glm::quat_cast(rotationMatrix);
+    }
+
+    glm::vec3 Transform::GetWorldScale()
+    {
+        glm::mat4 m = GetWorldMatrix();
+
+        return glm::vec3(
+            glm::length(glm::vec3(m[0])),
+            glm::length(glm::vec3(m[1])),
+            glm::length(glm::vec3(m[2]))
+        );
+    }
+
+    void Transform::MarkWorldMatrixDirty()
+    {
+        worldMatrixDirty = true;
+
+        if (!parent)
+            return;
+
+        for (const Core::ObjectID& childID : parent->GetChildrenID())
+        {
+            auto childActor = std::dynamic_pointer_cast<Actor>(
+                Core::GetEngine().GetObjectIDManager()->GetObjectFromID(childID));
+
+            if (!childActor || !childActor->transform)
+                continue;
+
+            // Recurse first so the whole subtree is marked dirty regardless of any child's previous
+            // state, then eagerly refresh Model/Volume's level->meshes snapshot (see
+            // UpdateMeshReferencesInLevel) - those are pushed, not pulled each frame, so a descendant
+            // whose own local fields never changed still needs to be told its world matrix moved.
+            childActor->transform->MarkWorldMatrixDirty();
+            childActor->transform->UpdateMeshReferencesInLevel();
+        }
     }
 
     bool Transform::SetFromTransformMatrix(const glm::mat4& m)
@@ -303,9 +395,24 @@ namespace Pulse::Engine::Objects::Components{
 		return true;
     }
 
+    bool Transform::SetFromWorldMatrix(const glm::mat4& worldMatrix)
+    {
+        std::shared_ptr<Transform> parentTransform = GetParentTransform();
+
+        glm::mat4 localMatrix = parentTransform
+            ? glm::inverse(parentTransform->GetWorldMatrix()) * worldMatrix
+            : worldMatrix;
+
+        return SetFromTransformMatrix(localMatrix);
+    }
+
     std::shared_ptr<Component> Transform::Clone() const
     {
         auto cloned = Object::Create<Transform>(*this);
+
+        // Copy-constructed from *this, so it would otherwise inherit the source's cached world matrix -
+        // stale as soon as the clone gets attached under a (potentially different) parent actor.
+        cloned->worldMatrixDirty = true;
 
         return cloned;
     }

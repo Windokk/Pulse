@@ -10,8 +10,12 @@
 #include "engine/objects/components/rendering/model_component.hpp"
 
 namespace Pulse::Editor::GUI{
-    
+
     using Engine::Core::GetEngine;
+
+    // Payload for dragging an actor row within the outliner itself (reparenting), as opposed to
+    // DragDrop::kAssetPayloadType which carries assets dragged in from the asset browser.
+    static constexpr const char* kOutlinerActorPayloadType = "PULSE_OUTLINER_ACTOR";
 
     void LevelTree::Draw()
     {
@@ -61,6 +65,18 @@ namespace Pulse::Editor::GUI{
                     if (parent)
                         parent->SetSelectedActor(actor);
                 }
+
+                // Dropped on empty space rather than on a specific row -> detach from whatever
+                // actor it was parented under and make it a root actor of the level.
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kOutlinerActorPayloadType))
+                {
+                    int droppedIdInt = *(const int*)payload->Data;
+                    auto droppedActor = std::dynamic_pointer_cast<Engine::Objects::Actor>(
+                        GetEngine().GetObjectIDManager()->GetObjectFromID(Engine::Core::ObjectID(droppedIdInt)));
+                    if (droppedActor)
+                        ReparentActor(droppedActor, nullptr);
+                }
+
                 ImGui::EndDragDropTarget();
             }
         }
@@ -138,6 +154,30 @@ namespace Pulse::Editor::GUI{
             selectedID = actor->GetID();
             if (parent)
                 parent->SetSelectedActor(actor);
+        }
+
+        // Drag source: lets this row be picked up and dropped elsewhere in the outliner to reparent it.
+        if (ImGui::BeginDragDropSource())
+        {
+            int actorIdInt = actor->GetID().GetAsInt();
+            ImGui::SetDragDropPayload(kOutlinerActorPayloadType, &actorIdInt, sizeof(int));
+            ImGui::Text("%s", actor->GetName().c_str());
+            ImGui::EndDragDropSource();
+        }
+
+        // Drop target: dropping another outliner row here reparents it under this actor.
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kOutlinerActorPayloadType))
+            {
+                int droppedIdInt = *(const int*)payload->Data;
+                auto droppedActor = std::dynamic_pointer_cast<Engine::Objects::Actor>(
+                    Engine::Core::GetEngine().GetObjectIDManager()->GetObjectFromID(Engine::Core::ObjectID(droppedIdInt)));
+                if (droppedActor)
+                    ReparentActor(droppedActor, actor);
+            }
+
+            ImGui::EndDragDropTarget();
         }
 
         // Context Menu
@@ -218,6 +258,16 @@ namespace Pulse::Editor::GUI{
 
             ImGui::TreePop();
         }
+    }
+
+    void LevelTree::ReparentActor(std::shared_ptr<Engine::Objects::Actor> actor, std::shared_ptr<Engine::Objects::Actor> newParent)
+    {
+        if (!actor || actor == newParent)
+            return;
+
+        // Cycle detection and world-transform preservation ("attach in place") both live in
+        // Actor::SetParent now, shared with any other caller (scripts, etc).
+        actor->SetParent(newParent);
     }
 }
 

@@ -76,12 +76,12 @@ namespace Pulse::Engine::Objects::Components {
 
         std::shared_ptr<Transform> tr = parent->transform;
 
-        glm::vec3 position = tr->GetPosition();
-        glm::vec3 forward  = tr->GetForward();
-        glm::vec3 up       = tr->GetUp();
+        glm::vec3 position = tr->GetWorldPosition();
+        glm::vec3 forward  = tr->GetWorldForward();
+        glm::vec3 up       = tr->GetWorldUp();
 
         // View matrix
-        glm::mat4 rot = glm::mat4_cast(tr->GetRotationQuat());
+        glm::mat4 rot = glm::mat4_cast(tr->GetWorldRotationQuat());
         glm::mat4 trans = glm::translate(glm::mat4(1.0f), position);
         view = glm::inverse(trans * rot);
 

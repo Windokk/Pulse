@@ -22,7 +22,7 @@ namespace Pulse::Engine::Objects::Components{
 
     glm::vec3 ProbeVolume::GetGridOrigin() const
     {
-        glm::vec3 center = parent && parent->transform ? parent->transform->GetPosition() : glm::vec3(0.0f);
+        glm::vec3 center = parent && parent->transform ? parent->transform->GetWorldPosition() : glm::vec3(0.0f);
         // Inset by half a cell (see GetGridSpacing()) so the outermost layer of probes sits inside the
         // volume's bounding box instead of exactly on its surface - a probe volume is typically sized
         // flush against a room's walls, and a probe placed right on/embedded in a wall sees it fill
@@ -84,7 +84,7 @@ namespace Pulse::Engine::Objects::Components{
         cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
         cmd.mesh = m_ProbeDebugShape->m_Mesh;
         cmd.modelID = parent->GetComponentIDInLevel(local_id);
-        cmd.modelMatrix = parent->transform->GetTransformMatrix();
+        cmd.modelMatrix = parent->transform->GetWorldMatrix();
         cmd.objectID = parent->GetID().GetAsInt();
         cmd.vertexCount = m_ProbeDebugShape->m_Mesh->GetVertexCount();
 

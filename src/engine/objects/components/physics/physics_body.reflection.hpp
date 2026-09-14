@@ -170,45 +170,11 @@ inline StructDescriptor CylinderParams_descriptor = {
 };
 
 // Reflection for class PhysicsBody
-
-inline FieldInfo PhysicsBody_params_info = {
-    "params",
-    TypeID::Struct,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, params),
-    Editable,
-    0, 0,
-    nullptr,
-    nullptr,
-    &CopyConstruct<InstancedStruct>,
-    &Assign<InstancedStruct>,
-    &Destroy<InstancedStruct>,
-    &Equals<InstancedStruct>
-};
-
-static EnumDescriptor PhysicsShape_descriptor = {
-    "PhysicsShape",
-    {
-        { 0, "SPHERE" },
-        { 1, "BOX" },
-        { 2, "CAPSULE" },
-        { 3, "CYLINDER" },
-    },
-    sizeof(Physics::PhysicsShape)
-};
-
-inline FieldInfo PhysicsBody_shapeType_info = {
-    "shapeType",
-    TypeID::Enum,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, shapeType),
-    Editable,
-    0, 0,
-    nullptr,
-    &PhysicsShape_descriptor,
-    &CopyConstruct<Physics::PhysicsShape>,
-    &Assign<Physics::PhysicsShape>,
-    &Destroy<Physics::PhysicsShape>,
-    &Equals<Physics::PhysicsShape>
-};
+//
+// Note: the shape list (PhysicsBody::shapes) is intentionally not reflected here - it's a
+// vector of structs (each with its own nested InstancedStruct params), which the generic
+// reflected-field editor UI (PropertiesPanel::DrawField) has no support for drawing. The editor
+// instead draws it with a dedicated custom UI block; see properties_panel.cpp.
 
 static EnumDescriptor EMotionType_descriptor = {
     "EMotionType",
@@ -234,12 +200,115 @@ inline FieldInfo PhysicsBody_motionType_info = {
     &Equals<EMotionType>
 };
 
+inline FieldInfo PhysicsBody_overrideMass_info = {
+    "overrideMass",
+    TypeID::Bool,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, overrideMass),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<bool>,
+    &Assign<bool>,
+    &Destroy<bool>,
+    &Equals<bool>
+};
+
+inline FieldInfo PhysicsBody_mass_info = {
+    "mass",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, mass),
+    Editable,
+    0.001f, 100000.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo PhysicsBody_linearDamping_info = {
+    "linearDamping",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, linearDamping),
+    Editable,
+    0.0f, 1.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo PhysicsBody_angularDamping_info = {
+    "angularDamping",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, angularDamping),
+    Editable,
+    0.0f, 1.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo PhysicsBody_gravityFactor_info = {
+    "gravityFactor",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, gravityFactor),
+    Editable,
+    -10.0f, 10.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo PhysicsBody_friction_info = {
+    "friction",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, friction),
+    Editable,
+    0.0f, 1.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo PhysicsBody_restitution_info = {
+    "restitution",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, restitution),
+    Editable,
+    0.0f, 1.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
 inline ClassDescriptor Pulse::Engine::Objects::Components::PhysicsBody::descriptor = {
     "PhysicsBody",
     {
-        &PhysicsBody_params_info,
-        &PhysicsBody_shapeType_info,
         &PhysicsBody_motionType_info,
+        &PhysicsBody_overrideMass_info,
+        &PhysicsBody_mass_info,
+        &PhysicsBody_linearDamping_info,
+        &PhysicsBody_angularDamping_info,
+        &PhysicsBody_gravityFactor_info,
+        &PhysicsBody_friction_info,
+        &PhysicsBody_restitution_info,
     }
 };
 

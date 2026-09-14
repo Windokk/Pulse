@@ -251,7 +251,7 @@ namespace Pulse::Engine::Objects::Components{
         {
             return;
         }
-        parent->level->meshes[parent->GetComponentIDInLevel(local_id)] = { parent->transform->GetTransformMatrix(), mesh.get() };
+        parent->level->meshes[parent->GetComponentIDInLevel(local_id)] = { parent->transform->GetWorldMatrix(), mesh.get() };
         
         Update();
     }

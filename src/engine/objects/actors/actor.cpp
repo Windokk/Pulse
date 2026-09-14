@@ -132,7 +132,59 @@ namespace Pulse::Engine::Objects{
         LevelObject::AddChild(o);
         if (std::shared_ptr<Actor> actorChild = std::dynamic_pointer_cast<Actor>(o)) {
             actorChild->SetLevel(this->level);
+
+            // The child's cached world matrix (if any) was computed against its old parent chain
+            // (or none at all) and must be invalidated now that it hangs off this actor instead.
+            if (actorChild->transform)
+                actorChild->transform->MarkWorldMatrixDirty();
         }
+    }
+
+    void Actor::SetParent(std::shared_ptr<Actor> newParent, bool keepWorldTransform)
+    {
+        if (newParent.get() == this) {
+            DEBUG_ERROR("An actor cannot be parented to itself.");
+            return;
+        }
+
+        // Refuse a reparent that would create a cycle (dropping an actor onto itself or one of its
+        // own descendants).
+        if (newParent) {
+            std::shared_ptr<LevelObject> ancestor = newParent;
+            while (ancestor) {
+                if (ancestor->GetID() == id) {
+                    DEBUG_ERROR("Cannot parent an actor to one of its own descendants.");
+                    return;
+                }
+                ancestor = ancestor->GetParent();
+            }
+        }
+
+        std::shared_ptr<Actor> oldParent = std::dynamic_pointer_cast<Actor>(GetParent());
+
+        if (oldParent.get() == newParent.get())
+            return;
+
+        glm::mat4 worldMatrix = transform->GetWorldMatrix();
+
+        if (oldParent)
+            oldParent->DeleteChildRef(id);
+        else if (level)
+            level->RemoveActor(id);
+
+        if (newParent) {
+            newParent->AddChild(AsShared<Actor>());
+        }
+        else {
+            LevelObject::SetParent(Core::ObjectID(-1));
+            if (level)
+                level->AddActor(AsShared<Actor>());
+        }
+
+        if (keepWorldTransform)
+            transform->SetFromWorldMatrix(worldMatrix);
+        else
+            transform->MarkWorldMatrixDirty();
     }
 
     void Actor::SetLevel(Levels::Level* lvl)

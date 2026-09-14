@@ -15,24 +15,27 @@ namespace Pulse::Engine::Audio
 {
     struct Sound{
         FMOD_SOUND* fmod_sound;
-        Filesystem::Path path;
         glm::vec3 pos;
-        std::string buffer;
         bool isPlaying = false;
         float initialVolume;
+        // When false, skips the per-frame distance/angle pan+attenuation pass entirely (Update())
+        // and just plays at flat volume in its native stereo image - for ambient/music sources
+        // rather than positional sound effects.
+        bool spatialize = true;
     };
-    
+
     class AudioManager{
         public:
-        
+
             void Init(float masterVolume);
             void Shutdown();
             void Tick();
-            void CreateSound(AudioID id, Filesystem::Path path, glm::vec3 pos);
+            void CreateSound(AudioID id, const std::string& pathInProject, glm::vec3 pos, bool spatialize);
             void RemoveSound(AudioID id);
             void PlaySound(AudioID id, float volume);
             void PauseSound(AudioID id);
             void UpdateSound(AudioID id, glm::vec3 pos, float volume);
+            void SetSpatialize(AudioID id, bool spatialize);
             void Update(glm::vec3 listenerPos, glm::vec2 listenerFacingNormalized, float maxDistance);
             int GetSoundsCount() { return channels.size(); }
 

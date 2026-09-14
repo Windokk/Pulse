@@ -126,10 +126,10 @@ namespace Pulse::Engine::Rendering::Raytracing {
 
         // ---- Camera basis (world-space, pre-scaled so primary rays only need forward + right*x + up*y) ----
         auto camTransform = camera->parent->transform;
-        camPos = camTransform->GetPosition();
-        camForward = camTransform->GetForward();
-        camRight = camTransform->GetRight();
-        camUp = camTransform->GetUp();
+        camPos = camTransform->GetWorldPosition();
+        camForward = camTransform->GetWorldForward();
+        camRight = camTransform->GetWorldRight();
+        camUp = camTransform->GetWorldUp();
 
         float aspect = (float)settings.width / (float)settings.height;
         float tanHalfFov = std::tan(glm::radians(*camera->GetFOV()) * 0.5f);

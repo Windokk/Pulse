@@ -10,6 +10,9 @@
 #include <glm/glm.hpp>
 #include <type_traits>
 #include <unordered_map>
+#include <algorithm>
+#include <vector>
+#include <string>
 
 #include "engine/objects/components/audio/audio_source.hpp"
 #include "engine/objects/components/misc/transform.hpp"
@@ -18,6 +21,7 @@
 #include "engine/objects/components/rendering/light_component.hpp"
 #include "engine/objects/components/rendering/probe_volume.hpp"
 #include "engine/objects/components/physics/physics_body.hpp"
+#include "engine/objects/components/core/registry/component_registry.hpp"
 
 using namespace Pulse::Engine::Objects;
 using namespace Pulse::Engine::Objects::Components;
@@ -256,6 +260,163 @@ namespace Pulse::Editor::GUI{
         return changed;
     }
 
+    bool DrawQuatEuler(const char* label, glm::quat& rot, float min = 0.0f, float max = 0.0f)
+    {
+        static std::unordered_map<void*, glm::vec3> cachedEuler;
+        glm::vec3& vec = cachedEuler[&rot];
+
+        glm::quat cachedQuat = glm::quat(glm::radians(vec));
+        if (glm::abs(glm::dot(cachedQuat, rot)) < 0.9999f)
+            vec = glm::degrees(glm::eulerAngles(rot));
+
+        if (InputVector3<float>(label, &vec.x, 0.1f, min, max))
+        {
+            rot = glm::quat(glm::radians(vec));
+            return true;
+        }
+
+        return false;
+    }
+
+    void DrawPhysicsBodyShapes(std::shared_ptr<Component> comp)
+    {
+        auto body = std::dynamic_pointer_cast<PhysicsBody>(comp);
+        if (!body)
+            return;
+
+        ImGui::Separator();
+        ImGui::Text("Shapes");
+
+        static const char* shapeTypeNames[] = { "Sphere", "Box", "Capsule", "Cylinder" };
+
+        size_t indexToRemove = static_cast<size_t>(-1);
+
+        for (size_t i = 0; i < body->GetShapeCount(); i++)
+        {
+            ImGui::PushID((int)i);
+
+            bool removable = body->GetShapeCount() > 1;
+            float removeButtonWidth = ImGui::GetFrameHeight();
+            float rightAlignX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - removeButtonWidth;
+
+            if (removable)
+                ImGui::SetNextItemAllowOverlap();
+
+            std::string label = "Shape " + std::to_string(i);
+            bool open = ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+            if (removable)
+            {
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(rightAlignX);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, removeButtonWidth * 0.5f);
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.85f, 0.27f, 0.27f, 0.45f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.85f, 0.27f, 0.27f, 0.70f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.45f, 0.45f, 1.0f));
+
+                if (ImGui::Button((std::string(ICON_LC_X) + "##RemoveShape").c_str(), ImVec2(removeButtonWidth, removeButtonWidth)))
+                    indexToRemove = i;
+
+                ImGui::PopStyleColor(4);
+                ImGui::PopStyleVar();
+
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Remove Shape");
+            }
+
+            if (open)
+            {
+                bool paramsChanged = false;
+
+                if (ImGui::BeginTable("##ShapeTable", 2, ImGuiTableFlags_SizingStretchProp))
+                {
+                    ImGui::TableSetupColumn("##Property", ImGuiTableColumnFlags_WidthStretch, 90.0f);
+                    ImGui::TableSetupColumn("##Value", ImGuiTableColumnFlags_WidthStretch, 90.0f);
+
+                    auto row = [](const char* label)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text(label);
+                        ImGui::TableSetColumnIndex(1);
+                    };
+
+                    int currentType = static_cast<int>(body->GetShapeType(i));
+
+                    row("Type");
+                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    if (ImGui::Combo("##ShapeType", &currentType, shapeTypeNames, IM_ARRAYSIZE(shapeTypeNames)))
+                        body->SetShapeType(i, static_cast<Physics::PhysicsShape>(currentType));
+
+                    switch (body->GetShapeType(i))
+                    {
+                        case Physics::PhysicsShape::SPHERE:
+                        {
+                            auto& p = body->GetShapeParams<SphereParams>(i);
+                            row("Radius");
+                            ImGui::SetNextItemWidth(-FLT_MIN);
+                            paramsChanged |= ImGui::DragFloat("##Radius", &p.radius, 0.05f, 0.001f, FLT_MAX);
+                            break;
+                        }
+                        case Physics::PhysicsShape::BOX:
+                        {
+                            auto& p = body->GetShapeParams<BoxParams>(i);
+                            row("Half Extent");
+                            paramsChanged |= InputVector3<float>("HalfExtent", &p.halfExtent.x, 0.05f);
+                            break;
+                        }
+                        case Physics::PhysicsShape::CAPSULE:
+                        {
+                            auto& p = body->GetShapeParams<CapsuleParams>(i);
+                            row("Radius");
+                            ImGui::SetNextItemWidth(-FLT_MIN);
+                            paramsChanged |= ImGui::DragFloat("##Radius", &p.radius, 0.05f, 0.001f, FLT_MAX);
+                            row("Half Height");
+                            ImGui::SetNextItemWidth(-FLT_MIN);
+                            paramsChanged |= ImGui::DragFloat("##HalfHeight", &p.halfHeight, 0.05f, 0.001f, FLT_MAX);
+                            break;
+                        }
+                        case Physics::PhysicsShape::CYLINDER:
+                        {
+                            auto& p = body->GetShapeParams<CylinderParams>(i);
+                            row("Radius");
+                            ImGui::SetNextItemWidth(-FLT_MIN);
+                            paramsChanged |= ImGui::DragFloat("##Radius", &p.radius, 0.05f, 0.001f, FLT_MAX);
+                            row("Half Height");
+                            ImGui::SetNextItemWidth(-FLT_MIN);
+                            paramsChanged |= ImGui::DragFloat("##HalfHeight", &p.halfHeight, 0.05f, 0.001f, FLT_MAX);
+                            break;
+                        }
+                    }
+
+                    row("Offset");
+                    paramsChanged |= InputVector3<float>("Offset", &body->GetShapeOffset(i).x, 0.05f);
+
+                    row("Rotation");
+                    paramsChanged |= DrawQuatEuler("Rotation", body->GetShapeRotation(i));
+
+                    ImGui::EndTable();
+                }
+
+                if (paramsChanged)
+                    body->MarkShapesDirty();
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+        }
+
+        if (indexToRemove != static_cast<size_t>(-1))
+            body->RemoveShape(indexToRemove);
+
+        if (ImGui::Button("Add Shape"))
+            body->AddShape();
+    }
+
     void PropertiesPanel::Draw(std::shared_ptr<Actor> actor)
     {
         ImGui::Begin("Properties");
@@ -294,36 +455,76 @@ namespace Pulse::Editor::GUI{
             }
 
             if (ImGui::BeginPopup("AddComponentPopup")) {
+                DrawAddComponentMenu(actor);
+                ImGui::EndPopup();
+            }
 
-                if (ImGui::MenuItem("Light")) {
-                    actor->AddComponent<Engine::Objects::Components::Light>();
-                }
-
-                if (ImGui::MenuItem("Camera")) {
-                    actor->AddComponent<Engine::Objects::Components::Camera>();
-                }
-
-                if (ImGui::MenuItem("Audio Source")) {
-                    actor->AddComponent<Engine::Objects::Components::AudioSource>();
-                }
-
-                if (ImGui::MenuItem("Physics Body")) {
-                    actor->AddComponent<Engine::Objects::Components::PhysicsBody>();
-                }
-
-                if (ImGui::MenuItem("Model")) {
-                    actor->AddComponent<Engine::Objects::Components::Model>();
-                }
-
-                if (ImGui::MenuItem("Probe Volume")) {
-                    actor->AddComponent<Engine::Objects::Components::ProbeVolume>();
-                }
-
+            // Right-click anywhere in the panel that isn't already an item (a component header, the
+            // remove/active buttons, ...) opens the same menu, same as the "Add Component..." button.
+            if (ImGui::BeginPopupContextWindow("##PropertiesAddComponentContext",
+                    ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+                DrawAddComponentMenu(actor);
                 ImGui::EndPopup();
             }
         }
 
         ImGui::End();
+    }
+
+    void PropertiesPanel::DrawAddComponentMenu(std::shared_ptr<Actor> actor)
+    {
+        if (ImGui::MenuItem("Light")) {
+            actor->AddComponent<Engine::Objects::Components::Light>();
+        }
+
+        if (ImGui::MenuItem("Camera")) {
+            actor->AddComponent<Engine::Objects::Components::Camera>();
+        }
+
+        if (ImGui::MenuItem("Audio Source")) {
+            actor->AddComponent<Engine::Objects::Components::AudioSource>();
+        }
+
+        if (ImGui::MenuItem("Physics Body")) {
+            actor->AddComponent<Engine::Objects::Components::PhysicsBody>();
+        }
+
+        if (ImGui::MenuItem("Model")) {
+            actor->AddComponent<Engine::Objects::Components::Model>();
+        }
+
+        if (ImGui::MenuItem("Probe Volume")) {
+            actor->AddComponent<Engine::Objects::Components::ProbeVolume>();
+        }
+
+        // Everything registered through REGISTER_COMPONENT (game-side custom components, e.g.
+        // scripts) - these aren't special-cased engine types like the ones above, so the registry is
+        // the only way to instantiate them by name (Level::DeserializeComponents does the same thing
+        // for level files). CreateComponentByName hands back a parent-less component (see
+        // DECLARE_COMPONENT); AddComponentRaw is what wires it into this actor/level.
+        const auto& customComponents = GetComponentRegistry().GetAll();
+        if (!customComponents.empty())
+        {
+            ImGui::Separator();
+
+            // Sorted so the menu has a stable order instead of reshuffling with the registry's
+            // internal (unordered_map) iteration order.
+            std::vector<std::string> names;
+            names.reserve(customComponents.size());
+            for (auto& [name, factory] : customComponents)
+                names.push_back(name);
+            std::sort(names.begin(), names.end());
+
+            for (const std::string& name : names)
+            {
+                if (ImGui::MenuItem(name.c_str()))
+                {
+                    std::shared_ptr<Component> component = GetComponentRegistry().CreateComponentByName(name);
+                    if (component)
+                        actor->AddComponentRaw(component);
+                }
+            }
+        }
     }
 
     void PropertiesPanel::DrawActorInfo(std::shared_ptr<Actor> actor)
@@ -426,6 +627,8 @@ namespace Pulse::Editor::GUI{
                 
                 ImGui::EndTable();
             }
+
+            DrawPhysicsBodyShapes(comp);
         }
 
         return removeRequested;
@@ -664,17 +867,8 @@ namespace Pulse::Editor::GUI{
             {
                 glm::quat* quat = static_cast<glm::quat*>(value);
 
-                // Avoid re-decomposing the quat every frame (unstable near gimbal lock); only resync from external changes.
-                static std::unordered_map<void*, glm::vec3> cachedEuler;
-                glm::vec3& vec = cachedEuler[value];
-
-                glm::quat cachedQuat = glm::quat(glm::radians(vec));
-                if (glm::abs(glm::dot(cachedQuat, *quat)) < 0.9999f)
-                    vec = glm::degrees(glm::eulerAngles(*quat));
-
-                if (InputVector3<float>(fieldName, &vec.x, 0.1f, field->min, field->max))
+                if (DrawQuatEuler(fieldName, *quat, field->min, field->max))
                 {
-                    *quat = glm::quat(glm::radians(vec));
                     FieldChangedEvent evt{ field };
                     comp->OnFieldChanged(evt);
                 }

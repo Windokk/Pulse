@@ -86,7 +86,12 @@ namespace Pulse::Engine::Objects{
 
             std::shared_ptr<Actor> Clone();
 
-            // TODO : SetParent (Attach to)
+            /// @brief Attaches this actor to newParent (or detaches to the level root if nullptr).
+            /// @param keepWorldTransform If true (default), the actor's local Transform is recomputed
+            /// so its world-space position/rotation/scale stay the same after reparenting - like
+            /// "attach in place" in Unity/Unreal. If false, the local Transform is left untouched, so
+            /// the actor jumps to be positioned relative to its new parent instead.
+            void SetParent(std::shared_ptr<Actor> newParent, bool keepWorldTransform = true);
 
         protected:
             bool activated = true;

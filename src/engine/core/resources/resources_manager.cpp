@@ -16,6 +16,8 @@
 #include "engine/rendering/shader/compute_shader.hpp"
 #include "engine/rendering/material/material.hpp"
 
+#include "engine/audio/sound_asset.hpp"
+
 namespace Pulse::Engine::Core::Resources{
 
     using namespace Filesystem;
@@ -150,6 +152,21 @@ namespace Pulse::Engine::Core::Resources{
         return level;
     }
 
+    std::shared_ptr<Audio::SoundAsset> ResourcesManager::LoadSound(const std::string &pathInProject, const Filesystem::Path &path)
+    {
+        if (!path.Exists())
+        {
+            DEBUG_ERROR("Couldn't load sound: " + path.full);
+            return nullptr;
+        }
+
+        std::shared_ptr<Audio::SoundAsset> sound = std::make_shared<Audio::SoundAsset>();
+        sound->SetBuffer(path.ReadFile());
+        sounds.emplace(pathInProject, sound);
+        sound->SetAssetID(Core::GetEngine().GetAssetIDManager()->GetIDFromNameInProject(pathInProject));
+        return sound;
+    }
+
     std::shared_ptr<Rendering::Mesh> ResourcesManager::GetMesh(std::string pathInProject)
     {
         auto it = meshes.find(pathInProject);
@@ -261,6 +278,21 @@ namespace Pulse::Engine::Core::Resources{
         }
     }
 
+    std::shared_ptr<Audio::SoundAsset> ResourcesManager::GetSound(std::string pathInProject)
+    {
+        auto it = sounds.find(pathInProject);
+        if (it != sounds.end())
+            return it->second;
+        else{
+            Filesystem::AssetIDManager* assetManager = Core::GetEngine().GetAssetIDManager();
+            std::shared_ptr<Filesystem::AssetInfos> assetInfos = assetManager->GetAssetFromID(assetManager->GetIDFromNameInProject(pathInProject));
+
+            if(assetInfos == nullptr) return nullptr;
+
+            return LoadSound(pathInProject, assetInfos->baseInfos.path);
+        }
+    }
+
     void ResourcesManager::AdoptMesh(const std::string &pathInProject, std::shared_ptr<Rendering::Mesh> mesh)
     {
         auto [it, inserted] = meshes.emplace(pathInProject, mesh);
@@ -347,6 +379,15 @@ namespace Pulse::Engine::Core::Resources{
         if (it != levels.end())
         {
             levels.erase(it);
+        }
+    }
+
+    void ResourcesManager::UnloadSound(const std::string &name)
+    {
+        auto it = sounds.find(name);
+        if (it != sounds.end())
+        {
+            sounds.erase(it);
         }
     }
 }

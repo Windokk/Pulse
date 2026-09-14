@@ -5,18 +5,18 @@
 
 // Reflection for class AudioSource
 
-inline FieldInfo AudioSource_file_info = {
-    "file",
-    TypeID::String,
-    offsetof(Pulse::Engine::Objects::Components::AudioSource, file),
+inline FieldInfo AudioSource_assetID_info = {
+    "assetID",
+    TypeID::Asset,
+    offsetof(Pulse::Engine::Objects::Components::AudioSource, assetID),
     Editable,
     0, 0,
     nullptr,
     nullptr,
-    &CopyConstruct<std::string>,
-    &Assign<std::string>,
-    &Destroy<std::string>,
-    &Equals<std::string>
+    &CopyConstruct<Filesystem::AssetID>,
+    &Assign<Filesystem::AssetID>,
+    &Destroy<Filesystem::AssetID>,
+    &Equals<Filesystem::AssetID>
 };
 
 inline FieldInfo AudioSource_volume_info = {
@@ -33,11 +33,41 @@ inline FieldInfo AudioSource_volume_info = {
     &Equals<float>
 };
 
+inline FieldInfo AudioSource_playOnStart_info = {
+    "playOnStart",
+    TypeID::Bool,
+    offsetof(Pulse::Engine::Objects::Components::AudioSource, playOnStart),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<bool>,
+    &Assign<bool>,
+    &Destroy<bool>,
+    &Equals<bool>
+};
+
+inline FieldInfo AudioSource_spatialize_info = {
+    "spatialize",
+    TypeID::Bool,
+    offsetof(Pulse::Engine::Objects::Components::AudioSource, spatialize),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<bool>,
+    &Assign<bool>,
+    &Destroy<bool>,
+    &Equals<bool>
+};
+
 inline ClassDescriptor Pulse::Engine::Objects::Components::AudioSource::descriptor = {
     "AudioSource",
     {
-        &AudioSource_file_info,
+        &AudioSource_assetID_info,
         &AudioSource_volume_info,
+        &AudioSource_playOnStart_info,
+        &AudioSource_spatialize_info,
     }
 };
 

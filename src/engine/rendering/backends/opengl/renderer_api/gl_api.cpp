@@ -123,8 +123,11 @@ namespace Pulse::Engine::Rendering{
 
         for (auto& [name, texture] : pass->customSamplers)
         {
-            glActiveTexture(GL_TEXTURE0 + textureSlot);
-            glBindTexture(GL_TEXTURE_2D, texture);
+            // Routed through GLStateCache (like every other texture bind, see GLMaterial::Bind and
+            // BindLevelState) rather than raw glActiveTexture+glBindTexture : besides being one DSA
+            // call instead of two, a raw bind here would silently desync the cache's per-unit
+            // bookkeeping for the rest of the pass since it doesn't go through the same tracking.
+            GLStateCache::BindTextureUnit(textureSlot, texture);
 
             glShader->SetInt(name, textureSlot);
 
@@ -301,7 +304,7 @@ namespace Pulse::Engine::Rendering{
         }
 
         shader->SetInt("lightNB", Core::GetEngine().GetRenderer()->GetLightManager()->GetLightsCount());
-        shader->SetVec3("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetPosition());
+        shader->SetVec3("camPos", Core::GetEngine().GetCameraManager()->GetActiveCamera()->parent->transform->GetWorldPosition());
         // ambientIntensity is now re-asserted every draw at the top of this function (see the comment
         // there) rather than only here, so a per-material override can't leak past its own draw.
 

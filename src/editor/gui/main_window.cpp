@@ -313,7 +313,6 @@ namespace Pulse::Editor::Core{
         levelTree = new GUI::LevelTree();
         levelTree->SetParentWindow(this);
         levelSettingsPanel = new GUI::LevelSettingsPanel();
-        levelSettingsPanel->SetParentWindow(this);
         viewport = new GUI::ViewportWindow();
         viewport->SetParentWindow(this);
         console = new GUI::Console();
@@ -509,6 +508,7 @@ namespace Pulse::Editor::Core{
             jfaInitCmd.bindCameraState = false;
             jfaInitCmd.material = jfaInitMaterial;
             renderer->AddOrUpdateCommands({jfaInitCmd}, {"EditorJFAInitPass"}, false);
+            outlinePipelineFullscreenCommands.push_back({"EditorJFAInitPass", jfaInitMaterial});
 
             Rendering::PipelineSpecifications jfaStepPipelineSpecs;
             jfaStepPipelineSpecs.depthTest = false;
@@ -548,6 +548,7 @@ namespace Pulse::Editor::Core{
                 stepCmd.bindCameraState = false;
                 stepCmd.material = stepMaterial;
                 renderer->AddOrUpdateCommands({stepCmd}, {passName}, false);
+                outlinePipelineFullscreenCommands.push_back({passName, stepMaterial});
 
                 prevPassName = passName;
                 std::swap(jfaRead, jfaWrite);
@@ -596,6 +597,7 @@ namespace Pulse::Editor::Core{
             cmd.material = outlineMaterial;
 
             renderer->AddOrUpdateCommands({cmd}, {"EditorOutlinePass"}, false);
+            outlinePipelineFullscreenCommands.push_back({"EditorOutlinePass", outlineMaterial});
 
             renderPassesInitialized = true;
         }
@@ -617,6 +619,20 @@ namespace Pulse::Editor::Core{
                 for(auto& comp : selectedActor->GetComponents())
                     if(auto model = std::dynamic_pointer_cast<Engine::Objects::Components::Model>(comp))
                         model->AddToPass("EditorOutlineMaskPass");
+
+            // Same reasoning as above, but for the JFA/composite passes' single permanent fullscreen
+            // command each (see where outlinePipelineFullscreenCommands is populated in the one-time
+            // setup above) - a level reload clears every pass's draw list (ClearPassesContent), and
+            // that setup never runs again, so without this the outline silhouette mask would keep
+            // updating correctly on selection while nothing ever turns it into a visible outline again.
+            for(auto& [passName, material] : outlinePipelineFullscreenCommands)
+            {
+                Rendering::DrawCommand fsCmd{};
+                fsCmd.fullscreenTri = true;
+                fsCmd.bindCameraState = false;
+                fsCmd.material = material;
+                renderer->AddOrUpdateCommands({fsCmd}, {passName}, false);
+            }
         }
 
         ImGui_ImplOpenGL3_NewFrame();

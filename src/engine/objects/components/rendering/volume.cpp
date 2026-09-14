@@ -49,7 +49,7 @@ namespace Pulse::Engine::Objects::Components{
         cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
         cmd.mesh = m_DebugShape->m_Mesh;
         cmd.modelID = parent->GetComponentIDInLevel(local_id);
-        cmd.modelMatrix = parent->transform->GetTransformMatrix();
+        cmd.modelMatrix = parent->transform->GetWorldMatrix();
         cmd.objectID = parent->GetID().GetAsInt();
         cmd.vertexCount = m_DebugShape->m_Mesh->GetVertexCount();
 

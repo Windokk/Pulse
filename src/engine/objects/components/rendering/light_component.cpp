@@ -33,8 +33,8 @@ namespace Pulse::Engine::Objects::Components{
 
         std::shared_ptr<Transform> tr = parent->transform;
 
-        lightData->position = glm::vec4(tr->GetPosition(), 0);
-        lightData->direction = glm::vec4(tr->GetForward(), 0);
+        lightData->position = glm::vec4(tr->GetWorldPosition(), 0);
+        lightData->direction = glm::vec4(tr->GetWorldForward(), 0);
         
         UpdateExposedValues();
     }
@@ -283,8 +283,8 @@ namespace Pulse::Engine::Objects::Components{
 
         if (parent && parent->transform)
         {
-            pos = parent->transform->GetPosition();
-            dir = parent->transform->GetForward();
+            pos = parent->transform->GetWorldPosition();
+            dir = parent->transform->GetWorldForward();
         }
 
         SetPosition(pos);

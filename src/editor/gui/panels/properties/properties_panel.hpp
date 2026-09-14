@@ -21,6 +21,7 @@ namespace Pulse::Editor::GUI{
 
         private:
             void DrawActorInfo(std::shared_ptr<Engine::Objects::Actor> actor);
+            void DrawAddComponentMenu(std::shared_ptr<Engine::Objects::Actor> actor);
             bool DrawComponent(std::shared_ptr<Engine::Objects::Components::Component> comp);
             void DrawField(const FieldInfo* field, void* value,
                         std::shared_ptr<Engine::Objects::Components::Component> comp,

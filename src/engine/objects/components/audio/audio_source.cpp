@@ -4,6 +4,8 @@
 
 #include "engine/core/engine.hpp"
 
+#include "engine/filesystem/assetID.hpp"
+
 #include "audio_source.reflection.hpp"
 
 namespace Pulse::Engine::Objects::Components{
@@ -14,14 +16,19 @@ namespace Pulse::Engine::Objects::Components{
 
     void AudioSource::Update()
     {
-        if(audioID.IsValid() && activated){
-            GetEngineContext()->GetAudioManager()->UpdateSound(audioID, parent->transform->GetPosition(), volume);
+        if(audioID.IsValid() && GetEngineContext()->GetAudioIDManager()->GetSoundFromID(audioID) && activated){
+            GetEngineContext()->GetAudioManager()->UpdateSound(audioID, parent->transform->GetWorldPosition(), volume);
         }
         else{
-            if(!path.full.empty() && volume != -1.0f){
-                audioID = GetEngineContext()->GetAudioIDManager()->GenerateNewID();
-                GetEngineContext()->GetAudioManager()->CreateSound(audioID, path, parent->transform->GetPosition());
+            if(!pathInProject.empty() && volume != -1.0f){
+                Audio::AudioID newID = GetEngineContext()->GetAudioIDManager()->GenerateNewID();
+                GetEngineContext()->GetAudioManager()->CreateSound(newID, pathInProject, parent->transform->GetWorldPosition(), spatialize);
 
+                // CreateSound silently no-ops (logging an error) if the file couldn't be loaded -
+                // only adopt the new ID once it's actually backed by a registered sound, otherwise
+                // audioID would be left "valid" while pointing at nothing, crashing the next Update().
+                if(GetEngineContext()->GetAudioIDManager()->GetSoundFromID(newID))
+                    audioID = newID;
             }
         }
     }
@@ -35,6 +42,13 @@ namespace Pulse::Engine::Objects::Components{
             return componentData[key].get<float>();
         };
 
+        auto getBool = [&](const char* key, bool defaultValue) -> bool
+        {
+            if (!componentData.contains(key) || !componentData[key].is_boolean())
+                return defaultValue;
+            return componentData[key].get<bool>();
+        };
+
         auto getString = [&](const char* key, const std::string& defaultValue = "") -> std::optional<std::string>
         {
             if (!componentData.contains(key) || !componentData[key].is_string())
@@ -44,19 +58,20 @@ namespace Pulse::Engine::Objects::Components{
 
         auto volume = getFloat("volume", 1.0f);
 
-        auto pathOpt = getString("path");
-        if (!pathOpt)
+        auto soundOpt = getString("sound");
+        if (!soundOpt)
         {
-            DEBUG_ERROR("AudioSource missing or invalid 'path'");
+            DEBUG_ERROR("AudioSource missing or invalid 'sound'");
             return;
         }
 
-        SetPath(Filesystem::Path(*pathOpt, false));
+        playOnStart = getBool("playOnStart", true);
+        spatialize = getBool("spatialize", true);
+
+        SetSound(GetEngineContext()->GetAssetIDManager()->GetIDFromNameInProject(*soundOpt));
         SetVolume(volume);
 
-        bool active = false;
-        if (componentData.contains("active") && componentData["active"].is_boolean())
-            active = componentData["active"].get<bool>();
+        bool active = getBool("active", false);
 
         if (active)
             Activate();
@@ -74,7 +89,12 @@ namespace Pulse::Engine::Objects::Components{
 
         comp["volume"] = volume;
 
-        comp["path"] = path.full;
+        comp["playOnStart"] = playOnStart;
+
+        comp["spatialize"] = spatialize;
+
+        auto asset = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(assetID);
+        comp["sound"] = asset ? asset->baseInfos.nameInProject : "";
 
         return comp;
     }
@@ -91,9 +111,22 @@ namespace Pulse::Engine::Objects::Components{
         return cloned;
     }
 
-    void AudioSource::SetPath(Filesystem::Path newPath)
+    void AudioSource::SetSound(Filesystem::AssetID soundID)
     {
-        this->path = path;
+        this->assetID = soundID;
+
+        auto asset = GetEngineContext()->GetAssetIDManager()->GetAssetFromID(soundID);
+        if (asset)
+        {
+            this->pathInProject = asset->baseInfos.nameInProject;
+
+            if (audioID.IsValid())
+            {
+                RemoveSound();
+                audioID = Audio::AudioID();
+            }
+        }
+
         Update();
     }
 
@@ -108,16 +141,25 @@ namespace Pulse::Engine::Objects::Components{
         if(!activated)
             return;
 
+        if(!audioID.IsValid() || !GetEngineContext()->GetAudioIDManager()->GetSoundFromID(audioID))
+            return;
+
         GetEngineContext()->GetAudioManager()->PlaySound(this->audioID, this->volume);
     }
 
     void AudioSource::Pause()
     {
+        if(!audioID.IsValid() || !GetEngineContext()->GetAudioIDManager()->GetSoundFromID(audioID))
+            return;
+
         GetEngineContext()->GetAudioManager()->PauseSound(this->audioID);
     }
 
     void AudioSource::RemoveSound()
     {
+        if(!audioID.IsValid() || !GetEngineContext()->GetAudioIDManager()->GetSoundFromID(audioID))
+            return;
+
         GetEngineContext()->GetAudioManager()->RemoveSound(this->audioID);
     }
 
@@ -126,8 +168,18 @@ namespace Pulse::Engine::Objects::Components{
         if(event.field->name == "volume"){
             SetVolume(volume);
         }
-        if(event.field->name == "file"){
-            SetPath(file);
+        else if(event.field->name == "spatialize"){
+            if(audioID.IsValid())
+                GetEngineContext()->GetAudioManager()->SetSpatialize(audioID, spatialize);
+        }
+        else if(event.field->type == TypeID::Asset){
+            SetSound(assetID);
+        }
+    }
+
+    void AudioSource::OnPlay(){
+        if(playOnStart){
+            Play();
         }
     }
 }

@@ -357,7 +357,7 @@ namespace Pulse::Engine::Rendering{
 
             cmd.mesh        = shared_from_this();
             cmd.material    = mats[slot];
-            cmd.modelMatrix = tr->GetTransformMatrix();
+            cmd.modelMatrix = tr->GetWorldMatrix();
             cmd.objectID    = tr->parent->GetID().GetAsInt();
             cmd.modelID     = modelID;
 

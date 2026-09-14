@@ -1,9 +1,5 @@
 #pragma once
 
-namespace Pulse::Editor::Core{
-    class EditorMainWindow;
-}
-
 namespace Pulse::Editor::GUI{
 
     // Editor panel for level-wide (not per-actor) settings - the level-scoped counterpart to
@@ -16,14 +12,8 @@ namespace Pulse::Editor::GUI{
         public:
             void Draw();
 
-            void SetParentWindow(Core::EditorMainWindow* parent);
-
         private:
             void DrawGeneralCategory();
             void DrawRenderingCategory();
-
-            // Needed only for EditorSettings::showProbeGizmos (a pure viewing preference, not a Level
-            // field - see DrawRenderingCategory).
-            Core::EditorMainWindow* parent = nullptr;
     };
 }

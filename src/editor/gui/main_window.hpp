@@ -2,6 +2,7 @@
 
 #include "engine/core/platform/iwindow.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
+#include "engine/rendering/material/material.hpp"
 #include "engine/debugging/logger.hpp"
 #include "engine/objects/actors/actor.hpp"
 
@@ -41,7 +42,8 @@ namespace Pulse::Editor::Core {
         bool showOutlines = true;
         bool showGizmos = true;
         bool showGrid;
-        bool showProbeGizmos = true;
+        bool showDDGIGizmos = true;
+        bool showPhysicsShapes = true;
 
         /// TODO
         /// bool showShadows;
@@ -141,5 +143,13 @@ namespace Pulse::Editor::Core {
         
         // User data
         std::shared_ptr<Engine::Objects::Actor> selectedActor = nullptr;
+
+        // The JFA (init/step) and outline composite passes each only ever hold a single, permanent
+        // fullscreen-triangle draw command (see the render pass setup in SwapBuffers) - a level reload
+        // (Renderer::ClearPassesContent(), see EngineInstance::Run()'s m_ReloadCurrentLevel handling)
+        // wipes every pass's draw list, and since that setup only ever runs once, those commands would
+        // otherwise never come back. Re-submitted every frame in SwapBuffers alongside the selected
+        // actor's mask commands so the outline survives any such reload.
+        std::vector<std::pair<std::string, std::shared_ptr<Engine::Rendering::Material>>> outlinePipelineFullscreenCommands;
     };
 }

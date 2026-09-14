@@ -6,90 +6,184 @@
 
 #include "physics_body.reflection.hpp"
 
+#include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Body/BodyLock.h>
+
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <iostream>
+#include <cstring>
 
 #include <thread>
 
 namespace Pulse::Engine::Objects::Components{
-    PhysicsBody::PhysicsBody(std::shared_ptr<Actor> parent, uint32_t local_id) : Component(parent, local_id)
-    {
-        params.Initialize(&BoxParams_descriptor);
-    }
 
-    void PhysicsBody::Update(const Physics::PhysicsShape& newShape, const InstancedStruct& newParams, EMotionType newMotionType, bool forceRecreation)
-    {
-        auto physics = GetEngineContext()->GetPhysicsManager();
-        if (!physics)
-            return;
-
-        // A freshly added PhysicsBody component (e.g. via the editor's "Add Component")
-        // has no Jolt body yet - CreateBody() is otherwise only called from Deserialize()
-        // and Clone(). Create it now from whatever shape/motion type was just set.
-        if (m_BodyID.IsInvalid())
+    namespace {
+        void InitShapeParams(InstancedStruct& params, Physics::PhysicsShape type)
         {
-            CreateBody(newShape, newParams, newMotionType);
-            return;
-        }
-
-        auto& bi = physics->GetBodyInterface();
-
-        // --- Shape update ---
-        if (newShape != shapeType || newParams != params || forceRecreation)
-        {
-            
-            Filesystem::AssetID previousDebugMeshID;
-            if (m_DebugShape && m_DebugShape->m_Mesh)
-                previousDebugMeshID = m_DebugShape->m_Mesh->GetAssetID();
-
-            JPH::ShapeRefC newShapeRef = CreateJoltShape(newShape, newParams);
-            if (!newShapeRef)
-                return;
-
-            if (previousDebugMeshID.GetAsInt() != 0)
-                m_DebugShape->m_Mesh->SetAssetID(previousDebugMeshID);
-            else
-                m_DebugShape->m_Mesh->SetAssetID(GetEngineContext()->GetAssetIDManager()->GenerateNewID());
-
-            bi.SetShape(
-                m_BodyID,
-                newShapeRef,
-                /*updateMassProperties=*/newMotionType == EMotionType::Dynamic,
-                JPH::EActivation::Activate
-            );
-
-            m_Shape = newShapeRef;
-            shapeType = newShape;
-            params = newParams;
-        }
-
-        // --- Motion type update ---
-        if (newMotionType != motionType)
-        {
-            bi.SetMotionType(
-                m_BodyID,
-                newMotionType,
-                JPH::EActivation::Activate
-            );
-
-            motionType = newMotionType;
-        }
-    }
-
-    JPH::ShapeRefC PhysicsBody::CreateJoltShape(Physics::PhysicsShape shape, const InstancedStruct& params)
-    {
-        glm::vec3 scale = parent->transform->GetScale();
-
-        if(m_DebugShape) {
-            if(m_DebugShape->m_Mesh)
+            switch (type)
             {
-                uint64_t cmdID = Rendering::MakeCommandID(m_DebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
+                case Physics::PhysicsShape::BOX:      params.Initialize(&BoxParams_descriptor); break;
+                case Physics::PhysicsShape::SPHERE:   params.Initialize(&SphereParams_descriptor); break;
+                case Physics::PhysicsShape::CAPSULE:  params.Initialize(&CapsuleParams_descriptor); break;
+                case Physics::PhysicsShape::CYLINDER: params.Initialize(&CylinderParams_descriptor); break;
+            }
+        }
 
-                GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
+        bool ParseShapeTypeString(const std::string& s, Physics::PhysicsShape& out)
+        {
+            if (s == "box") { out = Physics::PhysicsShape::BOX; return true; }
+            if (s == "sphere") { out = Physics::PhysicsShape::SPHERE; return true; }
+            if (s == "capsule") { out = Physics::PhysicsShape::CAPSULE; return true; }
+            if (s == "cylinder") { out = Physics::PhysicsShape::CYLINDER; return true; }
+            return false;
+        }
+
+        const char* ShapeTypeToString(Physics::PhysicsShape shape)
+        {
+            switch (shape)
+            {
+                case Physics::BOX:      return "box";
+                case Physics::SPHERE:   return "sphere";
+                case Physics::CAPSULE:  return "capsule";
+                case Physics::CYLINDER: return "cylinder";
+            }
+            return "box";
+        }
+
+        bool ParseShapeParams(const json& p, Physics::PhysicsShape shape, InstancedStruct& outParams, const std::string& parentName)
+        {
+            auto requireFloat = [&](const char* key, std::optional<float>& out) -> bool
+            {
+                if (!p.contains(key) || !p[key].is_number())
+                    return false;
+                out = p[key].get<float>();
+                return true;
+            };
+
+            switch (shape)
+            {
+                case Physics::PhysicsShape::BOX:
+                {
+                    std::optional<float> x, y, z;
+                    if (!requireFloat("x", x) || !requireFloat("y", y) || !requireFloat("z", z))
+                    {
+                        DEBUG_ERROR("Invalid BOX params for actor: " + parentName);
+                        return false;
+                    }
+
+                    outParams.Initialize(&BoxParams_descriptor);
+                    auto& vec = *reinterpret_cast<glm::vec3*>(outParams.data);
+                    vec = glm::vec3(*x, *y, *z);
+                    return true;
+                }
+
+                case Physics::PhysicsShape::SPHERE:
+                {
+                    std::optional<float> radius;
+                    if (!requireFloat("radius", radius))
+                    {
+                        DEBUG_ERROR("Invalid SPHERE params for actor: " + parentName);
+                        return false;
+                    }
+
+                    outParams.Initialize(&SphereParams_descriptor);
+                    *reinterpret_cast<float*>(outParams.data) = *radius;
+                    return true;
+                }
+
+                case Physics::PhysicsShape::CAPSULE:
+                {
+                    std::optional<float> radius, halfHeight;
+                    if (!requireFloat("radius", radius) || !requireFloat("halfHeight", halfHeight))
+                    {
+                        DEBUG_ERROR("Invalid CAPSULE params for actor: " + parentName);
+                        return false;
+                    }
+
+                    outParams.Initialize(&CapsuleParams_descriptor);
+                    auto* dataPtr = reinterpret_cast<CapsuleParams*>(outParams.data);
+                    dataPtr->radius = *radius;
+                    dataPtr->halfHeight = *halfHeight;
+                    return true;
+                }
+
+                case Physics::PhysicsShape::CYLINDER:
+                {
+                    std::optional<float> radius, halfHeight;
+                    if (!requireFloat("radius", radius) || !requireFloat("halfHeight", halfHeight))
+                    {
+                        DEBUG_ERROR("Invalid CYLINDER params for actor: " + parentName);
+                        return false;
+                    }
+
+                    outParams.Initialize(&CylinderParams_descriptor);
+                    auto* dataPtr = reinterpret_cast<CylinderParams*>(outParams.data);
+                    dataPtr->radius = *radius;
+                    dataPtr->halfHeight = *halfHeight;
+                    return true;
+                }
             }
 
-            delete m_DebugShape;
-            m_DebugShape = nullptr;
+            DEBUG_ERROR("Unhandled physics shape for actor: " + parentName);
+            return false;
         }
+
+        void SerializeShapeParams(ordered_json& out, Physics::PhysicsShape shape, const InstancedStruct& params)
+        {
+            switch (shape)
+            {
+                case Physics::BOX:
+                {
+                    auto p = reinterpret_cast<const BoxParams*>(params.data);
+                    out["x"] = p->halfExtent.x;
+                    out["y"] = p->halfExtent.y;
+                    out["z"] = p->halfExtent.z;
+                    break;
+                }
+
+                case Physics::SPHERE:
+                {
+                    auto p = reinterpret_cast<const SphereParams*>(params.data);
+                    out["radius"] = p->radius;
+                    break;
+                }
+
+                case Physics::CAPSULE:
+                {
+                    auto p = reinterpret_cast<const CapsuleParams*>(params.data);
+                    out["radius"] = p->radius;
+                    out["halfHeight"] = p->halfHeight;
+                    break;
+                }
+
+                case Physics::CYLINDER:
+                {
+                    auto p = reinterpret_cast<const CylinderParams*>(params.data);
+                    out["radius"] = p->radius;
+                    out["halfHeight"] = p->halfHeight;
+                    break;
+                }
+            }
+        }
+    }
+
+    PhysicsBody::PhysicsBody(std::shared_ptr<Actor> parent, uint32_t local_id) : Component(parent, local_id)
+    {
+        shapes.emplace_back();
+        shapes[0].params.Initialize(&BoxParams_descriptor);
+    }
+
+    JPH::ShapeRefC PhysicsBody::CreateJoltShape(Physics::PhysicsShape shape, const InstancedStruct& params, size_t index)
+    {
+        // Jolt shapes have no scale of their own - their dimensions must be baked in at creation time
+        // from the actor's composed world scale (like Unity sizing colliders from lossyScale), not just
+        // its own local scale, otherwise a shape parented under a scaled actor is built at the wrong size.
+        glm::vec3 scale = parent->transform->GetWorldScale();
+
+        Rendering::DebugShape* debugShape = nullptr;
+        JPH::ShapeRefC result;
 
         switch (shape)
         {
@@ -101,11 +195,12 @@ namespace Pulse::Engine::Objects::Components{
                 float size = std::max({ scale.x, scale.y, scale.z });
 
                 JPH::SphereShapeSettings s(p->radius * size);
-
-                m_DebugShape = new Rendering::DebugSphere(p->radius, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugSphere(p->radius, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
-                return r.HasError() ? nullptr : r.Get();
+                if (r.HasError()) { delete debugShape; return nullptr; }
+                result = r.Get();
+                break;
             }
 
             case Physics::PhysicsShape::BOX:
@@ -117,10 +212,12 @@ namespace Pulse::Engine::Objects::Components{
                     JPH::Vec3(p->halfExtent.x * scale.x, p->halfExtent.y * scale.y, p->halfExtent.z * scale.z)
                 );
 
-                m_DebugShape = new Rendering::DebugBox(p->halfExtent, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugBox(p->halfExtent, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
-                return r.HasError() ? nullptr : r.Get();
+                if (r.HasError()) { delete debugShape; return nullptr; }
+                result = r.Get();
+                break;
             }
 
             case Physics::PhysicsShape::CAPSULE:
@@ -130,10 +227,12 @@ namespace Pulse::Engine::Objects::Components{
 
                 JPH::CapsuleShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
 
-                m_DebugShape = new Rendering::DebugCapsule(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugCapsule(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
-                return r.HasError() ? nullptr : r.Get();
+                if (r.HasError()) { delete debugShape; return nullptr; }
+                result = r.Get();
+                break;
             }
 
             case Physics::PhysicsShape::CYLINDER:
@@ -143,51 +242,123 @@ namespace Pulse::Engine::Objects::Components{
 
                 JPH::CylinderShapeSettings s(p->halfHeight * scale.y, p->radius * glm::max(scale.x, scale.z));
 
-                m_DebugShape = new Rendering::DebugCylinder(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
+                debugShape = new Rendering::DebugCylinder(p->radius, p->halfHeight, COL_RGBA(0, 1, 1, 1));
 
                 auto r = s.Create();
-                return r.HasError() ? nullptr : r.Get();
+                if (r.HasError()) { delete debugShape; return nullptr; }
+                result = r.Get();
+                break;
             }
 
             default:
                 return nullptr;
         }
+
+        if (index >= m_DebugShapes.size())
+            m_DebugShapes.resize(index + 1, nullptr);
+
+        delete m_DebugShapes[index];
+        m_DebugShapes[index] = debugShape;
+
+        return result;
     }
 
-    void PhysicsBody::CreateBody(Physics::PhysicsShape shape, const InstancedStruct& params, EMotionType motionType)
+    JPH::ShapeRefC PhysicsBody::BuildShape()
     {
-        Filesystem::AssetID previousDebugMeshID;
-        if (m_DebugShape && m_DebugShape->m_Mesh)
-            previousDebugMeshID = m_DebugShape->m_Mesh->GetAssetID();
+        if (shapes.empty())
+            return nullptr;
+
+        std::vector<JPH::ShapeRefC> subShapes(shapes.size());
+        for (size_t i = 0; i < shapes.size(); i++)
+        {
+            subShapes[i] = CreateJoltShape(shapes[i].shapeType, shapes[i].params, i);
+            if (!subShapes[i])
+                return nullptr;
+        }
+
+        // Must match CreateJoltShape()'s choice of scale - this one pre-scales each sub-shape's offset
+        // for the same reason (Jolt's compound/rotated-translated shapes don't apply scale themselves).
+        glm::vec3 scale = parent->transform->GetWorldScale();
+
+        if (shapes.size() == 1)
+        {
+            const PhysicsShapeEntry& entry = shapes[0];
+
+            bool identity = entry.offset == glm::vec3(0.0f) &&
+                entry.rotation == glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+            if (identity)
+                return subShapes[0];
+
+            JPH::RotatedTranslatedShapeSettings wrap(ToJolt(entry.offset * scale), ToJolt(entry.rotation), subShapes[0].GetPtr());
+            auto r = wrap.Create();
+            return r.HasError() ? nullptr : r.Get();
+        }
+
+        JPH::StaticCompoundShapeSettings compound;
+        for (size_t i = 0; i < shapes.size(); i++)
+            compound.AddShape(ToJolt(shapes[i].offset * scale), ToJolt(shapes[i].rotation), subShapes[i].GetPtr());
+
+        auto r = compound.Create();
+        return r.HasError() ? nullptr : r.Get();
+    }
+
+    void PhysicsBody::CreateBody(EMotionType newMotionType)
+    {
+        std::vector<Filesystem::AssetID> previousDebugMeshIDs(m_DebugShapes.size());
+        for (size_t i = 0; i < m_DebugShapes.size(); i++)
+        {
+            if (m_DebugShapes[i] && m_DebugShapes[i]->m_Mesh)
+                previousDebugMeshIDs[i] = m_DebugShapes[i]->m_Mesh->GetAssetID();
+        }
 
         RemoveBody();
 
-        m_Shape = nullptr;
-
-        m_Shape = CreateJoltShape(shape, params);
+        m_Shape = BuildShape();
         if (!m_Shape)
             return;
 
-        this->shapeType = shape;
-        this->params = params;
-        this->motionType = motionType;
+        motionType = newMotionType;
 
+        // Jolt only ever simulates in world space, regardless of motion type, so bodies are always
+        // created at the actor's composed world pose - a parented static prop or physics object sits
+        // where it visually appears in the hierarchy. For Dynamic bodies, SyncTransformFromPhysics
+        // converts Jolt's world result back to a parent-relative local value every tick, so this isn't
+        // a one-time snapshot that goes stale if the parent later moves.
         JPH::BodyCreationSettings settings(
             m_Shape,
-            ToJolt(parent->transform->GetPosition()),
-            ToJolt(parent->transform->GetRotationQuat()),
+            ToJolt(parent->transform->GetWorldPosition()),
+            ToJolt(parent->transform->GetWorldRotationQuat()),
             motionType,
             motionType == EMotionType::Static
                 ? Physics::Layers::NON_MOVING
                 : Physics::Layers::MOVING
         );
 
+        settings.mLinearDamping = linearDamping;
+        settings.mAngularDamping = angularDamping;
+        settings.mGravityFactor = gravityFactor;
+        settings.mFriction = friction;
+        settings.mRestitution = restitution;
+
+        if (overrideMass && motionType == EMotionType::Dynamic)
+        {
+            settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+            settings.mMassPropertiesOverride.mMass = mass;
+        }
+
         m_BodyID = GetEngineContext()->GetPhysicsManager()->CreateBody(settings, this);
-        
-        if (previousDebugMeshID.GetAsInt() != 0)
-            m_DebugShape->m_Mesh->SetAssetID(previousDebugMeshID);
-        else
-            m_DebugShape->m_Mesh->SetAssetID(GetEngineContext()->GetAssetIDManager()->GenerateNewID());
+
+        for (size_t i = 0; i < m_DebugShapes.size(); i++)
+        {
+            if (!m_DebugShapes[i] || !m_DebugShapes[i]->m_Mesh)
+                continue;
+
+            if (i < previousDebugMeshIDs.size() && previousDebugMeshIDs[i].GetAsInt() != 0)
+                m_DebugShapes[i]->m_Mesh->SetAssetID(previousDebugMeshIDs[i]);
+            else
+                m_DebugShapes[i]->m_Mesh->SetAssetID(GetEngineContext()->GetAssetIDManager()->GenerateNewID());
+        }
     }
 
     void PhysicsBody::ApplyTransformToPhysics(float dt)
@@ -197,14 +368,14 @@ namespace Pulse::Engine::Objects::Components{
         if (motionType == EMotionType::Static)
         {
             // Editor-only: recreate
-            CreateBody(shapeType, params, EMotionType::Static);
+            CreateBody(EMotionType::Static);
         }
         else if (motionType == EMotionType::Kinematic)
         {
             bi.MoveKinematic(
                 m_BodyID,
-                ToJolt(parent->transform->GetPosition()),
-                ToJolt(parent->transform->GetRotationQuat()),
+                ToJolt(parent->transform->GetWorldPosition()),
+                ToJolt(parent->transform->GetWorldRotationQuat()),
                 dt
             );
         }
@@ -212,8 +383,8 @@ namespace Pulse::Engine::Objects::Components{
         {
             bi.SetPositionAndRotation(
                 m_BodyID,
-                ToJolt(parent->transform->GetPosition()),
-                ToJolt(parent->transform->GetRotationQuat()),
+                ToJolt(parent->transform->GetWorldPosition()),
+                ToJolt(parent->transform->GetWorldRotationQuat()),
                 JPH::EActivation::Activate
             );
         }
@@ -223,11 +394,41 @@ namespace Pulse::Engine::Objects::Components{
     {
         auto& bi = GetEngineContext()->GetPhysicsManager()->GetBodyInterface();
 
-        auto pos = bi.GetCenterOfMassPosition(m_BodyID);
-        auto rot = bi.GetRotation(m_BodyID);
+        // Body position/rotation (not the center of mass!) is what corresponds to the actor's
+        // transform - Jolt tracks the two separately precisely so that a shape offset (single-shape
+        // RotatedTranslatedShape, or a multi-shape compound, both of which recenter internally
+        // around the center of mass) doesn't leak into where the "origin" of the body is. Using
+        // GetCenterOfMassPosition() here would drag the actor's transform towards the shape's COM
+        // instead of its own origin whenever a shape has an offset or there's more than one shape.
+        glm::vec3 worldPos = ToGLM(bi.GetPosition(m_BodyID));
+        glm::quat worldRot = ToGLM(bi.GetRotation(m_BodyID));
 
-        parent->transform->SetPosition(ToGLM(pos), false);
-        parent->transform->SetRotation(ToGLM(rot), false);
+        std::shared_ptr<Actor> parentActor = std::dynamic_pointer_cast<Actor>(parent->GetParent());
+
+        if (!parentActor || !parentActor->transform)
+        {
+            parent->transform->SetPosition(worldPos, false);
+            parent->transform->SetRotation(worldRot, false);
+            return;
+        }
+
+        // Jolt only knows world space and has no idea this actor is parented, so its result has to be
+        // converted back into a parent-relative local value before being written into position/rotation
+        // - otherwise rendering (which composes local against the parent's world matrix) would apply
+        // the parent's transform a second time on top of an already-world value. Scale is deliberately
+        // left untouched: Jolt bodies carry no scale of their own to report back.
+        glm::mat4 parentWorld = parentActor->transform->GetWorldMatrix();
+        glm::mat4 worldMatrix = glm::translate(glm::mat4(1.0f), worldPos) * glm::toMat4(worldRot);
+        glm::mat4 localMatrix = glm::inverse(parentWorld) * worldMatrix;
+
+        glm::mat3 localRotBasis(
+            glm::normalize(glm::vec3(localMatrix[0])),
+            glm::normalize(glm::vec3(localMatrix[1])),
+            glm::normalize(glm::vec3(localMatrix[2]))
+        );
+
+        parent->transform->SetPosition(glm::vec3(localMatrix[3]), false);
+        parent->transform->SetRotation(glm::quat_cast(localRotBasis), false);
     }
 
     void PhysicsBody::Tick(float dt){
@@ -244,7 +445,7 @@ namespace Pulse::Engine::Objects::Components{
 
         if(shouldUpdateShape)
         {
-            Update(shapeType, params, motionType, true);
+            CreateBody(motionType);
             shouldUpdateShape = false;
             shouldUpdateDrawCmd = true;
         }
@@ -255,7 +456,7 @@ namespace Pulse::Engine::Objects::Components{
 
             if (scaleDirty)
             {
-                Update(shapeType, params, motionType, /*forceRecreation=*/true);
+                CreateBody(motionType);
                 shouldUpdateDrawCmd = true;
             }
 
@@ -273,28 +474,61 @@ namespace Pulse::Engine::Objects::Components{
                 SyncTransformFromPhysics();
                 shouldUpdateDrawCmd = true;
             }
-            else if (motionType == EMotionType::Kinematic && (posDirty || rotDirty))
+            else if (motionType == EMotionType::Kinematic)
             {
-                ApplyTransformToPhysics(dt);
-                shouldUpdateDrawCmd = true;
+                // A parented kinematic body's world pose can change purely because an ancestor moved,
+                // which never touches this actor's own local dirty flags - so a parented body has to
+                // be pushed to Jolt every tick rather than only when posDirty/rotDirty fires.
+                const bool hasParent = std::dynamic_pointer_cast<Actor>(parent->GetParent()) != nullptr;
+
+                if (posDirty || rotDirty || hasParent)
+                {
+                    ApplyTransformToPhysics(dt);
+                    shouldUpdateDrawCmd = true;
+                }
             }
         }
 
-        if(shouldUpdateDrawCmd && m_DebugShape && m_DebugShape->m_Mesh){
-            Rendering::DrawCommand cmd = {};
+        if(shouldUpdateDrawCmd && !m_DebugShapes.empty()){
+            std::vector<Rendering::DrawCommand> cmds;
+            cmds.reserve(m_DebugShapes.size());
 
-            cmd.boundsMax = m_DebugShape->m_Mesh->GetBoundsMax();
-            cmd.boundsMin = m_DebugShape->m_Mesh->GetBoundsMin();
-            cmd.indexCount = m_DebugShape->m_Mesh->GetIndexCount();
-            cmd.indexOffset = 0;
-            cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
-            cmd.mesh = m_DebugShape->m_Mesh;
-            cmd.modelID = parent->GetComponentIDInLevel(local_id);
-            cmd.modelMatrix = parent->transform->GetTransformMatrix();
-            cmd.objectID = parent->GetID().GetAsInt();
-            cmd.vertexCount = m_DebugShape->m_Mesh->GetVertexCount();
+            for (size_t i = 0; i < m_DebugShapes.size(); i++)
+            {
+                if (!m_DebugShapes[i] || !m_DebugShapes[i]->m_Mesh)
+                    continue;
 
-            GetEngineContext()->GetRenderer()->AddOrUpdateCommands({cmd}, {"ForwardPass"}, false);
+                Rendering::DrawCommand cmd = {};
+
+                cmd.boundsMax = m_DebugShapes[i]->m_Mesh->GetBoundsMax();
+                cmd.boundsMin = m_DebugShapes[i]->m_Mesh->GetBoundsMin();
+                cmd.indexCount = m_DebugShapes[i]->m_Mesh->GetIndexCount();
+                cmd.indexOffset = 0;
+                cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
+                cmd.mesh = m_DebugShapes[i]->m_Mesh;
+                cmd.modelID = parent->GetComponentIDInLevel(local_id);
+
+                // Each shape's debug mesh is generated in its own local space (unscaled, uncentered),
+                // so fold that shape's offset/rotation into the model matrix on top of the actor's
+                // transform - this has to match how BuildShape() places the same shape in Jolt (there,
+                // the offset is pre-scaled and handed to Jolt's compound/rotated-translated shape; here,
+                // the actor's transform matrix already carries that same scale, so composing with the
+                // raw offset lands in the same place).
+                glm::mat4 localOffset(1.0f);
+                if (i < shapes.size())
+                {
+                    localOffset = glm::translate(glm::mat4(1.0f), shapes[i].offset) * glm::mat4_cast(shapes[i].rotation);
+                }
+
+                cmd.modelMatrix = parent->transform->GetWorldMatrix() * localOffset;
+                cmd.objectID = parent->GetID().GetAsInt();
+                cmd.vertexCount = m_DebugShapes[i]->m_Mesh->GetVertexCount();
+
+                cmds.push_back(cmd);
+            }
+
+            if (!cmds.empty())
+                GetEngineContext()->GetRenderer()->AddOrUpdateCommands(cmds, {"PhysicsDebugPass"}, false);
         }
 
         parent->transform->ClearDirty(DirtyFlags::All);
@@ -313,7 +547,7 @@ namespace Pulse::Engine::Objects::Components{
 
         JPH::RVec3 newPosition = ToJolt(newPos);
 
-        
+
         if(motionType == EMotionType::Dynamic || motionType == EMotionType::Kinematic){
             // Teleport dynamic/kinematic body
             bi.SetPosition(
@@ -324,7 +558,7 @@ namespace Pulse::Engine::Objects::Components{
         }
         else{
             // Recreate the static body at a new pos
-            CreateBody(shapeType, params, motionType);
+            CreateBody(motionType);
         }
     }
 
@@ -332,13 +566,13 @@ namespace Pulse::Engine::Objects::Components{
     {
         if(!activated)
             return;
-        
+
         SetRotation(glm::quat(newRot));
     }
 
     void PhysicsBody::SetRotation(glm::quat newRot)
     {
-        
+
         if (m_BodyID.IsInvalid() || !activated)
             return;
 
@@ -376,20 +610,24 @@ namespace Pulse::Engine::Objects::Components{
         if (!m_BodyID.IsInvalid()) {
             GetEngineContext()->GetPhysicsManager()->RemoveBody(m_BodyID);
             m_BodyID = JPH::BodyID();
-        
-            if(m_DebugShape)
-            {
-                if(m_DebugShape->m_Mesh)
-                {
-                    uint64_t cmdID = Rendering::MakeCommandID(m_DebugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), 0);
-
-                    GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"ForwardPass"}, false);
-                }
-
-                delete m_DebugShape;
-                m_DebugShape = nullptr;
-            }
         }
+
+        for (size_t i = 0; i < m_DebugShapes.size(); i++)
+        {
+            Rendering::DebugShape* debugShape = m_DebugShapes[i];
+            if (!debugShape)
+                continue;
+
+            if (debugShape->m_Mesh)
+            {
+                uint64_t cmdID = Rendering::MakeCommandID(debugShape->m_Mesh->GetAssetID().GetAsInt(), parent->GetComponentIDInLevel(local_id), i);
+                GetEngineContext()->GetRenderer()->RemoveCommands({cmdID}, {"PhysicsDebugPass"}, false);
+            }
+
+            delete debugShape;
+        }
+
+        m_DebugShapes.clear();
     }
 
     void PhysicsBody::Deserialize(const json componentData)
@@ -408,27 +646,14 @@ namespace Pulse::Engine::Objects::Components{
             return componentData[key].get<bool>();
         };
 
+        auto getFloat = [&](const char* key, float defaultValue) -> float
+        {
+            if (!componentData.contains(key) || !componentData[key].is_number())
+                return defaultValue;
+            return componentData[key].get<float>();
+        };
+
         const auto& parentName = parent ? parent->GetName() : "UNKNOWN";
-
-        // ---------------- SHAPE ----------------
-        auto shapeStr = getString("shape");
-        if (!shapeStr)
-        {
-            DEBUG_ERROR("Missing physics shape for actor: " + (std::string)parentName);
-            return;
-        }
-
-        Physics::PhysicsShape shape;
-
-        if (*shapeStr == "box") shape = Physics::PhysicsShape::BOX;
-        else if (*shapeStr == "sphere") shape = Physics::PhysicsShape::SPHERE;
-        else if (*shapeStr == "capsule") shape = Physics::PhysicsShape::CAPSULE;
-        else if (*shapeStr == "cylinder") shape = Physics::PhysicsShape::CYLINDER;
-        else
-        {
-            DEBUG_ERROR("Unknown physics shape: " + *shapeStr);
-            return;
-        }
 
         // ---------------- MOTION ----------------
         auto motionStr = getString("motion_type");
@@ -449,94 +674,107 @@ namespace Pulse::Engine::Objects::Components{
             return;
         }
 
-        // ---------------- PARAMS ----------------
-        if (!componentData.contains("params") || !componentData["params"].is_object())
+        // ---------------- ATTRIBUTES ----------------
+        overrideMass = getBool("override_mass", false);
+        mass = getFloat("mass", 1.0f);
+        linearDamping = getFloat("linear_damping", 0.05f);
+        angularDamping = getFloat("angular_damping", 0.05f);
+        gravityFactor = getFloat("gravity_factor", 1.0f);
+        friction = getFloat("friction", 0.2f);
+        restitution = getFloat("restitution", 0.0f);
+
+        // ---------------- SHAPES ----------------
+        std::vector<PhysicsShapeEntry> newShapes;
+
+        auto parseOffsetRotation = [&](const json& entryJson, PhysicsShapeEntry& out)
         {
-            DEBUG_ERROR("Missing physics params for actor: " + (std::string)parentName);
+            if (entryJson.contains("offset") && entryJson["offset"].is_object())
+            {
+                const auto& o = entryJson["offset"];
+                out.offset = glm::vec3(o.value("x", 0.0f), o.value("y", 0.0f), o.value("z", 0.0f));
+            }
+
+            if (entryJson.contains("rotation") && entryJson["rotation"].is_object())
+            {
+                const auto& r = entryJson["rotation"];
+                out.rotation = glm::quat(r.value("w", 1.0f), r.value("x", 0.0f), r.value("y", 0.0f), r.value("z", 0.0f));
+            }
+        };
+
+        if (componentData.contains("shapes") && componentData["shapes"].is_array())
+        {
+            for (const auto& entryJson : componentData["shapes"])
+            {
+                if (!entryJson.contains("shape") || !entryJson["shape"].is_string())
+                {
+                    DEBUG_ERROR("Missing shape type in shapes array for actor: " + (std::string)parentName);
+                    return;
+                }
+
+                Physics::PhysicsShape shape;
+                if (!ParseShapeTypeString(entryJson["shape"].get<std::string>(), shape))
+                {
+                    DEBUG_ERROR("Unknown physics shape for actor: " + (std::string)parentName);
+                    return;
+                }
+
+                if (!entryJson.contains("params") || !entryJson["params"].is_object())
+                {
+                    DEBUG_ERROR("Missing physics params for actor: " + (std::string)parentName);
+                    return;
+                }
+
+                PhysicsShapeEntry entry;
+                entry.shapeType = shape;
+                if (!ParseShapeParams(entryJson["params"], shape, entry.params, parentName))
+                    return;
+
+                parseOffsetRotation(entryJson, entry);
+
+                newShapes.push_back(std::move(entry));
+            }
+        }
+        else
+        {
+            // Back-compat: pre-multi-shape format ("shape"/"params" directly on the component)
+            auto shapeStr = getString("shape");
+            if (!shapeStr)
+            {
+                DEBUG_ERROR("Missing physics shape for actor: " + (std::string)parentName);
+                return;
+            }
+
+            Physics::PhysicsShape shape;
+            if (!ParseShapeTypeString(*shapeStr, shape))
+            {
+                DEBUG_ERROR("Unknown physics shape: " + *shapeStr);
+                return;
+            }
+
+            if (!componentData.contains("params") || !componentData["params"].is_object())
+            {
+                DEBUG_ERROR("Missing physics params for actor: " + (std::string)parentName);
+                return;
+            }
+
+            PhysicsShapeEntry entry;
+            entry.shapeType = shape;
+            if (!ParseShapeParams(componentData["params"], shape, entry.params, parentName))
+                return;
+
+            newShapes.push_back(std::move(entry));
+        }
+
+        if (newShapes.empty())
+        {
+            DEBUG_ERROR("No physics shapes for actor: " + (std::string)parentName);
             return;
         }
 
-        const auto& p = componentData["params"];
-        InstancedStruct params;
-
-        auto requireFloat = [&](const char* key, std::optional<float>& out) -> bool
-        {
-            if (!p.contains(key) || !p[key].is_number())
-                return false;
-            out = p[key].get<float>();
-            return true;
-        };
-
-        switch (shape)
-        {
-            case Physics::PhysicsShape::BOX:
-            {
-                std::optional<float> x, y, z;
-                if (!requireFloat("x", x) || !requireFloat("y", y) || !requireFloat("z", z))
-                {
-                    DEBUG_ERROR("Invalid BOX params for actor: " + (std::string)parentName);
-                    return;
-                }
-
-                params.Initialize(&BoxParams_descriptor);
-                auto& vec = *reinterpret_cast<glm::vec3*>(params.data);
-                vec = glm::vec3(*x, *y, *z);
-                break;
-            }
-
-            case Physics::PhysicsShape::SPHERE:
-            {
-                std::optional<float> radius;
-                if (!requireFloat("radius", radius))
-                {
-                    DEBUG_ERROR("Invalid SPHERE params for actor: " + (std::string)parentName);
-                    return;
-                }
-
-                params.Initialize(&SphereParams_descriptor);
-                *reinterpret_cast<float*>(params.data) = *radius;
-                break;
-            }
-
-            case Physics::PhysicsShape::CAPSULE:
-            {
-                std::optional<float> radius, halfHeight;
-                if (!requireFloat("radius", radius) || !requireFloat("halfHeight", halfHeight))
-                {
-                    DEBUG_ERROR("Invalid CAPSULE params for actor: " + (std::string)parentName);
-                    return;
-                }
-
-                params.Initialize(&CapsuleParams_descriptor);
-                auto* dataPtr = reinterpret_cast<CapsuleParams*>(params.data);
-                dataPtr->radius = *radius;
-                dataPtr->halfHeight = *halfHeight;
-                break;
-            }
-
-            case Physics::PhysicsShape::CYLINDER:
-            {
-                std::optional<float> radius, halfHeight;
-                if (!requireFloat("radius", radius) || !requireFloat("halfHeight", halfHeight))
-                {
-                    DEBUG_ERROR("Invalid CYLINDER params for actor: " + (std::string)parentName);
-                    return;
-                }
-
-                params.Initialize(&CylinderParams_descriptor);
-                auto* dataPtr = reinterpret_cast<CylinderParams*>(params.data);
-                dataPtr->radius = *radius;
-                dataPtr->halfHeight = *halfHeight;
-                break;
-            }
-
-            default:
-                DEBUG_ERROR("Unhandled physics shape for actor: " + (std::string)parentName);
-                return;
-        }
+        shapes = std::move(newShapes);
 
         // ---------------- CREATE BODY ----------------
-        CreateBody(shape, params, motion);
+        CreateBody(motion);
 
         // ---------------- ACTIVE STATE ----------------
         Activate();
@@ -555,45 +793,6 @@ namespace Pulse::Engine::Objects::Components{
 
         comp["active"] = activated;
 
-        switch (shapeType)
-        {
-            case Physics::BOX: {
-                comp["shape"] = "box";
-                auto boxParams = reinterpret_cast<const BoxParams*>(params.data);
-                comp["params"]["x"] = boxParams->halfExtent.x;
-                comp["params"]["y"] = boxParams->halfExtent.y;
-                comp["params"]["z"] = boxParams->halfExtent.z;
-                break;
-            }
-
-            case Physics::SPHERE: {
-                comp["shape"] = "sphere";
-                auto sphereParams = reinterpret_cast<const SphereParams*>(params.data);
-                comp["params"]["radius"] = sphereParams->radius;
-                break;
-            }
-
-            case Physics::CAPSULE: {
-                comp["shape"] = "capsule";
-                auto capsuleParams = reinterpret_cast<const CapsuleParams*>(params.data);
-                comp["params"]["radius"] = capsuleParams->radius;
-                comp["params"]["halfHeight"] = capsuleParams->halfHeight;
-                break;
-            }
-
-            case Physics::CYLINDER: {
-                comp["shape"] = "cylinder";
-                auto cylinderParams = reinterpret_cast<const CylinderParams*>(params.data);
-                comp["params"]["radius"] = cylinderParams->radius;
-                comp["params"]["halfHeight"] = cylinderParams->halfHeight;
-                break;
-            }
-
-            default:
-                DEBUG_ERROR("Unknown physics shape for actor: " + std::string(parent->GetName()));
-                break;
-        }
-
         switch(motionType){
             case JPH::EMotionType::Dynamic:{
                 comp["motion_type"] = "dynamic";
@@ -609,6 +808,37 @@ namespace Pulse::Engine::Objects::Components{
             }
         }
 
+        comp["override_mass"] = overrideMass;
+        comp["mass"] = mass;
+        comp["linear_damping"] = linearDamping;
+        comp["angular_damping"] = angularDamping;
+        comp["gravity_factor"] = gravityFactor;
+        comp["friction"] = friction;
+        comp["restitution"] = restitution;
+
+        comp["shapes"] = ordered_json::array();
+
+        for (const auto& entry : shapes)
+        {
+            ordered_json shapeJson;
+            shapeJson["shape"] = ShapeTypeToString(entry.shapeType);
+
+            ordered_json paramsJson;
+            SerializeShapeParams(paramsJson, entry.shapeType, entry.params);
+            shapeJson["params"] = paramsJson;
+
+            shapeJson["offset"]["x"] = entry.offset.x;
+            shapeJson["offset"]["y"] = entry.offset.y;
+            shapeJson["offset"]["z"] = entry.offset.z;
+
+            shapeJson["rotation"]["x"] = entry.rotation.x;
+            shapeJson["rotation"]["y"] = entry.rotation.y;
+            shapeJson["rotation"]["z"] = entry.rotation.z;
+            shapeJson["rotation"]["w"] = entry.rotation.w;
+
+            comp["shapes"].push_back(shapeJson);
+        }
+
         return comp;
     }
 
@@ -616,48 +846,343 @@ namespace Pulse::Engine::Objects::Components{
     {
         auto cloned = Object::Create<PhysicsBody>(*this);
         cloned->m_BodyID = JPH::BodyID();
-        cloned->CreateBody(shapeType, params, motionType);
+
+        // The copy above shallow-copied our debug shape pointers - they still belong to `this`.
+        // Clear the clone's list (without deleting) so CreateBody() below builds its own instead
+        // of both objects pointing at (and eventually double-deleting) the same debug shapes.
+        cloned->m_DebugShapes.clear();
+
+        cloned->CreateBody(motionType);
         return cloned;
     }
 
-    void PhysicsBody::ForceShapeUpdate(const Physics::PhysicsShape &shape, const InstancedStruct& params, EMotionType motionType)
+    void PhysicsBody::AddShape(Physics::PhysicsShape type)
     {
-        this->shapeType = shape;
-        this->params = params;
-        this->motionType = motionType;
+        PhysicsShapeEntry entry;
+        entry.shapeType = type;
+        InitShapeParams(entry.params, type);
 
-        this->shouldUpdateShape = true;
+        shapes.push_back(std::move(entry));
+        shouldUpdateShape = true;
+    }
+
+    void PhysicsBody::RemoveShape(size_t index)
+    {
+        if (shapes.size() <= 1 || index >= shapes.size())
+            return;
+
+        shapes.erase(shapes.begin() + index);
+        shouldUpdateShape = true;
+    }
+
+    void PhysicsBody::SetShapeType(size_t index, Physics::PhysicsShape newType)
+    {
+        if (index >= shapes.size())
+            return;
+
+        PhysicsShapeEntry& entry = shapes[index];
+        entry.shapeType = newType;
+        InitShapeParams(entry.params, newType);
+
+        shouldUpdateShape = true;
+    }
+
+    glm::vec3 PhysicsBody::GetPosition() const
+    {
+        if (m_BodyID.IsInvalid())
+            return parent ? parent->transform->GetWorldPosition() : glm::vec3(0.0f);
+
+        return ToGLM(GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetPosition(m_BodyID));
+    }
+
+    glm::quat PhysicsBody::GetRotation() const
+    {
+        if (m_BodyID.IsInvalid())
+            return parent ? parent->transform->GetWorldRotationQuat() : glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+        return ToGLM(GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetRotation(m_BodyID));
+    }
+
+    glm::vec3 PhysicsBody::GetCenterOfMassPosition() const
+    {
+        if (m_BodyID.IsInvalid())
+            return glm::vec3(0.0f);
+
+        return ToGLM(GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetCenterOfMassPosition(m_BodyID));
+    }
+
+    void PhysicsBody::SetLinearVelocity(glm::vec3 velocity)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().SetLinearVelocity(m_BodyID, ToJolt(velocity));
+    }
+
+    glm::vec3 PhysicsBody::GetLinearVelocity() const
+    {
+        if (m_BodyID.IsInvalid())
+            return glm::vec3(0.0f);
+
+        return ToGLM(GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetLinearVelocity(m_BodyID));
+    }
+
+    void PhysicsBody::SetAngularVelocity(glm::vec3 velocity)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().SetAngularVelocity(m_BodyID, ToJolt(velocity));
+    }
+
+    glm::vec3 PhysicsBody::GetAngularVelocity() const
+    {
+        if (m_BodyID.IsInvalid())
+            return glm::vec3(0.0f);
+
+        return ToGLM(GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetAngularVelocity(m_BodyID));
+    }
+
+    void PhysicsBody::AddForce(glm::vec3 force)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().AddForce(m_BodyID, ToJolt(force));
+    }
+
+    void PhysicsBody::AddForceAtPoint(glm::vec3 force, glm::vec3 point)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().AddForce(m_BodyID, ToJolt(force), ToJolt(point));
+    }
+
+    void PhysicsBody::AddTorque(glm::vec3 torque)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().AddTorque(m_BodyID, ToJolt(torque));
+    }
+
+    void PhysicsBody::AddImpulse(glm::vec3 impulse)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().AddImpulse(m_BodyID, ToJolt(impulse));
+    }
+
+    void PhysicsBody::AddImpulseAtPoint(glm::vec3 impulse, glm::vec3 point)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().AddImpulse(m_BodyID, ToJolt(impulse), ToJolt(point));
+    }
+
+    void PhysicsBody::AddAngularImpulse(glm::vec3 impulse)
+    {
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().AddAngularImpulse(m_BodyID, ToJolt(impulse));
+    }
+
+    void PhysicsBody::ApplyMassProperties()
+    {
+        if (m_BodyID.IsInvalid() || !activated || motionType != EMotionType::Dynamic || !m_Shape)
+            return;
+
+        auto physics = GetEngineContext()->GetPhysicsManager();
+        JPH::BodyLockWrite lock(physics->GetPhysicsSystem().GetBodyLockInterface(), m_BodyID);
+        if (!lock.Succeeded())
+            return;
+
+        JPH::MotionProperties* mp = lock.GetBody().GetMotionPropertiesUnchecked();
+        if (!mp)
+            return;
+
+        JPH::MassProperties massProps = m_Shape->GetMassProperties();
+        if (overrideMass)
+            massProps.ScaleToMass(mass);
+
+        mp->SetMassProperties(mp->GetAllowedDOFs(), massProps);
+    }
+
+    void PhysicsBody::SetMass(float newMass)
+    {
+        mass = newMass;
+        overrideMass = true;
+        ApplyMassProperties();
+    }
+
+    float PhysicsBody::GetMass() const
+    {
+        if (m_BodyID.IsInvalid() || motionType != EMotionType::Dynamic)
+            return mass;
+
+        auto physics = GetEngineContext()->GetPhysicsManager();
+        JPH::BodyLockRead lock(physics->GetPhysicsSystem().GetBodyLockInterface(), m_BodyID);
+        if (!lock.Succeeded())
+            return mass;
+
+        const JPH::MotionProperties* mp = lock.GetBody().GetMotionPropertiesUnchecked();
+        if (!mp)
+            return mass;
+
+        float invMass = mp->GetInverseMassUnchecked();
+        return invMass > 0.0f ? 1.0f / invMass : mass;
+    }
+
+    void PhysicsBody::SetLinearDamping(float damping)
+    {
+        linearDamping = damping;
+
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        auto physics = GetEngineContext()->GetPhysicsManager();
+        JPH::BodyLockWrite lock(physics->GetPhysicsSystem().GetBodyLockInterface(), m_BodyID);
+        if (!lock.Succeeded())
+            return;
+
+        JPH::MotionProperties* mp = lock.GetBody().GetMotionPropertiesUnchecked();
+        if (mp)
+            mp->SetLinearDamping(damping);
+    }
+
+    float PhysicsBody::GetLinearDamping() const
+    {
+        if (m_BodyID.IsInvalid())
+            return linearDamping;
+
+        auto physics = GetEngineContext()->GetPhysicsManager();
+        JPH::BodyLockRead lock(physics->GetPhysicsSystem().GetBodyLockInterface(), m_BodyID);
+        if (!lock.Succeeded())
+            return linearDamping;
+
+        const JPH::MotionProperties* mp = lock.GetBody().GetMotionPropertiesUnchecked();
+        return mp ? mp->GetLinearDamping() : linearDamping;
+    }
+
+    void PhysicsBody::SetAngularDamping(float damping)
+    {
+        angularDamping = damping;
+
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        auto physics = GetEngineContext()->GetPhysicsManager();
+        JPH::BodyLockWrite lock(physics->GetPhysicsSystem().GetBodyLockInterface(), m_BodyID);
+        if (!lock.Succeeded())
+            return;
+
+        JPH::MotionProperties* mp = lock.GetBody().GetMotionPropertiesUnchecked();
+        if (mp)
+            mp->SetAngularDamping(damping);
+    }
+
+    float PhysicsBody::GetAngularDamping() const
+    {
+        if (m_BodyID.IsInvalid())
+            return angularDamping;
+
+        auto physics = GetEngineContext()->GetPhysicsManager();
+        JPH::BodyLockRead lock(physics->GetPhysicsSystem().GetBodyLockInterface(), m_BodyID);
+        if (!lock.Succeeded())
+            return angularDamping;
+
+        const JPH::MotionProperties* mp = lock.GetBody().GetMotionPropertiesUnchecked();
+        return mp ? mp->GetAngularDamping() : angularDamping;
+    }
+
+    void PhysicsBody::SetGravityFactor(float factor)
+    {
+        gravityFactor = factor;
+
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().SetGravityFactor(m_BodyID, factor);
+    }
+
+    float PhysicsBody::GetGravityFactor() const
+    {
+        if (m_BodyID.IsInvalid())
+            return gravityFactor;
+
+        return GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetGravityFactor(m_BodyID);
+    }
+
+    void PhysicsBody::SetFriction(float newFriction)
+    {
+        friction = newFriction;
+
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().SetFriction(m_BodyID, newFriction);
+    }
+
+    float PhysicsBody::GetFriction() const
+    {
+        if (m_BodyID.IsInvalid())
+            return friction;
+
+        return GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetFriction(m_BodyID);
+    }
+
+    void PhysicsBody::SetRestitution(float newRestitution)
+    {
+        restitution = newRestitution;
+
+        if (m_BodyID.IsInvalid() || !activated)
+            return;
+
+        GetEngineContext()->GetPhysicsManager()->GetBodyInterface().SetRestitution(m_BodyID, newRestitution);
+    }
+
+    float PhysicsBody::GetRestitution() const
+    {
+        if (m_BodyID.IsInvalid())
+            return restitution;
+
+        return GetEngineContext()->GetPhysicsManager()->GetBodyInterface().GetRestitution(m_BodyID);
     }
 
     void PhysicsBody::OnFieldChanged(const FieldChangedEvent& event){
-        if(event.field->name == "shapeType"){
+        const char* name = event.field->name;
 
-            switch (shapeType)
-            {
-                case Physics::BOX:
-                    params.Initialize(&BoxParams_descriptor);
-                    break;
-
-                case Physics::SPHERE:
-                    params.Initialize(&SphereParams_descriptor);
-                    break;
-
-                case Physics::CAPSULE:
-                    params.Initialize(&CapsuleParams_descriptor);
-                    break;
-
-                case Physics::CYLINDER:
-                    params.Initialize(&CylinderParams_descriptor);
-                    break;
-            }
-
-            ForceShapeUpdate(shapeType, params, GetMotionType());
+        if (strcmp(name, "motionType") == 0)
+        {
+            shouldUpdateShape = true;
         }
-        else if(event.field->name == "motionType"){
-            ForceShapeUpdate(GetShapeType(), params, motionType);
+        else if (strcmp(name, "overrideMass") == 0 || strcmp(name, "mass") == 0)
+        {
+            ApplyMassProperties();
         }
-        else{
-            ForceShapeUpdate(shapeType, params, motionType);
+        else if (strcmp(name, "linearDamping") == 0)
+        {
+            SetLinearDamping(linearDamping);
+        }
+        else if (strcmp(name, "angularDamping") == 0)
+        {
+            SetAngularDamping(angularDamping);
+        }
+        else if (strcmp(name, "gravityFactor") == 0)
+        {
+            SetGravityFactor(gravityFactor);
+        }
+        else if (strcmp(name, "friction") == 0)
+        {
+            SetFriction(friction);
+        }
+        else if (strcmp(name, "restitution") == 0)
+        {
+            SetRestitution(restitution);
         }
     }
 }

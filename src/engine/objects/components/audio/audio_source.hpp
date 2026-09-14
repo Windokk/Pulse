@@ -15,7 +15,7 @@ namespace Pulse::Engine::Objects::Components
         public:
             AudioSource(std::shared_ptr<Actor> parent, uint32_t local_id);
 
-            void SetPath(Filesystem::Path path);
+            void SetSound(Filesystem::AssetID soundID);
             void SetVolume(float volume);
             void Play();
             void Pause();
@@ -32,7 +32,11 @@ namespace Pulse::Engine::Objects::Components
             {
                 Component::Activate();
 
-                Play();
+                // Enabling the component only prepares the underlying sound (Update() creates it if
+                // needed) - it must not start audible playback on its own, since that would fire the
+                // instant a level loads/deserializes in the editor. Actual playback is gated behind
+                // OnPlay()/playOnStart, invoked when the game actually enters Play mode.
+                Update();
             }
 
             void DeActivate() override
@@ -46,16 +50,24 @@ namespace Pulse::Engine::Objects::Components
 
             void OnFieldChanged(const FieldChangedEvent& event) override;
             
+            void OnPlay();
+
             DECLARE_DESCRIPTOR(AudioSource)
 
             FIELD(Editable)
-            std::string file;
+            Filesystem::AssetID assetID;
 
             FIELD(Editable)
-            float volume = -1.0f;
+            float volume = 1.0f;
+
+            FIELD(Editable)
+            bool playOnStart = true;
+
+            FIELD(Editable)
+            bool spatialize = true;
 
         private:
-            Filesystem::Path path;
+            std::string pathInProject;
             Audio::AudioID audioID;
     };
 }

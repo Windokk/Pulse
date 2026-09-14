@@ -15,6 +15,10 @@ namespace Pulse::Engine::Rendering{
     class Material;
 }
 
+namespace Pulse::Engine::Audio{
+    class SoundAsset;
+}
+
 namespace Pulse::Engine::Core::Resources{
 
     class ResourcesManager{
@@ -66,6 +70,12 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Level
             std::shared_ptr<Levels::Level> LoadLevel(const std::string &pathInProject, const Filesystem::Path& path);
 
+            /// @brief Loads the raw bytes of a sound file and adds it to the project's loaded sounds list
+            /// @param name The name of the sound in the project
+            /// @param path The normalized path at which the sound is located (filename + extension expected)
+            /// @return A shared pointer to a SoundAsset
+            std::shared_ptr<Audio::SoundAsset> LoadSound(const std::string &pathInProject, const Filesystem::Path &path);
+
             /// @brief Retrieves mesh from the project's loaded meshes lists (Tries to load it if it isn't loaded yet)
             /// @param name The name of the mesh in the project
             /// @return A shared pointer to a Mesh
@@ -98,6 +108,11 @@ namespace Pulse::Engine::Core::Resources{
             /// @return A shared pointer to a Level
             std::shared_ptr<Levels::Level> GetLevel(const std::string& pathInProject);
 
+            /// @brief Retrieves a sound's raw bytes from the project's loaded sounds list (Tries to load it if it isn't loaded yet)
+            /// @param name The name of the sound in the project
+            /// @return A shared pointer to a SoundAsset
+            std::shared_ptr<Audio::SoundAsset> GetSound(std::string pathInProject);
+
             /// @brief Inserts an already-built mesh/texture into the cache under `pathInProject`. No-op if `pathInProject` is already cached.
             void AdoptMesh(const std::string &pathInProject, std::shared_ptr<Rendering::Mesh> mesh);
             void AdoptTexture(const std::string &pathInProject, std::shared_ptr<Rendering::Texture2D> texture);
@@ -117,6 +132,7 @@ namespace Pulse::Engine::Core::Resources{
             void UnloadImage(const std::string& name);
             void UnloadEnvMap(const std::string& name);
             void UnloadLevel(const std::string& name);
+            void UnloadSound(const std::string& name);
 
         private:
 
@@ -127,6 +143,7 @@ namespace Pulse::Engine::Core::Resources{
             std::unordered_map<std::string, std::shared_ptr<Rendering::ComputeShader>> computeShaders;
             std::unordered_map<std::string, std::shared_ptr<Rendering::Material>> materials;
             std::unordered_map<std::string, std::shared_ptr<Levels::Level>> levels;
+            std::unordered_map<std::string, std::shared_ptr<Audio::SoundAsset>> sounds;
         };
 
 }

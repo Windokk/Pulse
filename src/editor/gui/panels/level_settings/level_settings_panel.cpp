@@ -3,9 +3,6 @@
 #include "engine/core/engine.hpp"
 #include "engine/levels/level.hpp"
 #include "engine/levels/level_manager.hpp"
-#include "engine/rendering/renderer/renderer.hpp"
-
-#include "editor/gui/main_window.hpp"
 
 #include "imgui/imgui.h"
 
@@ -15,11 +12,6 @@ using namespace Pulse::Engine;
 using Pulse::Engine::Core::GetEngine;
 
 namespace Pulse::Editor::GUI{
-
-    void LevelSettingsPanel::SetParentWindow(Core::EditorMainWindow* parent)
-    {
-        this->parent = parent;
-    }
 
     void LevelSettingsPanel::Draw()
     {
@@ -104,20 +96,6 @@ namespace Pulse::Editor::GUI{
 
             if (!level->ssaoEnabled)
                 ImGui::EndDisabled();
-
-            ImGui::TreePop();
-        }
-
-        // Global illumination (DDGI) - probeVolume itself keeps driving GI regardless of this checkbox
-        // (see ProbeGizmoPass in Renderer::Init()) ; it only hides the per-probe marker gizmos, a pure
-        // viewing preference, so it lives on EditorSettings rather than on Level.
-        if (parent && ImGui::TreeNodeEx("Global Illumination (DDGI)", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
-        {
-            ImGui::Checkbox("Show Probe Gizmos", &parent->settings.showProbeGizmos);
-
-            auto probeGizmoPass = GetEngine().GetRenderer()->GetRenderPass("ProbeGizmoPass");
-            if (probeGizmoPass)
-                probeGizmoPass->enabled = parent->settings.showProbeGizmos;
 
             ImGui::TreePop();
         }

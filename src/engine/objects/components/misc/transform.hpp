@@ -81,13 +81,48 @@ namespace Pulse::Engine::Objects::Components
                 return glm::normalize(rotation * glm::vec3(1, 0, 0));
             }
 
+            glm::vec3 GetWorldForward() {
+                return glm::normalize(GetWorldRotationQuat() * glm::vec3(0, 0, -1));
+            }
+
+            glm::vec3 GetWorldUp() {
+                return glm::normalize(GetWorldRotationQuat() * glm::vec3(0, 1, 0));
+            }
+
+            glm::vec3 GetWorldRight() {
+                return glm::normalize(GetWorldRotationQuat() * glm::vec3(1, 0, 0));
+            }
+
             glm::mat4 GetTransformMatrix();
 
+            /// @brief World-space matrix, composed as parent->GetWorldMatrix() * GetTransformMatrix().
+            /// Lazily recomputed (cached, invalidated by MarkWorldMatrixDirty()) - identity-parented
+            /// (root) actors just return their local matrix.
+            glm::mat4 GetWorldMatrix();
+
+            glm::vec3 GetWorldPosition();
+            glm::quat GetWorldRotationQuat();
+
+            /// @brief Lossy world-space scale (length of each world matrix basis column) - "lossy"
+            /// because it can't represent shear introduced by a non-uniformly-scaled ancestor combined
+            /// with rotation, same caveat as Unity's Transform.lossyScale.
+            glm::vec3 GetWorldScale();
+
+            /// @brief Marks the cached world matrix stale and propagates the same to every descendant,
+            /// since a child's world matrix depends on its parent's. Called automatically whenever a
+            /// local field changes or an actor is reparented (see Actor::AddChild/SetParent).
+            void MarkWorldMatrixDirty();
+
             bool operator !=(Transform const& b) const {
-                return position != b.position || rotation != b.rotation || scale != b.scale; 
+                return position != b.position || rotation != b.rotation || scale != b.scale;
             }
 
             bool SetFromTransformMatrix(const glm::mat4 &m);
+
+            /// @brief Like SetFromTransformMatrix, but m is expressed in world space - converted to
+            /// local space against the parent's current world matrix before being applied. Used by the
+            /// editor gizmo, which manipulates the world-space matrix.
+            bool SetFromWorldMatrix(const glm::mat4 &worldMatrix);
 
             void Destroy() override{
                 //TODO ?
@@ -108,7 +143,12 @@ namespace Pulse::Engine::Objects::Components
 
         private:
 
+            std::shared_ptr<Transform> GetParentTransform() const;
+
             DirtyFlags dirtyFlags = DirtyFlags::None;
+
+            glm::mat4 cachedWorldMatrix = glm::mat4(1.0f);
+            bool worldMatrixDirty = true;
 
             DECLARE_DESCRIPTOR(Transform)
     };

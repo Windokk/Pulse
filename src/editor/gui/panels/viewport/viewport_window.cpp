@@ -353,7 +353,9 @@ namespace Pulse::Editor::GUI {
         glm::mat4 view = cam->GetView();
         glm::mat4 proj = cam->GetProjection();
 
-        glm::mat4 transform = selected->transform->GetTransformMatrix();
+        // ImGuizmo manipulates in world space (it's driven by the camera's world-space view matrix) -
+        // so hand it the actor's world matrix, and convert back to local when writing the result back.
+        glm::mat4 transform = selected->transform->GetWorldMatrix();
 
         ImGuizmo::Manipulate(
             glm::value_ptr(view),
@@ -392,7 +394,7 @@ namespace Pulse::Editor::GUI {
         }
 
         if (ImGuizmo::IsUsing()) {
-            selected->transform->SetFromTransformMatrix(transform);
+            selected->transform->SetFromWorldMatrix(transform);
         }
 
         if (!ImGuizmo::IsUsing() && gizmoActive) {
@@ -540,6 +542,18 @@ namespace Pulse::Editor::GUI {
         ImGui::Checkbox("Show Outlines ?", &parent->settings.showOutlines);
         ImGui::Checkbox("Show Gizmos ?", &parent->settings.showGizmos);
         ImGui::Checkbox("Show Grid ?", &parent->settings.showGrid);
+
+        ImGui::Checkbox("Show DDGI Gizmos ?", &parent->settings.showDDGIGizmos);
+
+        auto probeGizmoPass = Engine::Core::GetEngine().GetRenderer()->GetRenderPass("ProbeGizmoPass");
+        if (probeGizmoPass)
+            probeGizmoPass->enabled = parent->settings.showDDGIGizmos;
+
+        ImGui::Checkbox("Show Physics Shapes ?", &parent->settings.showPhysicsShapes);
+
+        auto physicsDebugPass = Engine::Core::GetEngine().GetRenderer()->GetRenderPass("PhysicsDebugPass");
+        if (physicsDebugPass)
+            physicsDebugPass->enabled = parent->settings.showPhysicsShapes;
 
         ImGui::End();
     }
