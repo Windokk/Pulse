@@ -12,6 +12,7 @@
 #include "editor/gui/resources/mesh_thumbnail_cache.hpp"
 #include "editor/gui/panels/asset_editor_registry.hpp"
 #include "editor/gui/dragdrop/asset_drag_drop.hpp"
+#include "editor/gui/popups.hpp"
 
 #include <cstdio>
 #include <functional>
@@ -672,6 +673,23 @@ namespace Pulse::Editor::GUI{
         // successfully (see LevelManager::FinishAsyncLoad) - so a bad/missing target here can't
         // leave the editor with zero levels loaded.
         std::string pathInProject = engine.GetFileManager()->GetFileInfos(path).nameInProject;
+
+        auto* current = levelManager->GetLevelAt(0);
+        if (current && current->IsDirty())
+        {
+            GUI::Popups::ConfirmUnsavedChanges(current->GetName(),
+                [levelManager, current, pathInProject]()
+                {
+                    current->Serialize(current->GetPath());
+                    levelManager->LoadLevelAsync(pathInProject);
+                },
+                [levelManager, pathInProject]()
+                {
+                    levelManager->LoadLevelAsync(pathInProject);
+                });
+            return;
+        }
+
         levelManager->LoadLevelAsync(pathInProject);
     }
 

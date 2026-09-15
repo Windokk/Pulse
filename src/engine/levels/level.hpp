@@ -50,6 +50,11 @@ namespace Pulse::Engine::Levels{
 
         bool loaded = false;
 
+        // Set on any editor edit to this level since it was last loaded/saved (see the various
+        // panels/callers that flip this via SetDirty), cleared by Serialize()/Deserialize(). Drives
+        // the "unsaved changes" warning popup shown before the level is replaced/unloaded.
+        bool dirty = false;
+
         int buildIndex = -1;
 
         Filesystem::AssetID assetID;
@@ -98,6 +103,10 @@ namespace Pulse::Engine::Levels{
             bool IsLoaded() { return loaded; }
 
             void SetLoaded(bool loaded) { this->loaded = loaded; }
+
+            bool IsDirty() { return dirty; }
+
+            void SetDirty(bool dirty) { this->dirty = dirty; }
 
             float ambientIntensity = 0.3f;
             std::shared_ptr<Objects::Skybox> skybox;

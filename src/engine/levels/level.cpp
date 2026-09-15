@@ -234,6 +234,8 @@ namespace Pulse::Engine::Levels{
             DEBUG_ERROR("JSON parse error: " + (std::string)e.what());
             return;
         }
+
+        dirty = false;
     }
 
     void SerializeActor(std::shared_ptr<Pulse::Engine::Objects::Actor> a, ordered_json* actorsArray){
@@ -294,6 +296,8 @@ namespace Pulse::Engine::Levels{
         std::string fileContent = full.dump();
 
         filePath.WriteFile(fileContent);
+
+        dirty = false;
     }
 
     void Level::SetBuildIndex(int buildIndex)

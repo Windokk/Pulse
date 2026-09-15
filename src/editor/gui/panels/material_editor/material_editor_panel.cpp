@@ -11,6 +11,7 @@
 #include "imgui/imgui.h"
 
 #include "editor/gui/dragdrop/asset_drag_drop.hpp"
+#include "editor/gui/popups.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -185,6 +186,8 @@ namespace Pulse::Editor::GUI{
         // same window/dock slot instead of ImGui treating it as a brand-new one because the title changed.
         std::string title = "Material Editor - " + path.GetFilename() + "###MaterialEditor";
 
+        bool wasOpen = isOpen;
+
         if(ImGui::Begin(title.c_str(), &isOpen)){
 
             char shaderBuffer[256];
@@ -272,6 +275,17 @@ namespace Pulse::Editor::GUI{
             }
         }
         ImGui::End();
+
+        // The X button flips isOpen to false via the pointer passed to Begin() above - catch that
+        // transition here (rather than bailing out early next frame) so a dirty material can't be
+        // silently unloaded: keep the window open and ask the user what to do first.
+        if(wasOpen && !isOpen && dirty){
+            isOpen = true;
+
+            Popups::ConfirmUnsavedChanges(path.GetFilename(),
+                [this](){ Save(); isOpen = false; },
+                [this](){ dirty = false; isOpen = false; });
+        }
     }
 
     bool MaterialEditorPanel::DrawParam(MatParam& param)

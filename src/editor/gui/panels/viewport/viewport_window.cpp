@@ -12,17 +12,73 @@
 #include "editor/gui/dragdrop/asset_drag_drop.hpp"
 
 #include "engine/objects/components/rendering/model_component.hpp"
+#include "engine/objects/components/physics/physics_body.hpp"
 
 
 #include <glm/gtx/string_cast.hpp>
 
 #include <algorithm>
+#include <cfloat>
 
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 
 #include "engine/debugging/profiler.hpp"
 #include "engine/time/time_manager.hpp"
 
+namespace {
+
+    // Slab-method ray-vs-AABB test. `dir` is assumed normalized. Only reports a hit closer
+    // than maxDistance (so callers can pass the current-best hit distance to short-circuit).
+    bool RayIntersectsAABB(const glm::vec3& origin, const glm::vec3& dir,
+                            const glm::vec3& boundsMin, const glm::vec3& boundsMax,
+                            float maxDistance, float& outT)
+    {
+        float tMin = 0.0f;
+        float tMax = maxDistance;
+
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            float invD = 1.0f / dir[axis];
+            float t0 = (boundsMin[axis] - origin[axis]) * invD;
+            float t1 = (boundsMax[axis] - origin[axis]) * invD;
+
+            if (invD < 0.0f)
+                std::swap(t0, t1);
+
+            tMin = std::max(tMin, t0);
+            tMax = std::min(tMax, t1);
+
+            if (tMax < tMin)
+                return false;
+        }
+
+        outT = tMin;
+        return true;
+    }
+
+    // World-space AABB of a mesh's local bounds transformed by worldMatrix. Recomputed from
+    // scratch every call (only used on click, not per-frame) rather than cached, since the
+    // actor's world matrix can change between clicks without any picking-relevant event firing.
+    void ComputeWorldBounds(const glm::vec3& localMin, const glm::vec3& localMax,
+                             const glm::mat4& worldMatrix, glm::vec3& worldMin, glm::vec3& worldMax)
+    {
+        worldMin = glm::vec3(FLT_MAX);
+        worldMax = glm::vec3(-FLT_MAX);
+
+        for (int i = 0; i < 8; ++i)
+        {
+            glm::vec3 corner(
+                (i & 1) ? localMax.x : localMin.x,
+                (i & 2) ? localMax.y : localMin.y,
+                (i & 4) ? localMax.z : localMin.z);
+
+            glm::vec3 worldCorner = glm::vec3(worldMatrix * glm::vec4(corner, 1.0f));
+            worldMin = glm::min(worldMin, worldCorner);
+            worldMax = glm::max(worldMax, worldCorner);
+        }
+    }
+
+}
 
 namespace Pulse::Editor::GUI {
 
@@ -400,6 +456,9 @@ namespace Pulse::Editor::GUI {
         if (!ImGuizmo::IsUsing() && gizmoActive) {
             Commands::CommandStack::Get().End();
             gizmoActive = false;
+
+            if (auto* level = Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0))
+                level->SetDirty(true);
         }
     }
 
@@ -759,13 +818,63 @@ namespace Pulse::Editor::GUI {
 
                 Engine::Physics::RaycastResult result = Engine::Core::GetEngine().GetPhysicsManager()->RayCast({origin, dir, 10000.0f});
 
+                std::shared_ptr<Engine::Objects::Actor> pickedActor = nullptr;
+                float pickedDistance = result.hit ? result.hitDistance : 10000.0f;
+
                 if (result.hit)
+                    pickedActor = result.hitBody->parent;
+
+                // Physics-less actors (a bare Model with no PhysicsBody) aren't visible to the
+                // raycast above at all, so fall back to a CPU ray-vs-mesh-AABB test for them.
+                // Actors that do have a PhysicsBody are skipped here - the raycast already tests
+                // their real collider shape, which is more accurate than their mesh bounds.
+                if (auto* level = engine->GetLevelManager()->GetLevelAt(0))
                 {
-                    parent->SetSelectedActor(result.hitBody->parent);
+                    for (auto& modelEntry : level->models)
+                    {
+                        auto& modelComp = modelEntry.second;
+
+                        if (!modelComp || !modelComp->parent)
+                            continue;
+
+                        if (modelComp->parent->HasComponent<Engine::Objects::Components::PhysicsBody>())
+                            continue;
+
+                        auto mesh = modelComp->GetMesh();
+                        if (!mesh)
+                            continue;
+
+                        glm::vec3 boundsMin = mesh->GetBoundsMin();
+                        glm::vec3 boundsMax = mesh->GetBoundsMax();
+                        if (boundsMin.x > boundsMax.x)
+                            continue;
+
+                        glm::mat4 worldMatrix = modelComp->parent->transform->GetWorldMatrix();
+
+                        glm::vec3 worldMin, worldMax;
+                        ComputeWorldBounds(boundsMin, boundsMax, worldMatrix, worldMin, worldMax);
+
+                        // If the camera is inside this actor's bounds, the slab test's tMin
+                        // clamps to 0 and it would spuriously win as the "closest" hit no matter
+                        // where the click landed - skip it instead (e.g. camera inside a room
+                        // shell or other large enclosing mesh).
+                        bool cameraInside =
+                            origin.x >= worldMin.x && origin.x <= worldMax.x &&
+                            origin.y >= worldMin.y && origin.y <= worldMax.y &&
+                            origin.z >= worldMin.z && origin.z <= worldMax.z;
+                        if (cameraInside)
+                            continue;
+
+                        float t;
+                        if (RayIntersectsAABB(origin, dir, worldMin, worldMax, pickedDistance, t) && t < pickedDistance)
+                        {
+                            pickedDistance = t;
+                            pickedActor = modelComp->parent;
+                        }
+                    }
                 }
-                else{
-                    parent->SetSelectedActor(nullptr);
-                }
+
+                parent->SetSelectedActor(pickedActor);
             }
         }
 

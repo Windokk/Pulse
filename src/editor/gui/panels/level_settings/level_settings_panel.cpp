@@ -70,7 +70,8 @@ namespace Pulse::Editor::GUI{
         // semantics : an additive light floor always present, even with zero real lights/DDGI/IBL.
         if (ImGui::TreeNodeEx("Ambient", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
         {
-            ImGui::DragFloat("Intensity", &level->ambientIntensity, 0.01f, 0.0f, 10.0f);
+            if (ImGui::DragFloat("Intensity", &level->ambientIntensity, 0.01f, 0.0f, 10.0f))
+                level->SetDirty(true);
             ImGui::TreePop();
         }
 
@@ -79,20 +80,25 @@ namespace Pulse::Editor::GUI{
         // instant toggle rather than something that (de)registers passes.
         if (ImGui::TreeNodeEx("Screen-Space Ambient Occlusion", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
         {
-            ImGui::Checkbox("Enabled", &level->ssaoEnabled);
+            if (ImGui::Checkbox("Enabled", &level->ssaoEnabled))
+                level->SetDirty(true);
 
             if (!level->ssaoEnabled)
                 ImGui::BeginDisabled();
 
-            ImGui::DragFloat("Radius", &level->ssaoRadius, 0.01f, 0.01f, 5.0f);
-            ImGui::DragFloat("Bias", &level->ssaoBias, 0.001f, 0.0f, 0.5f);
+            bool changed = false;
+            changed |= ImGui::DragFloat("Radius", &level->ssaoRadius, 0.01f, 0.01f, 5.0f);
+            changed |= ImGui::DragFloat("Bias", &level->ssaoBias, 0.001f, 0.0f, 0.5f);
             // Power > 1 darkens occluded areas more aggressively (see ssao.frag) - this is what
             // makes the effect actually read as contact shadowing rather than a faint gray wash.
-            ImGui::DragFloat("Power", &level->ssaoPower, 0.05f, 0.5f, 6.0f);
+            changed |= ImGui::DragFloat("Power", &level->ssaoPower, 0.05f, 0.5f, 6.0f);
             // Allowed past 1.0 as an amplification knob - SampleSSAO's mix() extrapolates beyond
             // the raw (already power-curved) AO value and clamps the result, so this can push the
             // effect further without re-running the SSAO passes themselves.
-            ImGui::DragFloat("Intensity", &level->ssaoIntensity, 0.01f, 0.0f, 3.0f);
+            changed |= ImGui::DragFloat("Intensity", &level->ssaoIntensity, 0.01f, 0.0f, 3.0f);
+
+            if (changed)
+                level->SetDirty(true);
 
             if (!level->ssaoEnabled)
                 ImGui::EndDisabled();

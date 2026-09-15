@@ -19,13 +19,26 @@ namespace Pulse::Editor::GUI{
 
     void LevelTree::Draw()
     {
-        if (!ImGui::Begin("Level"))
+        auto level = GetEngine().GetLevelManager()->GetLevelAt(0);
+
+        // Stable ImGui ID (###LevelTree) so the title can carry the level's name (and an unsaved-
+        // changes marker) without losing this panel's saved dock position/size every time the level
+        // name changes or a different level is loaded.
+        std::string title = "Level";
+        if (level)
+        {
+            title += " - " + level->GetName();
+            if (level->IsDirty())
+                title += "*";
+        }
+        title += "###LevelTree";
+
+        if (!ImGui::Begin(title.c_str()))
         {
             ImGui::End();
             return;
         }
 
-        auto level = GetEngine().GetLevelManager()->GetLevelAt(0);
         if (!level)
         {
             ImGui::Text("No level loaded");
@@ -64,6 +77,8 @@ namespace Pulse::Editor::GUI{
                     selectedID = actor->GetID();
                     if (parent)
                         parent->SetSelectedActor(actor);
+
+                    level->SetDirty(true);
                 }
 
                 // Dropped on empty space rather than on a specific row -> detach from whatever
@@ -94,6 +109,8 @@ namespace Pulse::Editor::GUI{
                 selectedID = actor->GetID();
                 if (parent)
                     parent->SetSelectedActor(actor);
+
+                level->SetDirty(true);
             }
 
             ImGui::EndPopup();
@@ -196,11 +213,17 @@ namespace Pulse::Editor::GUI{
                     parent->SetSelectedActor(nullptr);
 
                 actor->Destroy();
+
+                if (auto* level = GetEngine().GetLevelManager()->GetLevelAt(0))
+                    level->SetDirty(true);
             }
 
             if (ImGui::MenuItem("Duplicate"))
             {
                 actor->Clone();
+
+                if (auto* level = GetEngine().GetLevelManager()->GetLevelAt(0))
+                    level->SetDirty(true);
             }
 
             ImGui::Separator();
@@ -209,6 +232,9 @@ namespace Pulse::Editor::GUI{
             {
                 auto child = Engine::Core::Object::CreateWithContext<Engine::Objects::Actor>(&Engine::Core::GetEngine(), "New Actor", &Engine::Core::GetEngine());
                 actor->AddChild(child);
+
+                if (auto* level = GetEngine().GetLevelManager()->GetLevelAt(0))
+                    level->SetDirty(true);
             }
 
             ImGui::EndPopup();
@@ -227,7 +253,12 @@ namespace Pulse::Editor::GUI{
             if (ImGui::Button("OK") || Engine::Core::GetEngine().GetInputManager()->WasKeyReleased(Engine::Input::Key::Enter))
             {
                 if (renamingActor)
+                {
                     renamingActor->SetName(renameBuffer);
+
+                    if (auto* level = GetEngine().GetLevelManager()->GetLevelAt(0))
+                        level->SetDirty(true);
+                }
 
                 renamingActor = nullptr;
                 openRenamingPopup = false;
@@ -268,6 +299,9 @@ namespace Pulse::Editor::GUI{
         // Cycle detection and world-transform preservation ("attach in place") both live in
         // Actor::SetParent now, shared with any other caller (scripts, etc).
         actor->SetParent(newParent);
+
+        if (auto* level = GetEngine().GetLevelManager()->GetLevelAt(0))
+            level->SetDirty(true);
     }
 }
 

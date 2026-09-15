@@ -14,6 +14,7 @@
 
 #include "editor/gui/IconsLucide.h"
 #include "editor/gui/notifications.hpp"
+#include "editor/gui/popups.hpp"
 #include "editor/gui/loading_widgets.hpp"
 
 #include "engine/rendering/lighting/probe_manager.hpp"
@@ -404,6 +405,7 @@ namespace Pulse::Editor::Core{
         DrawLoadingOverlay(progress);
 
         GUI::Notifications::RenderFrame();
+        GUI::Popups::Draw();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -668,6 +670,7 @@ namespace Pulse::Editor::Core{
 
         UpdateProbeBuildNotification();
         GUI::Notifications::RenderFrame();
+        GUI::Popups::Draw();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -786,7 +789,6 @@ namespace Pulse::Editor::Core{
                 Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->Serialize(
                     Engine::Core::GetEngine().GetLevelManager()->GetLevelAt(0)->GetPath()
                 );
-                DEBUG_LOG("Successfully saved level");
                 return;
             }
             else if(input->WasKeyPressed(Engine::Input::Key::W)){

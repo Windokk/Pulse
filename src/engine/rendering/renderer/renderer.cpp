@@ -133,12 +133,6 @@ namespace Pulse::Engine::Rendering{
         AddRenderPass(forwardPass, "ForwardPass", {});
         m_RendererAPI->SetClearColor(0,0,0,1);
 
-        /// Probe gizmo pass - the small per-probe marker spheres ProbeVolume submits (see
-        /// ProbeVolume::RefreshDebugDrawCommands). Same target as ForwardPass, drawn right after it
-        /// without clearing (so markers composite on top of the already-shaded scene) - kept as its own
-        /// pass rather than mixed into ForwardPass's own draw list so the editor can hide just these
-        /// markers (RenderPass::enabled = false) without touching the ProbeVolume components themselves,
-        /// which must stay active regardless (see LevelSettingsPanel).
         std::shared_ptr<RenderPass> probeGizmoPass = std::make_shared<RenderPass>();
         probeGizmoPass->target = m_ViewportBuffer;
         probeGizmoPass->clearColor = false;
@@ -146,10 +140,6 @@ namespace Pulse::Engine::Rendering{
         probeGizmoPass->overridePipeline = false;
         AddRenderPass(probeGizmoPass, "ProbeGizmoPass", {"ForwardPass"});
 
-        /// Physics debug shapes pass - the wireframe collision shapes PhysicsBody submits (see
-        /// PhysicsBody::Update()). Same target as ForwardPass, drawn right after it without clearing,
-        /// kept as its own pass so the editor can hide just these shapes (RenderPass::enabled = false)
-        /// without touching the PhysicsBody components themselves (see ViewportWindow's Visibility tab).
         std::shared_ptr<RenderPass> physicsDebugPass = std::make_shared<RenderPass>();
         physicsDebugPass->target = m_ViewportBuffer;
         physicsDebugPass->clearColor = false;
@@ -157,14 +147,10 @@ namespace Pulse::Engine::Rendering{
         physicsDebugPass->overridePipeline = false;
         AddRenderPass(physicsDebugPass, "PhysicsDebugPass", {"ForwardPass"});
 
-        // Init SSAO (see SSAOManager) - after ForwardPass is registered, since Init() adds
-        // "ForwardPass" -> "SSAOBlurPass" as a dependency so the forward pass always samples this
-        // frame's finished (blurred) AO texture rather than a stale or in-progress one.
         m_SSAOManager = std::make_shared<SSAOManager>();
         m_SSAOManager->Init(this, m_Settings->viewportWidth, m_Settings->viewportHeight);
 
-        // Init Forward+ light culling (see LightCullingManager) - after LightManager exists, since its
-        // per-frame Update() reads the light SSBO/count from it.
+        // Init Forward+ light culling
         m_LightCullingManager = std::make_shared<LightCullingManager>();
         m_LightCullingManager->Init(this);
 
@@ -360,12 +346,6 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::ReorderDrawList()
     {
-        // GenerateSortKey() packs pipeline/material/mesh identity into `sortKey` precisely so draws
-        // sharing GL state end up adjacent - submission order (scene traversal) has no relation to
-        // that, so without this sort GLStateCache (gl_utils.hpp) rarely gets consecutive draws it can
-        // actually skip binds for. `drawCommandsLookup` maps commandID -> index into `drawList` for
-        // O(1) incremental add/remove (see AddOrUpdateCommands/RemoveCommands), so it has to be
-        // rebuilt after every sort or those would silently touch the wrong slot.
         auto sortAndReindex = [](std::vector<DrawCommand>& drawList, std::unordered_map<uint64_t, size_t>& lookup)
         {
             std::sort(drawList.begin(), drawList.end(), [](const DrawCommand& a, const DrawCommand& b){
@@ -378,9 +358,6 @@ namespace Pulse::Engine::Rendering{
 
         for (auto& [name, pass] : m_RenderPasses)
         {
-            // externalDrawList passes (shadow passes) all point at shadowDrawList, sorted once below -
-            // sorting it once per pointing pass would be redundant and each would re-derive the same
-            // order anyway.
             if (!pass->externalDrawList)
                 sortAndReindex(pass->drawList, pass->drawCommandsLookup);
         }

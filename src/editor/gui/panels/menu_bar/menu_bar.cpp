@@ -1,6 +1,7 @@
 #include "menu_bar.hpp"
 
 #include "editor/gui/main_window.hpp"
+#include "editor/gui/popups.hpp"
 #include "editor/commands/command_stack.hpp"
 
 #include "engine/core/engine.hpp"
@@ -16,6 +17,12 @@
 namespace Pulse::Editor::GUI{
 
     using Engine::Core::GetEngine;
+
+    static void MarkLevelDirty()
+    {
+        if (auto* level = GetEngine().GetLevelManager()->GetLevelAt(0))
+            level->SetDirty(true);
+    }
 
     void MenuBar::SetParentWindow(Core::EditorMainWindow *parent)
     {
@@ -48,25 +55,21 @@ namespace Pulse::Editor::GUI{
 
         if (ImGui::MenuItem("New Level"))
         {
-            auto path = Engine::Filesystem::Path(
-                GetEngine().GetCurrentProject()->GetProjectResourcesPath().full + "/NewLevel.lvl", true);
-
-            GetEngine().GetBuildSettings()->AddToBuildSettings(path);
-
-            auto level = std::make_shared<Engine::Levels::Level>("NewLevel", path);
-            level->SetBuildIndex(GetEngine().GetBuildSettings()->GetLevelBuildIndex(path));
-            level->Serialize(path);
-
-            GetEngine().GetLevelManager()->LoadLevel(level);
-            parent->SetSelectedActor(nullptr);
+            auto* current = GetEngine().GetLevelManager()->GetLevelAt(0);
+            if (current && current->IsDirty())
+            {
+                GUI::Popups::ConfirmUnsavedChanges(current->GetName(),
+                    [this](){ SaveCurrentLevel(); CreateNewLevel(); },
+                    [this](){ CreateNewLevel(); });
+            }
+            else
+            {
+                CreateNewLevel();
+            }
         }
 
         if (ImGui::MenuItem("Save Level", "Ctrl+S"))
-        {
-            auto level = GetEngine().GetLevelManager()->GetLevelAt(0);
-            if (level)
-                level->Serialize(level->GetPath());
-        }
+            SaveCurrentLevel();
 
         if (ImGui::MenuItem("Save Level As..."))
         {
@@ -82,9 +85,43 @@ namespace Pulse::Editor::GUI{
         ImGui::Separator();
 
         if (ImGui::MenuItem("Exit"))
-            parent->RequestExit();
+        {
+            auto* current = GetEngine().GetLevelManager()->GetLevelAt(0);
+            if (current && current->IsDirty())
+            {
+                GUI::Popups::ConfirmUnsavedChanges(current->GetName(),
+                    [this](){ SaveCurrentLevel(); parent->RequestExit(); },
+                    [this](){ parent->RequestExit(); });
+            }
+            else
+            {
+                parent->RequestExit();
+            }
+        }
 
         ImGui::EndMenu();
+    }
+
+    void MenuBar::CreateNewLevel()
+    {
+        auto path = Engine::Filesystem::Path(
+            GetEngine().GetCurrentProject()->GetProjectResourcesPath().full + "/NewLevel.lvl", true);
+
+        GetEngine().GetBuildSettings()->AddToBuildSettings(path);
+
+        auto level = std::make_shared<Engine::Levels::Level>("NewLevel", path);
+        level->SetBuildIndex(GetEngine().GetBuildSettings()->GetLevelBuildIndex(path));
+        level->Serialize(path);
+
+        GetEngine().GetLevelManager()->LoadLevel(level);
+        parent->SetSelectedActor(nullptr);
+    }
+
+    void MenuBar::SaveCurrentLevel()
+    {
+        auto level = GetEngine().GetLevelManager()->GetLevelAt(0);
+        if (level)
+            level->Serialize(level->GetPath());
     }
 
     void MenuBar::DrawSaveAsPopup()
@@ -148,15 +185,22 @@ namespace Pulse::Editor::GUI{
             clipboardActor = selected->Clone();
             selected->Destroy();
             parent->SetSelectedActor(clipboardActor);
+            MarkLevelDirty();
         }
 
         if (ImGui::MenuItem("Paste", nullptr, false, clipboardActor != nullptr))
+        {
             parent->SetSelectedActor(clipboardActor->Clone());
+            MarkLevelDirty();
+        }
 
         ImGui::Separator();
 
         if (ImGui::MenuItem("Duplicate", nullptr, false, selected != nullptr))
+        {
             parent->SetSelectedActor(selected->Clone());
+            MarkLevelDirty();
+        }
 
         if (ImGui::MenuItem("Rename", nullptr, false, selected != nullptr))
         {
@@ -169,6 +213,7 @@ namespace Pulse::Editor::GUI{
         {
             parent->SetSelectedActor(nullptr);
             selected->Destroy();
+            MarkLevelDirty();
         }
 
         ImGui::EndMenu();
@@ -190,7 +235,10 @@ namespace Pulse::Editor::GUI{
             {
                 auto selected = parent->GetSelectedActor();
                 if (selected)
+                {
                     selected->SetName(renameBuffer);
+                    MarkLevelDirty();
+                }
 
                 ImGui::CloseCurrentPopup();
             }

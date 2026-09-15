@@ -28,6 +28,11 @@ namespace Pulse::Editor::GUI{
             void DrawRenamePopup();
             void DrawAboutPopup();
 
+            // Shared by "New Level" and "Exit", both of which need to warn about (and optionally
+            // save) unsaved changes on the current level before proceeding.
+            void CreateNewLevel();
+            void SaveCurrentLevel();
+
             Core::EditorMainWindow* parent = nullptr;
 
             // Copy/Cut/Paste

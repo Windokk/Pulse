@@ -370,12 +370,6 @@ namespace Pulse::Engine::Rendering {
         uint32_t traceGroupsX = (totalRays + 63) / 64;
         uint32_t convolveGroupsX = traceGroupsX; // same texel count as raysPerProbe
 
-        // One rotation for the whole frame (all bounce iterations reuse it) - see the m_RayRNG comment
-        // in the header for why this exists at all. Capped to a quarter of the average angular spacing
-        // between adjacent rays (a tile spreads ~4*pi steradians over tileSize^2 samples, so that
-        // spacing is ~2*sqrt(pi)/tileSize radians) so the jitter nudges each ray within its own
-        // neighborhood instead of ever crossing into a completely unrelated part of the sphere - see
-        // RandomRotation() for why that distinction matters.
         float raySpacingRadians = 3.5449077f / std::max(1.0f, (float)slot.tileSize);
         glm::mat3 rayRotation = RandomRotation(m_RayRNG, raySpacingRadians * 0.25f);
 
@@ -384,29 +378,8 @@ namespace Pulse::Engine::Rendering {
         glm::vec3 gridSpacing = slot.volume->GetGridSpacing();
         glm::ivec3 probeCounts = glm::max(slot.volume->probeCounts, glm::ivec3(1));
 
-        // Bind the trace shader's SSBOs and set its bounce-invariant uniforms once, ahead of the loop,
-        // instead of every bounce iteration : both are safe to hoist even though the classify/relocate
-        // pipelines get bound in between on bounce 0 below. Uniform values live on the program object
-        // itself in OpenGL (not context-global state), so they survive an intervening Bind() of a
-        // *different* program and are still there next time m_TracePipeline is rebound - and SSBO
-        // binding points 8-13 here are never touched by classify/relocate (they only bind 14, see their
-        // own dispatches below), so nothing else in this loop invalidates them either. This used to mean
-        // ~10 uncached-until-recently glGetUniformLocation-backed SetXxx calls per bounce per volume
-        // every single frame (see GLComputeShader::GetUniformLocationCached) for values that never
-        // actually change within one UpdateVolume() call - only uUseIndirect and the ping-ponged
-        // prev-atlas texture binds below genuinely need to be redone each iteration.
         m_TracePipeline->Bind();
 
-        // SSBO binding points are global GL context state (glBindBufferBase), not scoped to this
-        // pipeline - bindings 0-4 are what path_trace.comp AND lit.frag's LightBuffer use, and unlike
-        // the offline raytracer (a one-off editor operation), ProbeManager::Update() runs every single
-        // frame from Renderer::BeginFrame(), before the forward pass. Reusing binding 0 here silently
-        // stole it away from lit.frag's `layout(std430, binding = 0) buffer LightBuffer` every frame
-        // (LightManager only re-binds it when a light actually changes, not per-frame), which made
-        // every light in the scene go dark as soon as a probe volume was active. Kept clear of 0-4 for
-        // exactly that reason. Reused across every volume's dispatch below (sequential, never bound
-        // simultaneously for two different volumes) - only the forward pass's probeState reads (see
-        // gl_api.cpp) need one binding per volume alive at once (14, 15).
         m_BVHBuffer->Bind(8);
         m_PosBuffer->Bind(9);
         m_AttribBuffer->Bind(10);
@@ -414,14 +387,6 @@ namespace Pulse::Engine::Rendering {
         if (m_LightBuffer)
             m_LightBuffer->Bind(12);
         slot.probeBuffer->Bind(13);
-        // Per-probe state (.w classification, .xyz relocation offset - see the probeStateBuffer
-        // comment on VolumeSlot). Written by the classify + relocate dispatches below (bounce 0
-        // only), read every bounce here : .w by SampleIndirect on later bounces, .xyz by main()'s
-        // ray origin and SampleIndirect's neighbour positions on every bounce. This frame's trace
-        // uses last frame's offset; the relocate pass updates it for next frame. Rebound at binding 14
-        // by the classify/relocate dispatches below (same buffer object, so this is still valid once
-        // control returns here), which is why this alone - unlike 8-13 - would be safe to re-bind every
-        // iteration too ; left hoisted here regardless since it costs nothing extra to do so once.
         slot.probeStateBuffer->Bind(14);
 
         m_TraceShader->SetInt("uProbeCount", (int)slot.probeCount);
@@ -439,27 +404,11 @@ namespace Pulse::Engine::Rendering {
         {
             bool useIndirect = bounce > 0;
 
-            // Trace : write raw per-ray radiance into the (never directly sampled) scratch ray atlas.
-            // Rebind the program (classify/relocate below may have bound a different one on the previous
-            // iteration) - everything set on it above is still in effect, see the comment there.
             m_TracePipeline->Bind();
 
-            // Unlike the SSBO binds/uniforms hoisted above, these image units genuinely need
-            // re-establishing every iteration : classify (and relocate, if enabled) rebind units 0/1 to
-            // the SAME textures but as ReadOnly right after bounce 0's trace dispatch below, so without
-            // this, every bounce after the first would try to imageStore into a ReadOnly-bound image.
             slot.rayAtlas->BindImage(0, TextureAccess::ReadWrite);
             slot.rayDistAtlas->BindImage(1, TextureAccess::ReadWrite);
 
-            // Previous bounce iteration's freshly-convolved irradiance/distance - slot.irradianceAtlas
-            // and slot.distanceAtlas always hold the latest convolved result by construction (see the
-            // ping-pong swaps after the convolve dispatch below). Only bound when the shader will
-            // actually sample them (bounce > 0) : these are raw texture-unit binds that bypass
-            // GLStateCache, so they're skipped whenever not needed rather than left as a no-op cost
-            // every frame. Unit numbers here (40/41) must match probe_trace.comp's
-            // uPrevIrradianceAtlas/uPrevDistanceAtlas layout(binding=...) - see that shader's comment
-            // for why they're not 1/2/3. Genuinely per-iteration (unlike the binds/uniforms hoisted
-            // above) : the ping-pong swap means a different underlying texture is "current" each bounce.
             if (useIndirect)
             {
                 slot.irradianceAtlas->Bind(40);
@@ -468,19 +417,10 @@ namespace Pulse::Engine::Rendering {
 
             m_TraceShader->SetBool("uUseIndirect", useIndirect);
 
-            // TextureFetch (not just ImageAccess) : the convolve pass below reads the ray atlas back via
-            // a sampler2D (texelFetch), not imageLoad - GL_SHADER_IMAGE_ACCESS_BARRIER_BIT alone doesn't
-            // order that.
             renderer->DispatchCompute(m_TracePipeline, traceGroupsX, 1, 1, MemoryBarrierBit::ImageAccess | MemoryBarrierBit::TextureFetch);
 
             if (bounce == 0)
             {
-                // Classify : one thread per probe, scans that probe's own tile of bounce 0's raw hits
-                // (backface-hit ratio, see probe_classify.comp) and writes slot.probeStateBuffer's .w.
-                // Bounce 0 never samples it (uUseIndirect is false there), so every later bounce
-                // iteration this same frame - and the forward pass right after - sees this frame's own
-                // classification, not a stale one. Only needs to run once : the hit geometry a ray finds
-                // doesn't change between bounce iterations, only the shading at that hit point does.
                 m_ClassifyPipeline->Bind();
 
                 slot.rayAtlas->BindImage(0, TextureAccess::ReadOnly);
@@ -489,20 +429,9 @@ namespace Pulse::Engine::Rendering {
                 m_ClassifyShader->SetInt("uTileSize", (int)slot.tileSize);
                 m_ClassifyShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
 
-                // ShaderStorage (not ImageAccess) : this dispatch's output is an SSBO write
-                // (slot.probeStateBuffer .w), not an image store - read back both by later bounces'
-                // compute dispatches in this same UpdateVolume() call, by the relocate dispatch right
-                // below, and by lit.frag's fragment shader once the forward pass runs.
                 uint32_t classifyGroupsX = (slot.probeCount + 63) / 64;
                 renderer->DispatchCompute(m_ClassifyPipeline, classifyGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
 
-                // Relocate : one thread per probe, reads the same bounce 0 raw hits and integrates a
-                // small bounded offset into slot.probeStateBuffer's .xyz so probes embedded in / grazing
-                // geometry migrate into open space (RTXGI "Probe Relocation" - see probe_relocate.comp).
-                // Like classify, bounce 0 only (ray hit geometry is identical across bounce iterations)
-                // and gated on the volume's toggle. The write lands next frame : this frame's trace
-                // already ran with the previous offset, and the forward pass reads whatever's here now.
-                // Writes .xyz only, leaving the .w the classify dispatch above just wrote.
                 if (slot.volume->enableRelocation)
                 {
                     m_RelocatePipeline->Bind();
@@ -630,9 +559,6 @@ namespace Pulse::Engine::Rendering {
 
     void ProbeManager::Update()
     {
-        // Drain any superseded builds that have since finished, so their futures (and the worker
-        // threads behind them) don't pile up indefinitely - never blocks, only removes entries that
-        // are already done.
         m_AbandonedSceneBuilds.erase(
             std::remove_if(m_AbandonedSceneBuilds.begin(), m_AbandonedSceneBuilds.end(),
                 [](std::future<Raytracing::RaytraceScene>& f) {
@@ -647,27 +573,14 @@ namespace Pulse::Engine::Rendering {
             {
                 Raytracing::RaytraceScene scene = m_PendingSceneBuild.get();
 
-                // A newer RebuildScene() call may have superseded this one while it was building (see
-                // its comment) - only the latest generation's result is worth uploading.
                 if (m_PendingSceneBuildGeneration == m_SceneBuildGeneration.load(std::memory_order_relaxed))
                     UploadScene(scene);
             }
             catch (const std::exception& e)
             {
-                // future::get() rethrows whatever exception the background build's worker thread threw,
-                // right here on the main thread - e.g. std::system_error if the parallel flatten/BVH
-                // build (raytrace_scene.cpp / bvh.cpp) couldn't spawn a helper thread, which past the
-                // guards in parallel_build_budget.hpp shouldn't happen anymore, but letting ANY exception
-                // from that background work escape uncaught turns "this one scene rebuild didn't work"
-                // into an unhandled exception that crashes the whole editor. Leaving m_SceneBuilt as-is
-                // means an older, already-uploaded scene (if one exists) stays in use rather than being
-                // torn down over a failed rebuild.
                 DEBUG_ERROR("ProbeManager : scene build failed - ", e.what());
             }
 
-            // The pending build always holds the newest generation (RebuildScene() parks the previous
-            // one in m_AbandonedSceneBuilds rather than overwriting it here), so its completion - success
-            // or failure - is the end of the build the editor is showing progress for.
             m_SceneBuildProgress.store(1.0f, std::memory_order_relaxed);
             m_SceneBuilding.store(false, std::memory_order_relaxed);
         }
