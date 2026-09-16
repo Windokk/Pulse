@@ -45,6 +45,17 @@ namespace Pulse::Engine::Rendering{
             // "no texture available" and fall back to flat scalar values instead.
             static uint64_t GetBindlessHandle(uint32_t glTextureID);
 
+            // Whether a bindless handle has already been minted for this raw GL texture ID.
+            // ARB_bindless_texture freezes a texture as soon as a handle references it - TexImage* on it
+            // is an INVALID_OPERATION from then on - so anything that needs to re-specify a texture
+            // (Framebuffer::Resize) has to check this and recreate the texture object instead.
+            static bool HasBindlessHandle(uint32_t glTextureID);
+
+            // Makes this texture's handle non-resident and forgets it. A handle can never actually be
+            // destroyed, so the caller must delete the texture object right after - the replacement ID
+            // then gets a fresh handle from the next GetBindlessHandle() call.
+            static void ReleaseBindlessHandle(uint32_t glTextureID);
+
             ~GLTexture2D();
 
         private:

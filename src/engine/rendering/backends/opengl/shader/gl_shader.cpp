@@ -140,6 +140,9 @@ namespace Pulse::Engine::Rendering{
                     case GL_FLOAT_MAT2:  dataType = ShaderDataType::Mat2; break;
                     case GL_FLOAT_MAT3:  dataType = ShaderDataType::Mat3; break;
                     case GL_FLOAT_MAT4:  dataType = ShaderDataType::Mat4; break;
+
+                    case GL_UNSIGNED_INT:      dataType = ShaderDataType::UInt; break;
+                    case GL_UNSIGNED_INT_VEC2: dataType = ShaderDataType::UVec2; break;
                 }
 
                 if (dataType != ShaderDataType::None)
@@ -308,7 +311,17 @@ namespace Pulse::Engine::Rendering{
                 return arrayIt->second.location;
         }
 
-        return -1;
+        // Last resort : ask the driver once and remember the answer, -1 included. m_ActiveUniformsMap
+        // only holds the GL types the constructor's switch knows how to classify, so a uniform of any
+        // other type would otherwise resolve to -1 forever - and glUniform*(-1, ...) is defined to do
+        // nothing silently, which turns the whole SetXxx into a no-op with no error anywhere. That's
+        // how lit.frag's two uvec2 uniforms (ssaoTextureHandle, clusterGridSizeXY) sat at zero. Still
+        // one round-trip per name per program, not per call, so the hot path is unchanged.
+        auto [fallbackIt, inserted] = m_UnmappedLocations.try_emplace(name, -1);
+        if (inserted)
+            fallbackIt->second = glGetUniformLocation(m_Program, name.c_str());
+
+        return fallbackIt->second;
     }
 
     void GLShader::SetBool(const std::string &name, bool value)

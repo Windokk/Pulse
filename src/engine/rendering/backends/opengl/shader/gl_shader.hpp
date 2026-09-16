@@ -49,6 +49,10 @@ namespace Pulse::Engine::Rendering{
             std::unordered_map<std::string, UniformInfo> m_ActiveUniformsMap;
             std::vector<SamplerInfo> m_ActiveSamplers;
             std::unordered_map<std::string, SamplerInfo> m_ActiveSamplersMap;
+
+            // Locations for names m_ActiveUniformsMap doesn't cover, memoised (-1 included) so the
+            // driver is still only asked once per name - see GetUniformLocationCached.
+            std::unordered_map<std::string, int32_t> m_UnmappedLocations;
     };
 
 }

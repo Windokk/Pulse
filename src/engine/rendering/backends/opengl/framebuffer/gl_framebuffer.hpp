@@ -39,6 +39,11 @@ namespace Pulse::Engine::Rendering{
             uint64_t GetColorAttachmentBindlessHandle() const override;
 
         private:
+            // Creates (or re-creates) the non-multisampled color attachment at the given size and binds
+            // it to GL_COLOR_ATTACHMENT0 - expects m_FBO to already be the bound framebuffer. Shared by
+            // the constructor and Resize()'s bindless path (see the comment there).
+            void CreateColorAttachment(uint32_t width, uint32_t height);
+
             uint32_t m_FBO = 0;
             uint32_t m_ColorAttachment = 0;
             uint32_t m_DepthAttachment = 0;

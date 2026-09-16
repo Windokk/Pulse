@@ -41,6 +41,21 @@ namespace Pulse::Engine::Rendering{
         return handle;
     }
 
+    bool GLTexture2D::HasBindlessHandle(uint32_t glTextureID)
+    {
+        return glTextureID != 0 && s_BindlessHandles.find(glTextureID) != s_BindlessHandles.end();
+    }
+
+    void GLTexture2D::ReleaseBindlessHandle(uint32_t glTextureID)
+    {
+        auto it = s_BindlessHandles.find(glTextureID);
+        if (it == s_BindlessHandles.end())
+            return;
+
+        glMakeTextureHandleNonResidentARB(it->second);
+        s_BindlessHandles.erase(it);
+    }
+
     GLTexture2D::GLTexture2D(TextureSpecifications &specs, const void *data)
     {
         m_Specifications = specs;
@@ -167,12 +182,7 @@ namespace Pulse::Engine::Rendering{
 
     GLTexture2D::~GLTexture2D()
     {
-        auto it = s_BindlessHandles.find(ID);
-        if (it != s_BindlessHandles.end())
-        {
-            glMakeTextureHandleNonResidentARB(it->second);
-            s_BindlessHandles.erase(it);
-        }
+        ReleaseBindlessHandle(ID);
 
         glDeleteTextures(1, &ID);
     }
