@@ -4,7 +4,7 @@
 
 #include "engine/rendering/backends/opengl/shader/gl_compute_shader.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     
     GLComputePipeline::GLComputePipeline(const ComputePipelineSpecifications& specs)
     {

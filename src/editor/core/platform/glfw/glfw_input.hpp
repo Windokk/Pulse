@@ -12,7 +12,7 @@
 
 #include "GLFW/glfw3.h"
 
-namespace Pulse::Editor::Core
+namespace Shard::Editor::Core
 {
     class GLFWInput : public Engine::Core::Platform::IInput{
         public:

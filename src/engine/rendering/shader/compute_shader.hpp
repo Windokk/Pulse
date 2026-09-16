@@ -2,7 +2,7 @@
 
 #include "shader.hpp"
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class ComputeShader{
         public:

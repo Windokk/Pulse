@@ -2,7 +2,7 @@
 
 #include "engine/core/objectID.hpp"
 
-using namespace Pulse::Engine::Core;
+using namespace Shard::Engine::Core;
 
 TEST(ObjectIDManager, GeneratesSequentialIDsStartingAtOne) {
     ObjectIDManager manager;

@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class Shader;
     struct RenderPass;

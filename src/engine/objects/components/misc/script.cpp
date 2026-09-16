@@ -2,7 +2,7 @@
 
 #include "script.reflection.hpp"
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     Script::Script(std::shared_ptr<Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {    

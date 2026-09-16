@@ -6,7 +6,7 @@
 
 #include "engine/core/attributes.hpp"
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     /// @brief Main scripting component. All scripts should inherit from this component. Scripts method are called from their parent actor, in order of addition
     class Script : public Component{

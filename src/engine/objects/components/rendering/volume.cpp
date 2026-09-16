@@ -9,10 +9,15 @@
 
 #include "engine/filesystem/assetID.hpp"
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
 
     Volume::Volume(std::shared_ptr<Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {
+    }
+
+    glm::mat4 Volume::GetDebugModelMatrix() const
+    {
+        return parent->transform->GetWorldMatrix();
     }
 
     void Volume::RebuildDebugShape()
@@ -49,7 +54,7 @@ namespace Pulse::Engine::Objects::Components{
         cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
         cmd.mesh = m_DebugShape->m_Mesh;
         cmd.modelID = parent->GetComponentIDInLevel(local_id);
-        cmd.modelMatrix = parent->transform->GetWorldMatrix();
+        cmd.modelMatrix = GetDebugModelMatrix();
         cmd.objectID = parent->GetID().GetAsInt();
         cmd.vertexCount = m_DebugShape->m_Mesh->GetVertexCount();
 

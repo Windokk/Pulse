@@ -8,7 +8,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Pulse::Engine::Physics {
+namespace Shard::Engine::Physics {
 
     // Constants
     static constexpr uint cMaxBodies = 1024;

@@ -13,9 +13,9 @@
 
 #include <algorithm>
 
-using namespace Pulse::Engine::Core;
+using namespace Shard::Engine::Core;
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
 
     void Light::UpdateExposedValues(){
         type = (Rendering::LightType)lightData->type;

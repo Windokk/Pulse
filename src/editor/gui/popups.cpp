@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <deque>
 
-namespace Pulse::Editor::GUI::Popups
+namespace Shard::Editor::GUI::Popups
 {
     namespace
     {
@@ -87,7 +87,7 @@ namespace Pulse::Editor::GUI::Popups
 
         PendingPopup& popup = g_queue.front();
 
-        constexpr const char* kPopupId = "##PulsePopupModal";
+        constexpr const char* kPopupId = "##ShardPopupModal";
 
         if (g_activeId != popup.id)
         {

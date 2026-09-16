@@ -5,7 +5,7 @@
 
 #include <stb/stb_image.h>
 
-namespace Pulse::Editor::GUI {
+namespace Shard::Editor::GUI {
     
     bool IconAtlas::Build(const std::vector<std::string>& iconPaths, int atlasSize)
     {

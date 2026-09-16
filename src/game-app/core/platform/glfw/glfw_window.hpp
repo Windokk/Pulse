@@ -8,7 +8,7 @@
 
 #include "glfw_input.hpp"
 
-namespace Pulse::Game::Core::Platform {
+namespace Shard::Game::Core::Platform {
 
     class GLFWWindow : public Engine::Core::Platform::IWindow {
     public:

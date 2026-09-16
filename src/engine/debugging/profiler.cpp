@@ -30,7 +30,7 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/core/platform/iplatform.hpp"
 
-namespace Pulse::Engine::Debugging{
+namespace Shard::Engine::Debugging{
    
     Profiler::Profiler(){
 

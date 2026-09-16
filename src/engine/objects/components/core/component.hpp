@@ -11,11 +11,11 @@ using ordered_json = nlohmann::ordered_json;
 
 struct ClassDescriptor;
 
-namespace Pulse::Engine::Core{
+namespace Shard::Engine::Core{
     class IEngineContext;
 }
 
-namespace Pulse::Engine::Objects{
+namespace Shard::Engine::Objects{
     class Actor;
 
     namespace Components{

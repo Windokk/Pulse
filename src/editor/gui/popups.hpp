@@ -13,7 +13,7 @@
 // All functions must be called from the UI thread, between ImGui::NewFrame() and ImGui::Render().
 // Draw() has to be called exactly once per frame, after all other ImGui windows, for anything to
 // show up.
-namespace Pulse::Editor::GUI::Popups
+namespace Shard::Editor::GUI::Popups
 {
     enum class PopupType
     {

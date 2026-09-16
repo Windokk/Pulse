@@ -11,7 +11,7 @@
 
 #include "imgui.h"
 
-namespace Pulse::Editor::GUI::LoadingWidgets
+namespace Shard::Editor::GUI::LoadingWidgets
 {
     // Rotating, breathing arc - draws an open circle whose arc length eases between minArc and maxArc
     // turns of the circle while the whole thing spins, the standard "indeterminate activity" spinner

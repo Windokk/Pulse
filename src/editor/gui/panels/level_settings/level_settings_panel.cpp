@@ -8,10 +8,10 @@
 
 #include <cstring>
 
-using namespace Pulse::Engine;
-using Pulse::Engine::Core::GetEngine;
+using namespace Shard::Engine;
+using Shard::Engine::Core::GetEngine;
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     void LevelSettingsPanel::Draw()
     {

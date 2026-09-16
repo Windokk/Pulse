@@ -8,7 +8,7 @@
 inline FieldInfo Camera_farPlane_info = {
     "farPlane",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Camera, farPlane),
+    offsetof(Shard::Engine::Objects::Components::Camera, farPlane),
     Editable,
     0, 0,
     nullptr,
@@ -22,7 +22,7 @@ inline FieldInfo Camera_farPlane_info = {
 inline FieldInfo Camera_nearPlane_info = {
     "nearPlane",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Camera, nearPlane),
+    offsetof(Shard::Engine::Objects::Components::Camera, nearPlane),
     Editable,
     0, 0,
     nullptr,
@@ -36,7 +36,7 @@ inline FieldInfo Camera_nearPlane_info = {
 inline FieldInfo Camera_orthographic_info = {
     "orthographic",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::Camera, orthographic),
+    offsetof(Shard::Engine::Objects::Components::Camera, orthographic),
     Editable,
     0, 0,
     nullptr,
@@ -50,7 +50,7 @@ inline FieldInfo Camera_orthographic_info = {
 inline FieldInfo Camera_frustumCulling_info = {
     "frustumCulling",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::Camera, frustumCulling),
+    offsetof(Shard::Engine::Objects::Components::Camera, frustumCulling),
     Editable,
     0, 0,
     nullptr,
@@ -64,7 +64,7 @@ inline FieldInfo Camera_frustumCulling_info = {
 inline FieldInfo Camera_fov_info = {
     "fov",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Camera, fov),
+    offsetof(Shard::Engine::Objects::Components::Camera, fov),
     Editable,
     0, 0,
     nullptr,
@@ -78,7 +78,7 @@ inline FieldInfo Camera_fov_info = {
 inline FieldInfo Camera_orthoSize_info = {
     "orthoSize",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Camera, orthoSize),
+    offsetof(Shard::Engine::Objects::Components::Camera, orthoSize),
     Editable,
     0, 0,
     nullptr,
@@ -89,7 +89,7 @@ inline FieldInfo Camera_orthoSize_info = {
     &Equals<float>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::Camera::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::Camera::descriptor = {
     "Camera",
     {
         &Camera_farPlane_info,

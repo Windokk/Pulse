@@ -11,7 +11,7 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "audioID.hpp"
 
-namespace Pulse::Engine::Audio
+namespace Shard::Engine::Audio
 {
     struct Sound{
         FMOD_SOUND* fmod_sound;

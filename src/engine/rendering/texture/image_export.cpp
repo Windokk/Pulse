@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <vector>
 
-namespace Pulse::Engine::Rendering::ImageExport{
+namespace Shard::Engine::Rendering::ImageExport{
 
     static uint32_t ChannelCount(TextureInternalFormat format)
     {

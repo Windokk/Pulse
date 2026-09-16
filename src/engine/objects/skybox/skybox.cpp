@@ -10,7 +10,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/rendering/shader/shader.hpp"
 
-namespace Pulse::Engine::Objects{
+namespace Shard::Engine::Objects{
     
     Skybox::Skybox(std::shared_ptr<Rendering::EnvironmentMap> envMap, std::shared_ptr<Rendering::Material> material)
     {

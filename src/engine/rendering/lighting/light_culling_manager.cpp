@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     void LightCullingManager::Init(Renderer* renderer)
     {

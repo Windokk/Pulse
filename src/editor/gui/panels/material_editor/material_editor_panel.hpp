@@ -11,7 +11,7 @@
 #include <vector>
 #include <memory>
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     enum class MatParamKind{
         Bool,

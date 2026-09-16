@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <map>
 
-namespace Pulse::Engine::Audio
+namespace Shard::Engine::Audio
 {
     class Sound;
 

@@ -5,7 +5,7 @@
 
 using namespace nlohmann;
 
-class CLASS() Character : public Pulse::Engine::Objects::Components::Script{
+class CLASS() Character : public Shard::Engine::Objects::Components::Script{
 
     public:
         Character(std::shared_ptr<Actor> parent, uint32_t local_id) : Script(parent, local_id){};

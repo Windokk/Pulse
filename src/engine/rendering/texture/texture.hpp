@@ -6,7 +6,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
     
     enum class TextureFilter
     {

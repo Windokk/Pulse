@@ -6,7 +6,7 @@
 
 #include <glm/glm.hpp>
 
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     // GPU-facing BVH node - mirrors the GLSL `BVHNode` struct in path_trace.comp field-for-field
     // (32 bytes, no padding under std430 : a 4-byte scalar right after a vec3 packs into the vec3's own

@@ -3,7 +3,7 @@
 
 //Reflection for class : Script
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::Script::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::Script::descriptor = {
     "Script",
     {
     }

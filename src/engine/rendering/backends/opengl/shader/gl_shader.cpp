@@ -5,7 +5,7 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     void GLShader::CompileErrors(unsigned int shader, const char* type)
     {

@@ -4,12 +4,12 @@
 
 #include "engine/rendering/mesh/mesh.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class Mesh;
     class Material;
 }
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     class CLASS() Model : public Component{
         public:

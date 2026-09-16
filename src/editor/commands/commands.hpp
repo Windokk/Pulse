@@ -11,9 +11,9 @@
 #include "engine/objects/components/misc/transform.hpp"
 #include <glm/gtx/string_cast.hpp>
 
-using namespace Pulse::Engine::Objects::Components;
+using namespace Shard::Engine::Objects::Components;
 
-namespace Pulse::Editor::Commands{
+namespace Shard::Editor::Commands{
 
     class Command {
         public:

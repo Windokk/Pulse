@@ -7,7 +7,7 @@
 
 #include "engine/rendering/backends/opengl/texture/gl_texture.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     
     void GLFramebuffer::CheckFBStatus(){
 

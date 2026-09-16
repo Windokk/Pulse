@@ -26,7 +26,7 @@
 #include <cmath>
 #include <cstdio>
 
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     Raytracer::~Raytracer()
     {

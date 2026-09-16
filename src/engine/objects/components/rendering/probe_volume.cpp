@@ -10,9 +10,11 @@
 #include "engine/core/engine.hpp"
 #include "engine/filesystem/assetID.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "probe_volume.reflection.hpp"
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
 
     ProbeVolume::ProbeVolume(std::shared_ptr<Actor> parent, uint32_t local_id) : Volume(parent, local_id)
     {
@@ -68,6 +70,11 @@ namespace Pulse::Engine::Objects::Components{
         RefreshDebugDrawCommands();
     }
 
+    glm::mat4 ProbeVolume::GetDebugModelMatrix() const
+    {
+        return glm::translate(glm::mat4(1.0f), parent->transform->GetWorldPosition());
+    }
+
     void ProbeVolume::RefreshDebugDrawCommands()
     {
         Volume::RefreshDebugDrawCommands();
@@ -84,7 +91,7 @@ namespace Pulse::Engine::Objects::Components{
         cmd.material = GetEngineContext()->GetRenderer()->GetDebugMaterial();
         cmd.mesh = m_ProbeDebugShape->m_Mesh;
         cmd.modelID = parent->GetComponentIDInLevel(local_id);
-        cmd.modelMatrix = parent->transform->GetWorldMatrix();
+        cmd.modelMatrix = GetDebugModelMatrix();
         cmd.objectID = parent->GetID().GetAsInt();
         cmd.vertexCount = m_ProbeDebugShape->m_Mesh->GetVertexCount();
 

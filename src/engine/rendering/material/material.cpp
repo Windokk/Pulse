@@ -9,7 +9,7 @@
 #include "engine/rendering/shader/shader.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     std::shared_ptr<Material> Material::Create(std::shared_ptr<Shader> shader, std::shared_ptr<Pipeline> pipeline, bool receivesShadows, Opacity opacity)
     {

@@ -2,7 +2,7 @@
 
 #include "engine/rendering/shader/shader.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class GLShader : public Shader{
         public:

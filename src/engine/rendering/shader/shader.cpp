@@ -7,7 +7,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Rendering 
+namespace Shard::Engine::Rendering 
 {
     std::shared_ptr<Shader> Shader::Create(const Filesystem::Path &vertexPath, const Filesystem::Path &fragmentPath, const Filesystem::Path &geometryPath)
     {

@@ -2,7 +2,7 @@
 
 #include "engine/rendering/texture/cubemap/cubemap.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class GLCubemap : public Cubemap{
         public:

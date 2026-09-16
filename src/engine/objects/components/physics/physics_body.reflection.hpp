@@ -8,7 +8,7 @@
 inline FieldInfo SphereParams_radius_info = {
     "radius",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::SphereParams, radius),
+    offsetof(Shard::Engine::Objects::Components::SphereParams, radius),
     Editable,
     0, 0,
     nullptr,
@@ -24,16 +24,16 @@ inline StructDescriptor SphereParams_descriptor = {
     {
         &SphereParams_radius_info,
     },
-    sizeof(Pulse::Engine::Objects::Components::SphereParams),
-    [](void* p) { new (p) Pulse::Engine::Objects::Components::SphereParams(); },
-    [](void* p) { static_cast<Pulse::Engine::Objects::Components::SphereParams*>(p)->~SphereParams(); },
+    sizeof(Shard::Engine::Objects::Components::SphereParams),
+    [](void* p) { new (p) Shard::Engine::Objects::Components::SphereParams(); },
+    [](void* p) { static_cast<Shard::Engine::Objects::Components::SphereParams*>(p)->~SphereParams(); },
     [](void* d, const void* s) {
-        *static_cast<Pulse::Engine::Objects::Components::SphereParams*>(d) =
-        *static_cast<const Pulse::Engine::Objects::Components::SphereParams*>(s);
+        *static_cast<Shard::Engine::Objects::Components::SphereParams*>(d) =
+        *static_cast<const Shard::Engine::Objects::Components::SphereParams*>(s);
     },
     [](const void* a, const void* b) {
-        return *static_cast<const Pulse::Engine::Objects::Components::SphereParams*>(a)
-            == *static_cast<const Pulse::Engine::Objects::Components::SphereParams*>(b);
+        return *static_cast<const Shard::Engine::Objects::Components::SphereParams*>(a)
+            == *static_cast<const Shard::Engine::Objects::Components::SphereParams*>(b);
     }
 };
 
@@ -42,7 +42,7 @@ inline StructDescriptor SphereParams_descriptor = {
 inline FieldInfo CapsuleParams_radius_info = {
     "radius",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::CapsuleParams, radius),
+    offsetof(Shard::Engine::Objects::Components::CapsuleParams, radius),
     Editable,
     0, 0,
     nullptr,
@@ -56,7 +56,7 @@ inline FieldInfo CapsuleParams_radius_info = {
 inline FieldInfo CapsuleParams_halfHeight_info = {
     "halfHeight",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::CapsuleParams, halfHeight),
+    offsetof(Shard::Engine::Objects::Components::CapsuleParams, halfHeight),
     Editable,
     0, 0,
     nullptr,
@@ -73,16 +73,16 @@ inline StructDescriptor CapsuleParams_descriptor = {
         &CapsuleParams_radius_info,
         &CapsuleParams_halfHeight_info,
     },
-    sizeof(Pulse::Engine::Objects::Components::CapsuleParams),
-    [](void* p) { new (p) Pulse::Engine::Objects::Components::CapsuleParams(); },
-    [](void* p) { static_cast<Pulse::Engine::Objects::Components::CapsuleParams*>(p)->~CapsuleParams(); },
+    sizeof(Shard::Engine::Objects::Components::CapsuleParams),
+    [](void* p) { new (p) Shard::Engine::Objects::Components::CapsuleParams(); },
+    [](void* p) { static_cast<Shard::Engine::Objects::Components::CapsuleParams*>(p)->~CapsuleParams(); },
     [](void* d, const void* s) {
-        *static_cast<Pulse::Engine::Objects::Components::CapsuleParams*>(d) =
-        *static_cast<const Pulse::Engine::Objects::Components::CapsuleParams*>(s);
+        *static_cast<Shard::Engine::Objects::Components::CapsuleParams*>(d) =
+        *static_cast<const Shard::Engine::Objects::Components::CapsuleParams*>(s);
     },
     [](const void* a, const void* b) {
-        return *static_cast<const Pulse::Engine::Objects::Components::CapsuleParams*>(a)
-            == *static_cast<const Pulse::Engine::Objects::Components::CapsuleParams*>(b);
+        return *static_cast<const Shard::Engine::Objects::Components::CapsuleParams*>(a)
+            == *static_cast<const Shard::Engine::Objects::Components::CapsuleParams*>(b);
     }
 };
 
@@ -91,7 +91,7 @@ inline StructDescriptor CapsuleParams_descriptor = {
 inline FieldInfo BoxParams_halfExtent_info = {
     "halfExtent",
     TypeID::Vec3,
-    offsetof(Pulse::Engine::Objects::Components::BoxParams, halfExtent),
+    offsetof(Shard::Engine::Objects::Components::BoxParams, halfExtent),
     Editable,
     0, 0,
     nullptr,
@@ -107,16 +107,16 @@ inline StructDescriptor BoxParams_descriptor = {
     {
         &BoxParams_halfExtent_info,
     },
-    sizeof(Pulse::Engine::Objects::Components::BoxParams),
-    [](void* p) { new (p) Pulse::Engine::Objects::Components::BoxParams(); },
-    [](void* p) { static_cast<Pulse::Engine::Objects::Components::BoxParams*>(p)->~BoxParams(); },
+    sizeof(Shard::Engine::Objects::Components::BoxParams),
+    [](void* p) { new (p) Shard::Engine::Objects::Components::BoxParams(); },
+    [](void* p) { static_cast<Shard::Engine::Objects::Components::BoxParams*>(p)->~BoxParams(); },
     [](void* d, const void* s) {
-        *static_cast<Pulse::Engine::Objects::Components::BoxParams*>(d) =
-        *static_cast<const Pulse::Engine::Objects::Components::BoxParams*>(s);
+        *static_cast<Shard::Engine::Objects::Components::BoxParams*>(d) =
+        *static_cast<const Shard::Engine::Objects::Components::BoxParams*>(s);
     },
     [](const void* a, const void* b) {
-        return *static_cast<const Pulse::Engine::Objects::Components::BoxParams*>(a)
-            == *static_cast<const Pulse::Engine::Objects::Components::BoxParams*>(b);
+        return *static_cast<const Shard::Engine::Objects::Components::BoxParams*>(a)
+            == *static_cast<const Shard::Engine::Objects::Components::BoxParams*>(b);
     }
 };
 
@@ -125,7 +125,7 @@ inline StructDescriptor BoxParams_descriptor = {
 inline FieldInfo CylinderParams_radius_info = {
     "radius",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::CylinderParams, radius),
+    offsetof(Shard::Engine::Objects::Components::CylinderParams, radius),
     Editable,
     0, 0,
     nullptr,
@@ -139,7 +139,7 @@ inline FieldInfo CylinderParams_radius_info = {
 inline FieldInfo CylinderParams_halfHeight_info = {
     "halfHeight",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::CylinderParams, halfHeight),
+    offsetof(Shard::Engine::Objects::Components::CylinderParams, halfHeight),
     Editable,
     0, 0,
     nullptr,
@@ -156,16 +156,16 @@ inline StructDescriptor CylinderParams_descriptor = {
         &CylinderParams_radius_info,
         &CylinderParams_halfHeight_info,
     },
-    sizeof(Pulse::Engine::Objects::Components::CylinderParams),
-    [](void* p) { new (p) Pulse::Engine::Objects::Components::CylinderParams(); },
-    [](void* p) { static_cast<Pulse::Engine::Objects::Components::CylinderParams*>(p)->~CylinderParams(); },
+    sizeof(Shard::Engine::Objects::Components::CylinderParams),
+    [](void* p) { new (p) Shard::Engine::Objects::Components::CylinderParams(); },
+    [](void* p) { static_cast<Shard::Engine::Objects::Components::CylinderParams*>(p)->~CylinderParams(); },
     [](void* d, const void* s) {
-        *static_cast<Pulse::Engine::Objects::Components::CylinderParams*>(d) =
-        *static_cast<const Pulse::Engine::Objects::Components::CylinderParams*>(s);
+        *static_cast<Shard::Engine::Objects::Components::CylinderParams*>(d) =
+        *static_cast<const Shard::Engine::Objects::Components::CylinderParams*>(s);
     },
     [](const void* a, const void* b) {
-        return *static_cast<const Pulse::Engine::Objects::Components::CylinderParams*>(a)
-            == *static_cast<const Pulse::Engine::Objects::Components::CylinderParams*>(b);
+        return *static_cast<const Shard::Engine::Objects::Components::CylinderParams*>(a)
+            == *static_cast<const Shard::Engine::Objects::Components::CylinderParams*>(b);
     }
 };
 
@@ -189,7 +189,7 @@ static EnumDescriptor EMotionType_descriptor = {
 inline FieldInfo PhysicsBody_motionType_info = {
     "motionType",
     TypeID::Enum,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, motionType),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, motionType),
     Editable,
     0, 0,
     nullptr,
@@ -203,7 +203,7 @@ inline FieldInfo PhysicsBody_motionType_info = {
 inline FieldInfo PhysicsBody_overrideMass_info = {
     "overrideMass",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, overrideMass),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, overrideMass),
     Editable,
     0, 0,
     nullptr,
@@ -217,7 +217,7 @@ inline FieldInfo PhysicsBody_overrideMass_info = {
 inline FieldInfo PhysicsBody_mass_info = {
     "mass",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, mass),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, mass),
     Editable,
     0.001f, 100000.0f,
     nullptr,
@@ -231,7 +231,7 @@ inline FieldInfo PhysicsBody_mass_info = {
 inline FieldInfo PhysicsBody_linearDamping_info = {
     "linearDamping",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, linearDamping),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, linearDamping),
     Editable,
     0.0f, 1.0f,
     nullptr,
@@ -245,7 +245,7 @@ inline FieldInfo PhysicsBody_linearDamping_info = {
 inline FieldInfo PhysicsBody_angularDamping_info = {
     "angularDamping",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, angularDamping),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, angularDamping),
     Editable,
     0.0f, 1.0f,
     nullptr,
@@ -259,7 +259,7 @@ inline FieldInfo PhysicsBody_angularDamping_info = {
 inline FieldInfo PhysicsBody_gravityFactor_info = {
     "gravityFactor",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, gravityFactor),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, gravityFactor),
     Editable,
     -10.0f, 10.0f,
     nullptr,
@@ -273,7 +273,7 @@ inline FieldInfo PhysicsBody_gravityFactor_info = {
 inline FieldInfo PhysicsBody_friction_info = {
     "friction",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, friction),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, friction),
     Editable,
     0.0f, 1.0f,
     nullptr,
@@ -287,7 +287,7 @@ inline FieldInfo PhysicsBody_friction_info = {
 inline FieldInfo PhysicsBody_restitution_info = {
     "restitution",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::PhysicsBody, restitution),
+    offsetof(Shard::Engine::Objects::Components::PhysicsBody, restitution),
     Editable,
     0.0f, 1.0f,
     nullptr,
@@ -298,7 +298,7 @@ inline FieldInfo PhysicsBody_restitution_info = {
     &Equals<float>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::PhysicsBody::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::PhysicsBody::descriptor = {
     "PhysicsBody",
     {
         &PhysicsBody_motionType_info,

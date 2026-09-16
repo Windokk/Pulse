@@ -11,7 +11,7 @@
 
 #include "engine/objects/components/misc/script.reflection.hpp"
 
-using namespace Pulse::Engine;
+using namespace Shard::Engine;
 
 void Character::Deserialize(const json componentData) {
     // Deserialize fields
@@ -58,7 +58,7 @@ void Character::OnTick() {
 
     if (input->IsMouseDown(Input::MouseButton::Left))
     {
-        input->SetCursorVisibility(Pulse::Engine::Core::Platform::CursorVisibility::Disabled);
+        input->SetCursorVisibility(Shard::Engine::Core::Platform::CursorVisibility::Disabled);
 
         double mouseX, mouseY;
         input->GetCursorPos(&mouseX, &mouseY);
@@ -92,13 +92,13 @@ void Character::OnTick() {
     if(input->IsMouseUp(Input::MouseButton::Left))
     {
         firstClick = true;
-        input->SetCursorVisibility(Pulse::Engine::Core::Platform::CursorVisibility::Visible);
+        input->SetCursorVisibility(Shard::Engine::Core::Platform::CursorVisibility::Visible);
     }
 }
 
 void Character::OnStop()
 {
-    Core::GetEngine().GetInputManager()->SetCursorVisibility(Pulse::Engine::Core::Platform::CursorVisibility::Visible);
+    Core::GetEngine().GetInputManager()->SetCursorVisibility(Shard::Engine::Core::Platform::CursorVisibility::Visible);
 }
 
 REGISTER_COMPONENT(Character);

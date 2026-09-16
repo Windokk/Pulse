@@ -2,7 +2,7 @@
 
 #include "engine/objects/level_object.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class Shader;
     class Material;
     class EnvironmentMap;
@@ -10,7 +10,7 @@ namespace Pulse::Engine::Rendering{
 }
 
 
-namespace Pulse::Engine::Objects
+namespace Shard::Engine::Objects
 {
     class Skybox : public LevelObject{
 

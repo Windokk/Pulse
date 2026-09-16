@@ -9,7 +9,7 @@
 #include <functional>
 #include <mutex>
 
-namespace Pulse::Engine::Debugging{
+namespace Shard::Engine::Debugging{
     
     enum class Level {
         Log = 0,
@@ -116,8 +116,8 @@ namespace Pulse::Engine::Debugging{
 
 }
 
-#define DEBUG_LOG(...)       Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Log, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_INFO(...)      Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Info, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_WARNING(...)   Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Warning, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_ERROR(...)     Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Error, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define DEBUG_FATAL(...)     Pulse::Engine::Debugging::GetLogger().Log(Pulse::Engine::Debugging::Level::Fatal, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_LOG(...)       Shard::Engine::Debugging::GetLogger().Log(Shard::Engine::Debugging::Level::Log, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_INFO(...)      Shard::Engine::Debugging::GetLogger().Log(Shard::Engine::Debugging::Level::Info, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_WARNING(...)   Shard::Engine::Debugging::GetLogger().Log(Shard::Engine::Debugging::Level::Warning, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_ERROR(...)     Shard::Engine::Debugging::GetLogger().Log(Shard::Engine::Debugging::Level::Error, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define DEBUG_FATAL(...)     Shard::Engine::Debugging::GetLogger().Log(Shard::Engine::Debugging::Level::Fatal, __FILE_NAME__, __LINE__, __VA_ARGS__)

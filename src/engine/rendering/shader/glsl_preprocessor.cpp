@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     namespace {
 

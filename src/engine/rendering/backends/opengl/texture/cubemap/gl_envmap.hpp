@@ -6,7 +6,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class GLEnvironmentMap : public EnvironmentMap{
         public:

@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class GLMaterial : public Material
     {

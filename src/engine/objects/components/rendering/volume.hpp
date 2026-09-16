@@ -8,11 +8,11 @@
 
 #include "engine/rendering/utils.hpp"
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
     class DebugShape;
 }
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     // Abstract base for components that occupy a bounding-box region of the level (GI probe volumes,
     // and future volume types - post-process, reflection, trigger, ...). Owns the box wireframe gizmo
@@ -43,6 +43,13 @@ namespace Pulse::Engine::Objects::Components
 
         protected:
             virtual COL_RGBA GetWireframeColor() const { return COL_RGBA(0.0f, 1.0f, 1.0f, 1.0f); }
+
+            // Model matrix used for the debug gizmo(s), so they preview whatever transform the volume's
+            // effect is actually evaluated with. Defaults to the actor's full world matrix (gizmo follows
+            // position/rotation/scale exactly like a mesh would). Override when the volume's effect
+            // doesn't follow the full transform (see ProbeVolume, whose grid is translation-only) so the
+            // gizmo doesn't visually promise coverage the effect doesn't actually have.
+            virtual glm::mat4 GetDebugModelMatrix() const;
 
             // (Re)builds the box wireframe mesh from `halfExtent` and refreshes its draw command. Called
             // on Activate() and whenever halfExtent changes - call again from a subclass whenever any

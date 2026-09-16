@@ -18,7 +18,7 @@
 #include <stdexcept>
 #include <iostream>
 
-namespace Pulse::Engine::Objects{
+namespace Shard::Engine::Objects{
 
     using namespace Components;
 

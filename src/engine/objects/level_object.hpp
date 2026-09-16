@@ -6,7 +6,7 @@
 #include "engine/core/object.hpp"
 
 
-namespace Pulse::Engine::Objects{
+namespace Shard::Engine::Objects{
 
     class LevelObject : public Core::Object{
         public:

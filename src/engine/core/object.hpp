@@ -4,7 +4,7 @@
 
 struct FieldChangedEvent;
 
-namespace Pulse::Engine::Core{
+namespace Shard::Engine::Core{
 
     class IEngineContext;
 

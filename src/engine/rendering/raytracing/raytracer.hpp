@@ -11,22 +11,22 @@
 
 #include "engine/rendering/lighting/light_manager.hpp"
 
-namespace Pulse::Engine::Levels {
+namespace Shard::Engine::Levels {
     class Level;
 }
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
     class Camera;
 }
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
     class StorageBuffer;
     class Texture2D;
     class ComputeShader;
     class ComputePipeline;
 }
 
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     struct RaytraceSettings
     {

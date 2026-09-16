@@ -6,7 +6,7 @@
 
 using namespace nlohmann;
 
-namespace Pulse::Engine::Serialization{
+namespace Shard::Engine::Serialization{
 
     std::shared_ptr<Projects::Project> DeserializeProject(const Filesystem::Path path)
     {

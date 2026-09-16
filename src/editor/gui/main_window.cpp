@@ -29,11 +29,11 @@
 #include "engine/objects/components/rendering/model_component.hpp"
 #include "engine/core/engine.hpp"
 
-namespace Pulse::Editor::Core{
+namespace Shard::Editor::Core{
 
     void SetupImGuiStyle()
     {
-        // Pulse style from ImThemes
+        // Shard style from ImThemes
         ImGuiStyle& style = ImGui::GetStyle();
         
         style.Alpha = 1.0f;
@@ -814,7 +814,7 @@ namespace Pulse::Editor::Core{
         return (redBits + greenBits + blueBits + alphaBits) / 8;
     }
 
-    Pulse::Engine::Core::Platform::SystemInfos EditorMainWindow::GetSystemInfos() const
+    Shard::Engine::Core::Platform::SystemInfos EditorMainWindow::GetSystemInfos() const
     {
         Engine::Core::Platform::SystemInfos ret{};
 

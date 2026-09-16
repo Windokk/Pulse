@@ -3,10 +3,10 @@
 
 #include "character.reflection.hpp"
 
-using namespace Pulse::Engine;
-using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::Objects::Components;
-using namespace Pulse::Engine::Debugging;
+using namespace Shard::Engine;
+using namespace Shard::Engine::Core;
+using namespace Shard::Engine::Objects::Components;
+using namespace Shard::Engine::Debugging;
 
 #if defined(_WIN32) || defined(_WIN64)
 #   define API_EXPORT __declspec(dllexport)

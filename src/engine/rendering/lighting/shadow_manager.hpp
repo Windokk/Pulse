@@ -6,11 +6,11 @@
 
 #include <engine/debugging/logger.hpp>
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
     class Camera;
 }
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class Shader;
     class Material;
@@ -73,7 +73,7 @@ namespace Pulse::Engine::Rendering {
 
         /// @brief Bind the shadow maps to a material
         /// @param material The material to bind shadow maps to
-        void BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material);
+        void BindShadowMaps(std::shared_ptr<Shard::Engine::Rendering::Material> material);
 
         std::vector<std::string> GetAllShadowPasses() {
             std::vector<std::string> passes;

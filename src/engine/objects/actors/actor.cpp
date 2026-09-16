@@ -7,7 +7,7 @@
 #include "engine/projects/project.hpp"
 #include "engine/objects/components/audio/audio_source.hpp"
 
-namespace Pulse::Engine::Objects{
+namespace Shard::Engine::Objects{
     
     using namespace Components;
 

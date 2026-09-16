@@ -7,7 +7,7 @@
 #undef CreateWindow
 #endif
 
-namespace Pulse::Engine::Core::Platform {
+namespace Shard::Engine::Core::Platform {
 
     class IPlatform {
         public:

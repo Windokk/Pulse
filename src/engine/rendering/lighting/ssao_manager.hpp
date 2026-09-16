@@ -5,7 +5,7 @@
 
 #include <glm/glm.hpp>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class Renderer;
     class Framebuffer;

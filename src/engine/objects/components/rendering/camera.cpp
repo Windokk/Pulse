@@ -11,7 +11,7 @@
 #include "engine/core/engine.hpp"
 #include <glm/gtx/string_cast.hpp>
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
     
     Camera::Camera(std::shared_ptr<Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {

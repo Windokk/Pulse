@@ -27,7 +27,7 @@
 #include "engine/levels/level_manager.hpp"
 #include "engine/debugging/profiler.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     GLenum PrimitiveTopologyToGL(PrimitiveTopology topology)
     {
@@ -321,7 +321,7 @@ namespace Pulse::Engine::Rendering{
 
     void GLRendererAPI::DrawIndexed(const std::shared_ptr<Pipeline> pipeline, uint32_t indexCount, uint32_t indexOffset)
     {
-        PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::DrawElements);
+        SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::DrawElements);
 
         glDrawElements(
             PrimitiveTopologyToGL(pipeline->GetSpecifications().topology),
@@ -341,7 +341,7 @@ namespace Pulse::Engine::Rendering{
         std::shared_ptr<Pipeline> pipeline = nullptr;
 
         {
-            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::StateBinding);
+            SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::StateBinding);
 
             if(!command.fullscreenTri)
                 BindMesh(command.mesh);

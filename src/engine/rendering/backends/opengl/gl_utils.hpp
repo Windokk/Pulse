@@ -4,7 +4,7 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     inline const char* GLErrorToString(GLenum err){
         switch(err){

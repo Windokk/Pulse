@@ -12,15 +12,15 @@
 #include "engine/rendering/lighting/light_manager.hpp"
 #include "engine/rendering/raytracing/raytrace_scene.hpp"
 
-namespace Pulse::Engine::Levels {
+namespace Shard::Engine::Levels {
     class Level;
 }
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
     class ProbeVolume;
 }
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class Renderer;
     class StorageBuffer;

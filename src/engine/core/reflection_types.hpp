@@ -160,7 +160,7 @@ static TypeID GetTypeIDFromString(std::string typeName) {
 
         // Others
         {"AssetID", TypeID::Asset},
-        {"Pulse::Engine::Filesystem::AssetID", TypeID::Asset}
+        {"Shard::Engine::Filesystem::AssetID", TypeID::Asset}
     };
 
     if (auto it = typeMap.find(typeName); it != typeMap.end())
@@ -271,7 +271,7 @@ inline size_t GetTypeSize(TypeID type) {
         case TypeID::String: return sizeof(std::string);
         case TypeID::CString: return sizeof(char*);
 
-        case TypeID::Asset: return sizeof(Pulse::Engine::Filesystem::AssetID);
+        case TypeID::Asset: return sizeof(Shard::Engine::Filesystem::AssetID);
 
         default:
             return 0; // containers / structs handled separately

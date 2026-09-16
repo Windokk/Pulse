@@ -2,7 +2,7 @@
 
 #include "icon_atlas.hpp"
 
-namespace Pulse::Editor::GUI {
+namespace Shard::Editor::GUI {
 
     class EditorResources
     {

@@ -6,7 +6,7 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/levels/level.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class Renderer;
     class Mesh;
     class Texture2D;
@@ -15,11 +15,11 @@ namespace Pulse::Engine::Rendering{
     class Material;
 }
 
-namespace Pulse::Engine::Audio{
+namespace Shard::Engine::Audio{
     class SoundAsset;
 }
 
-namespace Pulse::Engine::Core::Resources{
+namespace Shard::Engine::Core::Resources{
 
     class ResourcesManager{
         public:

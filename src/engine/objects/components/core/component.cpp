@@ -3,7 +3,7 @@
 #include "engine/debugging/logger.hpp"
 #include "engine/objects/actors/actor.hpp"
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
 
     Component::Component(std::shared_ptr<Actor> parent, uint32_t local_id)
     {

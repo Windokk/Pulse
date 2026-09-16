@@ -5,7 +5,7 @@
 
 #include "engine/rendering/backends/opengl/buffer/gl_storage_buffer.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     std::shared_ptr<StorageBuffer> StorageBuffer::Create(uint32_t size)
     {

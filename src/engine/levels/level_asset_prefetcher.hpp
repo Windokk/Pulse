@@ -9,7 +9,7 @@
 #include "engine/rendering/texture/texture.hpp"
 #include "engine/rendering/mesh/mesh.hpp"
 
-namespace Pulse::Engine::Levels{
+namespace Shard::Engine::Levels{
 
     class AssetPrefetcher{
 

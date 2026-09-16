@@ -6,7 +6,7 @@
 #include <cmath>
 #include <unordered_map>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     namespace {
         std::unordered_map<uint32_t, uint64_t> s_BindlessHandles;

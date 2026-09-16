@@ -4,7 +4,7 @@
 
 #include "engine/rendering/utils.hpp"
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class StorageBuffer;
 

@@ -4,7 +4,7 @@
 
 #include "engine/rendering/texture/texture.hpp"
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     struct FramebufferSpecifications
     {

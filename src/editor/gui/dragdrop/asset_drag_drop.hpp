@@ -7,9 +7,9 @@
 #include <cstring>
 #include <algorithm>
 
-namespace Pulse::Editor::GUI::DragDrop{
+namespace Shard::Editor::GUI::DragDrop{
 
-    inline constexpr const char* kAssetPayloadType = "PULSE_ASSET_ITEMS";
+    inline constexpr const char* kAssetPayloadType = "SHARD_ASSET_ITEMS";
     inline constexpr int kMaxAssetDragItems = 32;
     inline constexpr int kMaxAssetPathLen = 256;
 

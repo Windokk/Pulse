@@ -6,7 +6,7 @@
 
 #include <imgui/imgui.h>
 
-namespace Pulse::Editor::GUI {
+namespace Shard::Editor::GUI {
 
     struct AtlasRegion
     {

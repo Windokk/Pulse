@@ -18,7 +18,7 @@
 #include "sound_asset.hpp"
 
 
-namespace Pulse::Engine::Audio
+namespace Shard::Engine::Audio
 {
     using namespace Filesystem;
     using namespace Rendering;

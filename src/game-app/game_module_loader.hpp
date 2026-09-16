@@ -17,11 +17,11 @@
 
 #include "engine/core/engine.hpp"
 
-using namespace Pulse::Engine;
-using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::Debugging;
+using namespace Shard::Engine;
+using namespace Shard::Engine::Core;
+using namespace Shard::Engine::Debugging;
 
-namespace Pulse::Game {
+namespace Shard::Game {
 
     //GAME
     using GameInitFn = void(*)(IEngineContext*, Objects::Components::ComponentRegistry*, Logger*);

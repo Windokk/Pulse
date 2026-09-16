@@ -12,7 +12,7 @@
 
 #include <algorithm>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     // Bytes per pixel for each internal format, mirroring the format/type resolved by
     // GLTextureSpec::FromTextureSpecifications (kept here rather than in the OpenGL backend since it's

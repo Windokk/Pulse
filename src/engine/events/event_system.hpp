@@ -9,11 +9,11 @@
 #include <typeindex>
 #include <vector>
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
     class PhysicsBody;
 }
 
-namespace Pulse::Engine::Events {
+namespace Shard::Engine::Events {
 
     struct Event {
         virtual ~Event() = default;

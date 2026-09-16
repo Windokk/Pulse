@@ -3,14 +3,14 @@
 #include "game_module_loader.hpp"
 #include "game-app/core/platform/glfw/glfw_platform.hpp"
 
-using namespace Pulse;
-using namespace Pulse::Engine;
-using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::Rendering;
-using namespace Pulse::Engine::Input;
-using namespace Pulse::Engine::Objects::Components;
-using namespace Pulse::Engine::Objects;
-using namespace Pulse::Game;
+using namespace Shard;
+using namespace Shard::Engine;
+using namespace Shard::Engine::Core;
+using namespace Shard::Engine::Rendering;
+using namespace Shard::Engine::Input;
+using namespace Shard::Engine::Objects::Components;
+using namespace Shard::Engine::Objects;
+using namespace Shard::Game;
 
 #include <iostream>
 
@@ -78,7 +78,7 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
 }
 
 void early_crash(){
-    std::cout << "Pulse Engine has crashed. Press Enter to exit..." << std::endl;
+    std::cout << "Shard Engine has crashed. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
     std::terminate();
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Platform creation
-    engineSettings.platform = new Pulse::Game::Core::Platform::GLFWPlatform();
+    engineSettings.platform = new Shard::Game::Core::Platform::GLFWPlatform();
 
     // Engine startup
     Engine::Core::GetEngine().Init(engineSettings);
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
 
     loader.UnloadModule("game");
 
-    std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;
+    std::cout << "Shard Engine has finished. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
 

@@ -5,11 +5,11 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class Material;
 }
 
-namespace Pulse::Engine::Serialization{
+namespace Shard::Engine::Serialization{
 
     std::shared_ptr<Rendering::Material> DeserializeMaterial(const Filesystem::Path path);
 

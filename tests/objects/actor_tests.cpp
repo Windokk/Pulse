@@ -6,9 +6,9 @@
 #include "engine/objects/components/rendering/camera.hpp"
 #include "engine/objects/components/physics/physics_body.hpp"
 
-using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::Objects;
-using namespace Pulse::Engine::Objects::Components;
+using namespace Shard::Engine::Core;
+using namespace Shard::Engine::Objects;
+using namespace Shard::Engine::Objects::Components;
 
 class ActorTest : public ::testing::Test {
     protected:
@@ -20,7 +20,7 @@ class ActorTest : public ::testing::Test {
             SetEngine(nullptr);
         }
 
-        Pulse::Tests::TestEngineContext context;
+        Shard::Tests::TestEngineContext context;
 };
 
 TEST_F(ActorTest, CreationAutoAddsTransformComponent) {

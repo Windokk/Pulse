@@ -8,7 +8,7 @@
 inline FieldInfo Model_meshID_info = {
     "meshID",
     TypeID::Asset,
-    offsetof(Pulse::Engine::Objects::Components::Model, meshID),
+    offsetof(Shard::Engine::Objects::Components::Model, meshID),
     Editable,
     0, 0,
     nullptr,
@@ -19,12 +19,12 @@ inline FieldInfo Model_meshID_info = {
     &Equals<Filesystem::AssetID>
 };
 
-static Container Model_materialsID_container = MakeVectorContainer<Pulse::Engine::Filesystem::AssetID>();
+static Container Model_materialsID_container = MakeVectorContainer<Shard::Engine::Filesystem::AssetID>();
 
 inline FieldInfo Model_materialsID_info = {
     "materialsID",
     TypeID::Vector,
-    offsetof(Pulse::Engine::Objects::Components::Model, materialsID),
+    offsetof(Shard::Engine::Objects::Components::Model, materialsID),
     Editable,
     0, 0,
     &Model_materialsID_container,
@@ -35,7 +35,7 @@ inline FieldInfo Model_materialsID_info = {
     &Equals<std::vector<Filesystem::AssetID>>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::Model::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::Model::descriptor = {
     "Model",
     {
         &Model_meshID_info,

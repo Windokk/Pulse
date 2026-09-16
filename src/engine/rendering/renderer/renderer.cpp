@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <glm/gtx/string_cast.hpp>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     void Renderer::Init(std::shared_ptr<RendererSettings> initialSettings)
     {
@@ -670,29 +670,29 @@ namespace Pulse::Engine::Rendering{
     void Renderer::BeginFrame()
     {
         {
-            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::CameraUpdate);
+            SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::CameraUpdate);
             Core::GetEngine().GetCameraManager()->Tick();
         }
 
         ReorderDrawList();
 
         {
-            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::ShadowUpdate);
+            SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::ShadowUpdate);
             m_ShadowManager->UpdatePassUniforms();
         }
 
         {
-            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::GIProbeUpdate);
+            SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::GIProbeUpdate);
             m_ProbeManager->Update();
         }
 
         {
-            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::SSAOUpdate);
+            SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::SSAOUpdate);
             m_SSAOManager->Update();
         }
 
         {
-            PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::LightCullingUpdate);
+            SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::LightCullingUpdate);
             m_LightCullingManager->Update();
         }
 
@@ -718,13 +718,13 @@ namespace Pulse::Engine::Rendering{
 
     void Renderer::EndFrame()
     {
-        PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::MultisampleResolve);
+        SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::MultisampleResolve);
         m_ViewportBuffer->ResolveMultisampled();
     }
 
     void Renderer::BeginRenderPass(const std::shared_ptr<RenderPass>& pass)
     {
-        PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::PassSetup);
+        SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::PassSetup);
 
         m_CurrentPass = pass;
         pass->target->Bind();
@@ -763,7 +763,7 @@ namespace Pulse::Engine::Rendering{
             bool skip = false;
 
             {
-                PULSE_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::Culling);
+                SHARD_PROFILE_RENDER_SUB_SCOPE(Debugging::RenderSubSample::Culling);
 
                 // A fullscreenTri command has no index buffer (DrawFullScreenTriangle() just issues
                 // glDrawArrays(GL_TRIANGLES, 0, 3)), so it never has indexCount set - only require it

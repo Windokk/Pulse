@@ -8,7 +8,7 @@
 
 #include "audio_source.reflection.hpp"
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
     
     AudioSource::AudioSource(std::shared_ptr<Actor> parent, uint32_t local_id) : Component(parent, local_id)
     {

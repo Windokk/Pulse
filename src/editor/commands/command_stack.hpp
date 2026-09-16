@@ -2,7 +2,7 @@
 
 #include "commands.hpp"
 
-namespace Pulse::Editor::Commands{
+namespace Shard::Editor::Commands{
 
     class CommandStack {
         public:

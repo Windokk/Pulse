@@ -8,7 +8,7 @@
 
 #include "engine/rendering/lighting/light_manager.hpp"
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     
     class CLASS() Light : public Component{

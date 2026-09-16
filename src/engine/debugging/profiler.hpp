@@ -13,7 +13,7 @@
 #include <array>
 #include <chrono>
 
-namespace Pulse::Engine::Debugging{
+namespace Shard::Engine::Debugging{
 
     // Engine subsystems tracked by the per-frame performance profiler.
     // "Other" is not sampled directly: it is derived as (total frame time - sum of the rest),
@@ -272,14 +272,14 @@ namespace Pulse::Engine::Debugging{
     };
 }
 
-#define PULSE_PROFILE_CONCAT_INNER(a, b) a##b
-#define PULSE_PROFILE_CONCAT(a, b) PULSE_PROFILE_CONCAT_INNER(a, b)
+#define SHARD_PROFILE_CONCAT_INNER(a, b) a##b
+#define SHARD_PROFILE_CONCAT(a, b) SHARD_PROFILE_CONCAT_INNER(a, b)
 
 // Scopes a ProfileCategory for the rest of the enclosing block.
-#define PULSE_PROFILE_SCOPE(category) \
-    ::Pulse::Engine::Debugging::ScopedProfileSample PULSE_PROFILE_CONCAT(_pulseProfileScope, __LINE__)(category)
+#define SHARD_PROFILE_SCOPE(category) \
+    ::Shard::Engine::Debugging::ScopedProfileSample SHARD_PROFILE_CONCAT(_shardProfileScope, __LINE__)(category)
 
 // Scopes a RenderSubSample for the rest of the enclosing block.
-#define PULSE_PROFILE_RENDER_SUB_SCOPE(sample) \
-    ::Pulse::Engine::Debugging::ScopedRenderSubSample PULSE_PROFILE_CONCAT(_pulseRenderSubScope, __LINE__)(sample)
+#define SHARD_PROFILE_RENDER_SUB_SCOPE(sample) \
+    ::Shard::Engine::Debugging::ScopedRenderSubSample SHARD_PROFILE_CONCAT(_shardRenderSubScope, __LINE__)(sample)
 

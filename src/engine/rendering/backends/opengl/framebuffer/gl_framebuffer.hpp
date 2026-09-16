@@ -2,7 +2,7 @@
 
 #include "engine/rendering/framebuffer/framebuffer.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class GLFramebuffer : public Framebuffer{
         public:

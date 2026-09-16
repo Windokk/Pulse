@@ -3,7 +3,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class Renderer;
     class StorageBuffer;

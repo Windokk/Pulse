@@ -2,7 +2,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     // Common contract for a panel that owns the full edit lifecycle of one specific asset type -
     // load it from a path, draw its own ImGui window(s), save back to disk (e.g. MaterialEditorPanel

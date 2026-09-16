@@ -17,7 +17,7 @@
 
 using namespace std::chrono;
 
-namespace Pulse::Engine{
+namespace Shard::Engine{
 
     namespace Debugging {
         Logger* g_Logger = nullptr;
@@ -42,7 +42,7 @@ namespace Pulse::Engine{
 
             m_EngineSettings = settings;
             m_Context.platform = settings.platform;
-            std::shared_ptr<Pulse::Engine::Projects::Project> project = Serialization::DeserializeProject(Filesystem::Path(settings.project, true));
+            std::shared_ptr<Shard::Engine::Projects::Project> project = Serialization::DeserializeProject(Filesystem::Path(settings.project, true));
             if(!project){
                 DEBUG_FATAL("Project is nullptr, aborting...");
             }
@@ -54,7 +54,7 @@ namespace Pulse::Engine{
             
             m_Context.resourcesManager->ConstructGlobalFileIndex(m_Context.currentProject->GetProjectResourcesPath());
 
-            m_Context.platform->CreateWindow("Pulse", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync, settings.api);
+            m_Context.platform->CreateWindow("Shard", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync, settings.api);
             
             m_Context.physicsManager->Init(settings.gravity);
             m_Context.audioManager->Init(100.0f);
@@ -202,15 +202,15 @@ namespace Pulse::Engine{
 
             if(m_PlayMode){
                 {
-                    PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
+                    SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
                     m_Context.physicsManager->StepSimulation(m_Context.timeManager->GetFixedDeltaTime(), m_ActivateAllPhysics);
                 }
                 {
-                    PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Audio);
+                    SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Audio);
                     m_Context.audioManager->Tick();
                 }
                 {
-                    PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Scripting);
+                    SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Scripting);
                     m_Context.levelManager->Tick();
                 }
             }
@@ -238,25 +238,25 @@ namespace Pulse::Engine{
             }
 
             {
-                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
+                SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
                 m_Context.physicsManager->TickBodies(m_Context.timeManager->GetFixedDeltaTime());
             }
 
             m_Context.timeManager->Tick();
 
             {
-                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Rendering);
+                SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Rendering);
                 m_Context.renderer->Render();
             }
 
             {
-                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Input);
+                SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Input);
                 m_Context.platform->GetInput()->Tick();
                 m_Context.platform->GetWindow()->PollEvents();
             }
 
             {
-                PULSE_PROFILE_SCOPE(Debugging::ProfileCategory::Presentation);
+                SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Presentation);
                 m_Context.platform->GetWindow()->SwapBuffers();
             }
 

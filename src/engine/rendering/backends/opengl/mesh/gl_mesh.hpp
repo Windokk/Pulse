@@ -3,7 +3,7 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/pipeline/pipeline.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class VertexLayout;
 

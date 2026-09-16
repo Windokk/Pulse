@@ -8,7 +8,7 @@
 
 #include "engine/core/attributes.hpp"
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     class CLASS() AudioSource : public Component {
 

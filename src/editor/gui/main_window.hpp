@@ -26,7 +26,7 @@
 
 #include <cstdint>
 
-namespace Pulse::Editor::Core {
+namespace Shard::Editor::Core {
 
     enum EditorViewportBuffer{
         Final,

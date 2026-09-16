@@ -8,7 +8,7 @@
 
 #include "engine/rendering/backends/opengl/framebuffer/gl_framebuffer.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     std::shared_ptr<Framebuffer> Framebuffer::Create(const FramebufferSpecifications& specs)
     {
         switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())

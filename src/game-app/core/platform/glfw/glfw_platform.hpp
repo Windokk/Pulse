@@ -10,7 +10,7 @@
 #undef CreateWindow
 #endif
 
-namespace Pulse::Game::Core::Platform {
+namespace Shard::Game::Core::Platform {
 
     class GLFWPlatform : public Engine::Core::Platform::IPlatform {
         public:

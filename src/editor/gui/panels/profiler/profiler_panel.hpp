@@ -2,7 +2,7 @@
 
 #include "engine/debugging/profiler.hpp"
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     // Editor panel visualizing per-subsystem frame timings (physics, rendering, audio, ...)
     // collected by Engine::Debugging::Profiler, so the heaviest subsystem each frame is obvious.

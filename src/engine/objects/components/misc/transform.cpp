@@ -15,7 +15,7 @@
 
 #include "glm/gtx/string_cast.hpp"
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
 
 	bool Transform::IsDirty(DirtyFlags flag) const
 	{

@@ -14,7 +14,7 @@
 
 #include <ufbx/ufbx.h>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     struct SubMesh {
         size_t indexOffset;

@@ -2,7 +2,7 @@
 
 #include "cubemap.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     
 

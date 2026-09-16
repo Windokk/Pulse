@@ -3,7 +3,7 @@
 #include "engine/debugging/logger.hpp"
 #include "engine/core/engine.hpp"
 
-namespace Pulse::Engine::Filesystem{
+namespace Shard::Engine::Filesystem{
 
     void FileManager::Init(Path projectResPath, Path engineResPath, Path projectRoot)
     {

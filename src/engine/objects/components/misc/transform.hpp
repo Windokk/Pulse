@@ -13,7 +13,7 @@
 
 #include "engine/core/attributes.hpp"
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
     enum class DirtyFlags : uint8_t
     {

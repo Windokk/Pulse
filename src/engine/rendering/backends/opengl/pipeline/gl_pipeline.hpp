@@ -2,7 +2,7 @@
 
 #include "engine/rendering/pipeline/pipeline.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class GLPipeline : public Pipeline
     {
     public:

@@ -94,7 +94,7 @@ private:
     std::function<void()>						onButtonPress = nullptr; // A lambda variable, which will be executed when button in notification is pressed
     char 										buttonLabel[NOTIFY_MAX_MSG_LENGTH];
 
-    // --- Pulse additions ---
+    // --- Shard additions ---
     // >= 0 : render a progress bar with this 0-1 fill under the content (see the "new usage API" in
     // editor/gui/notifications.hpp, used for the DDGI probe scene-build progress toast). < 0 : no bar.
     float										progressFraction = -1.0f;
@@ -187,7 +187,7 @@ public:
         NOTIFY_FORMAT(this->setButtonLabel, format);
     }
 
-    // --- Pulse additions ---
+    // --- Shard additions ---
 
     /**
      * @brief Set the progress bar fill (0-1). Pass a negative value to hide the bar entirely.
@@ -216,7 +216,7 @@ public:
      * background operation runs. getPhase()/getFadePercent() derive the toast's opacity purely from
      * elapsed time since creationTime, so with creationTime constantly reset to "now" the elapsed time
      * driving that opacity stays pinned at ~0 for the toast's entire lifetime, i.e. permanently in the
-     * FadeIn phase at ~0 opacity - the toast (background, icon, and this Pulse addition's progress bar)
+     * FadeIn phase at ~0 opacity - the toast (background, icon, and this Shard addition's progress bar)
      * reads as stuck-transparent for as long as updates keep arriving, never reaching the fully-opaque
      * Wait phase at all.
      */
@@ -429,7 +429,7 @@ public:
         return this->buttonLabel;
     }
 
-    // --- Pulse additions ---
+    // --- Shard additions ---
 
     /**
      * @return Progress bar fill in [0, 1], or a negative value when no bar should be drawn.
@@ -536,7 +536,7 @@ namespace ImGui
         notifications.erase(notifications.begin() + index);
     }
 
-    // --- Pulse additions : stable-id notifications you can update in place across frames ---
+    // --- Shard additions : stable-id notifications you can update in place across frames ---
 
     inline int nextNotificationId = 1;
 
@@ -619,7 +619,7 @@ namespace ImGui
             const char* defaultTitle = currentToast->getDefaultTitle();
             const float opacity = currentToast->getFadePercent(); // Get opacity based of the current phase
 
-            // --- Pulse additions : a toast carrying a progress bar (BeginProgress/UpdateProgress, e.g.
+            // --- Shard additions : a toast carrying a progress bar (BeginProgress/UpdateProgress, e.g.
             // the DDGI probe scene-build notification) gets a heavier, fully opaque "card" treatment
             // instead of the default lightweight toast look - it represents work actually in flight
             // rather than a fire-and-forget message, so it should read as a solid piece of UI rather
@@ -698,7 +698,7 @@ namespace ImGui
                 {
                     float r = GetFontSize() * 0.5f;
                     ImVec2 topLeft = GetCursorScreenPos();
-                    Pulse::Editor::GUI::LoadingWidgets::SpinnerFadePulsar(GetWindowDrawList(),
+                    Shard::Editor::GUI::LoadingWidgets::SpinnerFadePulsar(GetWindowDrawList(),
                         ImVec2(topLeft.x + r, topLeft.y + r), r, ColorConvertFloat4ToU32(textColor), 1.8f, 2);
                     Dummy(ImVec2(r * 2.0f, r * 2.0f));
                     wasTitleRendered = true;
@@ -774,7 +774,7 @@ namespace ImGui
                     Text("%s", content); // Render content text
                 }
 
-                // If a progress fraction is set (Pulse addition), render a bar under the content
+                // If a progress fraction is set (Shard addition), render a bar under the content
                 if (hasProgressBar)
                 {
                     if (wasTitleRendered || !NOTIFY_NULL_OR_EMPTY(content))
@@ -788,7 +788,7 @@ namespace ImGui
 
                     ImVec2 barPos = GetCursorScreenPos();
                     ImVec2 barSize(mainWindowSize.x / 5.f, 10.0f);
-                    Pulse::Editor::GUI::LoadingWidgets::DrawProgressBar(GetWindowDrawList(), barPos, barSize,
+                    Shard::Editor::GUI::LoadingWidgets::DrawProgressBar(GetWindowDrawList(), barPos, barSize,
                         toastProgress, bgColor, fillColor, borderColor);
                     Dummy(barSize);
                 }

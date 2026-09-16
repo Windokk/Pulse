@@ -6,7 +6,7 @@
 #include <functional>
 #include <iostream>
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
 
     using RegisterComponentCallback = std::function<void(ComponentRegistry&)>;
 

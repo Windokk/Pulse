@@ -25,10 +25,10 @@
 #include "engine/objects/components/physics/physics_body.hpp"
 #include "engine/objects/components/core/registry/component_registry.hpp"
 
-using namespace Pulse::Engine::Objects;
-using namespace Pulse::Engine::Objects::Components;
+using namespace Shard::Engine::Objects;
+using namespace Shard::Engine::Objects::Components;
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     // Any actor/component edit made through this panel (field edits, add/remove component, shape
     // add/remove/param edits) marks the currently loaded level dirty, so the "unsaved changes"

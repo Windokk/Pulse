@@ -5,7 +5,7 @@
 
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     class Texture2D;
 

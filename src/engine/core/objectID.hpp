@@ -10,7 +10,7 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Core
+namespace Shard::Engine::Core
 {
     class Object;
     
@@ -90,8 +90,8 @@ namespace Pulse::Engine::Core
 
 namespace std {
     template<>
-    struct hash<Pulse::Engine::Core::ObjectID> {
-        std::size_t operator()(const Pulse::Engine::Core::ObjectID& id) const noexcept {
+    struct hash<Shard::Engine::Core::ObjectID> {
+        std::size_t operator()(const Shard::Engine::Core::ObjectID& id) const noexcept {
             return std::hash<int>{}(id.GetAsInt());
         }
     };

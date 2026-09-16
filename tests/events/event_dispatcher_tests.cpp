@@ -2,8 +2,8 @@
 
 #include "engine/events/event_system.hpp"
 
-using namespace Pulse::Engine::Events;
-using Pulse::Engine::Core::ObjectID;
+using namespace Shard::Engine::Events;
+using Shard::Engine::Core::ObjectID;
 
 TEST(EventDispatcher, GlobalSubscriberReceivesEmittedEvent) {
     EventDispatcher dispatcher;

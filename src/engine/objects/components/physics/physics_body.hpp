@@ -23,7 +23,7 @@
 #include "engine/rendering/debug/debug_shapes.hpp"
 
 
-namespace Pulse::Engine::Objects::Components
+namespace Shard::Engine::Objects::Components
 {
 
     struct STRUCT() SphereParams{
@@ -249,4 +249,4 @@ namespace Pulse::Engine::Objects::Components
     }
 }
 
-using namespace Pulse::Engine;
+using namespace Shard::Engine;

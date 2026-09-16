@@ -12,7 +12,7 @@
 #include "engine/filesystem/assetID.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     static GLenum ShaderSamplerTypeToOpenGL(ShaderSamplerType type)
     {

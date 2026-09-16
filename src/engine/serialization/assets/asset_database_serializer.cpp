@@ -5,7 +5,7 @@
 
 using namespace nlohmann;
 
-namespace Pulse::Engine::Serialization{
+namespace Shard::Engine::Serialization{
 
     void DeserializeAssetDataBase(const Filesystem::Path resourcesPath, const Filesystem::Path databasePath){
 

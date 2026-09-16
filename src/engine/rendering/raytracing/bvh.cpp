@@ -8,7 +8,7 @@
 #include <system_error>
 #include <thread>
 
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     namespace {
 

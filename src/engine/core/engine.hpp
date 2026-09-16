@@ -4,7 +4,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 
-namespace Pulse::Engine{
+namespace Shard::Engine{
 
     namespace Rendering {
         class Renderer;

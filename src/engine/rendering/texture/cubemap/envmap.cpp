@@ -6,7 +6,7 @@
 
 #include "engine/rendering/renderer/renderer.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     
     std::shared_ptr<EnvironmentMap> EnvironmentMap::Create(TextureSpecifications& specs, const std::vector<Filesystem::Path> imageFiles)
     {

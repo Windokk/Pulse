@@ -7,11 +7,11 @@
 #include <unordered_map>
 #include <memory>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class Mesh;
 }
 
-namespace Pulse::Editor::GUI {
+namespace Shard::Editor::GUI {
 
     // Renders static meshes as small white/unlit thumbnails (a fixed 3/4-angle "product shot",
     // ignoring the mesh's real materials entirely) and packs them into one shared atlas texture,

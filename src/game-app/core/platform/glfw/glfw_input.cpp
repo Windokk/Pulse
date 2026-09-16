@@ -2,7 +2,7 @@
 
 #include "glfw_window.hpp"
 
-namespace Pulse::Game::Core::Platform{
+namespace Shard::Game::Core::Platform{
 
     void GLFWInput::SetWindow(GLFWwindow * window)
     {

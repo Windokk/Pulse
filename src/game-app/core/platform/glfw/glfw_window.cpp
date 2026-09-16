@@ -7,7 +7,7 @@
 #include "engine/rendering/backends/glad/include/glad/gl.h"
 #include "engine/rendering/backends/glad/include/glad/vulkan.h"
 
-namespace Pulse::Game::Core::Platform{
+namespace Shard::Game::Core::Platform{
     
     void Platform::GLFWWindow::Init(const std::string &title, const int &width, const int &height, const bool &fullscreen, const int &vsync, const uint32_t& api)
     {
@@ -138,7 +138,7 @@ namespace Pulse::Game::Core::Platform{
         return (redBits + greenBits + blueBits + alphaBits) / 8;
     }
 
-    Pulse::Engine::Core::Platform::SystemInfos Pulse::Game::Core::Platform::GLFWWindow::GetSystemInfos() const
+    Shard::Engine::Core::Platform::SystemInfos Shard::Game::Core::Platform::GLFWWindow::GetSystemInfos() const
     {
         Engine::Core::Platform::SystemInfos ret{};
 

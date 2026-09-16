@@ -8,7 +8,7 @@
 inline FieldInfo ProbeVolume_halfExtent_info = {
     "halfExtent",
     TypeID::Vec3,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, halfExtent),
+    offsetof(Shard::Engine::Objects::Components::ProbeVolume, halfExtent),
     Editable,
     0, 0,
     nullptr,
@@ -22,7 +22,7 @@ inline FieldInfo ProbeVolume_halfExtent_info = {
 inline FieldInfo ProbeVolume_probeCounts_info = {
     "probeCounts",
     TypeID::IVec3,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, probeCounts),
+    offsetof(Shard::Engine::Objects::Components::ProbeVolume, probeCounts),
     Editable,
     1, 0,
     nullptr,
@@ -36,7 +36,7 @@ inline FieldInfo ProbeVolume_probeCounts_info = {
 inline FieldInfo ProbeVolume_raysPerProbe_info = {
     "raysPerProbe",
     TypeID::Int32,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, raysPerProbe),
+    offsetof(Shard::Engine::Objects::Components::ProbeVolume, raysPerProbe),
     Editable,
     // Upper bound is ProbeManager::kMaxRaysPerProbe (the convolve pass stages a whole tile in shared
     // memory) - the grid rebuild clamps to it anyway, this just stops the widget offering values that
@@ -53,7 +53,7 @@ inline FieldInfo ProbeVolume_raysPerProbe_info = {
 inline FieldInfo ProbeVolume_probeUpdateStride_info = {
     "probeUpdateStride",
     TypeID::Int32,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, probeUpdateStride),
+    offsetof(Shard::Engine::Objects::Components::ProbeVolume, probeUpdateStride),
     Editable,
     1, 8, // ProbeManager::kMaxProbeUpdateStride
     nullptr,
@@ -67,7 +67,7 @@ inline FieldInfo ProbeVolume_probeUpdateStride_info = {
 inline FieldInfo ProbeVolume_indirectIntensity_info = {
     "indirectIntensity",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, indirectIntensity),
+    offsetof(Shard::Engine::Objects::Components::ProbeVolume, indirectIntensity),
     Editable,
     0.0f, 4.0f,
     nullptr,
@@ -81,7 +81,7 @@ inline FieldInfo ProbeVolume_indirectIntensity_info = {
 inline FieldInfo ProbeVolume_enableRelocation_info = {
     "enableRelocation",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, enableRelocation),
+    offsetof(Shard::Engine::Objects::Components::ProbeVolume, enableRelocation),
     Editable,
     0, 0,
     nullptr,
@@ -92,7 +92,7 @@ inline FieldInfo ProbeVolume_enableRelocation_info = {
     &Equals<bool>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::ProbeVolume::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::ProbeVolume::descriptor = {
     "ProbeVolume",
     {
         &ProbeVolume_halfExtent_info,

@@ -21,7 +21,7 @@
 #include <thread>
 #include <unordered_map>
 
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     namespace {
 

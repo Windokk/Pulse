@@ -9,13 +9,13 @@
 #include "engine/levels/level_manager.hpp"
 #include "engine/objects/components/rendering/model_component.hpp"
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     using Engine::Core::GetEngine;
 
     // Payload for dragging an actor row within the outliner itself (reparenting), as opposed to
     // DragDrop::kAssetPayloadType which carries assets dragged in from the asset browser.
-    static constexpr const char* kOutlinerActorPayloadType = "PULSE_OUTLINER_ACTOR";
+    static constexpr const char* kOutlinerActorPayloadType = "SHARD_OUTLINER_ACTOR";
 
     void LevelTree::Draw()
     {

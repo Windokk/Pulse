@@ -5,7 +5,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Pulse::Engine::Debugging{
+namespace Shard::Engine::Debugging{
     
     void Logger::AddSink(LogSink sink)
     {

@@ -19,7 +19,7 @@
 
 #include <glm/gtc/random.hpp>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     namespace {
 

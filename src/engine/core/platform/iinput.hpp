@@ -5,7 +5,7 @@
 
 #include "engine/inputs/keys.hpp"
 
-namespace Pulse::Engine::Core::Platform {
+namespace Shard::Engine::Core::Platform {
 
     enum CursorVisibility{
         Visible,

@@ -5,12 +5,12 @@
 
 #include <typeinfo>
 
-namespace Pulse::Editor::Core{
+namespace Shard::Editor::Core{
     
     class EditorMainWindow;
 }
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
 
     class LevelTree

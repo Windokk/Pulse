@@ -8,12 +8,12 @@
 #include <array>
 #include <cstdio>
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
-    using Pulse::Engine::Debugging::ProfileCategory;
-    using Pulse::Engine::Debugging::FrameProfile;
-    using Pulse::Engine::Debugging::Profiler;
-    using Pulse::Engine::Debugging::kProfileCategoryCount;
+    using Shard::Engine::Debugging::ProfileCategory;
+    using Shard::Engine::Debugging::FrameProfile;
+    using Shard::Engine::Debugging::Profiler;
+    using Shard::Engine::Debugging::kProfileCategoryCount;
 
     static ImU32 CategoryColor(ProfileCategory category)
     {

@@ -5,12 +5,12 @@
 #include "editor/core/platform/glfw/glfw_platform.hpp"
 #include "editor/gui/main_window.hpp"
 
-using namespace Pulse::Engine;
-using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::Rendering;
-using namespace Pulse::Engine::Input;
-using namespace Pulse::Engine::Objects::Components;
-using namespace Pulse::Engine::Objects;
+using namespace Shard::Engine;
+using namespace Shard::Engine::Core;
+using namespace Shard::Engine::Rendering;
+using namespace Shard::Engine::Input;
+using namespace Shard::Engine::Objects::Components;
+using namespace Shard::Engine::Objects;
 
 #include <iostream>
 
@@ -78,7 +78,7 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
 }
 
 void early_crash(){
-    std::cout << "Pulse Engine has crashed. Press Enter to exit..." << std::endl;
+    std::cout << "Shard Engine has crashed. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
     std::terminate();
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
     }
 
     //Module loader init
-    auto& loader = Pulse::Editor::ModuleLoader::GetInstance();
+    auto& loader = Shard::Editor::ModuleLoader::GetInstance();
     const std::string gameModuleName = "game";
 
     //Game module loading
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
 
     //Game module init
     {
-        auto initGame = loader.GetSymbol<Pulse::Editor::GameInitFn>("game", "InitializeSingletons");
+        auto initGame = loader.GetSymbol<Shard::Editor::GameInitFn>("game", "InitializeSingletons");
         if (!initGame){
             std::cerr<<"Failed to find symbol: InitializeSingletons"<<std::endl;
             early_crash();
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
         initGame(&Core::GetEngine(),
                  &Objects::Components::GetComponentRegistry());
 
-        auto registerGameComponents = loader.GetSymbol<Pulse::Editor::GameRegisterComponentsFn>("game", "RegisterGameComponents");
+        auto registerGameComponents = loader.GetSymbol<Shard::Editor::GameRegisterComponentsFn>("game", "RegisterGameComponents");
         if (!registerGameComponents){
             std::cerr<<"Failed to find symbol: RegisterGameComponents"<<std::endl;
             early_crash();
@@ -131,13 +131,13 @@ int main(int argc, char* argv[]) {
 
     {
         // Platform creation
-        engineSettings.platform = new Pulse::Editor::Core::GLFWPlatform();
+        engineSettings.platform = new Shard::Editor::Core::GLFWPlatform();
 
         // Engine startup
         Core::GetEngine().Init(engineSettings);
         
         // Editor startup
-        Pulse::Editor::Commands::CommandStack::Get();
+        Shard::Editor::Commands::CommandStack::Get();
     }
 
     //Main Loop
@@ -150,11 +150,11 @@ int main(int argc, char* argv[]) {
 
     //Cleaning
 
-    Pulse::Editor::GUI::EditorResources::Instance().Shutdown();
+    Shard::Editor::GUI::EditorResources::Instance().Shutdown();
 
     Core::GetEngine().Destroy();
 
-    std::cout << "Pulse Engine has finished. Press Enter to exit..." << std::endl;
+    std::cout << "Shard Engine has finished. Press Enter to exit..." << std::endl;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
 

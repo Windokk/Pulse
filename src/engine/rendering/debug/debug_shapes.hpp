@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class Mesh;
 

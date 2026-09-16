@@ -2,7 +2,7 @@
 
 #include "engine/rendering/shader/compute_shader.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     struct ComputePipelineSpecifications
     {

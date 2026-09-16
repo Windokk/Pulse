@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     
     static GLenum ShaderDataTypeToOpenGL(ShaderDataType type)
     {

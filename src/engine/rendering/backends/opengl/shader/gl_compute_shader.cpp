@@ -9,7 +9,7 @@
 #include "engine/rendering/renderer/renderer.hpp"
 #include "engine/rendering/renderer/renderer_api.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     void GLComputeShader::CompileErrors(unsigned int shader, const char* type)
     {

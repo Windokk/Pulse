@@ -7,15 +7,15 @@
 
 #include <glm/glm.hpp>
 
-namespace Pulse::Engine::Levels {
+namespace Shard::Engine::Levels {
     class Level;
 }
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
     class Mesh;
 }
 
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     struct BVHNode;
 

@@ -14,7 +14,7 @@
 
 #include <cstring>
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     using Engine::Core::GetEngine;
 
@@ -317,7 +317,7 @@ namespace Pulse::Editor::GUI{
         if (!ImGui::BeginMenu("Help"))
             return;
 
-        if (ImGui::MenuItem("About Pulse"))
+        if (ImGui::MenuItem("About Shard"))
             openAboutPopup = true;
 
         ImGui::EndMenu();
@@ -327,14 +327,14 @@ namespace Pulse::Editor::GUI{
     {
         if (openAboutPopup)
         {
-            ImGui::OpenPopup("About Pulse##MenuBar");
+            ImGui::OpenPopup("About Shard##MenuBar");
             openAboutPopup = false;
         }
 
         ImGui::SetNextWindowSize(ImVec2(360, 0));
-        if (ImGui::BeginPopupModal("About Pulse##MenuBar", nullptr, ImGuiWindowFlags_NoResize))
+        if (ImGui::BeginPopupModal("About Shard##MenuBar", nullptr, ImGuiWindowFlags_NoResize))
         {
-            ImGui::TextUnformatted("Pulse");
+            ImGui::TextUnformatted("Shard");
             ImGui::TextDisabled("A game engine and editor.");
             ImGui::Spacing();
             ImGui::Separator();

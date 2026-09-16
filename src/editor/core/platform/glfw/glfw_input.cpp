@@ -4,7 +4,7 @@
 
 #include "editor/gui/main_window.hpp"
 
-namespace Pulse::Editor::Core {
+namespace Shard::Editor::Core {
 
     void GLFWInput::SetWindow(GLFWwindow * window)
     { 

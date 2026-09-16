@@ -2,7 +2,7 @@
 
 #include "engine/core/engine.hpp"
 
-namespace Pulse::Engine::Core{
+namespace Shard::Engine::Core{
 
     void Object::AssignObjectID(std::shared_ptr<Object> obj)
     {

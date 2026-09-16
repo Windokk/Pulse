@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Pulse::Engine::Input {
+namespace Shard::Engine::Input {
 
     // Printable keys
     enum class Key {

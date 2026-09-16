@@ -6,7 +6,7 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     std::shared_ptr<RendererAPI> RendererAPI::Create(API api)
     {

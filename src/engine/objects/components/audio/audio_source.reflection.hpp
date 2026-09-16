@@ -8,7 +8,7 @@
 inline FieldInfo AudioSource_assetID_info = {
     "assetID",
     TypeID::Asset,
-    offsetof(Pulse::Engine::Objects::Components::AudioSource, assetID),
+    offsetof(Shard::Engine::Objects::Components::AudioSource, assetID),
     Editable,
     0, 0,
     nullptr,
@@ -22,7 +22,7 @@ inline FieldInfo AudioSource_assetID_info = {
 inline FieldInfo AudioSource_volume_info = {
     "volume",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::AudioSource, volume),
+    offsetof(Shard::Engine::Objects::Components::AudioSource, volume),
     Editable,
     0, 0,
     nullptr,
@@ -36,7 +36,7 @@ inline FieldInfo AudioSource_volume_info = {
 inline FieldInfo AudioSource_playOnStart_info = {
     "playOnStart",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::AudioSource, playOnStart),
+    offsetof(Shard::Engine::Objects::Components::AudioSource, playOnStart),
     Editable,
     0, 0,
     nullptr,
@@ -50,7 +50,7 @@ inline FieldInfo AudioSource_playOnStart_info = {
 inline FieldInfo AudioSource_spatialize_info = {
     "spatialize",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::AudioSource, spatialize),
+    offsetof(Shard::Engine::Objects::Components::AudioSource, spatialize),
     Editable,
     0, 0,
     nullptr,
@@ -61,7 +61,7 @@ inline FieldInfo AudioSource_spatialize_info = {
     &Equals<bool>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::AudioSource::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::AudioSource::descriptor = {
     "AudioSource",
     {
         &AudioSource_assetID_info,

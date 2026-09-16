@@ -10,11 +10,11 @@ file(GLOB_RECURSE EDITOR_SOURCES
   ${CMAKE_SOURCE_DIR}/submodules/imgui/backends/imgui_impl_opengl3.cpp
 )
 
-add_executable(PulseEditor ${EDITOR_SOURCES})
+add_executable(ShardEditor ${EDITOR_SOURCES})
 
-target_compile_definitions(PulseEditor PRIVATE BUILD_ENGINE BUILD_EDITOR)
+target_compile_definitions(ShardEditor PRIVATE BUILD_ENGINE BUILD_EDITOR)
 
-target_include_directories(PulseEditor PRIVATE
+target_include_directories(ShardEditor PRIVATE
   ${CMAKE_SOURCE_DIR}/src/
   ${CMAKE_CURRENT_SOURCE_DIR}/third-party/include/
   ${CMAKE_SOURCE_DIR}/submodules/imgui/
@@ -22,7 +22,7 @@ target_include_directories(PulseEditor PRIVATE
   ${CMAKE_SOURCE_DIR}/submodules/glfw/include/
 )
 
-set_target_properties(PulseEditor PROPERTIES
+set_target_properties(ShardEditor PROPERTIES
     ${BUNDLE_ID_OPTION}
     WIN32_EXECUTABLE FALSE
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
@@ -30,6 +30,6 @@ set_target_properties(PulseEditor PROPERTIES
 
 set(GLFW_LIB_DIR ${CMAKE_BINARY_DIR})
 
-target_link_directories(PulseEditor PUBLIC ${GLFW_LIB_DIR})
+target_link_directories(ShardEditor PUBLIC ${GLFW_LIB_DIR})
 
-target_link_libraries(PulseEditor PRIVATE Engine glfw3)
+target_link_libraries(ShardEditor PRIVATE Engine glfw3)

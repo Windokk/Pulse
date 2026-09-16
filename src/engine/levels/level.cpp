@@ -14,7 +14,7 @@
 #include "engine/rendering/pipeline/pipeline.hpp"
 #include "engine/rendering/renderer/renderer.hpp"
 
-namespace Pulse::Engine::Levels{
+namespace Shard::Engine::Levels{
 
 
     Level::Level(std::string name, Filesystem::Path path)
@@ -65,7 +65,7 @@ namespace Pulse::Engine::Levels{
             else{
                 //Custom component/Inherited component case
                 //Note : The custom component has to be already registered
-                std::shared_ptr<Objects::Components::Component> rawComponent = Pulse::Engine::Objects::Components::GetComponentRegistry().CreateComponentByName(type);
+                std::shared_ptr<Objects::Components::Component> rawComponent = Shard::Engine::Objects::Components::GetComponentRegistry().CreateComponentByName(type);
                 if (!rawComponent) {
                     DEBUG_WARNING("Unknown component type: " + type);
                     continue;
@@ -238,7 +238,7 @@ namespace Pulse::Engine::Levels{
         dirty = false;
     }
 
-    void SerializeActor(std::shared_ptr<Pulse::Engine::Objects::Actor> a, ordered_json* actorsArray){
+    void SerializeActor(std::shared_ptr<Shard::Engine::Objects::Actor> a, ordered_json* actorsArray){
         
         ordered_json actor;
 

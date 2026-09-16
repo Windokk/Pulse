@@ -8,7 +8,7 @@
 
 #include "engine/rendering/shader/compute_shader.hpp"
 
-namespace Pulse::Engine::Rendering
+namespace Shard::Engine::Rendering
 {
     std::shared_ptr<ComputePipeline> ComputePipeline::Create(const ComputePipelineSpecifications &specs)
     {

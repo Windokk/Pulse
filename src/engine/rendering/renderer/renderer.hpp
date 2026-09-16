@@ -13,7 +13,7 @@
 #include <map>
 #include <variant>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class LightManager;
     class ShadowManager;

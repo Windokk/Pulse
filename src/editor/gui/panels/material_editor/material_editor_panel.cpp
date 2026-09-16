@@ -21,9 +21,9 @@
 
 using namespace nlohmann;
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
-    using namespace Pulse::Engine;
+    using namespace Shard::Engine;
 
     static bool NameLooksLikeColor(const std::string& name)
     {

@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace Pulse::Editor::GUI::Notifications
+namespace Shard::Editor::GUI::Notifications
 {
     namespace
     {

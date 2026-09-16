@@ -10,7 +10,7 @@
 #undef CreateWindow
 #endif
 
-namespace Pulse::Editor::Core {
+namespace Shard::Editor::Core {
 
     class EditorMainWindow;
 

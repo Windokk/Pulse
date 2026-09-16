@@ -8,7 +8,7 @@
 #include <vector>
 #include <memory>
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     
     using namespace Objects::Components;
 

@@ -19,11 +19,11 @@
 
 #include "engine/core/resources/resources_manager.hpp"
 
-using namespace Pulse::Engine;
-using namespace Pulse::Engine::Core;
-using namespace Pulse::Engine::Debugging;
+using namespace Shard::Engine;
+using namespace Shard::Engine::Core;
+using namespace Shard::Engine::Debugging;
 
-namespace Pulse::Editor {
+namespace Shard::Editor {
 
     // GAME MODULE
     using GameInitFn = void(*)(IEngineContext*, Objects::Components::ComponentRegistry*);

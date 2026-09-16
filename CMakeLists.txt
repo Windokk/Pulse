@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28.2)
 
-project(Pulse VERSION 0.1.0 LANGUAGES C CXX)
+project(Shard VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -44,7 +44,7 @@ add_subdirectory(submodules/glfw)
 add_subdirectory(submodules/glm)
 add_subdirectory(submodules/jolt/Build)
 
-# Subdirs (Pulse)
+# Subdirs (Shard)
 add_subdirectory(src/engine)
 add_subdirectory(src/game)
 add_subdirectory(src/editor)

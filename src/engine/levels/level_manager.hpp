@@ -5,7 +5,7 @@
 #include "level.hpp"
 #include "level_asset_prefetcher.hpp"
 
-namespace Pulse::Engine::Levels{
+namespace Shard::Engine::Levels{
 
     class LevelManager {
         public:

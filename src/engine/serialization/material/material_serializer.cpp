@@ -14,7 +14,7 @@
 
 using namespace nlohmann;
 
-namespace Pulse::Engine::Serialization{
+namespace Shard::Engine::Serialization{
 
     using namespace Core::Resources;
     using namespace Rendering;

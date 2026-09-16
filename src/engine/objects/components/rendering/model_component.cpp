@@ -14,7 +14,7 @@
 
 #include "engine/rendering/lighting/shadow_manager.hpp"
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
     
 
     Model::Model(std::shared_ptr<Actor> parent, uint32_t localID) : Component(parent, localID)

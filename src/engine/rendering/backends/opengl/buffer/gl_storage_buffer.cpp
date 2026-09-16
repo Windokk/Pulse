@@ -2,7 +2,7 @@
 
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     GLStorageBuffer::GLStorageBuffer(uint32_t size) : m_Size(size)
     {

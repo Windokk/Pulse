@@ -4,7 +4,7 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
 
     ComponentRegistry gSharedComponentRegistry;
 

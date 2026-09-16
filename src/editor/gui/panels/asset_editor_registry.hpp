@@ -4,7 +4,7 @@
 
 #include <unordered_map>
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     // Global Type -> IAssetEditor* lookup. Panels register themselves once at startup (they own their
     // own lifetime - the registry only keeps a non-owning pointer, mirroring how every other panel is

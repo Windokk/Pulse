@@ -2,7 +2,7 @@
 
 #include "engine/rendering/pipeline/compute_pipeline.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class GLComputePipeline : public ComputePipeline
     {
     public:

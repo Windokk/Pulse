@@ -1,9 +1,9 @@
-<h1 align="center">Pulse Engine</h1>
+<h1 align="center">Shard Engine</h1>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/PulseLogoDarkMode.png" width="15%">
-    <source media="(prefers-color-scheme: light)" srcset=".github/PulseLogoLightMode.png" width="15%">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/ShardLogoWhite.png" width="15%">
+    <source media="(prefers-color-scheme: light)" srcset=".github/ShardLogoBlack.png" width="15%">
     <img alt="Fallback image description" src="default-image.png" width="20%">
   </picture>
 </p>
@@ -14,8 +14,10 @@
 
 ## Screenshots
 
-<img src=".github/ScreenShot0.png"/>
+<img src=".github/ScreenShot0.jpg"/>
+<p align="center"><i>Path traced render</i></p>
 <img src=".github/ScreenShot1.png"/>
+<p align="center"><i>View in engine</i></p>
 
 ## How to use (Linux)
 
@@ -49,11 +51,11 @@ Drop fmod.dll and glfw3.dll inside the build folder
 
 Drop engine_resources folder and editor_resources folder inside build directory
 
-Drop PulseReflect executable inside build/tools/
+Drop ShardReflect executable inside build/tools/
 
 This runs the editor, loads the game module, opens the project at "project path" and uses open gl core as the rendering api
 ```bash
-./PulseEditor.exe --game libGameModule.dll --project ..\\test_project\\test_project.json --api opengl
+./ShardEditor.exe --game libGameModule.dll --project ..\\test_project\\test_project.json --api opengl
 ```
 
 ## Credits/Dependencies

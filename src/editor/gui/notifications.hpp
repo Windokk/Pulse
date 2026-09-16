@@ -10,7 +10,7 @@
 //
 // All functions must be called from the UI thread, between ImGui::NewFrame() and ImGui::Render().
 // RenderFrame() has to be called exactly once per frame for anything to show up.
-namespace Pulse::Editor::GUI::Notifications
+namespace Shard::Editor::GUI::Notifications
 {
     // Draw every live notification. Call once per frame, after all other ImGui windows.
     void RenderFrame();

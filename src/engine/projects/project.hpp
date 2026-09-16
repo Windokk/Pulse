@@ -5,7 +5,7 @@
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Projects{
+namespace Shard::Engine::Projects{
 
     struct BuildSettings{
         // TODO : Target system

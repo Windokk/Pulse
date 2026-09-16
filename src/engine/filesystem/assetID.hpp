@@ -7,7 +7,7 @@
 #include <memory>
 #include <engine/debugging/logger.hpp>
 
-namespace Pulse::Engine::Filesystem
+namespace Shard::Engine::Filesystem
 {
     struct AssetInfos;
 

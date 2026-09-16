@@ -1,4 +1,4 @@
-// Mirrors Pulse::Engine::Rendering::LightData exactly (see light_manager.hpp) - shared by every stage
+// Mirrors Shard::Engine::Rendering::LightData exactly (see light_manager.hpp) - shared by every stage
 // that reads the per-frame light list uploaded by LightManager : the offline path tracer
 // (compute/path_trace.comp), the DDGI probe tracer (compute/probes/probe_trace.comp), and the forward
 // pass (mesh/lit.frag). Field layout must stay in sync with the C++ struct - reordering or resizing

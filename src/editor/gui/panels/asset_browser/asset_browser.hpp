@@ -6,11 +6,11 @@
 
 #include "editor/gui/panels/common.hpp"
 
-namespace Pulse::Editor::Core{
+namespace Shard::Editor::Core{
     class EditorMainWindow;
 }
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     struct ExampleSelectionWithDeletion : ImGuiSelectionBasicStorage
     {

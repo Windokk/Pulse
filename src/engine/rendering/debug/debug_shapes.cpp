@@ -5,7 +5,7 @@
 #include "engine/rendering/mesh/mesh.hpp"
 #include "engine/rendering/shader/shader.hpp"
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     struct Vertex {
         glm::vec3 position;

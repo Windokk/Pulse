@@ -25,7 +25,7 @@
 // of letting the exception propagate. An uncaught std::system_error from a background scene-build thread
 // ends up rethrown on the main thread the moment ProbeManager::Update() calls future::get() on it -
 // an unhandled exception there crashes the whole editor.
-namespace Pulse::Engine::Rendering::Raytracing {
+namespace Shard::Engine::Rendering::Raytracing {
 
     inline std::atomic<int>& GlobalWorkerBudget()
     {

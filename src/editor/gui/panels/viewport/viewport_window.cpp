@@ -80,7 +80,7 @@ namespace {
 
 }
 
-namespace Pulse::Editor::GUI {
+namespace Shard::Editor::GUI {
 
     ImVec2 ViewportWindow::prev_size = ImVec2(0, 0);
 

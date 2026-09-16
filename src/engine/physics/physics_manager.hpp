@@ -35,7 +35,7 @@ using namespace JPH::literals;
 
 using namespace std;
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
     class PhysicsBody;
 }
 
@@ -69,7 +69,7 @@ static glm::vec3 ToGLM(const JPH::RVec3& v)
     );
 }
 
-namespace Pulse::Engine::Physics
+namespace Shard::Engine::Physics
 {
     
     enum PhysicsShape{

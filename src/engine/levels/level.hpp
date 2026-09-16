@@ -9,7 +9,7 @@
 #include "engine/objects/skybox/skybox.hpp"
 #include "engine/filesystem/filesystem.hpp"
 
-namespace Pulse::Engine::Objects{
+namespace Shard::Engine::Objects{
 
     class Actor;
 
@@ -23,13 +23,13 @@ namespace Pulse::Engine::Objects{
     }
 }
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     class Renderer;
     class Mesh;
     class Texture2D;
 }
 
-namespace Pulse::Engine::Levels{
+namespace Shard::Engine::Levels{
 
     struct LevelAssetManifest
     {

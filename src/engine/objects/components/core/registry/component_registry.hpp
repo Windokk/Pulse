@@ -6,7 +6,7 @@
 #include <iostream>
 #include <memory>
 
-namespace Pulse::Engine::Objects::Components {
+namespace Shard::Engine::Objects::Components {
 
     class Component;
     using ComponentFactory = std::shared_ptr<Component>(*)();

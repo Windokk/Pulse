@@ -9,7 +9,7 @@
 #include "engine/serialization/material/material_serializer.hpp"
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Levels{
+namespace Shard::Engine::Levels{
 
     void AssetPrefetcher::BeginLoad(const std::string &pathInProject)
     {

@@ -15,7 +15,7 @@
 
 #include "engine/rendering/buffer/storage_buffer.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     LightManager::LightManager()
     {

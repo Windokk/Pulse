@@ -3,7 +3,7 @@
 #include "engine/rendering/backends/opengl/gl_utils.hpp"
 #include "engine/rendering/backends/opengl/texture/gl_texture.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     
     GLCubemap::GLCubemap(const TextureSpecifications &specs, std::array<unsigned char*, 6> faces)
     {

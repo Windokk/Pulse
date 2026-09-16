@@ -17,7 +17,7 @@
 
 #include <thread>
 
-namespace Pulse::Engine::Objects::Components{
+namespace Shard::Engine::Objects::Components{
 
     namespace {
         void InitShapeParams(InstancedStruct& params, Physics::PhysicsShape type)

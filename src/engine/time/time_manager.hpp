@@ -4,7 +4,7 @@
 #include <mutex>
 #include <thread>
 
-namespace Pulse::Engine::Time{
+namespace Shard::Engine::Time{
 
 
     using Clock = std::chrono::steady_clock;

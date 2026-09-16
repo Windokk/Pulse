@@ -29,7 +29,7 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     namespace {
 

@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace Pulse::Engine::Core::Platform {
+namespace Shard::Engine::Core::Platform {
 
     struct MonitorInfos{
         int width, height, refreshRate;

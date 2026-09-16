@@ -6,7 +6,7 @@
 
 #include <type_traits>
 
-namespace Pulse::Engine::Rendering {
+namespace Shard::Engine::Rendering {
 
     class DrawCommand;
     class Mesh;

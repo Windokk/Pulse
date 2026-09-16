@@ -18,7 +18,7 @@
 #include <functional>
 #include <algorithm>
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     const ImGuiTableSortSpecs* Asset::s_current_sort_specs = NULL;
 

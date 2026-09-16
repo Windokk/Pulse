@@ -1,4 +1,4 @@
 #include "camera_manager.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 }

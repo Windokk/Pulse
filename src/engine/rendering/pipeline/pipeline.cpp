@@ -8,7 +8,7 @@
 
 #include "engine/rendering/renderer/renderer.hpp"
 
-namespace Pulse::Engine::Rendering
+namespace Shard::Engine::Rendering
 {
     std::shared_ptr<Pipeline> Pipeline::Create(const PipelineSpecifications &specs)
     {

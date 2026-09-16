@@ -10,7 +10,7 @@
 
 #include "engine/debugging/logger.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
     std::shared_ptr<Cubemap> Cubemap::Create(const TextureSpecifications& specs, std::array<unsigned char*, 6> faces)
     {
         switch(Core::GetEngine().GetRenderer()->GetRendererAPI()->GetAPI())

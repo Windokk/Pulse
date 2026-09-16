@@ -8,7 +8,7 @@
 inline FieldInfo Transform_position_info = {
     "position",
     TypeID::Vec3,
-    offsetof(Pulse::Engine::Objects::Components::Transform, position),
+    offsetof(Shard::Engine::Objects::Components::Transform, position),
     Editable,
     0, 0,
     nullptr,
@@ -22,7 +22,7 @@ inline FieldInfo Transform_position_info = {
 inline FieldInfo Transform_rotation_info = {
     "rotation",
     TypeID::Quat,
-    offsetof(Pulse::Engine::Objects::Components::Transform, rotation),
+    offsetof(Shard::Engine::Objects::Components::Transform, rotation),
     Editable,
     0, 0,
     nullptr,
@@ -36,7 +36,7 @@ inline FieldInfo Transform_rotation_info = {
 inline FieldInfo Transform_scale_info = {
     "scale",
     TypeID::Vec3,
-    offsetof(Pulse::Engine::Objects::Components::Transform, scale),
+    offsetof(Shard::Engine::Objects::Components::Transform, scale),
     Editable,
     0, 0,
     nullptr,
@@ -47,7 +47,7 @@ inline FieldInfo Transform_scale_info = {
     &Equals<glm::vec3>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::Transform::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::Transform::descriptor = {
     "Transform",
     {
         &Transform_position_info,

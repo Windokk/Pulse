@@ -74,7 +74,7 @@ namespace std {
     };
 }
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     namespace {
 

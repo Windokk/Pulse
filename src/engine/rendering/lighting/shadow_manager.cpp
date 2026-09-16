@@ -20,7 +20,7 @@
 
 #include "glm/gtx/string_cast.hpp"
 
-namespace Pulse::Engine::Rendering{
+namespace Shard::Engine::Rendering{
 
     float ComputeCascadeSplitDistance(int cascadeIndex, float nearPlane, float farPlane, int totalCascades)
     {
@@ -582,7 +582,7 @@ namespace Pulse::Engine::Rendering{
         ReassignShadowIndices();
     }
 
-    void ShadowManager::BindShadowMaps(std::shared_ptr<Pulse::Engine::Rendering::Material> material)
+    void ShadowManager::BindShadowMaps(std::shared_ptr<Shard::Engine::Rendering::Material> material)
     {
         // Every slot bound here is read from LightData::shadowIndex (kept in sync by
         // ReassignShadowIndices, called after every registration/removal) rather than recomputed by

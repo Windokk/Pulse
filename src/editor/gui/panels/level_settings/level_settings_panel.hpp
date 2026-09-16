@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     // Editor panel for level-wide (not per-actor) settings - the level-scoped counterpart to
     // PropertiesPanel, which only ever edits the selected actor. Fields are grouped into collapsible

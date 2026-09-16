@@ -2,7 +2,7 @@
 
 #include "editor/gui/main_window.hpp"
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     void Console::SetParentWindow(Core::EditorMainWindow *parent)
     {

@@ -10,7 +10,7 @@
 
 #include "engine/core/reflection_fields.hpp"
 
-namespace Pulse::Editor::GUI{
+namespace Shard::Editor::GUI{
 
     class EditorMainWindow;
 

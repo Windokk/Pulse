@@ -18,7 +18,7 @@ static EnumDescriptor LightType_descriptor = {
 inline FieldInfo Light_type_info = {
     "type",
     TypeID::Enum,
-    offsetof(Pulse::Engine::Objects::Components::Light, type),
+    offsetof(Shard::Engine::Objects::Components::Light, type),
     Editable,
     0, 0,
     nullptr,
@@ -32,7 +32,7 @@ inline FieldInfo Light_type_info = {
 inline FieldInfo Light_intensity_info = {
     "intensity",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Light, intensity),
+    offsetof(Shard::Engine::Objects::Components::Light, intensity),
     Editable,
     0, 0,
     nullptr,
@@ -46,7 +46,7 @@ inline FieldInfo Light_intensity_info = {
 inline FieldInfo Light_radius_info = {
     "radius",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Light, radius),
+    offsetof(Shard::Engine::Objects::Components::Light, radius),
     Editable,
     0, 0,
     nullptr,
@@ -60,7 +60,7 @@ inline FieldInfo Light_radius_info = {
 inline FieldInfo Light_color_info = {
     "color",
     TypeID::ColorRGB,
-    offsetof(Pulse::Engine::Objects::Components::Light, color),
+    offsetof(Shard::Engine::Objects::Components::Light, color),
     Editable,
     0, 0,
     nullptr,
@@ -74,7 +74,7 @@ inline FieldInfo Light_color_info = {
 inline FieldInfo Light_outerCutoff_info = {
     "outerCutoff",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Light, outerCutoff),
+    offsetof(Shard::Engine::Objects::Components::Light, outerCutoff),
     Editable,
     0.0f, 90.0f,
     nullptr,
@@ -88,7 +88,7 @@ inline FieldInfo Light_outerCutoff_info = {
 inline FieldInfo Light_innerCutoff_info = {
     "innerCutoff",
     TypeID::Float,
-    offsetof(Pulse::Engine::Objects::Components::Light, innerCutoff),
+    offsetof(Shard::Engine::Objects::Components::Light, innerCutoff),
     Editable,
     0.0f, 90.0f,
     nullptr,
@@ -102,7 +102,7 @@ inline FieldInfo Light_innerCutoff_info = {
 inline FieldInfo Light_castShadows_info = {
     "castShadows",
     TypeID::Bool,
-    offsetof(Pulse::Engine::Objects::Components::Light, castShadows),
+    offsetof(Shard::Engine::Objects::Components::Light, castShadows),
     Editable,
     0, 0,
     nullptr,
@@ -113,7 +113,7 @@ inline FieldInfo Light_castShadows_info = {
     &Equals<bool>
 };
 
-inline ClassDescriptor Pulse::Engine::Objects::Components::Light::descriptor = {
+inline ClassDescriptor Shard::Engine::Objects::Components::Light::descriptor = {
     "Light",
     {
         &Light_type_info,
