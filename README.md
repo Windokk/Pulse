@@ -35,7 +35,7 @@
 - [lucide.ttf](https://unpkg.com/lucide-static@latest/font/lucide.ttf)
 
 
-### How to build :
+### How to build & run :
 
 Modify imgui submodule to use our vulkan.h (src/engine/rendering/backends/glad/include/glad/vulkan.h)
 
@@ -49,7 +49,7 @@ Drop fmod.dll and glfw3.dll inside the build folder
 
 Drop engine_resources folder and editor_resources folder inside build directory
 
-### How to run :
+Drop PulseReflect executable inside build/tools/
 
 This runs the editor, loads the game module, opens the project at "project path" and uses open gl core as the rendering api
 ```bash
