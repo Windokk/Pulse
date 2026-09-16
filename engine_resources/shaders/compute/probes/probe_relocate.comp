@@ -30,6 +30,11 @@ uniform int uProbeCount;
 uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
 
+// Round-robin probe update - see the identical uniforms in probe_trace.comp. A probe only relocates on
+// the frames its own rays were re-traced, since the whole decision below reads that trace's output.
+uniform int uUpdateStride;
+uniform int uUpdatePhase;
+
 // Must match the rotation probe_trace.comp used for THIS frame's bounce 0 (ProbeManager::UpdateVolume
 // passes the same rayRotation to both dispatches) so the direction reconstructed per texel below is the
 // real direction that texel's ray was traced along.
@@ -51,7 +56,7 @@ const float BACKFACE_RATIO = 0.25;
 
 void main()
 {
-    int probeIndex = int(gl_GlobalInvocationID.x);
+    int probeIndex = uUpdatePhase + int(gl_GlobalInvocationID.x) * uUpdateStride;
     if (probeIndex >= uProbeCount)
         return;
 

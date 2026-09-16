@@ -315,12 +315,17 @@ int DDGI_PickVolume(vec3 p) {
     return best;
 }
 
-// Trilinearly blends the 8 probes of volume `v` surrounding worldPos, each sampled toward N, and
-// combines the result with albedo/metallic the same way IBL_Diffuse does. Each probe's trilinear grid
-// weight is further scaled by DDGI_VisibilityWeight (occluded probe -> ~0) and by the probe's
-// classification flag (probe embedded in geometry -> 0), and every probe position includes its
-// relocation offset (see DDGI_ProbeState / probe_relocate.comp).
-vec3 DDGI_Diffuse(int v, vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
+// Trilinearly blends the 8 probes of volume `v` surrounding worldPos, sampling each one TWICE - once
+// toward N (`outDiffuse`, the cosine-lobe irradiance a diffuse surface receives) and once toward
+// `specDir` (`outSpecular`, the same data read as incoming radiance from the reflection direction).
+// Both share one loop on purpose : a probe's weight depends only on where the shading point is relative
+// to that probe, never on which direction the tile is then read in, so the expensive half - eight
+// Chebyshev visibility lookups into the distance atlas - is paid once instead of twice.
+//
+// Each probe's trilinear grid weight is scaled by DDGI_VisibilityWeight (occluded probe -> ~0) and by
+// the probe's classification flag (probe embedded in geometry -> 0), and every probe position includes
+// its relocation offset (see DDGI_ProbeState / probe_relocate.comp).
+void DDGI_SampleVolume(int v, vec3 worldPos, vec3 N, vec3 specDir, out vec3 outDiffuse, out vec3 outSpecular) {
     // Bias the sampled position off the surface along its normal before gridding, same as
     // probe_trace.comp's SampleIndirect (see that function's comment) - kept in sync since they're
     // sibling copies of the same trilinear-probe-blend logic (one feeding the next bounce, this one
@@ -336,6 +341,7 @@ vec3 DDGI_Diffuse(int v, vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
     vec3 frac = clamp(gridPos - base, 0.0, 1.0);
 
     vec3 irradiance = vec3(0.0);
+    vec3 specRadiance = vec3(0.0);
     float totalWeight = 0.0;
 
     for (int i = 0; i < 8; i++) {
@@ -368,20 +374,66 @@ vec3 DDGI_Diffuse(int v, vec3 worldPos, vec3 N, vec3 albedo, float metallic) {
         if (weight <= 0.0)
             continue;
 
-        irradiance += DDGI_SampleProbe(v, probeIndex, N) * weight;
+        irradiance   += DDGI_SampleProbe(v, probeIndex, N) * weight;
+        specRadiance += DDGI_SampleProbe(v, probeIndex, specDir) * weight;
         totalWeight += weight;
     }
 
     // Deliberately no epsilon floor on totalWeight : if every surrounding probe is occluded from this
     // point (e.g. a fully sealed room lit only from outside), the correct result is 0 (no bounce light),
     // not a dim leak propped up by a fallback weight.
-    if (totalWeight > 0.0)
+    if (totalWeight > 0.0) {
         irradiance /= totalWeight;
+        specRadiance /= totalWeight;
+    }
 
+    outDiffuse = irradiance;
+    outSpecular = specRadiance;
+}
+
+// Diffuse indirect : the blended probe irradiance combined with albedo/metallic exactly the way
+// IBL_Diffuse does. Multiplying by this surface's own albedo is where colour bleeding lands - light
+// that already picked up a red wall's tint arrives tinted, and leaves tinted again by whatever it hits.
+vec3 DDGI_Diffuse(vec3 irradiance, vec3 albedo, float metallic) {
     vec3 kS = mix(vec3(0.04), albedo, metallic);
     vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
     return irradiance * albedo * kD;
+}
+
+// Split-sum environment BRDF, Karis' analytic fit instead of a lookup into ibl_brdfLUT. The LUT is only
+// bound when the level actually has a skybox (see GLRendererAPI::BindLevelState), and probe-lit
+// reflections have to work in a room that has none at all - a sealed Cornell box being the obvious case,
+// where the entire point is that the reflections come from the red and green walls and not from a sky.
+vec3 EnvBRDFApprox(vec3 F0, float roughness, float NdotV) {
+    const vec4 c0 = vec4(-1.0, -0.0275, -0.572, 0.022);
+    const vec4 c1 = vec4(1.0, 0.0425, 1.04, -0.04);
+    vec4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
+    vec2 AB = vec2(-1.04, 1.04) * a004 + r.zw;
+    return F0 * AB.x + AB.y;
+}
+
+// Specular indirect from the probe grid - the "coloured reflection" half of GI, and the only source of
+// one for a surface with no skybox behind it. A probe tile is a cosine-lobe-filtered environment map,
+// i.e. an extremely wide specular lobe, so this is only an honest answer for rough surfaces : the
+// lookup direction is therefore pulled from the mirror direction R back toward N as roughness rises (so
+// the direction sampled matches the lobe width the atlas can actually represent), and main() crossfades
+// this against the sharp skybox reflection by roughness where a skybox exists.
+vec3 DDGI_SpecularDirection(vec3 N, vec3 V, float roughness) {
+    vec3 R = reflect(-V, N);
+    vec3 dir = mix(R, N, roughness * roughness);
+    // R and N are antiparallel when the (possibly normal-mapped) normal points straight away from the
+    // viewer, and the blend above then passes exactly through zero at roughness^2 == 0.5 - normalizing
+    // that is a NaN, which propagates through the atlas lookup into the shaded pixel. Fall back to N,
+    // the direction this blend is heading toward anyway.
+    float len = length(dir);
+    return len > 1e-4 ? dir / len : N;
+}
+
+vec3 DDGI_Specular(vec3 radiance, vec3 N, vec3 V, vec3 albedo, float metallic, float roughness) {
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    return radiance * EnvBRDFApprox(F0, roughness, max(dot(N, V), 0.0));
 }
 
 vec3 IBL_Specular(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness){
@@ -554,9 +606,27 @@ void main() {
     int ddgiVolume = ddgi_enabled ? DDGI_PickVolume(worldPos) : -1;
 
     if (ddgiVolume >= 0) {
-        ambientDiffuse = DDGI_Diffuse(ddgiVolume, worldPos, worldNormal, baseColor.rgb, metallicValue);
+        vec3 probeIrradiance;
+        vec3 probeRadiance;
+        DDGI_SampleVolume(ddgiVolume, worldPos, worldNormal,
+                          DDGI_SpecularDirection(worldNormal, V, roughnessValue),
+                          probeIrradiance, probeRadiance);
+
+        ambientDiffuse = DDGI_Diffuse(probeIrradiance, baseColor.rgb, metallicValue);
+
+        // Indirect specular from the probes : what the surroundings actually reflect, rather than what
+        // the sky would if it could be seen from here. Crossfaded against the skybox reflection by
+        // roughness where there is a skybox to crossfade with - a probe tile carries no sharp detail, so
+        // a near-mirror surface is better served by the prefiltered environment map, while a rough one
+        // is better served by the probes (indoors, the sky is usually not what it can see at all). Not
+        // gated behind useEnvReflections, for the same reason the diffuse term above isn't : that flag
+        // toggles the costlier skybox reflections per material, and gating real computed GI behind it
+        // means a material that happens to have it off silently gets no indirect specular anywhere.
+        vec3 probeSpecular = DDGI_Specular(probeRadiance, worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
         if (useEnvReflections)
-            specularIBL = IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue);
+            specularIBL = mix(IBL_Specular(worldNormal, V, baseColor.rgb, metallicValue, roughnessValue), probeSpecular, roughnessValue);
+        else
+            specularIBL = probeSpecular;
     }
     else if (useEnvReflections) {
         ambientDiffuse = IBL_Diffuse(worldNormal, baseColor.rgb, metallicValue);

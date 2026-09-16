@@ -25,6 +25,7 @@ namespace Pulse::Engine::Rendering {
     class Renderer;
     class StorageBuffer;
     class Texture2D;
+    class Cubemap;
     class ComputeShader;
     class ComputePipeline;
 
@@ -42,6 +43,32 @@ namespace Pulse::Engine::Rendering {
     // in practice on an NVIDIA driver, GL error C7612) once the existing albedo/IBL/shadow-map samplers
     // are counted - see the binding layout comment in lit.frag.
     constexpr int kMaxProbeVolumes = 2;
+
+    // Upper bound on ProbeVolume::raysPerProbe (a 16x16 octahedral tile). MUST match MAX_TILE_TEXELS in
+    // probe_irradiance_convolve.comp, which stages one whole tile in shared memory and therefore needs a
+    // compile-time bound on it. Not a limitation in practice : past this point, raising the ray count is
+    // the wrong lever anyway (cost is linear in it, noise only falls with its square root - the temporal
+    // blend is where quality is cheap).
+    constexpr int kMaxRaysPerProbe = 256;
+
+    // Upper bound on ProbeVolume::probeUpdateStride (round-robin probe update, see the class comment).
+    // Capped because the temporal hysteresis is raised to this power to keep the response time constant
+    // (see kBaseTemporalHysteresis) : past 8 that exponent drives the per-update blend weight low enough
+    // that each refresh is essentially a full overwrite, so the smoothing that makes a single noisy ray
+    // fan usable stops working and the volume just flickers instead.
+    constexpr int kMaxProbeUpdateStride = 8;
+
+    // Base per-frame temporal hysteresis for the published atlas (see probe_temporal_blend.comp). An
+    // exponential moving average has a fixed effective memory of ~1/(1-h) frames and a steady-state
+    // noise floor of sqrt((1-h)/(1+h)) relative to one frame's raw noise, so this is a direct
+    // response-time vs. grain trade : 0.97 settles in ~33 frames with a ~12% floor. It is deliberately
+    // NOT pushed higher now that bounces are fed back across frames (see the class comment) - the bounce
+    // chain is a cascade of these filters, so settling time multiplies by roughly the number of hops,
+    // and a value like 0.99 that reads fine for a single-pass blend turns into seconds of visible lag
+    // before indirect light finishes creeping into a room. UpdateVolume() raises it to the power of the
+    // probe update stride so a volume's response in seconds is independent of how many frames it
+    // spreads its probes over.
+    constexpr float kBaseTemporalHysteresis = 0.97f;
 
     // Owns the scene-wide resources for real-time diffuse GI via a grid of irradiance probes
     // (DDGI-like : a handful of rays traced per probe per frame against a persistent BVH, encoded into
@@ -64,14 +91,30 @@ namespace Pulse::Engine::Rendering {
     // wherever it applies, with no explicit priority field needed (see ProbeVolume's header comment for
     // the concrete case this exists for - an object too small for the room-scale grid to resolve at all).
     //
+    // Multi-bounce is fed back ACROSS frames, not within one : each frame traces every updated probe
+    // exactly once, and the bounce term those rays pick up at their hit points is read straight out of
+    // the previous frame's published atlas (see probe_trace.comp). Frame N's atlas therefore already
+    // carries every bounce frame N-1 had resolved, so bounce depth grows by one hop per frame and
+    // converges to effectively unbounded depth - for the cost of a SINGLE trace pass per frame. The
+    // previous design instead re-traced the whole ray set maxBounces times every frame for a hard cap of
+    // maxBounces bounces, which was both several times more expensive and strictly less light (and, in
+    // particular, visibly less colour bleed - the deep hops are where most of a Cornell box's red/green
+    // wall tint on the white surfaces comes from).
+    //
+    // On top of that, a volume can spread its probes over several frames (ProbeVolume::probeUpdateStride,
+    // RTXGI's round-robin probe update) : with a stride of N only the probes whose index is congruent to
+    // the frame number mod N are traced, so the per-frame ray cost drops by N while each probe still
+    // refreshes every N frames. Every stage of the update walks that same subset, and the temporal
+    // hysteresis is raised to the Nth power so a volume's response time in SECONDS doesn't change with
+    // the stride.
+    //
     // Scope kept intentionally simple beyond that : a persistent BVH/triangle/material snapshot rebuilt
     // on demand rather than every frame (so moving static geometry doesn't affect the GI until
     // RebuildScene() is called again, shared across every volume since it's level-wide, not per-volume),
-    // no cross-fading at a volume's boundary (a fragment picks exactly one volume, no blend between two
-    // overlapping ones), and a fixed (maxBounces-deep, see ProbeVolume) number of feedback bounces per
-    // frame rather than a true recursive path per ray. The ray fan IS given a fresh random rotation every
-    // frame per volume (see m_RayRNG) specifically so the temporal hysteresis blend can average out
-    // angular aliasing over time instead of locking in whatever a fixed ray set happened to sample once.
+    // and no cross-fading at a volume's boundary (a fragment picks exactly one volume, no blend between
+    // two overlapping ones). The ray fan IS given a fresh random rotation every frame per volume (see
+    // m_RayRNG) specifically so the temporal hysteresis blend can average out angular aliasing over time
+    // instead of locking in whatever a fixed ray set happened to sample once.
     class ProbeManager
     {
         public:
@@ -175,37 +218,33 @@ namespace Pulse::Engine::Rendering {
                 // toggled) resets accumulated offsets.
                 std::shared_ptr<StorageBuffer> probeStateBuffer;
 
-                // Four atlases, same tile layout/size (tileSize = sqrt(raysPerProbe) texels + 1 texel of
+                // Three atlases, same tile layout/size (tileSize = sqrt(raysPerProbe) texels + 1 texel of
                 // border on each side, border-fixup pass keeps bilinear sampling from bleeding across
                 // tiles), laid out as a square-ish grid of tiles :
                 //  - rayAtlas : raw, single-sample-per-texel radiance written by probe_trace.comp (one
-                //    ray per texel, no scatter/gather - see its header comment). Never sampled directly
-                //    by lit.frag - scratch, fully overwritten every bounce iteration.
-                //  - irradianceAtlas / bounceAtlas : ping-ponged cosine-weighted irradiance maps (see
-                //    probe_irradiance_convolve.comp), ping-ponged across the maxBounces loop in
-                //    UpdateVolume() so each bounce iteration's trace pass reads the previous iteration's
-                //    freshly-convolved result as its indirect term. By construction (the pair is
-                //    swapped, not copied, after each iteration) irradianceAtlas always ends the loop
-                //    holding this frame's raw, unblended N-bounce result.
-                //  - publishedAtlas : the atlas lit.frag actually samples. probe_temporal_blend.comp
-                //    exponentially blends irradianceAtlas into this one every frame after the bounce
-                //    loop - the whole N-bounce result is recomputed from scratch every frame with a
-                //    fresh RNG seed (see probe_trace.comp), which is too noisy to sample directly
-                //    whenever more than one light is in the scene; this pass is what smooths that back
-                //    out.
+                //    ray per texel, no scatter/gather - see its header comment). Never sampled by
+                //    lit.frag - scratch, rewritten every frame for whichever probes are updated.
+                //  - irradianceAtlas : this frame's cosine-weighted irradiance map (see
+                //    probe_irradiance_convolve.comp), raw and unsmoothed.
+                //  - publishedAtlas : the atlas lit.frag samples AND probe_trace.comp reads back as the
+                //    next frame's bounce source. probe_temporal_blend.comp exponentially blends
+                //    irradianceAtlas into it every frame : a probe's tile is rebuilt from a single
+                //    ray fan with a fresh random rotation, which is too noisy to shade with directly,
+                //    and doubly so now that it also feeds itself back.
+                // (There used to be a fourth, `bounceAtlas`, ping-ponged against irradianceAtlas so each
+                // iteration of the in-frame bounce loop could read the previous one's result. Feeding
+                // back from publishedAtlas across frames instead made both the loop and that extra
+                // full-size RGBA16F target unnecessary.)
                 std::shared_ptr<Texture2D> rayAtlas;
                 std::shared_ptr<Texture2D> irradianceAtlas;
-                std::shared_ptr<Texture2D> bounceAtlas;
                 std::shared_ptr<Texture2D> publishedAtlas;
 
-                // Distance atlas quartet, mirroring the irradiance one above texel-for-texel (same tile
-                // layout/size, same ping-pong/border-fixup/temporal-blend treatment) but storing RG16F
-                // (mean hit distance, mean hit distance^2) instead of RGBA16F radiance - see the header
-                // comment above for what this feeds (the Chebyshev visibility test in lit.frag/
-                // probe_trace.comp).
+                // Distance atlas trio, mirroring the irradiance one above texel-for-texel (same tile
+                // layout/size, same border-fixup/temporal-blend treatment) but storing RG16F (mean hit
+                // distance, mean hit distance^2) instead of RGBA16F radiance - see the header comment
+                // above for what this feeds (the Chebyshev visibility test in lit.frag/probe_trace.comp).
                 std::shared_ptr<Texture2D> rayDistAtlas;
                 std::shared_ptr<Texture2D> distanceAtlas;
-                std::shared_ptr<Texture2D> bounceDistAtlas;
                 std::shared_ptr<Texture2D> publishedDistanceAtlas;
 
                 uint32_t tileSize = 0;
@@ -213,9 +252,10 @@ namespace Pulse::Engine::Rendering {
                 uint32_t atlasSize = 0;
 
                 // Per-slot (not per-manager) : a volume added later than another shouldn't inherit an
-                // unrelated frame count - frameIndex == 0 is what makes RebuildGrid()'s freshly
-                // (re)allocated publishedAtlas get a full overwrite instead of blending against
-                // undefined contents on its very first Update().
+                // unrelated frame count. Doubles as the round-robin phase (frameIndex % stride picks
+                // which probes this frame updates) and as the "has this probe ever been published"
+                // test that gives a tile a full overwrite on its first update instead of fading in
+                // from black through the hysteresis blend.
                 uint32_t frameIndex = 0;
             };
 
@@ -263,6 +303,15 @@ namespace Pulse::Engine::Rendering {
             // Raytracer::BuildScene() for the same pattern). Shared across every volume's trace dispatch.
             std::shared_ptr<StorageBuffer> m_LightBuffer;
             std::vector<LightData> m_FlatLights;
+
+            // The loaded level's skybox, cosine-convolved - the exact same cubemap lit.frag samples as
+            // ibl_irradianceMap. probe_trace.comp returns it for rays that escape the scene, instead of
+            // the hardcoded blue-white constant it used to. Refreshed every frame in Update() rather
+            // than cached at RebuildScene() time so swapping a level's skybox takes effect immediately
+            // and an unloaded level can't leave a dangling reference. Null when the level has no
+            // skybox, in which case sky radiance is zero - matching the forward pass, which gives a
+            // skybox-less level no IBL either.
+            std::shared_ptr<Cubemap> m_SkyIrradiance;
 
             std::shared_ptr<ComputeShader> m_TraceShader;
             std::shared_ptr<ComputePipeline> m_TracePipeline;

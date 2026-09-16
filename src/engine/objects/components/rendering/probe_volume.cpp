@@ -183,7 +183,14 @@ namespace Pulse::Engine::Objects::Components{
         }
 
         raysPerProbe = getInt(componentData, "raysPerProbe", 64);
-        maxBounces = getInt(componentData, "maxBounces", 2);
+        probeUpdateStride = getInt(componentData, "probeUpdateStride", 1);
+        indirectIntensity = getFloat(componentData, "indirectIntensity", 1.0f);
+
+        // "maxBounces" is deliberately not read any more : bounce depth stopped being a setting when
+        // multi-bounce moved to a cross-frame feedback loop (see ProbeManager's class comment), and a
+        // level authored before that change would otherwise keep asking for N times the ray cost to get
+        // FEWER bounces than it now gets for free. Ignoring the old key silently is the right migration
+        // - it simply stops being written on the next save.
 
         if (componentData.contains("enableRelocation") && componentData["enableRelocation"].is_boolean())
             enableRelocation = componentData["enableRelocation"].get<bool>();
@@ -210,7 +217,8 @@ namespace Pulse::Engine::Objects::Components{
         comp["probeCounts"]["z"] = probeCounts.z;
 
         comp["raysPerProbe"] = raysPerProbe;
-        comp["maxBounces"] = maxBounces;
+        comp["probeUpdateStride"] = probeUpdateStride;
+        comp["indirectIntensity"] = indirectIntensity;
         comp["enableRelocation"] = enableRelocation;
 
         return comp;

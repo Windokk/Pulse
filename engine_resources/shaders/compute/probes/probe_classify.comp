@@ -1,8 +1,8 @@
 #version 430 core
 
-// Fourth stage of the real-time GI probe update (see ProbeManager/probe_trace.comp), dispatched once per
-// frame right after bounce 0's trace pass. One invocation per PROBE (not per ray, unlike every other
-// stage here): scans that probe's own tile of bounce 0's raw ray hits and marks it inactive if most of
+// Classification stage of the real-time GI probe update (see ProbeManager/probe_trace.comp), dispatched
+// once per frame right after the trace pass. One invocation per UPDATED PROBE (not per ray, unlike most
+// other stages here): scans that probe's own tile of this frame's raw ray hits and marks it inactive if most of
 // its rays hit backfaces - RTXGI calls this "Probe Classification". A high backface ratio almost always
 // means the probe is embedded in solid geometry (most commonly a uniform grid landing inside a
 // protruding piece of geometry - a wall relief, a statue, a pillar - that the grid has no awareness of),
@@ -29,6 +29,11 @@ uniform int uProbeCount;
 uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
 
+// Round-robin probe update - see the identical uniforms in probe_trace.comp. Only probes whose rays
+// were actually re-traced this frame are re-classified; the rest keep the flag they were last given.
+uniform int uUpdateStride;
+uniform int uUpdatePhase;
+
 #include "../../common/ddgi_atlas.glsl"
 
 // A probe with more than this fraction of its rays hitting backfaces is considered embedded in geometry.
@@ -36,7 +41,7 @@ const float BACKFACE_RATIO_THRESHOLD = 0.5;
 
 void main()
 {
-    int probeIndex = int(gl_GlobalInvocationID.x);
+    int probeIndex = uUpdatePhase + int(gl_GlobalInvocationID.x) * uUpdateStride;
     if (probeIndex >= uProbeCount)
         return;
 

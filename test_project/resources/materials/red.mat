@@ -7,7 +7,7 @@
             "albedo": "textures/generic/red.png"
         },
         {
-            "metallic": 1.0
+            "metallic": 0.0
         },
         {
             "roughness": 1.0
