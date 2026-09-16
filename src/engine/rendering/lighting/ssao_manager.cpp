@@ -23,12 +23,6 @@ namespace Pulse::Engine::Rendering {
 
     namespace {
 
-        // Mirrors the real mesh Vertex layout (mesh.cpp) - only used here as PipelineSpecifications
-        // metadata (offsets/stride for the depth+normal prepass's aPos/aNormal entries), not to actually
-        // build a mesh. See the identical local `struct Vertex` in Renderer::Init()'s debug-shapes setup
-        // for precedent - every mesh's own VAO is already fully bound to this exact layout at creation
-        // time (GLMesh::GenerateGLBuffers), so a pipeline just needs to declare a subset that matches it
-        // byte-for-byte, not necessarily use it for anything at draw time.
         struct Vertex
         {
             glm::vec3 position;
