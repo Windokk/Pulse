@@ -1,22 +1,25 @@
 #version 430 core
 #extension GL_ARB_bindless_texture : enable
 
-// Real-time diffuse GI probe ray-tracer (DDGI-like, see ProbeManager). Dispatched once per bounce
-// iteration of ProbeManager::Update()'s maxBounces loop (so up to ProbeVolume::maxBounces times per
-// frame) : traces `uTileSize * uTileSize` rays per probe against the persistent BVH, shades each hit
-// with direct lighting (one NEE sample + emissive) PLUS, when uUseIndirect is set, an indirect bounce
-// term sampled from the previous bounce iteration's freshly-convolved irradiance atlas
-// (uPrevIrradianceAtlas) at the hit point - and writes the result into the matching texel of that
-// probe's octahedral tile in `uAtlas`. Each ray index maps 1:1 to one texel of the tile via an
-// octahedral direction mapping, so there is no separate scatter/gather step for this shader's own
-// output (see probe_irradiance_convolve.comp for that).
+// Real-time diffuse GI probe ray-tracer (DDGI-like, see ProbeManager). Dispatched ONCE per frame per
+// volume : traces `uTileSize * uTileSize` rays per updated probe against the persistent BVH, shades each
+// hit with direct lighting (NEE over every light + emissive) PLUS an indirect term read back from the
+// PUBLISHED probe atlas of the previous frame (uPrevIrradianceAtlas), and writes the result into the
+// matching texel of that probe's octahedral tile in `uAtlas`. Each ray index maps 1:1 to one texel of
+// the tile via an octahedral direction mapping, so there is no separate scatter/gather step for this
+// shader's own output (see probe_irradiance_convolve.comp for that).
 //
-// uUseIndirect is what turns N single-bounce trace passes into an N-bounce result : bounce 0 traces
-// direct lighting only (uUseIndirect = false, uPrevIrradianceAtlas not yet written this frame); each
-// subsequent bounce re-traces the exact same rays but adds whatever light the previous bounce's
-// convolved atlas already picked up at the hit point, so light keeps propagating one more hop per
-// iteration (same idea as RTXGI's probe-fed multi-bounce, done synchronously within one frame here
-// instead of smeared across frames via temporal accumulation).
+// Multi-bounce comes from that read-back, ACROSS frames (RTXGI's actual scheme), not from re-tracing the
+// same rays N times within one frame the way this used to : frame N's atlas already holds every bounce
+// frame N-1 had resolved, so feeding it back once per frame makes each extra frame add another hop and
+// the series converges to effectively unbounded bounce depth. The old in-frame loop paid maxBounces
+// times the ray cost for a HARD CAP of maxBounces bounces - strictly more expensive AND strictly less
+// light. One trace per frame is what brings the pass into real-time budget, and unbounded bounce depth
+// is also what makes saturated colour bleed (a Cornell box's red/green walls tinting the white ones)
+// actually show up : the second and third hops are where most of that tint comes from.
+//
+// uUseIndirect is false only on a volume's very first frame, when the published atlas has not been
+// written yet and would otherwise be sampled uninitialized.
 //
 // BVH traversal / structs / direct-lighting PBR terms are shared with compute/path_trace.comp via
 // common/raytracing_types.glsl + common/raytracing_trace.glsl + common/pbr_direct.glsl (see those files
@@ -37,6 +40,19 @@ layout(rg16f, binding = 1) uniform image2D uDistAtlas;
 // touches mid-frame), only these sampler binds need the wide berth.
 layout(binding = 40) uniform sampler2D uPrevIrradianceAtlas;
 layout(binding = 41) uniform sampler2D uPrevDistanceAtlas;
+
+// The level's own skybox, cosine-convolved (the very same cubemap lit.frag samples as
+// ibl_irradianceMap). Its stored value for a given direction IS the average incoming radiance from that
+// side of the environment (see ibl/irradiance.frag : the PI factor cancels the cosine-hemisphere
+// normalisation exactly), which is precisely what a ray that escapes the scene should return - and
+// being pre-blurred it can't inject a firefly from a small bright sky feature.
+layout(binding = 46) uniform samplerCube uSkyIrradiance;
+// False when the level has no skybox at all. Sky radiance is then ZERO, not a hardcoded blue-white
+// constant the way it used to be : the forward pass gives a skybox-less level no IBL either, so a probe
+// inventing a bright sky out of nowhere both contradicts the rest of the renderer and (far more
+// visibly) floods any scene with an opening in it with untinted white light, which is exactly what
+// drowns out coloured bounce light.
+uniform bool uHasSky;
 
 #include "../../common/light.glsl"
 #include "../../common/raytracing_types.glsl"
@@ -59,15 +75,12 @@ struct Probe
 
 layout(std430, binding = 13) readonly buffer Probes            { Probe probes[]; };
 // Per-probe state, written by probe_classify.comp (.w = active flag) and probe_relocate.comp (.xyz =
-// world-space relocation offset) right after bounce 0's trace dispatch, from that same bounce's raw
-// hits - see the m_ProbeStateBuffer comment in probe_manager.hpp.
-//  - .w   : only read from bounce 1 onward (SampleIndirect isn't called at bounce 0), so it's always
-//           this frame's own classification, not stale.
-//  - .xyz : applied to every probe position used here (this shader's own ray origins in main() AND the
-//           neighbour probe positions SampleIndirect() blends) so the multi-bounce feedback loop is
-//           self-consistent with where the probes actually are. This frame's value is last frame's
-//           relocation result (probe_relocate.comp for this frame runs after bounce 0's trace), which
-//           is fine - the offset converges over a few frames like everything else here.
+// world-space relocation offset) right after this frame's trace dispatch, from that same dispatch's raw
+// hits - see the m_ProbeStateBuffer comment in probe_manager.hpp. Both channels are therefore last
+// frame's values here, which is fine : they converge over a handful of frames like everything else in
+// this system, and .xyz is applied to every probe position used here (this shader's own ray origins in
+// main() AND the neighbour probe positions SampleIndirect() blends) so the feedback loop stays
+// self-consistent with where the probes actually are.
 layout(std430, binding = 14) readonly buffer ProbeState        { vec4 probeState[]; };
 
 uniform int uProbeCount;
@@ -75,23 +88,36 @@ uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
 uniform int uAtlasSize;
 uniform int uLightCount;
-uniform vec3 uSkyColor;
 
-// Fresh uniform-random rotation every frame (same value for every bounce iteration within one frame -
-// see ProbeManager::Update()) applied to each ray's direction right after OctDecode, below. The texel a
-// ray writes to is still purely a function of its (unrotated) tile position, so this doesn't change what
-// direction a given output texel nominally represents - only which real-world direction is actually
-// sampled to fill it in on any given frame. Without this the ray set is fully deterministic frame to
-// frame, so a "lucky" ray that happens to graze a small, high-contrast feature (a saturated tapestry, a
-// bright doorway) gets retraced identically forever, and the temporal hysteresis blend below just
-// confirms that one biased sample instead of averaging it against nearby directions the way real
-// resampling would - see the m_RayRNG comment in probe_manager.hpp.
+// Round-robin probe update (see ProbeVolume::probeUpdateStride / ProbeManager::UpdateVolume) : this
+// dispatch only covers probes whose index is uUpdatePhase modulo uUpdateStride, so a stride of N costs
+// 1/N the rays per frame and each probe is refreshed every N frames. Every later stage of the update
+// (classify, relocate, convolve, border fixup, temporal blend) walks the exact same subset, and the
+// published atlas simply keeps the previous value for probes not touched this frame. uUpdateCount is
+// how many probes that subset holds.
+uniform int uUpdateStride;
+uniform int uUpdatePhase;
+uniform int uUpdateCount;
+
+// Fresh uniform-random rotation every frame applied to each ray's direction right after OctDecode,
+// below. The texel a ray writes to is still purely a function of its (unrotated) tile position, so this
+// doesn't change what direction a given output texel nominally represents - only which real-world
+// direction is actually sampled to fill it in on any given frame. Without this the ray set is fully
+// deterministic frame to frame, so a "lucky" ray that happens to graze a small, high-contrast feature (a
+// saturated tapestry, a bright doorway) gets retraced identically forever, and the temporal hysteresis
+// blend below just confirms that one biased sample instead of averaging it against nearby directions the
+// way real resampling would - see the m_RayRNG comment in probe_manager.hpp.
 uniform mat3 uRayRotation;
 
-// True for every bounce iteration after the first within a single Update() call (see
-// ProbeManager::Update()'s maxBounces loop) - false on the first, when uPrevIrradianceAtlas hasn't been
-// written this frame yet and would otherwise be sampled uninitialized.
+// False only on a volume's very first frame - see the header comment.
 uniform bool uUseIndirect;
+
+// Artist multiplier on the fed-back bounce term only (never on direct lighting), mirroring RTXGI's
+// "probe irradiance scale". 1.0 is the physically-correct value and the default; above 1 exaggerates
+// colour bleed (a Cornell box reads more like a reference path trace at ~1.3-1.5, since a single
+// cosine-lobe-per-texel atlas loses a little energy at every hop), below 1 tames a scene whose albedos
+// are so high the bounce series takes too long to settle.
+uniform float uIndirectIntensity;
 
 // Grid params for sampling uPrevIrradianceAtlas at an arbitrary world position (same grid the probes
 // themselves sit on - see ProbeManager::RebuildGrid()/lit.frag's ddgi_grid* uniforms).
@@ -106,8 +132,13 @@ const float PI = 3.14159265359;
 #include "../../common/ddgi_visibility.glsl"
 #include "../../common/pbr_direct.glsl"
 
+vec3 SkyRadiance(vec3 rd)
+{
+    return uHasSky ? texture(uSkyIrradiance, rd).rgb : vec3(0.0);
+}
+
 // ---------------------------------------------------------------------------
-// Indirect bounce lookup - samples last frame's converged irradiance atlas at an arbitrary world
+// Indirect bounce lookup - samples the previous frame's published irradiance atlas at an arbitrary world
 // position/normal, trilinearly blending the 8 surrounding probes (same scheme as DDGI_Diffuse in
 // lit.frag, minus the albedo/kD factor - the caller applies that itself).
 // ---------------------------------------------------------------------------
@@ -129,7 +160,7 @@ vec2 SamplePrevDistance(int probeIndex, vec3 dir)
 vec3 SampleIndirect(vec3 worldPos, vec3 N)
 {
     // Same normal bias as DDGI_Diffuse in lit.frag - see that comment for why. Kept in sync since this is
-    // the sibling copy used for the multi-bounce feedback loop instead of the final published atlas.
+    // the sibling copy used for the bounce feedback loop instead of the final shaded pixel.
     vec3 biasedPos = worldPos + N * (0.25 * min(min(uGridSpacing.x, uGridSpacing.y), uGridSpacing.z));
 
     vec3 gridPos = (biasedPos - uGridOrigin) / max(uGridSpacing, vec3(1e-4));
@@ -183,10 +214,10 @@ vec3 SampleIndirect(vec3 worldPos, vec3 N)
 }
 
 // ---------------------------------------------------------------------------
-// Shading - direct lighting (one NEE sample + emissive) plus a probe-fed indirect term (see
+// Shading - direct lighting (NEE over every light + emissive) plus the probe-fed indirect term (see
 // SampleIndirect() above) instead of a real recursive bounce loop like path_trace.comp's TracePath :
-// probes trade per-ray bounce depth for feeding back through the temporally-accumulated atlas instead,
-// which stays cheap enough to run every frame in real time while still converging to multi-bounce light.
+// probes trade per-ray bounce depth for feeding back through the published atlas one hop per frame,
+// which stays cheap enough to run every frame in real time while converging to unbounded bounce depth.
 // ---------------------------------------------------------------------------
 
 vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist, out float outValidity)
@@ -199,7 +230,7 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist, out float outVa
         // DDGI_VisibilityWeight from ever treating a sky ray as blocking light.
         outHitDist = 1e4;
         outValidity = 1.0; // open sky - not a sign this probe is embedded in geometry
-        return uSkyColor;
+        return SkyRadiance(rd);
     }
 
     TriangleAttrib attrib = triAttrib[hit.triIndex];
@@ -259,14 +290,13 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist, out float outVa
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     // Every light, every ray - not a single random NEE pick like path_trace.comp's offline path tracer
-    // gets away with. That single-sample pick made this shader's output noise scale with light count
-    // (with 1 light it's a no-op, since RandomFloat() * 1 always resolves to the same index; with 2+ it
-    // flips which light gets sampled every ray, every frame, and since ProbeManager::Update() no longer
-    // blends a single ray's result across frames the way probe_trace.comp's own hysteresis used to
-    // (see the maxBounces loop in ProbeManager::Update()), that flip-flopping showed up directly as
-    // visible flicker). Summing every light instead is deterministic - zero variance from light
-    // selection - at the cost of one shadow ray per light instead of one total, which is negligible
-    // next to the BVH traversal cost already paid per ray for realistic light counts.
+    // gets away with. That single-sample pick made this shader's output noise scale with light count,
+    // which the temporal blend then had to smooth away frame over frame; summing every light instead is
+    // deterministic - zero variance from light selection - at the cost of one shadow ray per light
+    // instead of one total. The `radius` reject below keeps that from mattering in practice : a light
+    // whose falloff has already died out by the time it reaches this hit point costs nothing but a dot
+    // product, so a scene with many small local lights only ever pays for the handful that can actually
+    // reach any given hit.
     for (int li = 0; li < uLightCount; li++)
     {
         Light light = lights[li];
@@ -284,15 +314,23 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist, out float outVa
         else // Point / Spot
         {
             vec3 d = light.position.xyz - hitPos;
-            dist = length(d);
+            float dist2 = dot(d, d);
+            // Out of range - skip before the (far more expensive) shadow ray. radius is the light's
+            // authored cutoff distance, the same one LightCullingManager clusters by for the forward pass.
+            if (light.radius > 0.0 && dist2 > light.radius * light.radius)
+                continue;
+
+            dist = sqrt(dist2);
             toLight = d / max(dist, 1e-6);
-            float atten = 1.0 / max(dist * dist, 1e-4);
+            float atten = 1.0 / max(dist2, 1e-4);
             incomingRadiance = light.color.rgb * light.intensity * atten;
 
             if (light.type == 2) // Spot cone falloff
             {
                 float cosAngle = dot(-toLight, normalize(light.direction.xyz));
                 float t = clamp((cosAngle - light.outerCutoff) / max(light.innerCutoff - light.outerCutoff, 1e-4), 0.0, 1.0);
+                if (t <= 0.0) // outside the cone entirely - again, cheaper than tracing to find out
+                    continue;
                 incomingRadiance *= t;
             }
         }
@@ -316,15 +354,27 @@ vec3 TraceAndShadeDirect(vec3 ro, vec3 rd, out float outHitDist, out float outVa
         }
     }
 
-    // Indirect bounce, fed from the previous bounce iteration's converged atlas (see uUseIndirect and
-    // the comment above uPrevIrradianceAtlas at the top of this file). Diffuse-only (the probe grid is a
-    // diffuse GI approximation, same as lit.frag's DDGI_Diffuse - no probe-fed specular term), damped by
-    // the same kD a metallic surface gets in the direct term above so a metallic hit point doesn't pick
-    // up a full-strength diffuse bounce it physically wouldn't reflect.
+    // The bounce, fed from the previous frame's published atlas (see uUseIndirect and the header
+    // comment). Diffuse-only (the probe grid is a diffuse GI approximation, same as lit.frag's
+    // DDGI_Diffuse - no probe-fed specular in the feedback loop), tinted by this surface's albedo, which
+    // is exactly where colour bleeding comes from : light that already picked up a red wall's tint on the
+    // way in leaves this surface tinted again by ITS albedo. Damped by the same kD a metallic surface
+    // gets in the direct term above so a metallic hit point doesn't pick up a full-strength diffuse
+    // bounce it physically wouldn't reflect.
     if (uUseIndirect)
     {
         vec3 kD = (vec3(1.0) - F0) * (1.0 - metallic);
-        radiance += SampleIndirect(hitPos, n) * albedo * kD;
+
+        // Per-hop gain of the feedback loop. Capped strictly below 1 because this term is literally
+        // recursive across frames - frame N's atlas is built from frame N-1's - so a gain of g makes the
+        // accumulated light a geometric series in g, which only converges while g < 1. Real materials
+        // never reach that (albedo * kD tops out around 0.95 for a bright white dielectric), so the clamp
+        // is inert for physical content; it exists so that pushing uIndirectIntensity above 1 to
+        // exaggerate colour bleed can't turn a bright room into a scene that just keeps getting brighter
+        // every frame until it saturates.
+        vec3 bounceGain = min(albedo * kD * uIndirectIntensity, vec3(0.95));
+
+        radiance += SampleIndirect(hitPos, n) * bounceGain;
     }
 
     outHitDist = hit.t;
@@ -336,11 +386,15 @@ void main()
     uint gid = gl_GlobalInvocationID.x;
     uint tileSize = uint(uTileSize);
     uint raysPerProbe = tileSize * tileSize;
-    uint totalRays = uint(uProbeCount) * raysPerProbe;
+    uint totalRays = uint(uUpdateCount) * raysPerProbe;
     if (gid >= totalRays)
         return;
 
-    uint probeIndex = gid / raysPerProbe;
+    // Round-robin : this dispatch's slot -> the real probe it stands for (see uUpdateStride).
+    int probeIndex = uUpdatePhase + int(gid / raysPerProbe) * uUpdateStride;
+    if (probeIndex >= uProbeCount)
+        return;
+
     uint rayIndex = gid % raysPerProbe;
 
     // + probeState.xyz : trace this frame's rays from the probe's relocated position (see
@@ -358,12 +412,11 @@ void main()
     float validity;
     vec3 radiance = TraceAndShadeDirect(probePos, dir, hitDist, validity);
 
-    ivec2 texel = DDGI_TileCorner(int(probeIndex), int(tileSize), uAtlasProbesPerRow) + ivec2(1, 1) + ivec2(int(tx), int(ty));
+    ivec2 texel = DDGI_TileCorner(probeIndex, int(tileSize), uAtlasProbesPerRow) + ivec2(1, 1) + ivec2(int(tx), int(ty));
 
-    // No temporal blend here - each bounce iteration needs a clean, fully-overwritten result to feed
-    // into the next (see uUseIndirect/uPrevIrradianceAtlas above) - see probe_temporal_blend.comp for
-    // where cross-frame smoothing now happens instead. Alpha channel carries `validity` (backface flag,
-    // see TraceAndShadeDirect) rather than a fixed 1.0 - see probe_classify.comp for the reader.
+    // No temporal blend here - probe_temporal_blend.comp owns cross-frame smoothing, on the convolved
+    // result rather than on raw per-ray radiance. Alpha channel carries `validity` (backface flag, see
+    // TraceAndShadeDirect) rather than a fixed 1.0 - see probe_classify.comp for the reader.
     imageStore(uAtlas, texel, vec4(radiance, validity));
     imageStore(uDistAtlas, texel, vec4(hitDist, hitDist * hitDist, 0.0, 0.0));
 }

@@ -111,6 +111,9 @@ namespace Pulse::Engine::Rendering{
                 case GL_FLOAT_MAT2:  dataType = ShaderDataType::Mat2; break;
                 case GL_FLOAT_MAT3:  dataType = ShaderDataType::Mat3; break;
                 case GL_FLOAT_MAT4:  dataType = ShaderDataType::Mat4; break;
+
+                case GL_UNSIGNED_INT:      dataType = ShaderDataType::UInt; break;
+                case GL_UNSIGNED_INT_VEC2: dataType = ShaderDataType::UVec2; break;
             }
 
             if (dataType != ShaderDataType::None)
@@ -303,7 +306,13 @@ namespace Pulse::Engine::Rendering{
                 return arrayIt->second.location;
         }
 
-        return -1;
+        // Driver fallback for names the constructor's type switch didn't classify - see the identical
+        // GLShader::GetUniformLocationCached for why a miss here is otherwise a silent no-op.
+        auto [fallbackIt, inserted] = m_UnmappedLocations.try_emplace(name, -1);
+        if (inserted)
+            fallbackIt->second = glGetUniformLocation(m_Program, name.c_str());
+
+        return fallbackIt->second;
     }
 
     void GLComputeShader::SetBool(const std::string &name, bool value)

@@ -24,7 +24,7 @@ inline FieldInfo ProbeVolume_probeCounts_info = {
     TypeID::IVec3,
     offsetof(Pulse::Engine::Objects::Components::ProbeVolume, probeCounts),
     Editable,
-    0, 0,
+    1, 0,
     nullptr,
     nullptr,
     &CopyConstruct<glm::ivec3>,
@@ -38,7 +38,10 @@ inline FieldInfo ProbeVolume_raysPerProbe_info = {
     TypeID::Int32,
     offsetof(Pulse::Engine::Objects::Components::ProbeVolume, raysPerProbe),
     Editable,
-    0, 0,
+    // Upper bound is ProbeManager::kMaxRaysPerProbe (the convolve pass stages a whole tile in shared
+    // memory) - the grid rebuild clamps to it anyway, this just stops the widget offering values that
+    // silently do nothing.
+    1, 256,
     nullptr,
     nullptr,
     &CopyConstruct<int>,
@@ -47,18 +50,46 @@ inline FieldInfo ProbeVolume_raysPerProbe_info = {
     &Equals<int>
 };
 
-inline FieldInfo ProbeVolume_maxBounces_info = {
-    "maxBounces",
+inline FieldInfo ProbeVolume_probeUpdateStride_info = {
+    "probeUpdateStride",
     TypeID::Int32,
-    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, maxBounces),
+    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, probeUpdateStride),
     Editable,
-    0, 0,
+    1, 8, // ProbeManager::kMaxProbeUpdateStride
     nullptr,
     nullptr,
     &CopyConstruct<int>,
     &Assign<int>,
     &Destroy<int>,
     &Equals<int>
+};
+
+inline FieldInfo ProbeVolume_indirectIntensity_info = {
+    "indirectIntensity",
+    TypeID::Float,
+    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, indirectIntensity),
+    Editable,
+    0.0f, 4.0f,
+    nullptr,
+    nullptr,
+    &CopyConstruct<float>,
+    &Assign<float>,
+    &Destroy<float>,
+    &Equals<float>
+};
+
+inline FieldInfo ProbeVolume_enableRelocation_info = {
+    "enableRelocation",
+    TypeID::Bool,
+    offsetof(Pulse::Engine::Objects::Components::ProbeVolume, enableRelocation),
+    Editable,
+    0, 0,
+    nullptr,
+    nullptr,
+    &CopyConstruct<bool>,
+    &Assign<bool>,
+    &Destroy<bool>,
+    &Equals<bool>
 };
 
 inline ClassDescriptor Pulse::Engine::Objects::Components::ProbeVolume::descriptor = {
@@ -67,6 +98,8 @@ inline ClassDescriptor Pulse::Engine::Objects::Components::ProbeVolume::descript
         &ProbeVolume_halfExtent_info,
         &ProbeVolume_probeCounts_info,
         &ProbeVolume_raysPerProbe_info,
-        &ProbeVolume_maxBounces_info,
+        &ProbeVolume_probeUpdateStride_info,
+        &ProbeVolume_indirectIntensity_info,
+        &ProbeVolume_enableRelocation_info,
     }
 };

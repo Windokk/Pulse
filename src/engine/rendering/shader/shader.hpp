@@ -19,7 +19,10 @@ namespace Pulse::Engine::Rendering {
 
         Mat2,
         Mat3,
-        Mat4
+        Mat4,
+
+        UInt,
+        UVec2
     };
 
     enum class ShaderSamplerType
@@ -62,6 +65,9 @@ namespace Pulse::Engine::Rendering {
             case ShaderDataType::Mat2:  return sizeof(glm::mat2);
             case ShaderDataType::Mat3:  return sizeof(glm::mat3);
             case ShaderDataType::Mat4:  return sizeof(glm::mat4);
+
+            case ShaderDataType::UInt:  return sizeof(uint32_t);
+            case ShaderDataType::UVec2: return sizeof(glm::uvec2);
         }
 
         return 0;
@@ -82,6 +88,9 @@ namespace Pulse::Engine::Rendering {
             case ShaderDataType::Mat2:  return 4;
             case ShaderDataType::Mat3:  return 9;
             case ShaderDataType::Mat4:  return 16;
+
+            case ShaderDataType::UInt:  return 1;
+            case ShaderDataType::UVec2: return 2;
         }
 
         return 0;
@@ -126,12 +135,6 @@ namespace Pulse::Engine::Rendering {
             virtual void SetMat3(const std::string& name, const glm::mat3& mat) = 0;
             virtual void SetMat4(const std::string& name, const glm::mat4& mat) = 0;
 
-            // Two raw unsigned 32-bit components - used to set a `uvec2` uniform holding the low/high
-            // halves of an ARB_bindless_texture handle (see Framebuffer::GetColorAttachmentBindlessHandle
-            // and SSAOManager::BindSSAOTexture), reconstructed in GLSL via the `sampler2D(uvec2)`
-            // constructor at the point of use rather than bound to a fixed texture unit - the same
-            // technique compute/path_trace.comp and compute/probes/probe_trace.comp already use for
-            // per-material textures read from an SSBO, just sourced from a uniform here instead.
             virtual void SetUVec2(const std::string& name, uint32_t x, uint32_t y) = 0;
 
             static std::shared_ptr<Shader> Create(

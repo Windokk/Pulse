@@ -42,20 +42,37 @@ namespace Pulse::Engine::Objects::Components
             FIELD(Editable)
             glm::ivec3 probeCounts = glm::ivec3(8, 4, 8);
 
-            // Traced per probe per frame - must be a perfect square (8x8=64, 16x16=256, ...) since each
-            // ray maps directly to one texel of the probe's octahedral irradiance tile (see
+            // Traced per probe per update - must be a perfect square (8x8=64, 16x16=256) since each ray
+            // maps directly to one texel of the probe's octahedral irradiance tile (see
             // ProbeManager/probe_trace.comp). Values that aren't a perfect square are rounded down to the
-            // nearest one when the grid is (re)built.
+            // nearest one when the grid is (re)built, and the whole thing is capped at
+            // ProbeManager::kMaxRaysPerProbe. Cost is linear in this while noise only falls with its
+            // square root, so it's rarely the right knob to turn first - see probeUpdateStride.
             FIELD(Editable)
             int raysPerProbe = 64;
 
-            // Number of light bounces simulated synchronously every frame (1 = direct lighting seen by
-            // probes only, same as no indirect at all; 2+ = each extra bounce re-traces all rays, feeding
-            // back the previous bounce's freshly-convolved irradiance at each hit point - see
-            // ProbeManager::Update()). Cost scales ~linearly with this value, so keep it low (2-4) for
-            // real-time use.
+            // Round-robin probe update (RTXGI's, see ProbeManager) : a stride of N traces only 1/N of
+            // this volume's probes each frame, so each probe refreshes every N frames and the per-frame
+            // GPU cost of the whole volume drops by N. THE primary performance knob - a large, coarse
+            // room-scale volume can usually sit at 2-4 with no visible difference, since its probes
+            // describe light that changes slowly by construction, while a small volume wrapped tightly
+            // around a moving object wants 1. Clamped to ProbeManager::kMaxProbeUpdateStride. The
+            // temporal blend compensates automatically (see kBaseTemporalHysteresis), so raising this
+            // costs responsiveness to a lighting change only through a slightly grainier result, not
+            // through a longer settling time.
             FIELD(Editable)
-            int maxBounces = 2;
+            int probeUpdateStride = 1;
+
+            // Multiplier on the bounce (indirect) term the probes feed back into themselves - RTXGI's
+            // "probe irradiance scale". 1.0 is physically correct and the default. Bounce depth itself
+            // is NOT a setting any more : light is fed back through the published atlas one hop per
+            // frame (see ProbeManager's class comment), so the bounce count converges to effectively
+            // unbounded on its own, for the cost of a single trace pass. Raising this slightly (1.2-1.5)
+            // exaggerates colour bleed, which can be worth it because an octahedral tile loses a little
+            // energy at every hop; lowering it tames a scene whose albedos are high enough that the
+            // bounce series takes an uncomfortably long time to settle.
+            FIELD(Editable)
+            float indirectIntensity = 1.0f;
 
             // RTXGI "Probe Relocation" : each frame, every probe is nudged by a small bounded offset
             // (<= 0.45 * grid spacing) out of any geometry it sits inside or grazes, so a uniform grid

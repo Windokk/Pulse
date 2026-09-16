@@ -23,12 +23,6 @@ namespace Pulse::Engine::Rendering {
 
     namespace {
 
-        // Mirrors the real mesh Vertex layout (mesh.cpp) - only used here as PipelineSpecifications
-        // metadata (offsets/stride for the depth+normal prepass's aPos/aNormal entries), not to actually
-        // build a mesh. See the identical local `struct Vertex` in Renderer::Init()'s debug-shapes setup
-        // for precedent - every mesh's own VAO is already fully bound to this exact layout at creation
-        // time (GLMesh::GenerateGLBuffers), so a pipeline just needs to declare a subset that matches it
-        // byte-for-byte, not necessarily use it for anything at draw time.
         struct Vertex
         {
             glm::vec3 position;
@@ -141,11 +135,6 @@ namespace Pulse::Engine::Rendering {
         blurPass->overridePipeline = true;
         blurPass->customPipeline = m_BlurPipeline;
         blurPass->customSamplers.emplace("ssaoInput", m_RawAOFramebuffer->GetColorAttachment());
-        // BindSSAOTexture (called per forward draw, see below) reads this pass's output through a
-        // bindless handle rather than a bound sampler - unlike a normal texture bind, that read isn't
-        // covered by the driver's implicit framebuffer-write/texture-read ordering, so without this the
-        // forward pass can sample stale or undefined data every frame (observed in practice as SSAO
-        // having no visible effect at all).
         blurPass->barrierAfter = MemoryBarrierBit::TextureFetch;
 
         renderer->AddRenderPass(blurPass, "SSAOBlurPass", {"SSAORawPass"});
@@ -155,10 +144,6 @@ namespace Pulse::Engine::Rendering {
         blurCmd.bindCameraState = false;
         blurCmd.material = m_BlurMaterial;
         renderer->AddOrUpdateCommands({blurCmd}, {"SSAOBlurPass"}, false);
-
-        // ForwardPass must wait for the final blurred AO texture to be ready before it can sample it via
-        // BindSSAOTexture (see GLRendererAPI::ExecuteDrawCommand) - ForwardPass already exists by the
-        // time this runs (Renderer::Init() registers it just before calling here).
         renderer->AddDependencyToPass("ForwardPass", "SSAOBlurPass");
 
         BuildKernelAndNoise();
@@ -168,13 +153,8 @@ namespace Pulse::Engine::Rendering {
     {
         std::uniform_real_distribution<float> unit(0.0f, 1.0f);
 
-        // Hemisphere-distributed sample kernel (Z in [0,1] so every sample stays on the "outward" side
-        // of whatever normal the TBN in ssao.frag orients it toward), weighted to cluster more samples
-        // near the origin - LearnOpenGL's SSAO chapter is the reference for this exact scheme. Set
-        // directly on the shader once here (not re-sent every frame via RenderPass::customUniforms,
-        // which has no array support anyway - see NumericValue) : uniform values persist on the GL
-        // program object across frames/binds, the same reasoning ProbeManager's bounce-loop hoist relies
-        // on.
+        m_SSAOPipeline->Bind();
+
         for (int i = 0; i < kKernelSize; i++)
         {
             glm::vec3 sample(unit(m_RNG) * 2.0f - 1.0f, unit(m_RNG) * 2.0f - 1.0f, unit(m_RNG));
@@ -187,9 +167,6 @@ namespace Pulse::Engine::Rendering {
             m_SSAOShader->SetVec3("samples[" + std::to_string(i) + "]", sample);
         }
 
-        // Small tiled rotation texture - z = 0 since it only ever rotates the kernel around the surface
-        // normal (tangent-space Z), not tilts it. Repeated across the screen in ssao.frag via
-        // `texCoords * noiseScale` (see Update()).
         std::vector<glm::vec3> noiseData;
         noiseData.reserve(kNoiseTileSize * kNoiseTileSize);
         for (int i = 0; i < kNoiseTileSize * kNoiseTileSize; i++)
@@ -206,9 +183,6 @@ namespace Pulse::Engine::Rendering {
         noiseSpecs.generateMips = false;
         m_NoiseTexture = Texture2D::Create(noiseSpecs, noiseData.data());
 
-        // Static for the lifetime of the manager (never resized/regenerated), unlike gDepth/gNormal
-        // which come from m_PrepassFramebuffer and get implicitly kept in sync by Renderer::
-        // RescaleFramebuffers - so it's set once here rather than every Update().
         auto renderer = Core::GetEngine().GetRenderer();
         renderer->GetRenderPass("SSAORawPass")->customSamplers["noiseTex"] = m_NoiseTexture->GetHandle();
     }
@@ -248,10 +222,6 @@ namespace Pulse::Engine::Rendering {
         if (!m_BlurFramebuffer)
             return;
 
-        // Pushed as a bindless handle (see the comment on Shader::SetUVec2 and
-        // Framebuffer::GetColorAttachmentBindlessHandle for why), not a `layout(binding=N) sampler2D` -
-        // lit.frag is already close to a real per-driver texture-unit limit (see kMaxProbeVolumes in
-        // probe_manager.hpp), and every regular forward-pass draw calls this.
         uint64_t handle = m_BlurFramebuffer->GetColorAttachmentBindlessHandle();
         material->GetShader()->SetUVec2("ssaoTextureHandle",
             (uint32_t)(handle & 0xFFFFFFFFu),

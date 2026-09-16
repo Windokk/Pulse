@@ -30,7 +30,7 @@
 ### Proprietary Dependencies :
 - FMOD Core API 2.03.14
 
-### Editor Fonts : (Place both in src/editor/gui/fonts/)
+### Editor Fonts : (Place both in editor_resources/fonts/)
 - [OpenSans-Regular.ttf](https://github.com/googlefonts/opensans)
 - [lucide.ttf](https://unpkg.com/lucide-static@latest/font/lucide.ttf)
 

@@ -11,8 +11,13 @@
 #include "engine/rendering/renderer/renderer_api.hpp"
 #include "engine/rendering/buffer/storage_buffer.hpp"
 #include "engine/rendering/texture/texture.hpp"
+#include "engine/rendering/texture/cubemap/cubemap.hpp"
+#include "engine/rendering/texture/cubemap/envmap.hpp"
 #include "engine/rendering/shader/compute_shader.hpp"
 #include "engine/rendering/pipeline/compute_pipeline.hpp"
+
+#include "engine/levels/level_manager.hpp"
+#include "engine/objects/skybox/skybox.hpp"
 
 #include "engine/debugging/logger.hpp"
 
@@ -172,8 +177,11 @@ namespace Pulse::Engine::Rendering {
         slot.probeStateBuffer->SetData(initialState.data(), (uint32_t)(initialState.size() * sizeof(glm::vec4)));
 
         // Each ray maps directly to one texel of the probe's octahedral tile (see probe_trace.comp), so
-        // raysPerProbe is rounded down to the nearest perfect square here.
-        int raysPerProbe = std::max(volume->raysPerProbe, 1);
+        // raysPerProbe is rounded down to the nearest perfect square here, and capped at
+        // kMaxRaysPerProbe (probe_irradiance_convolve.comp stages a whole tile in shared memory, which
+        // has to be a compile-time size - and past ~256 rays, more rays is the wrong way to spend the
+        // budget anyway : noise falls with their square root while cost is linear in them).
+        int raysPerProbe = std::clamp(volume->raysPerProbe, 1, kMaxRaysPerProbe);
         slot.tileSize = (uint32_t)std::max(1, (int)std::floor(std::sqrt((float)raysPerProbe)));
 
         slot.atlasProbesPerRow = std::max(1u, (uint32_t)std::ceil(std::sqrt((float)slot.probeCount)));
@@ -190,20 +198,27 @@ namespace Pulse::Engine::Rendering {
         atlasSpec.magFilter = TextureFilter::Linear;
         atlasSpec.wrapS = TextureWrap::ClampEdge;
         atlasSpec.wrapT = TextureWrap::ClampEdge;
-        // Same spec for all four - see the atlas comment on VolumeSlot for why there are four.
-        slot.rayAtlas = Texture2D::Create(atlasSpec, nullptr);
-        slot.irradianceAtlas = Texture2D::Create(atlasSpec, nullptr);
-        slot.bounceAtlas = Texture2D::Create(atlasSpec, nullptr);
-        slot.publishedAtlas = Texture2D::Create(atlasSpec, nullptr);
 
-        // Distance atlas quartet - same size/layout, RG16F (mean, mean^2) instead of RGBA16F radiance.
+        // Zero-fill rather than leaving the (immutable-storage) contents undefined. With round-robin
+        // probe updates a probe's tile isn't written until its own turn comes round, up to
+        // probeUpdateStride frames in, and until then lit.frag samples the published atlas and
+        // probe_trace.comp reads it back as its bounce source. Undefined contents there is garbage
+        // light injected into the scene AND into the feedback loop; zeros are the correct "no light
+        // measured here yet" value, and a zeroed distance atlas additionally makes DDGI_VisibilityWeight
+        // return 0 for such a probe, so it is excluded from the blend entirely until it has real data.
+        std::vector<float> zeros((size_t)slot.atlasSize * slot.atlasSize * 4, 0.0f);
+
+        slot.rayAtlas = Texture2D::Create(atlasSpec, zeros.data());
+        slot.irradianceAtlas = Texture2D::Create(atlasSpec, zeros.data());
+        slot.publishedAtlas = Texture2D::Create(atlasSpec, zeros.data());
+
+        // Distance atlas trio - same size/layout, RG16F (mean, mean^2) instead of RGBA16F radiance.
         TextureSpecifications distAtlasSpec = atlasSpec;
         distAtlasSpec.internalFormat = TextureInternalFormat::RG16F;
 
-        slot.rayDistAtlas = Texture2D::Create(distAtlasSpec, nullptr);
-        slot.distanceAtlas = Texture2D::Create(distAtlasSpec, nullptr);
-        slot.bounceDistAtlas = Texture2D::Create(distAtlasSpec, nullptr);
-        slot.publishedDistanceAtlas = Texture2D::Create(distAtlasSpec, nullptr);
+        slot.rayDistAtlas = Texture2D::Create(distAtlasSpec, zeros.data());
+        slot.distanceAtlas = Texture2D::Create(distAtlasSpec, zeros.data());
+        slot.publishedDistanceAtlas = Texture2D::Create(distAtlasSpec, zeros.data());
 
         slot.frameIndex = 0;
     }
@@ -363,126 +378,155 @@ namespace Pulse::Engine::Rendering {
             !slot.rayDistAtlas || !slot.distanceAtlas || !slot.publishedDistanceAtlas || slot.probeCount == 0)
             return;
 
+        // Round-robin probe update (see the class comment) : this frame only touches the probes whose
+        // index is congruent to `phase` modulo `stride`. updateCount is how many that is - every
+        // dispatch below is sized from it rather than from probeCount, which is the whole point (a
+        // stride of N costs 1/N the rays, 1/N the convolve work, 1/N the blend work).
+        const int stride = std::clamp(slot.volume->probeUpdateStride, 1, kMaxProbeUpdateStride);
+        const uint32_t phase = slot.frameIndex % (uint32_t)stride;
+        const uint32_t updateCount = phase < slot.probeCount
+            ? (slot.probeCount - phase + (uint32_t)stride - 1) / (uint32_t)stride
+            : 0;
+
+        // Only reachable when a volume has fewer probes than its stride, so this frame's phase lands
+        // past the last probe. frameIndex still has to advance or the phase would never move on and the
+        // volume would freeze for good.
+        if (updateCount == 0)
+        {
+            slot.frameIndex++;
+            return;
+        }
+
         // Ray atlas and irradiance atlas share the same tile size, so this doubles as both the ray count
         // per probe (trace) and the irradiance texel count per probe (convolve).
         uint32_t raysPerProbe = slot.tileSize * slot.tileSize;
-        uint32_t totalRays = slot.probeCount * raysPerProbe;
-        uint32_t traceGroupsX = (totalRays + 63) / 64;
-        uint32_t convolveGroupsX = traceGroupsX; // same texel count as raysPerProbe
+        uint32_t traceGroupsX = (updateCount * raysPerProbe + 63) / 64;
+        uint32_t perProbeGroupsX = (updateCount + 63) / 64; // classify / relocate : one thread per probe
 
         float raySpacingRadians = 3.5449077f / std::max(1.0f, (float)slot.tileSize);
         glm::mat3 rayRotation = RandomRotation(m_RayRNG, raySpacingRadians * 0.25f);
 
-        int maxBounces = std::max(slot.volume->maxBounces, 1);
         glm::vec3 gridOrigin = slot.volume->GetGridOrigin();
         glm::vec3 gridSpacing = slot.volume->GetGridSpacing();
         glm::ivec3 probeCounts = glm::max(slot.volume->probeCounts, glm::ivec3(1));
 
-        m_TracePipeline->Bind();
+        // A probe that has never been published yet must not fade in from the zeroed atlas through the
+        // hysteresis blend - it gets a full overwrite on its own first update instead. With a stride of
+        // N, the last phase's probes reach their first update on frame N-1, hence the comparison against
+        // the stride rather than against 0.
+        const bool firstUpdateForTheseProbes = slot.frameIndex < (uint32_t)stride;
+        // ^ see kBaseTemporalHysteresis : raised to the power of the stride so the volume's response
+        // time in seconds doesn't change when probes are spread over more frames (a probe updated every
+        // N frames takes one blend step every N frames, so each step has to move N times as far).
+        const float hysteresis = firstUpdateForTheseProbes
+            ? 0.0f
+            : std::pow(kBaseTemporalHysteresis, (float)stride);
 
-        m_BVHBuffer->Bind(8);
-        m_PosBuffer->Bind(9);
-        m_AttribBuffer->Bind(10);
-        m_MatBuffer->Bind(11);
-        if (m_LightBuffer)
-            m_LightBuffer->Bind(12);
-        slot.probeBuffer->Bind(13);
-        slot.probeStateBuffer->Bind(14);
-
-        m_TraceShader->SetInt("uProbeCount", (int)slot.probeCount);
-        m_TraceShader->SetInt("uTileSize", (int)slot.tileSize);
-        m_TraceShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
-        m_TraceShader->SetInt("uAtlasSize", (int)slot.atlasSize);
-        m_TraceShader->SetInt("uLightCount", (int)m_FlatLights.size());
-        m_TraceShader->SetVec3("uSkyColor", glm::vec3(0.8f, 0.9f, 1.0f));
-        m_TraceShader->SetVec3("uGridOrigin", gridOrigin);
-        m_TraceShader->SetVec3("uGridSpacing", gridSpacing);
-        m_TraceShader->SetVec3("uProbeCounts", glm::vec3(probeCounts));
-        m_TraceShader->SetMat3("uRayRotation", rayRotation);
-
-        for (int bounce = 0; bounce < maxBounces; bounce++)
         {
-            bool useIndirect = bounce > 0;
-
             m_TracePipeline->Bind();
+
+            m_BVHBuffer->Bind(8);
+            m_PosBuffer->Bind(9);
+            m_AttribBuffer->Bind(10);
+            m_MatBuffer->Bind(11);
+            if (m_LightBuffer)
+                m_LightBuffer->Bind(12);
+            slot.probeBuffer->Bind(13);
+            slot.probeStateBuffer->Bind(14);
 
             slot.rayAtlas->BindImage(0, TextureAccess::ReadWrite);
             slot.rayDistAtlas->BindImage(1, TextureAccess::ReadWrite);
 
-            if (useIndirect)
-            {
-                slot.irradianceAtlas->Bind(40);
-                slot.distanceAtlas->Bind(41);
-            }
+            // The bounce source is the PUBLISHED atlas - i.e. the result of every previous frame, which
+            // already carries every bounce those frames had resolved. This one read is what replaced the
+            // old in-frame maxBounces loop (see the class comment) : same feedback, one trace pass.
+            // Units 40/41 must match probe_trace.comp's uPrevIrradianceAtlas/uPrevDistanceAtlas.
+            slot.publishedAtlas->Bind(40);
+            slot.publishedDistanceAtlas->Bind(41);
+            if (m_SkyIrradiance)
+                m_SkyIrradiance->Bind(46);
 
-            m_TraceShader->SetBool("uUseIndirect", useIndirect);
+            m_TraceShader->SetInt("uProbeCount", (int)slot.probeCount);
+            m_TraceShader->SetInt("uTileSize", (int)slot.tileSize);
+            m_TraceShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+            m_TraceShader->SetInt("uAtlasSize", (int)slot.atlasSize);
+            m_TraceShader->SetInt("uLightCount", (int)m_FlatLights.size());
+            m_TraceShader->SetBool("uHasSky", m_SkyIrradiance != nullptr);
+            m_TraceShader->SetVec3("uGridOrigin", gridOrigin);
+            m_TraceShader->SetVec3("uGridSpacing", gridSpacing);
+            m_TraceShader->SetVec3("uProbeCounts", glm::vec3(probeCounts));
+            m_TraceShader->SetMat3("uRayRotation", rayRotation);
+            m_TraceShader->SetFloat("uIndirectIntensity", std::max(slot.volume->indirectIntensity, 0.0f));
+            // Nothing to read back on the very first frame - the published atlas is still all zeros.
+            m_TraceShader->SetBool("uUseIndirect", slot.frameIndex > 0);
+            m_TraceShader->SetInt("uUpdateStride", stride);
+            m_TraceShader->SetInt("uUpdatePhase", (int)phase);
+            m_TraceShader->SetInt("uUpdateCount", (int)updateCount);
 
             renderer->DispatchCompute(m_TracePipeline, traceGroupsX, 1, 1, MemoryBarrierBit::ImageAccess | MemoryBarrierBit::TextureFetch);
+        }
 
-            if (bounce == 0)
+        {
+            m_ClassifyPipeline->Bind();
+
+            slot.rayAtlas->BindImage(0, TextureAccess::ReadOnly);
+
+            m_ClassifyShader->SetInt("uProbeCount", (int)slot.probeCount);
+            m_ClassifyShader->SetInt("uTileSize", (int)slot.tileSize);
+            m_ClassifyShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+            m_ClassifyShader->SetInt("uUpdateStride", stride);
+            m_ClassifyShader->SetInt("uUpdatePhase", (int)phase);
+
+            renderer->DispatchCompute(m_ClassifyPipeline, perProbeGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
+
+            if (slot.volume->enableRelocation)
             {
-                m_ClassifyPipeline->Bind();
+                m_RelocatePipeline->Bind();
 
                 slot.rayAtlas->BindImage(0, TextureAccess::ReadOnly);
+                slot.rayDistAtlas->BindImage(1, TextureAccess::ReadOnly);
+                slot.probeStateBuffer->Bind(14);
 
-                m_ClassifyShader->SetInt("uProbeCount", (int)slot.probeCount);
-                m_ClassifyShader->SetInt("uTileSize", (int)slot.tileSize);
-                m_ClassifyShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+                m_RelocateShader->SetInt("uProbeCount", (int)slot.probeCount);
+                m_RelocateShader->SetInt("uTileSize", (int)slot.tileSize);
+                m_RelocateShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+                m_RelocateShader->SetMat3("uRayRotation", rayRotation);
+                m_RelocateShader->SetVec3("uGridSpacing", gridSpacing);
+                m_RelocateShader->SetInt("uUpdateStride", stride);
+                m_RelocateShader->SetInt("uUpdatePhase", (int)phase);
 
-                uint32_t classifyGroupsX = (slot.probeCount + 63) / 64;
-                renderer->DispatchCompute(m_ClassifyPipeline, classifyGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
-
-                if (slot.volume->enableRelocation)
-                {
-                    m_RelocatePipeline->Bind();
-
-                    slot.rayAtlas->BindImage(0, TextureAccess::ReadOnly);
-                    slot.rayDistAtlas->BindImage(1, TextureAccess::ReadOnly);
-                    slot.probeStateBuffer->Bind(14);
-
-                    m_RelocateShader->SetInt("uProbeCount", (int)slot.probeCount);
-                    m_RelocateShader->SetInt("uTileSize", (int)slot.tileSize);
-                    m_RelocateShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
-                    m_RelocateShader->SetMat3("uRayRotation", rayRotation);
-                    m_RelocateShader->SetVec3("uGridSpacing", gridSpacing);
-
-                    // ShaderStorage : same reasoning as the classify dispatch above - the SSBO write is
-                    // read by this frame's later bounce trace dispatches and by lit.frag's forward pass.
-                    uint32_t relocateGroupsX = (slot.probeCount + 63) / 64;
-                    renderer->DispatchCompute(m_RelocatePipeline, relocateGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
-                }
+                // ShaderStorage : same reasoning as the classify dispatch above - the SSBO write is
+                // read by next frame's trace dispatch and by lit.frag's forward pass.
+                renderer->DispatchCompute(m_RelocatePipeline, perProbeGroupsX, 1, 1, MemoryBarrierBit::ShaderStorage);
             }
+        }
 
+        {
             // Convolve : turn the raw per-ray radiance into an actual cosine-weighted irradiance map -
-            // see probe_irradiance_convolve.comp for why this step can't be skipped. Written into
-            // slot.bounceAtlas (the current "back buffer"), then swapped into slot.irradianceAtlas below.
+            // see probe_irradiance_convolve.comp for why this step can't be skipped. ONE WORKGROUP PER
+            // UPDATED PROBE (not one thread per texel) : that shader stages a whole tile in shared
+            // memory, so the workgroup, not the thread, is the unit of work here.
             m_ConvolvePipeline->Bind();
 
             // Unit numbers here (42/43) must match probe_irradiance_convolve.comp's uRayAtlas/
             // uRayDistAtlas layout(binding=...) - see that shader's comment for why they're not 1/3.
             slot.rayAtlas->Bind(42);
-            slot.bounceAtlas->BindImage(0, TextureAccess::WriteOnly);
+            slot.irradianceAtlas->BindImage(0, TextureAccess::WriteOnly);
 
             slot.rayDistAtlas->Bind(43);
-            slot.bounceDistAtlas->BindImage(2, TextureAccess::WriteOnly);
+            slot.distanceAtlas->BindImage(2, TextureAccess::WriteOnly);
 
             m_ConvolveShader->SetInt("uProbeCount", (int)slot.probeCount);
             m_ConvolveShader->SetInt("uTileSize", (int)slot.tileSize);
             m_ConvolveShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+            m_ConvolveShader->SetInt("uUpdateStride", stride);
+            m_ConvolveShader->SetInt("uUpdatePhase", (int)phase);
 
-            renderer->DispatchCompute(m_ConvolvePipeline, convolveGroupsX, 1, 1, MemoryBarrierBit::ImageAccess);
-
-            // slot.irradianceAtlas/slot.distanceAtlas now point at this bounce's freshly-convolved result
-            // (and slot.bounceAtlas/slot.bounceDistAtlas at the now-stale data from before this
-            // iteration, ready to be overwritten as scratch next time) - see the ping-pong comment on
-            // these members in the header.
-            std::swap(slot.irradianceAtlas, slot.bounceAtlas);
-            std::swap(slot.distanceAtlas, slot.bounceDistAtlas);
+            renderer->DispatchCompute(m_ConvolvePipeline, updateCount, 1, 1, MemoryBarrierBit::ImageAccess);
         }
 
         {
             // Border-fixup : duplicate tile-edge texels so bilinear sampling doesn't bleed across probes.
-            // Runs once, after the bounce loop, directly on the final slot.irradianceAtlas.
             m_BorderFixupPipeline->Bind();
 
             slot.irradianceAtlas->BindImage(0, TextureAccess::ReadWrite);
@@ -491,22 +535,26 @@ namespace Pulse::Engine::Rendering {
             m_BorderFixupShader->SetInt("uProbeCount", (int)slot.probeCount);
             m_BorderFixupShader->SetInt("uTileSize", (int)slot.tileSize);
             m_BorderFixupShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+            m_BorderFixupShader->SetInt("uUpdateStride", stride);
+            m_BorderFixupShader->SetInt("uUpdatePhase", (int)phase);
+            m_BorderFixupShader->SetInt("uUpdateCount", (int)updateCount);
 
             // One thread per border texel : 4 * tileSize edge texels + 4 corner texels around each tile.
-            uint32_t totalBorderTexels = slot.probeCount * (slot.tileSize * 4 + 4);
+            uint32_t totalBorderTexels = updateCount * (slot.tileSize * 4 + 4);
             uint32_t borderGroupsX = (totalBorderTexels + 63) / 64;
-            // TextureFetch (not just ImageAccess) : this is the last writer before the forward pass
-            // samples the atlas through `sampler2D ddgi_irradianceAtlas[]` in lit.frag -
-            // GL_SHADER_IMAGE_ACCESS_BARRIER_BIT only orders subsequent imageLoad/imageStore, not sampler
-            // reads, so without it the driver is free to let lit.frag see stale/incoherent atlas data
-            // every frame (probe volumes silently doing nothing).
             renderer->DispatchCompute(m_BorderFixupPipeline, borderGroupsX, 1, 1, MemoryBarrierBit::ImageAccess | MemoryBarrierBit::TextureFetch);
         }
 
         {
-            // Temporal blend : smooth this frame's raw, noisy N-bounce result into the persistent
-            // published atlas lit.frag actually samples - see probe_temporal_blend.comp and the
-            // publishedAtlas comment on VolumeSlot for why this can't just be skipped.
+            // Temporal blend : smooth this frame's raw, noisy result into the persistent published
+            // atlas - the one lit.frag samples AND next frame's trace reads back as its bounce source.
+            // See probe_temporal_blend.comp and the publishedAtlas comment on VolumeSlot.
+            //
+            // One thread per texel of an UPDATED probe's tile, border included - (tileSize + 2)^2 each,
+            // which is exactly the atlas region this frame rewrote.
+            uint32_t tileStride = slot.tileSize + 2;
+            uint32_t blendGroupsX = (updateCount * tileStride * tileStride + 63) / 64;
+
             m_TemporalBlendPipeline->Bind();
 
             // Unit number here (44) must match probe_temporal_blend.comp's uFresh layout(binding=...) -
@@ -514,33 +562,24 @@ namespace Pulse::Engine::Rendering {
             slot.irradianceAtlas->Bind(44);
             slot.publishedAtlas->BindImage(0, TextureAccess::ReadWrite);
 
-            // Full overwrite on the first frame since this slot was (re)built, when publishedAtlas is
-            // still uninitialized - same reasoning as probe_trace.comp's old per-frame uHysteresis.
-            // Shared between the irradiance and distance blends below : nothing here calls for them to
-            // diverge.
-            //
-            // 0.99, not the 0.97 this used to be : an exponential moving average doesn't converge to zero
-            // noise no matter how long it runs - it has a fixed effective memory of ~1/(1-hysteresis)
-            // frames, and its steady-state noise floor (relative to a single frame's raw noise) is
-            // sqrt((1-hysteresis)/(1+hysteresis)). At 0.97 that floor is ~12% - a real, persistent grainy
-            // noise on flat, brightly-lit surfaces (e.g. a plain wall) that waiting longer never removes,
-            // confirmed by A/B testing the exact same spot after 20s of runtime with no change. At 0.99
-            // the floor drops to ~7% (roughly 1.7x quieter) for zero extra GPU cost - unlike raising
-            // raysPerProbe, whose cost scales linearly while noise only falls with its square root. The
-            // trade is slower response to an actual lighting change (~3x the settling time of 0.97), which
-            // reads fine for a mostly-static architectural scene explored in real time.
-            float hysteresis = slot.frameIndex == 0 ? 0.0f : 0.99f;
-
-            m_TemporalBlendShader->SetInt("uAtlasSize", (int)slot.atlasSize);
+            m_TemporalBlendShader->SetInt("uProbeCount", (int)slot.probeCount);
+            m_TemporalBlendShader->SetInt("uTileSize", (int)slot.tileSize);
+            m_TemporalBlendShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+            m_TemporalBlendShader->SetInt("uUpdateStride", stride);
+            m_TemporalBlendShader->SetInt("uUpdatePhase", (int)phase);
+            m_TemporalBlendShader->SetInt("uUpdateCount", (int)updateCount);
             m_TemporalBlendShader->SetFloat("uHysteresis", hysteresis);
 
-            uint32_t totalAtlasTexels = slot.atlasSize * slot.atlasSize;
-            uint32_t blendGroupsX = (totalAtlasTexels + 63) / 64;
+            // TextureFetch (not just ImageAccess) : this is the last writer before the forward pass
+            // samples the atlas through `sampler2D ddgi_irradianceAtlas*` in lit.frag -
+            // GL_SHADER_IMAGE_ACCESS_BARRIER_BIT only orders subsequent imageLoad/imageStore, not
+            // sampler reads, so without it the driver is free to let lit.frag see stale/incoherent atlas
+            // data every frame (probe volumes silently doing nothing).
             renderer->DispatchCompute(m_TemporalBlendPipeline, blendGroupsX, 1, 1, MemoryBarrierBit::ImageAccess | MemoryBarrierBit::TextureFetch);
 
             // Distance atlas equivalent - separate pipeline (see m_DistanceTemporalBlendPipeline in the
-            // header for why it can't reuse m_TemporalBlendPipeline), same texel count/group count since
-            // both atlases share slot.atlasSize.
+            // header for why it can't reuse m_TemporalBlendPipeline), same group count since both
+            // atlases share the same tile layout.
             m_DistanceTemporalBlendPipeline->Bind();
 
             // Unit number here (45) must match probe_distance_temporal_blend.comp's uFresh
@@ -548,7 +587,12 @@ namespace Pulse::Engine::Rendering {
             slot.distanceAtlas->Bind(45);
             slot.publishedDistanceAtlas->BindImage(0, TextureAccess::ReadWrite);
 
-            m_DistanceTemporalBlendShader->SetInt("uAtlasSize", (int)slot.atlasSize);
+            m_DistanceTemporalBlendShader->SetInt("uProbeCount", (int)slot.probeCount);
+            m_DistanceTemporalBlendShader->SetInt("uTileSize", (int)slot.tileSize);
+            m_DistanceTemporalBlendShader->SetInt("uAtlasProbesPerRow", (int)slot.atlasProbesPerRow);
+            m_DistanceTemporalBlendShader->SetInt("uUpdateStride", stride);
+            m_DistanceTemporalBlendShader->SetInt("uUpdatePhase", (int)phase);
+            m_DistanceTemporalBlendShader->SetInt("uUpdateCount", (int)updateCount);
             m_DistanceTemporalBlendShader->SetFloat("uHysteresis", hysteresis);
 
             renderer->DispatchCompute(m_DistanceTemporalBlendPipeline, blendGroupsX, 1, 1, MemoryBarrierBit::ImageAccess | MemoryBarrierBit::TextureFetch);
@@ -610,6 +654,18 @@ namespace Pulse::Engine::Rendering {
             if (!m_LightBuffer || m_LightBuffer->GetSize() != neededSize)
                 m_LightBuffer = StorageBuffer::Create(neededSize);
             m_LightBuffer->SetData(m_FlatLights.data(), neededSize);
+        }
+
+        // Sky radiance for rays that escape the scene - see m_SkyIrradiance. Re-read every frame (it's
+        // two pointer hops) instead of cached, so a level swap or a skybox change can't leave this
+        // pointing at a freed cubemap.
+        m_SkyIrradiance = nullptr;
+        Levels::LevelManager* levelManager = Core::GetEngine().GetLevelManager();
+        if (levelManager && levelManager->GetLoadedLevelCount() > 0)
+        {
+            Levels::Level* level = levelManager->GetLevelAt(0);
+            if (level && level->skybox && level->skybox->GetEnvMap())
+                m_SkyIrradiance = level->skybox->GetEnvMap()->GetIrradiance();
         }
 
         for (auto& slot : m_Volumes)

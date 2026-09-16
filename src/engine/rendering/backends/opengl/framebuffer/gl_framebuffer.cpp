@@ -49,6 +49,26 @@ namespace Pulse::Engine::Rendering{
         }
     }
 
+    void GLFramebuffer::CreateColorAttachment(uint32_t width, uint32_t height)
+    {
+        GLTextureSpec colorSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications.colorSpecs);
+
+        glGenTextures(1, &m_ColorAttachment);
+        glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
+        glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, colorSpecs.type, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, colorSpecs.minFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, colorSpecs.magFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, colorSpecs.wrapModeS);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, colorSpecs.wrapModeT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, m_Specifications.colorSpecs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, colorSpecs.compareFunc);
+        if(m_Specifications.colorSpecs.borderColor != COL_RGBA(-1.0f)){
+            float borderColor[] = {m_Specifications.colorSpecs.borderColor.r(), m_Specifications.colorSpecs.borderColor.g(), m_Specifications.colorSpecs.borderColor.b(), m_Specifications.colorSpecs.borderColor.a()};
+            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        }
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment, 0);
+    }
+
     GLFramebuffer::GLFramebuffer(const FramebufferSpecifications &spec)
     {
         m_Specifications = spec;
@@ -119,21 +139,7 @@ namespace Pulse::Engine::Rendering{
         else {
             if (spec.hasColor)
             {
-                glGenTextures(1, &m_ColorAttachment);
-                glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
-                GLTextureSpec colorSpecs = GLTextureSpec::FromTextureSpecifications(m_Specifications.colorSpecs);
-                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, spec.width, spec.height, 0, colorSpecs.format, colorSpecs.type, nullptr);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, colorSpecs.minFilter);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, colorSpecs.magFilter);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, colorSpecs.wrapModeS);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, colorSpecs.wrapModeT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, spec.colorSpecs.compareMode == TextureCompareMode::CompareRefToTexture ? GL_COMPARE_REF_TO_TEXTURE : GL_NONE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, colorSpecs.compareFunc);
-                if(m_Specifications.colorSpecs.borderColor != COL_RGBA(-1.0f)){
-                    float borderColor[] = {m_Specifications.colorSpecs.borderColor.r(), m_Specifications.colorSpecs.borderColor.g(), m_Specifications.colorSpecs.borderColor.b(), m_Specifications.colorSpecs.borderColor.a()};
-                    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-                }
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment, 0);
+                CreateColorAttachment(spec.width, spec.height);
             }
             if(spec.hasDepth)
             {
@@ -177,10 +183,16 @@ namespace Pulse::Engine::Rendering{
 
     void GLFramebuffer::Destroy()
     {
-        if (m_FBO) 
+        if (m_FBO)
             glDeleteFramebuffers(1, &m_FBO);
-        if(m_Specifications.hasColor) 
+        if(m_Specifications.hasColor)
+        {
+            // GL recycles texture IDs, so a handle left cached under a deleted ID would be handed back
+            // for whatever texture claims that ID next (see GLTexture2D::GetBindlessHandle's cache) -
+            // same cleanup ~GLTexture2D does for textures it owns.
+            GLTexture2D::ReleaseBindlessHandle(m_ColorAttachment);
             glDeleteTextures(1, &m_ColorAttachment);
+        }
         if(m_Specifications.hasDepth)
             glDeleteTextures(1, &m_DepthAttachment);
         if (m_ResolveFBO) 
@@ -336,8 +348,24 @@ namespace Pulse::Engine::Rendering{
         else {
             if (m_Specifications.hasColor)
             {
-                glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
-                glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, colorSpecs.type, nullptr);
+                // A color attachment that's already been handed out as a bindless handle (SSAO's blurred
+                // AO target - see SSAOManager::BindSSAOTexture) can't be re-specified in place :
+                // ARB_bindless_texture freezes a texture the moment a handle references it, so the
+                // glTexImage2D below would raise INVALID_OPERATION and silently do nothing, leaving that
+                // attachment stuck at its creation size while every other framebuffer follows the
+                // viewport. Recreate the object instead - the next GetColorAttachmentBindlessHandle()
+                // mints a handle for the new texture ID, and callers re-read it per draw anyway.
+                if (GLTexture2D::HasBindlessHandle(m_ColorAttachment))
+                {
+                    GLTexture2D::ReleaseBindlessHandle(m_ColorAttachment);
+                    glDeleteTextures(1, &m_ColorAttachment);
+                    CreateColorAttachment(width, height);
+                }
+                else
+                {
+                    glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
+                    glTexImage2D(GL_TEXTURE_2D, 0, colorSpecs.internalFormat, width, height, 0, colorSpecs.format, colorSpecs.type, nullptr);
+                }
             }
             if(m_Specifications.hasDepth)
             {

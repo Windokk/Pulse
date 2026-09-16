@@ -18,6 +18,12 @@ uniform int uProbeCount;
 uniform int uTileSize;
 uniform int uAtlasProbesPerRow;
 
+// Round-robin probe update - see the identical uniforms in probe_trace.comp. A tile whose interior
+// wasn't rewritten this frame still has the border that matched it, so there is nothing to fix up.
+uniform int uUpdateStride;
+uniform int uUpdatePhase;
+uniform int uUpdateCount;
+
 #include "../../common/ddgi_atlas.glsl"
 
 void main()
@@ -25,11 +31,14 @@ void main()
     uint gid = gl_GlobalInvocationID.x;
     uint n = uint(uTileSize);
     uint perTile = n * 4u + 4u; // 4 edges of n texels + 4 corners
-    uint totalTexels = uint(uProbeCount) * perTile;
+    uint totalTexels = uint(uUpdateCount) * perTile;
     if (gid >= totalTexels)
         return;
 
-    int probeIndex = int(gid / perTile);
+    int probeIndex = uUpdatePhase + int(gid / perTile) * uUpdateStride;
+    if (probeIndex >= uProbeCount)
+        return;
+
     uint localIdx = gid % perTile;
     int N = uTileSize;
 
