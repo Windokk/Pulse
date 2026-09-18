@@ -1088,7 +1088,7 @@ namespace Shard::Editor::GUI{
             case TypeID::ColorRGB:
             {
                 COL_RGB* v = static_cast<COL_RGB*>(value);
-                static float value[3] = {v->r(), v->g(), v->b()};
+                float value[3] = {v->r(), v->g(), v->b()};
                 ImGui::SetNextItemWidth(-FLT_MIN);
                 if(ImGui::ColorEdit3(id.c_str(), value)){
 
@@ -1102,7 +1102,7 @@ namespace Shard::Editor::GUI{
             case TypeID::ColorRGBA:
             {
                 COL_RGBA* v = static_cast<COL_RGBA*>(value);
-                static float value[4] = {v->r(), v->g(), v->b(), v->a()};
+                float value[4] = {v->r(), v->g(), v->b(), v->a()};
                 ImGui::SetNextItemWidth(-FLT_MIN);
                 if(ImGui::ColorEdit4(id.c_str(), value)){
 

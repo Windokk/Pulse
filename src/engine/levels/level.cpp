@@ -79,6 +79,15 @@ namespace Shard::Engine::Levels{
 
     void DeserializeActor(std::shared_ptr<Objects::Actor> a, json data, json actor){
 
+        // This actor's own components (crucially its transform) have to be deserialized BEFORE its
+        // children's: a child's components (Light, PhysicsBody, ProbeVolume, ...) read the parent's
+        // world transform while deserializing themselves (e.g. Light::Deserialize's
+        // parent->transform->GetWorldPosition()), and Jolt/GPU-side state built from that read is never
+        // refreshed again on its own. Doing children first left every such child using the parent's
+        // still-default (identity) transform instead of its actual saved one, so it would sit in the
+        // wrong place until something (e.g. moving it manually) recomputed its world transform.
+        DeserializeComponents(a, actor);
+
         if (actor.contains("children") && actor["children"].is_array() && !actor["children"].empty()) {
             Core::IEngineContext* engine = &Core::GetEngine();
             for (auto& child : actor["children"]) {
@@ -87,8 +96,6 @@ namespace Shard::Engine::Levels{
                 DeserializeActor(b, data, child);
             }
         }
-
-        DeserializeComponents(a, actor);
     }
 
     static void CollectActorAssetRefs(const json& actor, LevelAssetManifest& manifest){
