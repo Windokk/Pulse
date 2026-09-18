@@ -86,9 +86,46 @@ namespace Shard::Engine::Serialization{
                 DEBUG_INFO("No build settings for project: "+path.full);
             }
 
+            Projects::PhysicsSettings physicsSettings;
+
+            if(data.contains("physics") && data["physics"].is_object()){
+                const json& physics = data["physics"];
+
+                if(physics.contains("gravity") && physics["gravity"].is_object()){
+                    const json& gravity = physics["gravity"];
+                    if(gravity.contains("x") && gravity["x"].is_number())
+                        physicsSettings.gravity.x = gravity["x"];
+                    if(gravity.contains("y") && gravity["y"].is_number())
+                        physicsSettings.gravity.y = gravity["y"];
+                    if(gravity.contains("z") && gravity["z"].is_number())
+                        physicsSettings.gravity.z = gravity["z"];
+                }
+
+                if(physics.contains("fixedTimeStep") && physics["fixedTimeStep"].is_number()){
+                    float fixedTimeStep = physics["fixedTimeStep"];
+                    if(fixedTimeStep > 0.0f)
+                        physicsSettings.fixedTimeStep = fixedTimeStep;
+                    else
+                        DEBUG_ERROR("Project physics fixedTimeStep must be greater than 0, keeping the default");
+                }
+
+                if(physics.contains("maxAccumulatedTime") && physics["maxAccumulatedTime"].is_number()){
+                    float maxAccumulatedTime = physics["maxAccumulatedTime"];
+                    if(maxAccumulatedTime >= physicsSettings.fixedTimeStep)
+                        physicsSettings.maxAccumulatedTime = maxAccumulatedTime;
+                    else
+                        DEBUG_ERROR("Project physics maxAccumulatedTime must be at least one fixedTimeStep, keeping the default");
+                }
+            }
+            else{
+                DEBUG_INFO("No physics settings for project: "+path.full+", using the defaults");
+            }
+
             Projects::EditorPreferences editorPrefs = {};
 
             project = std::make_shared<Projects::Project>(path.GetFilename(false), projectRoot, projectResPath, pluginsPath, buildSettings, editorPrefs, assetDatabasePath);
+
+            *project->GetPhysicsSettings() = physicsSettings;
 
             project->versionMajor = projectMajorVersion;
             project->versionMinor = projectMinorVersion;
@@ -117,6 +154,14 @@ namespace Shard::Engine::Serialization{
         for(auto& lvl : pro->GetBuildSettings()->buildIndex){
             data["buildSettings"].push_back(lvl.full);
         }
+
+        Projects::PhysicsSettings* physics = pro->GetPhysicsSettings();
+
+        data["physics"]["gravity"]["x"] = physics->gravity.x;
+        data["physics"]["gravity"]["y"] = physics->gravity.y;
+        data["physics"]["gravity"]["z"] = physics->gravity.z;
+        data["physics"]["fixedTimeStep"] = physics->fixedTimeStep;
+        data["physics"]["maxAccumulatedTime"] = physics->maxAccumulatedTime;
 
         //TODO data["editorPreferences"] = pro->GetEditorPrefs();
 

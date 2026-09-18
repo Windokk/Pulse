@@ -3,6 +3,10 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
 
 namespace Shard::Engine::Time{
 
@@ -59,7 +63,7 @@ namespace Shard::Engine::Time{
     class TimeManager {
         public:
 
-            void Init(float fixedStep = 1.0f / 60.0f, float maxAccumulated = 4.0f / 60.0f){
+            void Init(float fixedStep = 1.0f / 60.0f, float maxAccumulated = 0.25f){
                 fixedDeltaTime = fixedStep;
                 deltaTime = 0.0f;
                 lastTime = Clock::now();
@@ -71,9 +75,55 @@ namespace Shard::Engine::Time{
             void Tick() {
                 frameStartTime = Clock::now();
                 auto delta = std::chrono::duration<float>(frameStartTime - lastTime);
-                deltaTime = delta.count();
                 lastTime = frameStartTime;
+
+                Advance(delta.count());
             }
+
+            /// Feeds a frame of real time by hand instead of reading the clock. Kept separate from
+            /// Tick() so the accumulation can be driven deterministically (tests, replays).
+            void Advance(float realDeltaSeconds) {
+                deltaTime = realDeltaSeconds;
+
+                // The simulation clock only ever advances by whole fixed steps, so whatever real time
+                // the frame took is banked here and paid out by ConsumeFixedSteps(). A frame that
+                // stalls (breakpoint, level load, window drag) is clamped instead of banked in full,
+                // otherwise the next frame would owe more simulation than it can run in time and every
+                // following frame would owe even more - the classic spiral of death.
+                float simulated = deltaTime * timeSpeed;
+                if (simulated > maxAccumulatedTime)
+                    simulated = maxAccumulatedTime;
+
+                accumulator += simulated;
+            }
+
+            /// Number of fixed steps owed for this frame, removed from the accumulator as they are
+            /// handed out. The caller is expected to run exactly that many simulation steps, each of
+            /// GetFixedDeltaTime() seconds - that's what makes the simulation independent of framerate.
+            int ConsumeFixedSteps() {
+                if (fixedDeltaTime <= 0.0f)
+                    return 0;
+
+                int steps = static_cast<int>(accumulator / fixedDeltaTime);
+                if (steps <= 0)
+                    return 0;
+
+                accumulator -= steps * fixedDeltaTime;
+                return steps;
+            }
+
+            /// How far the frame sits between the last simulated step and the next one, in [0, 1).
+            /// Useful to interpolate rendered transforms so motion stays smooth when the render rate
+            /// isn't a multiple of the simulation rate.
+            float GetFixedStepAlpha() const {
+                return fixedDeltaTime > 0.0f ? accumulator / fixedDeltaTime : 0.0f;
+            }
+
+            /// Drops the banked time. Called when the simulation isn't running (editor, pause) so that
+            /// resuming doesn't immediately replay everything that happened while it was stopped.
+            void ResetAccumulator() { accumulator = 0.0f; }
+
+            void SetFixedDeltaTime(float fixedStep) { fixedDeltaTime = fixedStep; }
 
             float GetFixedDeltaTime() { return fixedDeltaTime; }
             float GetDeltaTime() { return deltaTime; }

@@ -301,6 +301,11 @@ namespace Shard::Engine::Physics
 
         RaycastResult RayCast(RaycastRequest request);
 
+        /// World units per second squared. Expressed in the project's own units, so a project where
+        /// one unit isn't one metre needs this scaled accordingly rather than left at 9.81.
+        void SetGravity(glm::vec3 gravity);
+        glm::vec3 GetGravity();
+
         void StepSimulation(float deltaTime, bool activateAll);
 
         void TickBodies(float deltaTime);
@@ -343,7 +348,7 @@ namespace Shard::Engine::Physics
         std::queue<std::function<void()>> mBodyUpdateQueue;
         std::mutex mQueueMutex;
 
-        bool initialized;
+        bool initialized = false;
 
         friend class PhysicsContactListener;
     };

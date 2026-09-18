@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <glm/glm.hpp>
+
 #include "engine/filesystem/filesystem.hpp"
 #include "engine/debugging/logger.hpp"
 
@@ -64,6 +66,23 @@ namespace Shard::Engine::Projects{
         // TODO
     };
 
+    struct PhysicsSettings{
+        /// Acceleration applied to every dynamic body, in world units per second squared. The default
+        /// is earth gravity expressed for a project where one unit is one metre - a project authored
+        /// at another scale has to scale this to match, otherwise everything appears to fall in slow
+        /// motion (units too small) or far too fast (units too large).
+        glm::vec3 gravity = glm::vec3(0.0f, -9.81f, 0.0f);
+
+        /// How much time one simulation step covers. Lower is more accurate and smoother, at the cost
+        /// of more steps per second. It doesn't change how fast the simulation runs: the engine runs
+        /// as many steps per frame as the elapsed real time paid for.
+        float fixedTimeStep = 1.0f / 60.0f;
+
+        /// Upper bound on the real time a single frame may contribute to the simulation. Caps how far
+        /// the simulation tries to catch up after a stall instead of falling further behind each frame.
+        float maxAccumulatedTime = 0.25f;
+    };
+
     class Project{
         public:
 
@@ -88,14 +107,17 @@ namespace Shard::Engine::Projects{
 
             BuildSettings* GetBuildSettings() { return &buildSettings; }
 
+            PhysicsSettings* GetPhysicsSettings() { return &physicsSettings; }
+
             EditorPreferences GetEditorPrefs() { return editorPreferences; }
-            
+
         private:
             Filesystem::Path projectRoot = Filesystem::Path("");
             Filesystem::Path projectResourcesRoot = Filesystem::Path("");
             Filesystem::Path pluginsFolder = Filesystem::Path("");
             Filesystem::Path assetDatabasePath = Filesystem::Path("");
             BuildSettings buildSettings;
+            PhysicsSettings physicsSettings;
             EditorPreferences editorPreferences;
     };
 

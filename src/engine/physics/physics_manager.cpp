@@ -60,6 +60,11 @@ namespace Shard::Engine::Physics {
 
     void PhysicsManager::Shutdown()
     {
+        if (!initialized)
+            return;
+
+        bodyIDToComponentMap.clear();
+
         delete m_jobSystem;
         m_jobSystem = nullptr;
 
@@ -69,6 +74,35 @@ namespace Shard::Engine::Physics {
         JPH::UnregisterTypes();
         delete JPH::Factory::sInstance;
         JPH::Factory::sInstance = nullptr;
+
+        // The job system and allocator this manager's JPH::PhysicsSystem points at are gone, so every
+        // accessor has to start failing its guard again - otherwise a call that comes in after
+        // shutdown looks valid and dereferences freed memory. Note the manager is not re-initializable
+        // afterwards: JPH::PhysicsSystem is held by value and Init() asserts if run on one twice.
+        initialized = false;
+    }
+
+    void PhysicsManager::SetGravity(glm::vec3 gravity)
+    {
+        if (!initialized)
+            DEBUG_FATAL("Physics system is not yet initialized");
+
+        m_physicsSystem.SetGravity(JPH::Vec3Arg(gravity.x, gravity.y, gravity.z));
+
+        // Bodies sleeping under the old gravity would otherwise stay put until something else wakes
+        // them, which looks like the new value hasn't been applied at all.
+        JPH::BodyIDVector bodies;
+        m_physicsSystem.GetBodies(bodies);
+        m_physicsSystem.GetBodyInterface().ActivateBodies(bodies.data(), bodies.size());
+    }
+
+    glm::vec3 PhysicsManager::GetGravity()
+    {
+        if (!initialized)
+            DEBUG_FATAL("Physics system is not yet initialized");
+
+        JPH::Vec3 gravity = m_physicsSystem.GetGravity();
+        return glm::vec3(gravity.GetX(), gravity.GetY(), gravity.GetZ());
     }
 
     RaycastResult PhysicsManager::RayCast(RaycastRequest request)

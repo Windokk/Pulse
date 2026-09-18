@@ -41,6 +41,7 @@ EngineCreationSettings ComputeEngineSettings(int argc, char* argv[]) {
             float y = std::stof(argv[++i]);
             float z = std::stof(argv[++i]);
             settings.gravity = glm::vec3(x, y, z);
+            settings.overrideGravity = true;
         }
         else if (strcmp(argv[i], "--debug") == 0 && i + 1 < argc) {
             std::string level = argv[++i];

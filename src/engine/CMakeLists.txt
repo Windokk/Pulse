@@ -51,10 +51,17 @@ endif()
 # Define engine-specific compile definitions
 target_compile_definitions(Engine PRIVATE BUILD_ENGINE)
 
+# Jolt is PUBLIC, not PRIVATE: engine headers (physics_manager.hpp, physics_body.hpp, ...) expose
+# Jolt types, so anything including them has to be compiled with Jolt's own PUBLIC definitions
+# (JPH_DEBUG_RENDERER, JPH_PROFILE_ENABLED, ...). Those defines change the layout of Jolt classes,
+# so a target that gets the headers without them disagrees with the compiled library about where
+# members live - which corrupts memory at runtime rather than failing to build.
+
 # Link the necessary libraries based on the platform
 if(WIN32)
-  target_link_libraries(Engine PRIVATE freetype Jolt fmod -lz opengl32 gdi32 user32 shell32 advapi32 pdh)
-  target_link_libraries(Engine PUBLIC Threads::Threads)
+  target_link_libraries(Engine PRIVATE freetype fmod -lz opengl32 gdi32 user32 shell32 advapi32 pdh)
+  target_link_libraries(Engine PUBLIC Jolt Threads::Threads)
 elseif(UNIX)
-  target_link_libraries(Engine PRIVATE freetype Jolt fmod -lz)
+  target_link_libraries(Engine PRIVATE freetype fmod -lz)
+  target_link_libraries(Engine PUBLIC Jolt)
 endif()

@@ -18,7 +18,7 @@ class CLASS() Character : public Shard::Engine::Objects::Components::Script{
         void OnStop() override;
 
         FIELD(Editable)
-        float speed = 1.0f;
+        float speed = 30.0f; // units per second
         
         FIELD(Editable)
         float mouseSensitivity = 0.1f;

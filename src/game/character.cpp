@@ -6,6 +6,8 @@
 
 #include "engine/core/platform/iplatform.hpp"
 
+#include "engine/time/time_manager.hpp"
+
 #include <thread>
 #include <iostream>
 
@@ -43,17 +45,24 @@ void Character::OnPlay() {
 void Character::OnTick() {
     Core::Platform::IInput* input = Core::GetEngine().GetInputManager();
 
+    // Scripts tick once per rendered frame, so movement is expressed in units per second and scaled
+    // by the frame's delta - translating by a flat amount would make the character move faster the
+    // higher the framerate. Mouse look is deliberately not scaled: a cursor delta is already an
+    // amount of movement, not a rate.
+    const float dt = Core::GetEngine().GetTimeManager()->GetDeltaTime();
+    const float step = speed * dt;
+
     if(input->IsKeyDown(Input::Key::W)){
-        parent->transform->Translate(parent->transform->GetForward() * speed);
+        parent->transform->Translate(parent->transform->GetForward() * step);
     }
     if(input->IsKeyDown(Input::Key::A)){
-        parent->transform->Translate(glm::normalize(glm::cross(parent->transform->GetForward(), parent->transform->GetUp())) * -speed);
+        parent->transform->Translate(glm::normalize(glm::cross(parent->transform->GetForward(), parent->transform->GetUp())) * -step);
     }
     if(input->IsKeyDown(Input::Key::S)){
-        parent->transform->Translate(parent->transform->GetForward() * -speed);
+        parent->transform->Translate(parent->transform->GetForward() * -step);
     }
     if(input->IsKeyDown(Input::Key::D)){
-        parent->transform->Translate(glm::normalize(glm::cross(parent->transform->GetForward(), parent->transform->GetUp())) * speed);
+        parent->transform->Translate(glm::normalize(glm::cross(parent->transform->GetForward(), parent->transform->GetUp())) * step);
     }
 
     if (input->IsMouseDown(Input::MouseButton::Left))

@@ -55,8 +55,13 @@ namespace Shard::Engine{
             m_Context.resourcesManager->ConstructGlobalFileIndex(m_Context.currentProject->GetProjectResourcesPath());
 
             m_Context.platform->CreateWindow("Shard", settings.windowWidth, settings.windowHeight, settings.fullscreen, settings.vsync, settings.api);
-            
-            m_Context.physicsManager->Init(settings.gravity);
+
+            Projects::PhysicsSettings* physicsSettings = m_Context.currentProject->GetPhysicsSettings();
+
+            if(settings.overrideGravity)
+                physicsSettings->gravity = settings.gravity;
+
+            m_Context.physicsManager->Init(physicsSettings->gravity);
             m_Context.audioManager->Init(100.0f);
             m_RendererSettings = std::make_shared<RendererSettings>();
             m_RendererSettings->viewportWidth = m_Context.platform->GetWindow()->GetFramebufferWidth();
@@ -65,9 +70,7 @@ namespace Shard::Engine{
             m_Context.renderer->Init(m_RendererSettings);
             m_Context.platform->CreateInput();
 
-            float fixedDelta = 1.0f / 30.0f;
-
-            m_Context.timeManager->Init(fixedDelta);
+            m_Context.timeManager->Init(physicsSettings->fixedTimeStep, physicsSettings->maxAccumulatedTime);
 
             Platform::SystemInfos infos = GetWindow()->GetSystemInfos();
 
@@ -200,10 +203,35 @@ namespace Shard::Engine{
 
         bool EngineInstance::Run() {
 
+            // Measured first thing in the frame so every system below works off the same delta, and so
+            // the time the previous frame actually took is what decides how much simulation is owed.
+            m_Context.timeManager->Tick();
+
+            const float fixedDeltaTime = m_Context.timeManager->GetFixedDeltaTime();
+
             if(m_PlayMode){
                 {
                     SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
-                    m_Context.physicsManager->StepSimulation(m_Context.timeManager->GetFixedDeltaTime(), m_ActivateAllPhysics);
+
+                    // Physics runs at a fixed rate, decoupled from the render rate: a frame runs as many
+                    // steps as the elapsed real time paid for (0 when rendering outpaces the simulation,
+                    // several when it lags behind). Stepping once per frame instead would tie the speed
+                    // of the whole simulation to the framerate.
+                    const int steps = m_Context.timeManager->ConsumeFixedSteps();
+
+                    for(int i = 0; i < steps; i++){
+                        // Intermediate steps need the bodies re-synced in between (kinematic targets
+                        // pushed to Jolt, dynamic results read back); the last step's results are
+                        // picked up by the TickBodies() call further down, before rendering.
+                        if(i > 0)
+                            m_Context.physicsManager->TickBodies(fixedDeltaTime);
+
+                        m_Context.physicsManager->StepSimulation(fixedDeltaTime, m_ActivateAllPhysics);
+
+                        // Cleared here rather than once per frame: the first frames of play mode can
+                        // run zero steps, and the wake-up has to survive until a step actually happens.
+                        m_ActivateAllPhysics = false;
+                    }
                 }
                 {
                     SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Audio);
@@ -214,9 +242,11 @@ namespace Shard::Engine{
                     m_Context.levelManager->Tick();
                 }
             }
-
-            if(m_ActivateAllPhysics)
-                m_ActivateAllPhysics = false;
+            else{
+                // Nothing is simulating, so don't bank time that would be replayed as a burst of steps
+                // the moment play mode starts.
+                m_Context.timeManager->ResetAccumulator();
+            }
 
             m_Context.levelManager->PumpAsyncLoad();
 
@@ -239,10 +269,8 @@ namespace Shard::Engine{
 
             {
                 SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Physics);
-                m_Context.physicsManager->TickBodies(m_Context.timeManager->GetFixedDeltaTime());
+                m_Context.physicsManager->TickBodies(fixedDeltaTime);
             }
-
-            m_Context.timeManager->Tick();
 
             {
                 SHARD_PROFILE_SCOPE(Debugging::ProfileCategory::Rendering);

@@ -78,7 +78,10 @@ namespace Shard::Engine{
             bool vsync = true;
 
             //PHYSICS (project settings : physics)
+            /// Command line override for the project's gravity; the project setting is used unless
+            /// overrideGravity is set.
             glm::vec3 gravity = glm::vec3(0, -9.81f, 0);
+            bool overrideGravity = false;
 
             //PLAY MODE
             bool startInPlayMode = false;
